@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, FileText, CalendarDays, Users, ArrowRight } from "lucide-react";
+import { MessageSquare, FileText, CalendarDays, Users, ArrowRight, LucideIcon } from "lucide-react";
 
 const Index = () => {
   return (
@@ -173,7 +173,7 @@ const Index = () => {
 };
 
 interface FeatureCardProps {
-  icon: React.FC<{ size?: number }>;
+  icon: LucideIcon;
   title: string;
   description: string;
   delay: number;
