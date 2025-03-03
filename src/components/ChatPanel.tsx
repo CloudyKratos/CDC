@@ -12,7 +12,15 @@ import {
   Video,
   Hash,
   Megaphone,
-  Calendar
+  Calendar,
+  Download,
+  Reply,
+  Heart,
+  Plus,
+  AtSign,
+  Gif,
+  Mic,
+  Bookmark
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +32,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+// Fixed the type to be more specific
 interface Message {
   id: string;
   content: string;
@@ -35,6 +46,11 @@ interface Message {
     name: string;
     url: string;
   }[];
+  reactions?: {
+    emoji: string;
+    count: number;
+    reacted: boolean;
+  }[];
 }
 
 interface ChatPanelProps {
@@ -44,6 +60,7 @@ interface ChatPanelProps {
 export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   const getChannelInfo = () => {
@@ -52,45 +69,52 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
         return { 
           name: "general", 
           icon: <Hash size={16} />,
-          description: "General discussions for the community"
+          description: "General discussions for the community",
+          members: 124
         };
       case "community-announcements":
         return { 
           name: "announcements", 
           icon: <Megaphone size={16} />,
-          description: "Important announcements from the team"
+          description: "Important announcements from the team",
+          members: 124
         };
       case "community-events":
         return { 
           name: "events", 
           icon: <Calendar size={16} />,
-          description: "Upcoming events and meetups"
+          description: "Upcoming events and meetups",
+          members: 124
         };
       case "community-onboarding":
         return { 
           name: "onboarding", 
           icon: <User size={16} />,
-          description: "Get started and introduce yourself"
+          description: "Get started and introduce yourself",
+          members: 124
         };
       case "community-roundtable":
         return { 
           name: "roundtable", 
           icon: <Video size={16} />,
-          description: "Video conference for exclusive members"
+          description: "Video conference for exclusive members",
+          members: 89,
+          isExclusive: true
         };
       default:
         return { 
           name: "Entrepreneur Chat", 
           icon: <MessageIcon size={16} />,
-          description: "Connect with other founders"
+          description: "Connect with other founders",
+          members: 124
         };
     }
   };
 
   const channelInfo = getChannelInfo();
   
-  // Channel-specific mock messages
-  const getCommunityMessages = () => {
+  // Channel-specific mock messages with correct typing
+  const getCommunityMessages = (): Message[] => {
     if (channelType === "community-general") {
       return [
         {
@@ -103,7 +127,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           id: "2",
           content: "Hi everyone! I'm new here and excited to join this community.",
           sender: "Emily",
-          timestamp: new Date(Date.now() - 1000 * 60 * 35)
+          timestamp: new Date(Date.now() - 1000 * 60 * 35),
+          reactions: [
+            { emoji: "👋", count: 5, reacted: true },
+            { emoji: "🎉", count: 3, reacted: false }
+          ]
         },
         {
           id: "3",
@@ -115,7 +143,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           id: "4",
           content: "I'm building a sustainable fashion marketplace. Would love to connect with others in e-commerce or sustainability!",
           sender: "Emily",
-          timestamp: new Date(Date.now() - 1000 * 60 * 25)
+          timestamp: new Date(Date.now() - 1000 * 60 * 25),
+          reactions: [
+            { emoji: "🔥", count: 2, reacted: false },
+            { emoji: "👍", count: 4, reacted: true }
+          ]
         },
         {
           id: "5",
@@ -143,13 +175,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           id: "2",
           content: "🎉 We're excited to announce our next community event: Founder's Roundtable on Thursday at 3:00 PM. Join us for an insightful discussion!",
           sender: "Admin",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24)
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
+          reactions: [
+            { emoji: "🎉", count: 15, reacted: true },
+            { emoji: "👍", count: 8, reacted: false }
+          ]
         },
         {
           id: "3",
           content: "📢 New feature alert! You can now upload documents and images in chat channels. Try it out!",
           sender: "Admin",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12)
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12),
+          reactions: [
+            { emoji: "🚀", count: 12, reacted: true }
+          ]
         }
       ];
     } else if (channelType === "community-events") {
@@ -198,7 +237,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           id: "2",
           content: "The video call is now LIVE! Join to discuss today's topic: 'Finding Product-Market Fit'",
           sender: "Admin",
-          timestamp: new Date(Date.now() - 1000 * 60 * 10)
+          timestamp: new Date(Date.now() - 1000 * 60 * 10),
+          reactions: [
+            { emoji: "🔴", count: 7, reacted: true },
+            { emoji: "👀", count: 12, reacted: false }
+          ]
         }
       ];
     } else {
@@ -232,6 +275,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
     name: string;
     url: string;
   }[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   const handleSendMessage = () => {
     if (newMessage.trim() || fileUploads.length > 0) {
@@ -246,6 +291,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
       setMessages([...messages, message]);
       setNewMessage("");
       setFileUploads([]);
+      
+      // Auto scroll to bottom
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      }, 100);
     }
   };
   
@@ -290,61 +342,153 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
     }
   };
 
+  const toggleReaction = (messageId: string, emoji: string) => {
+    setMessages(prevMessages => 
+      prevMessages.map(message => {
+        if (message.id === messageId) {
+          const existingReactions = message.reactions || [];
+          const reactionIndex = existingReactions.findIndex(r => r.emoji === emoji);
+          
+          let updatedReactions;
+          if (reactionIndex >= 0) {
+            // Toggle reaction
+            const reaction = existingReactions[reactionIndex];
+            if (reaction.reacted) {
+              // Remove reaction
+              updatedReactions = existingReactions.map(r => 
+                r.emoji === emoji ? { ...r, count: r.count - 1, reacted: false } : r
+              ).filter(r => r.count > 0);
+            } else {
+              // Add reaction
+              updatedReactions = existingReactions.map(r => 
+                r.emoji === emoji ? { ...r, count: r.count + 1, reacted: true } : r
+              );
+            }
+          } else {
+            // Add new reaction
+            updatedReactions = [...existingReactions, { emoji, count: 1, reacted: true }];
+          }
+          
+          return { ...message, reactions: updatedReactions };
+        }
+        return message;
+      })
+    );
+  };
+
+  const emojiList = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "💯", "🙌"];
+
   return (
-    <div className="flex flex-col h-full bg-white border border-gray-100 rounded-lg overflow-hidden animate-scale-in">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden animate-scale-in">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary">
             {channelInfo.icon}
           </div>
           <div>
-            <h3 className="font-medium">{channelInfo.name}</h3>
-            <p className="text-xs text-gray-500">{channelInfo.description}</p>
+            <h3 className="font-medium dark:text-white flex items-center">
+              {channelInfo.name}
+              {channelInfo.isExclusive && (
+                <span className="ml-2 text-xs bg-yellow-500 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+              )}
+            </h3>
+            <div className="flex items-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">{channelInfo.description}</p>
+              <div className="ml-2 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block mr-1"></span>
+                {channelInfo.members} online
+              </div>
+            </div>
           </div>
         </div>
         
         <div className="flex items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                  <AtSign size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Mentions</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                  <Bookmark size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Saved Items</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           {channelType === "community-roundtable" && (
-            <Button size="sm" variant="default" className="mr-2">
+            <Button size="sm" variant="default" className="mr-2 bg-red-500 hover:bg-red-600">
               <Video size={14} className="mr-1" />
-              Join Video Call
+              Join Live
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-            <MoreHorizontal size={18} />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <MoreHorizontal size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>Pin Message</DropdownMenuItem>
+              <DropdownMenuItem>Mark as Unread</DropdownMenuItem>
+              <DropdownMenuItem>Mute Channel</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-500">Leave Channel</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 content-blur bg-gray-50/50">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 content-blur bg-gray-50/50 dark:bg-gray-900">
         {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "flex max-w-[80%] animate-slide-in",
+              "flex max-w-[85%] group",
               message.sender === "You" ? "ml-auto" : ""
             )}
           >
             {message.sender !== "You" && message.sender !== "system" && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                <User size={14} className="text-gray-500" />
+              <div className="mr-2 mt-1 flex-shrink-0">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender}`} />
+                  <AvatarFallback>{message.sender.slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
               </div>
             )}
             
             <div
               className={cn(
-                "px-4 py-2 rounded-lg",
+                "px-4 py-2 rounded-lg relative group animate-fade-in",
                 message.sender === "system" 
-                  ? "bg-gray-100 text-gray-600 border border-gray-200 mx-auto text-center text-sm" 
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 mx-auto text-center text-sm" 
                   : message.sender === "You"
-                    ? "bg-primary text-white"
-                    : "bg-white border border-gray-100 shadow-sm"
+                    ? "bg-primary text-white dark:bg-primary/80"
+                    : "bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm"
               )}
             >
               {message.sender !== "You" && message.sender !== "system" && (
-                <div className="font-semibold text-sm text-gray-700 mb-1">{message.sender}</div>
+                <div className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                  {message.sender}
+                  {message.sender === "Admin" && (
+                    <span className="ml-1 text-xs bg-primary/20 text-primary dark:bg-primary/30 px-1 py-0.5 rounded">MOD</span>
+                  )}
+                </div>
               )}
-              <p className="text-sm">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mt-2 space-y-2">
@@ -354,14 +498,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
                       className={cn(
                         "p-2 rounded flex items-center",
                         message.sender === "You" 
-                          ? "bg-white/10" 
-                          : "bg-gray-50"
+                          ? "bg-white/10 hover:bg-white/20" 
+                          : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                       )}
                     >
                       {attachment.type === "document" ? (
-                        <File size={14} className={message.sender === "You" ? "text-white" : "text-gray-500"} />
+                        <File size={14} className={message.sender === "You" ? "text-white" : "text-gray-500 dark:text-gray-400"} />
                       ) : (
-                        <ImageIcon size={14} className={message.sender === "You" ? "text-white" : "text-gray-500"} />
+                        <ImageIcon size={14} className={message.sender === "You" ? "text-white" : "text-gray-500 dark:text-gray-400"} />
                       )}
                       <span className="text-xs ml-2 truncate">{attachment.name}</span>
                       <Button 
@@ -369,10 +513,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
                         size="sm" 
                         className={cn(
                           "ml-auto h-6 w-6 p-0",
-                          message.sender === "You" ? "text-white/70 hover:text-white" : "text-gray-400 hover:text-gray-600"
+                          message.sender === "You" ? "text-white/70 hover:text-white" : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400"
                         )}
                       >
-                        <MoreHorizontal size={12} />
+                        <Download size={12} />
                       </Button>
                     </div>
                   ))}
@@ -382,31 +526,96 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
               <div 
                 className={cn(
                   "text-[10px] mt-1",
-                  message.sender === "You" ? "text-white/70" : "text-gray-400"
+                  message.sender === "You" ? "text-white/70" : "text-gray-400 dark:text-gray-500"
                 )}
               >
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
+              
+              {/* Message Reactions */}
+              {message.reactions && message.reactions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {message.reactions.map((reaction, index) => (
+                    <button
+                      key={index}
+                      onClick={() => toggleReaction(message.id, reaction.emoji)}
+                      className={cn(
+                        "text-xs rounded-full px-1.5 py-0.5 flex items-center space-x-1 transition-colors",
+                        reaction.reacted 
+                          ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-foreground" 
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      )}
+                    >
+                      <span>{reaction.emoji}</span>
+                      <span>{reaction.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Message Actions */}
+              <div className={cn(
+                "absolute -top-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700 divide-x divide-gray-100 dark:divide-gray-700",
+                message.sender === "system" && "hidden"
+              )}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 dark:text-gray-400">
+                  <Reply size={12} />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 dark:text-gray-400" onClick={() => toggleReaction(message.id, "❤️")}>
+                  <Heart size={12} />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 dark:text-gray-400">
+                      <Plus size={12} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="flex flex-wrap p-2 w-[180px]">
+                    {emojiList.map(emoji => (
+                      <Button 
+                        key={emoji} 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => toggleReaction(message.id, emoji)}
+                      >
+                        {emoji}
+                      </Button>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         ))}
+        
+        {isTyping && (
+          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+            <div className="flex space-x-1 mr-2">
+              <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-600 rounded-full animation-delay-200"></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-600 rounded-full animation-delay-400"></div>
+            </div>
+            Someone is typing...
+          </div>
+        )}
       </div>
       
       {fileUploads.length > 0 && (
-        <div className="p-2 border-t border-gray-100 bg-gray-50">
+        <div className="p-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
           <div className="flex flex-wrap gap-2">
             {fileUploads.map((file, index) => (
-              <div key={index} className="flex items-center bg-white p-1 rounded border border-gray-200 pr-2">
+              <div key={index} className="flex items-center bg-white dark:bg-gray-700 p-1 rounded border border-gray-200 dark:border-gray-600 pr-2">
                 {file.type === "document" ? (
-                  <File size={14} className="text-gray-500 mr-1" />
+                  <File size={14} className="text-gray-500 dark:text-gray-400 mr-1" />
                 ) : (
-                  <ImageIcon size={14} className="text-gray-500 mr-1" />
+                  <ImageIcon size={14} className="text-gray-500 dark:text-gray-400 mr-1" />
                 )}
                 <span className="text-xs truncate max-w-[100px]">{file.name}</span>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="ml-1 h-5 w-5 p-0 text-gray-400 hover:text-gray-600"
+                  className="ml-1 h-5 w-5 p-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400"
                   onClick={() => removeAttachment(index)}
                 >
                   <X size={12} />
@@ -417,47 +626,78 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
         </div>
       )}
       
-      <div className="p-3 border-t border-gray-100 bg-white">
+      <div className="p-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-center space-x-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
-                <Paperclip size={18} />
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400">
+                <Plus size={18} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => handleAttachClick("document")}>
                 <File size={14} className="mr-2" />
-                <span>Attach Document</span>
+                <span>Document</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleAttachClick("image")}>
                 <ImageIcon size={14} className="mr-2" />
-                <span>Upload Image</span>
+                <span>Image</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Gif size={14} className="mr-2" />
+                <span>GIF</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Mic size={14} className="mr-2" />
+                <span>Audio</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              channelType === "community-announcements" && messages[0]?.sender === "system" 
-                ? "Only admins can post here" 
-                : "Type a message..."
-            }
-            className="flex-1 bg-gray-50 border-gray-100 focus-visible:ring-primary"
-            disabled={channelType === "community-announcements" && messages[0]?.sender === "system"}
-          />
-          
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
-            <Smile size={18} />
-          </Button>
+          <div className="relative flex-1">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                channelType === "community-announcements" && messages[0]?.sender === "system" 
+                  ? "Only admins can post here" 
+                  : "Type a message..."
+              }
+              className="flex-1 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 focus-visible:ring-primary pl-3 pr-10"
+              disabled={channelType === "community-announcements" && messages[0]?.sender === "system"}
+            />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 h-7 w-7"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <Smile size={18} />
+            </Button>
+            
+            {showEmojiPicker && (
+              <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 p-2 grid grid-cols-8 gap-1">
+                {emojiList.map(emoji => (
+                  <button 
+                    key={emoji}
+                    className="w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg"
+                    onClick={() => {
+                      setNewMessage(prev => prev + emoji);
+                      setShowEmojiPicker(false);
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           
           <Button 
             onClick={handleSendMessage} 
             size="sm" 
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 dark:bg-primary/90 dark:hover:bg-primary"
             disabled={(channelType === "community-announcements" && messages[0]?.sender === "system") || (!newMessage.trim() && fileUploads.length === 0)}
           >
             <Send size={16} className="mr-1" />
