@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { 
   Send, 
@@ -18,7 +17,7 @@ import {
   Heart,
   Plus,
   AtSign,
-  Gif,
+  Gift,
   Mic,
   Bookmark
 } from "lucide-react";
@@ -35,7 +34,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Fixed the type to be more specific
 interface Message {
   id: string;
   content: string;
@@ -113,7 +111,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
 
   const channelInfo = getChannelInfo();
   
-  // Channel-specific mock messages with correct typing
   const getCommunityMessages = (): Message[] => {
     if (channelType === "community-general") {
       return [
@@ -292,7 +289,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
       setNewMessage("");
       setFileUploads([]);
       
-      // Auto scroll to bottom
       setTimeout(() => {
         if (chatContainerRef.current) {
           chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -311,8 +307,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "document" | "image") => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      // In a real app, you would upload the file to a server and get a URL
-      // Here we're just simulating the upload with a mock URL
       const newUploads = Array.from(files).map(file => ({
         type,
         name: file.name,
@@ -351,21 +345,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           
           let updatedReactions;
           if (reactionIndex >= 0) {
-            // Toggle reaction
             const reaction = existingReactions[reactionIndex];
             if (reaction.reacted) {
-              // Remove reaction
               updatedReactions = existingReactions.map(r => 
                 r.emoji === emoji ? { ...r, count: r.count - 1, reacted: false } : r
               ).filter(r => r.count > 0);
             } else {
-              // Add reaction
               updatedReactions = existingReactions.map(r => 
                 r.emoji === emoji ? { ...r, count: r.count + 1, reacted: true } : r
               );
             }
           } else {
-            // Add new reaction
             updatedReactions = [...existingReactions, { emoji, count: 1, reacted: true }];
           }
           
@@ -644,7 +634,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
                 <span>Image</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Gif size={14} className="mr-2" />
+                <Gift size={14} className="mr-2" />
                 <span>GIF</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
@@ -705,7 +695,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ channelType = "chat" }) =>
           </Button>
         </div>
         
-        {/* Hidden file inputs */}
         <input
           type="file"
           ref={fileInputRef}
