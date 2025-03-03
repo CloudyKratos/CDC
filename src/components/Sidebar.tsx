@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Home, 
@@ -53,7 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSelectItem, activeItem }) =>
   const [darkMode, setDarkMode] = useState(false);
   
   useEffect(() => {
-    // Check if user prefers dark mode
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(isDarkMode);
     
@@ -118,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSelectItem, activeItem }) =>
           </div>
         ) : (
           <div className="w-8 h-8 mx-auto flex items-center justify-center bg-primary/10 dark:bg-primary/20 rounded-lg">
-            <Logo size="xs" />
+            <Logo size="sm" />
           </div>
         )}
         

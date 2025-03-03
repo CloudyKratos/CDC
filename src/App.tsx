@@ -41,6 +41,19 @@ const App = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    // Apply color theme
+    const colorTheme = localStorage.getItem('colorTheme') || 'blue';
+    document.documentElement.classList.add(`theme-${colorTheme}`);
+    
+    // Add user to local storage if not exists (for demo)
+    if (!localStorage.getItem('user')) {
+      localStorage.setItem('user', JSON.stringify({
+        id: '1',
+        name: 'Demo User',
+        email: 'user@example.com'
+      }));
+    }
   }, []);
   
   return (
