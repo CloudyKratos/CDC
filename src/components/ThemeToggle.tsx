@@ -1,20 +1,48 @@
 
 import React, { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export const ThemeToggle: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [colorTheme, setColorTheme] = useState<string>("blue");
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  
+  const colorOptions = [
+    { name: "Blue", value: "blue", color: "bg-blue-500" },
+    { name: "Purple", value: "purple", color: "bg-purple-500" },
+    { name: "Green", value: "green", color: "bg-green-500" },
+    { name: "Orange", value: "orange", color: "bg-orange-500" }
+  ];
   
   useEffect(() => {
     const isDark = localStorage.getItem('darkMode') === 'true';
+    const savedColorTheme = localStorage.getItem('colorTheme') || 'blue';
+    
     setIsDarkMode(isDark);
+    setColorTheme(savedColorTheme);
+    
+    // Apply the saved theme
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Apply the saved color theme
+    colorOptions.forEach(opt => {
+      if (opt.value === savedColorTheme) {
+        document.documentElement.className = isDark ? `dark theme-${opt.value}` : `theme-${opt.value}`;
+      }
+    });
   }, []);
   
   const toggleTheme = () => {
@@ -27,62 +55,76 @@ export const ThemeToggle: React.FC = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    // Reapply the color theme
+    document.documentElement.className = newMode ? `dark theme-${colorTheme}` : `theme-${colorTheme}`;
+  };
+  
+  const setThemeColor = (theme: string) => {
+    setColorTheme(theme);
+    localStorage.setItem('colorTheme', theme);
+    document.documentElement.className = isDarkMode ? `dark theme-${theme}` : `theme-${theme}`;
+    setIsOpen(false);
   };
   
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn(
+            "h-9 w-9 rounded-full overflow-hidden relative transition-all duration-300 hover:bg-primary/10",
+            isOpen ? "bg-primary/10" : ""
+          )}
+        >
+          <Sun className={cn(
+            "h-[1.2rem] w-[1.2rem] transition-all absolute", 
+            isDarkMode ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+          )} />
+          <Moon className={cn(
+            "h-[1.2rem] w-[1.2rem] transition-all absolute",
+            isDarkMode ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"
+          )} />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="glass-morphism">
-        <DropdownMenuItem 
-          onClick={() => {
-            toggleTheme();
-            localStorage.setItem('colorTheme', 'blue');
-            document.documentElement.className = isDarkMode ? 'dark theme-blue' : 'theme-blue';
-          }}
-          className="flex items-center space-x-2 cursor-pointer"
-        >
-          <div className="w-4 h-4 rounded-full bg-blue-500" />
-          <span>Blue</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => {
-            toggleTheme();
-            localStorage.setItem('colorTheme', 'purple');
-            document.documentElement.className = isDarkMode ? 'dark theme-purple' : 'theme-purple';
-          }}
-          className="flex items-center space-x-2 cursor-pointer"
-        >
-          <div className="w-4 h-4 rounded-full bg-purple-500" />
-          <span>Purple</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => {
-            toggleTheme();
-            localStorage.setItem('colorTheme', 'green');
-            document.documentElement.className = isDarkMode ? 'dark theme-green' : 'theme-green';
-          }}
-          className="flex items-center space-x-2 cursor-pointer"
-        >
-          <div className="w-4 h-4 rounded-full bg-green-500" />
-          <span>Green</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => {
-            toggleTheme();
-            localStorage.setItem('colorTheme', 'orange');
-            document.documentElement.className = isDarkMode ? 'dark theme-orange' : 'theme-orange';
-          }}
-          className="flex items-center space-x-2 cursor-pointer"
-        >
-          <div className="w-4 h-4 rounded-full bg-orange-500" />
-          <span>Orange</span>
-        </DropdownMenuItem>
+      <DropdownMenuContent 
+        align="end" 
+        className="glass-morphism border border-gray-100 dark:border-gray-800 p-2 animate-scale-in"
+      >
+        <div className="flex justify-between items-center mb-2 px-2">
+          <div className="flex items-center gap-1.5">
+            <Palette size={14} />
+            <span className="text-sm font-medium">Theme</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7 rounded-full"
+            onClick={toggleTheme}
+          >
+            {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+          </Button>
+        </div>
+        
+        <DropdownMenuSeparator className="my-1" />
+        
+        <div className="grid grid-cols-2 gap-1 pt-1">
+          {colorOptions.map((option) => (
+            <DropdownMenuItem 
+              key={option.value}
+              onClick={() => setThemeColor(option.value)}
+              className={cn(
+                "flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 focus:bg-primary/10",
+                colorTheme === option.value && "bg-primary/10"
+              )}
+            >
+              <div className={cn("w-3 h-3 rounded-full", option.color)} />
+              <span className="text-sm">{option.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
