@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 export const ThemeToggle: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -52,8 +53,18 @@ export const ThemeToggle: React.FC = () => {
     
     if (newMode) {
       document.documentElement.classList.add('dark');
+      toast({
+        title: "Dark mode enabled",
+        description: "Your eyes will thank you at night.",
+        variant: "default",
+      });
     } else {
       document.documentElement.classList.remove('dark');
+      toast({
+        title: "Light mode enabled",
+        description: "Perfect for daytime usage.",
+        variant: "default",
+      });
     }
     
     // Reapply the color theme
@@ -65,6 +76,12 @@ export const ThemeToggle: React.FC = () => {
     localStorage.setItem('colorTheme', theme);
     document.documentElement.className = isDarkMode ? `dark theme-${theme}` : `theme-${theme}`;
     setIsOpen(false);
+    
+    toast({
+      title: `${theme.charAt(0).toUpperCase() + theme.slice(1)} theme applied`,
+      description: "Your color preferences have been updated.",
+      variant: "default",
+    });
   };
   
   return (
@@ -75,7 +92,8 @@ export const ThemeToggle: React.FC = () => {
           size="icon" 
           className={cn(
             "h-9 w-9 rounded-full overflow-hidden relative transition-all duration-300 hover:bg-primary/10",
-            isOpen ? "bg-primary/10" : ""
+            isOpen ? "bg-primary/10" : "",
+            "animate-fade-in button-effect glass-morphism border-0"
           )}
         >
           <Sun className={cn(
@@ -101,7 +119,7 @@ export const ThemeToggle: React.FC = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7 rounded-full"
+            className="h-7 w-7 rounded-full button-effect"
             onClick={toggleTheme}
           >
             {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
@@ -116,7 +134,7 @@ export const ThemeToggle: React.FC = () => {
               key={option.value}
               onClick={() => setThemeColor(option.value)}
               className={cn(
-                "flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 focus:bg-primary/10",
+                "flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 focus:bg-primary/10 button-effect",
                 colorTheme === option.value && "bg-primary/10"
               )}
             >

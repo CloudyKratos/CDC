@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (isAuthenticated === null) {
     // Loading state
-    return <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    return <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
     </div>;
   }
@@ -51,8 +51,18 @@ const App = () => {
       localStorage.setItem('user', JSON.stringify({
         id: '1',
         name: 'Demo User',
-        email: 'user@example.com'
+        email: 'user@example.com',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
       }));
+    }
+    
+    // Apply prefers-color-scheme detection
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (!localStorage.getItem('darkMode')) {
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+      }
     }
   }, []);
   
