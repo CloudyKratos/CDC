@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/tabs";
 import { Eye, EyeOff, LogIn, UserPlus, Github, Twitter, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +43,7 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify({ email: loginEmail, name: "Demo User" }));
       toast({
         title: "Login successful",
-        description: "Welcome back to Stoic!",
+        description: "Welcome back to Nexus!",
       });
       navigate("/dashboard");
     }, 1500);
@@ -57,7 +58,7 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify({ email: signupEmail, name: signupName }));
       toast({
         title: "Account created",
-        description: "Welcome to Stoic! Your journey begins now.",
+        description: "Welcome to Nexus! Your journey begins now.",
       });
       navigate("/dashboard");
     }, 1500);
@@ -67,20 +68,30 @@ const Login = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 doodle-pattern p-4">
       <div className="absolute top-4 left-4 flex items-center space-x-2">
         <Logo size="sm" />
-        <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">Stoic</h1>
+        <h1 className="text-lg font-bold gradient-text">Nexus</h1>
+      </div>
+      
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
       </div>
       
       <div className="absolute bottom-0 left-0 w-full h-[30%] bg-gradient-to-t from-primary/5 to-transparent dark:from-primary/10 pointer-events-none" />
       
       <div className="max-w-md w-full">
-        <h1 className="text-center text-3xl font-bold mb-2 animate-fade-in">Welcome to Stoic</h1>
-        <p className="text-center text-gray-500 dark:text-gray-400 mb-8 animate-fade-in">The platform for entrepreneurs seeking growth</p>
+        <h1 className="text-center text-3xl font-bold mb-2 animate-fade-in gradient-text">Welcome to Nexus</h1>
+        <p className="text-center text-gray-500 dark:text-gray-400 mb-8 animate-fade-in">
+          The platform for entrepreneurs seeking growth
+        </p>
         
-        <Card className="border-gray-200 dark:border-gray-800 shadow-xl animate-scale-in overflow-hidden">
+        <Card className="border-gray-200 dark:border-gray-800 shadow-xl animate-scale-in overflow-hidden glass-morphism">
           <Tabs defaultValue="login">
             <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-white">Sign Up</TabsTrigger>
+              <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white">
+                Login
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white">
+                Sign Up
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -99,6 +110,7 @@ const Login = () => {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
+                      className="glass-morphism border-gray-200 dark:border-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
@@ -114,6 +126,7 @@ const Login = () => {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
+                        className="glass-morphism border-gray-200 dark:border-gray-700"
                       />
                       <Button 
                         type="button"
@@ -128,24 +141,24 @@ const Login = () => {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full group" disabled={loading}>
                     {loading ? "Logging in..." : "Login to Account"}
-                    {!loading && <LogIn className="ml-2" size={16} />}
+                    {!loading && <LogIn className="ml-2 transition-transform group-hover:translate-x-1" size={16} />}
                   </Button>
                   <div className="relative w-full text-center">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+                      <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
                     </div>
                     <div className="relative px-2 inline-block text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-card">
                       Or continue with
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 w-full">
-                    <Button variant="outline" type="button" className="w-full">
+                    <Button variant="outline" type="button" className="w-full glass-morphism">
                       <Github size={16} className="mr-2" />
                       GitHub
                     </Button>
-                    <Button variant="outline" type="button" className="w-full">
+                    <Button variant="outline" type="button" className="w-full glass-morphism">
                       <Twitter size={16} className="mr-2" />
                       Twitter
                     </Button>
@@ -169,6 +182,7 @@ const Login = () => {
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
                       required
+                      className="glass-morphism border-gray-200 dark:border-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
@@ -180,6 +194,7 @@ const Login = () => {
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
+                      className="glass-morphism border-gray-200 dark:border-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
@@ -192,6 +207,7 @@ const Login = () => {
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
+                        className="glass-morphism border-gray-200 dark:border-gray-700"
                       />
                       <Button 
                         type="button"
@@ -209,24 +225,24 @@ const Login = () => {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full group" disabled={loading}>
                     {loading ? "Creating account..." : "Create Account"}
-                    {!loading && <UserPlus className="ml-2" size={16} />}
+                    {!loading && <UserPlus className="ml-2 transition-transform group-hover:translate-x-1" size={16} />}
                   </Button>
                   <div className="relative w-full text-center">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+                      <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
                     </div>
                     <div className="relative px-2 inline-block text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-card">
                       Or continue with
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 w-full">
-                    <Button variant="outline" type="button" className="w-full">
+                    <Button variant="outline" type="button" className="w-full glass-morphism">
                       <Github size={16} className="mr-2" />
                       GitHub
                     </Button>
-                    <Button variant="outline" type="button" className="w-full">
+                    <Button variant="outline" type="button" className="w-full glass-morphism">
                       <Twitter size={16} className="mr-2" />
                       Twitter
                     </Button>
@@ -238,9 +254,9 @@ const Login = () => {
         </Card>
         
         <div className="mt-8 text-center">
-          <a href="/" className="text-primary hover:underline flex items-center justify-center">
+          <a href="/" className="text-primary hover:underline flex items-center justify-center group">
             Back to homepage
-            <ArrowRight size={14} className="ml-1" />
+            <ArrowRight size={14} className="ml-1 transition-transform group-hover:translate-x-1" />
           </a>
         </div>
       </div>

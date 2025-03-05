@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -127,12 +128,30 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.01em;
+    line-height: 1.6;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-700/20 shadow-sm;
+    @apply bg-white/70 dark:bg-gray-900/60 backdrop-blur-md border border-white/20 dark:border-gray-700/20 shadow-sm transition-all duration-300;
+  }
+  
+  .glass-morphism {
+    @apply bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl border border-white/30 dark:border-gray-800/30 shadow-sm;
+  }
+  
+  .bento-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 p-4;
+  }
+  
+  .bento-card {
+    @apply glass-card rounded-xl p-5 hover:shadow-md transition-all duration-300 hover:translate-y-[-2px];
+  }
+  
+  .bento-card-large {
+    @apply glass-card rounded-xl p-5 md:col-span-2 hover:shadow-md transition-all duration-300 hover:translate-y-[-2px];
   }
   
   .text-balance {
@@ -161,6 +180,21 @@
 
   .chat-bubble-tail-right {
     @apply after:-right-1.5 after:border-r after:border-t after:border-primary/50 dark:after:border-primary/30 after:rounded-tr-md after:bg-primary dark:after:bg-primary/80;
+  }
+  
+  .icon-button {
+    @apply h-8 w-8 rounded-full flex items-center justify-center bg-background hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors;
+  }
+  
+  .sidebar-width {
+    width: 200px;
+  }
+  
+  .content-width {
+    width: calc(100% - 216px); /* 200px sidebar + 16px gap */
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
