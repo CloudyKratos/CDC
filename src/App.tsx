@@ -11,7 +11,14 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -64,13 +71,21 @@ const App = () => {
         localStorage.setItem('darkMode', 'true');
       }
     }
+    
+    // Add smooth scrolling behavior
+    document.documentElement.style.scrollBehavior = 'smooth';
+    
+    // Cleanup function
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
   }, []);
   
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-right" closeButton richColors />
         <BrowserRouter>
           <AnimatedTransition>
             <Routes>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const ThemeToggle: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -18,10 +19,10 @@ export const ThemeToggle: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
   const colorOptions = [
-    { name: "Blue", value: "blue", color: "bg-blue-500" },
-    { name: "Purple", value: "purple", color: "bg-purple-500" },
-    { name: "Green", value: "green", color: "bg-green-500" },
-    { name: "Orange", value: "orange", color: "bg-orange-500" }
+    { name: "Blue", value: "blue", color: "bg-gradient-to-r from-blue-400 to-blue-600" },
+    { name: "Purple", value: "purple", color: "bg-gradient-to-r from-purple-400 to-purple-600" },
+    { name: "Green", value: "green", color: "bg-gradient-to-r from-green-400 to-green-600" },
+    { name: "Orange", value: "orange", color: "bg-gradient-to-r from-orange-400 to-orange-600" }
   ];
   
   useEffect(() => {
@@ -86,47 +87,62 @@ export const ThemeToggle: React.FC = () => {
   
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className={cn(
-            "h-9 w-9 rounded-full overflow-hidden relative transition-all duration-300 hover:bg-primary/10",
-            isOpen ? "bg-primary/10" : "",
-            "animate-fade-in button-effect glass-morphism border-0"
-          )}
-        >
-          <Sun className={cn(
-            "h-[1.2rem] w-[1.2rem] transition-all absolute", 
-            isDarkMode ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
-          )} />
-          <Moon className={cn(
-            "h-[1.2rem] w-[1.2rem] transition-all absolute",
-            isDarkMode ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"
-          )} />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={cn(
+                "h-9 w-9 rounded-full overflow-hidden relative transition-all duration-300 hover:bg-primary/10",
+                isOpen ? "bg-primary/10" : "",
+                "animate-fade-in button-effect glass-morphism border-0"
+              )}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <Sun className={cn(
+                "h-[1.2rem] w-[1.2rem] transition-all absolute", 
+                isDarkMode ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+              )} />
+              <Moon className={cn(
+                "h-[1.2rem] w-[1.2rem] transition-all absolute",
+                isDarkMode ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"
+              )} />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="text-xs">Change appearance</p>
+        </TooltipContent>
+      </Tooltip>
       <DropdownMenuContent 
         align="end" 
-        className="glass-morphism border border-gray-100 dark:border-gray-800 p-2 animate-scale-in"
+        className="glass-morphism border border-gray-100/40 dark:border-gray-800/40 p-2 animate-scale-in shadow-lg backdrop-blur-sm"
       >
         <div className="flex justify-between items-center mb-2 px-2">
           <div className="flex items-center gap-1.5">
-            <Palette size={14} />
+            <Palette size={14} className="text-primary" />
             <span className="text-sm font-medium">Theme</span>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 rounded-full button-effect"
-            onClick={toggleTheme}
-          >
-            {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 rounded-full button-effect hover:bg-primary/10"
+                onClick={toggleTheme}
+              >
+                {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p className="text-xs">Toggle {isDarkMode ? "light" : "dark"} mode</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         
-        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuSeparator className="my-1 bg-gray-200/50 dark:bg-gray-700/50" />
         
         <div className="grid grid-cols-2 gap-1 pt-1">
           {colorOptions.map((option) => (
@@ -134,7 +150,7 @@ export const ThemeToggle: React.FC = () => {
               key={option.value}
               onClick={() => setThemeColor(option.value)}
               className={cn(
-                "flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 focus:bg-primary/10 button-effect",
+                "flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 focus:bg-primary/10 button-effect hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-colors",
                 colorTheme === option.value && "bg-primary/10"
               )}
             >
