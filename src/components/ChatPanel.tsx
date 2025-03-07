@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { 
   Send, 
@@ -26,7 +27,8 @@ import {
   MessageSquare,
   Camera,
   Sticker,
-  Gift
+  Gift,
+  Play // Added missing Play icon import
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1145,5 +1147,111 @@ export const ChatPanel: React.FC<{channelType?: string}> = ({ channelType = "com
                     <span>Sticker</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Gift
-
+                    <Gift size={14} className="mr-2" />
+                    <span>Gift</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 rounded-full"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <Smile size={18} />
+              </Button>
+              
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div className="absolute bottom-16 left-4 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 glass-morphism z-10">
+                  <div className="flex flex-wrap gap-1 max-w-[240px]">
+                    {EMOJIS.map((emoji, index) => (
+                      <button
+                        key={index}
+                        className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-md"
+                        onClick={() => {
+                          setNewMessage(prev => prev + emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex-1 relative">
+                <Input
+                  ref={messageInputRef}
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 pr-10"
+                />
+              </div>
+              
+              {newMessage.trim() ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-primary text-white rounded-full"
+                  onClick={handleSendMessage}
+                >
+                  <Send size={16} />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 rounded-full",
+                    isRecording && "text-red-500 hover:text-red-600"
+                  )}
+                  onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                >
+                  <Mic size={18} />
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          {/* Hidden File Inputs */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={(e) => handleFileUpload(e, "document")}
+          />
+          <input
+            type="file"
+            ref={imageInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => handleFileUpload(e, "image")}
+          />
+          <input
+            type="file"
+            ref={audioInputRef}
+            className="hidden"
+            accept="audio/*"
+            onChange={(e) => handleFileUpload(e, "audio")}
+          />
+        </div>
+      ) : (
+        // No contact selected view
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="text-center max-w-md p-6">
+            <MessageSquare size={48} className="mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+            <h3 className="text-xl font-medium mb-2">Select a conversation</h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              Choose a contact from the sidebar to start chatting or create a new conversation.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
