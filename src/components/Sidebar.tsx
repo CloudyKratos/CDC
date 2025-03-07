@@ -65,7 +65,7 @@ interface SidebarProps {
   viewMode: string;
   setViewMode: (viewMode: string) => void;
   unreadCount: number;
-  onSelectItem?: (item: string);
+  onSelectItem?: (item: string) => void; // Fixed the function type here
   activeItem?: string;
 }
 

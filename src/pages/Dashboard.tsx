@@ -20,7 +20,7 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const [activeItem, setActiveItem] = useState<string>("chat"); // Added activeItem state
   const { toast } = useToast();
-  const isMobile = useIsMobile(); // Changed from useMobile to useIsMobile
+  const isMobile = useIsMobile(); 
   
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
