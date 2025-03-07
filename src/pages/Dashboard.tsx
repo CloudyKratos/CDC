@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sun, Moon, BellRing, MessageCircle, FileText, Users, Settings, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile"; // Changed from useMobile to useIsMobile
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,7 +18,7 @@ const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile(); // Changed from useMobile to useIsMobile
   
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
