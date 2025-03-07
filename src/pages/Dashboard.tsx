@@ -4,10 +4,10 @@ import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, BellRing, MessageCircle, FileText, Users, Settings, X } from "lucide-react";
+import { Sun, Moon, BellRing, MessageCircle, FileText, Users, Settings, X, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile"; // Changed from useMobile to useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("chat");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
-  const [activeItem, setActiveItem] = useState<string>("chat"); // Added activeItem state
+  const [activeItem, setActiveItem] = useState<string>("chat");
   const { toast } = useToast();
   const isMobile = useIsMobile(); 
   
@@ -63,21 +63,30 @@ const Dashboard = () => {
     }
   };
 
+  // This is the function we'll pass to the Sidebar component 
+  // Fixed to match the expected function signature in Sidebar.tsx
+  const handleViewModeChange = (newViewMode: string) => {
+    // Only set if it's a valid ViewMode
+    if (newViewMode === "chat" || newViewMode === "workspace" || newViewMode === "mobile-menu") {
+      setViewMode(newViewMode as ViewMode);
+    }
+  };
+
   const renderContent = () => {
     if (isMobile && viewMode === "mobile-menu") {
       return (
         <div className="flex-1 flex flex-col p-5 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">Nexus Dashboard</h1>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-500">Nexus Community</h1>
             <ThemeToggle />
           </div>
           
           <div className="flex flex-col space-y-4 mb-6">
             <button 
-              className="flex items-center space-x-3 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
               onClick={() => setViewMode("chat")}
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
                 <MessageCircle size={24} />
               </div>
               <div className="flex-1">
@@ -85,15 +94,15 @@ const Dashboard = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Connect with others</p>
               </div>
               {unreadCount > 0 && (
-                <Badge className="bg-primary text-white">{unreadCount}</Badge>
+                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white animate-pulse-glow">{unreadCount}</Badge>
               )}
             </button>
             
             <button 
-              className="flex items-center space-x-3 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
               onClick={() => setViewMode("workspace")}
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white">
                 <FileText size={24} />
               </div>
               <div className="flex-1">
@@ -103,10 +112,10 @@ const Dashboard = () => {
             </button>
             
             <button 
-              className="flex items-center space-x-3 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
               onClick={handleNotificationClick}
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
                 <BellRing size={24} />
               </div>
               <div className="flex-1">
@@ -114,14 +123,14 @@ const Dashboard = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Stay updated</p>
               </div>
               {unreadCount > 0 && (
-                <Badge className="bg-primary text-white">{unreadCount}</Badge>
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse-glow">{unreadCount}</Badge>
               )}
             </button>
             
             <button 
-              className="flex items-center space-x-3 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white">
                 <Users size={24} />
               </div>
               <div className="flex-1">
@@ -131,9 +140,9 @@ const Dashboard = () => {
             </button>
             
             <button 
-              className="flex items-center space-x-3 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white">
                 <Settings size={24} />
               </div>
               <div className="flex-1">
@@ -144,9 +153,9 @@ const Dashboard = () => {
           </div>
           
           <div className="mt-auto">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between p-4 rounded-lg glass-card">
               <div className="flex items-center space-x-3">
-                <Avatar>
+                <Avatar className="border-2 border-white dark:border-gray-800">
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
                   <AvatarFallback>DP</AvatarFallback>
                 </Avatar>
@@ -159,6 +168,7 @@ const Dashboard = () => {
                 variant="ghost" 
                 size="icon"
                 onClick={handleLogout}
+                className="h-9 w-9 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
               >
                 <X size={18} />
               </Button>
@@ -179,12 +189,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80">
+    <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80 doodle-pattern">
       {/* Left Sidebar - Hidden on Mobile */}
       {!isMobile && (
         <Sidebar 
           viewMode={viewMode} 
-          setViewMode={setViewMode} 
+          setViewMode={handleViewModeChange} 
           unreadCount={unreadCount} 
           onSelectItem={handleSelectItem}
           activeItem={activeItem}
@@ -194,7 +204,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Top Navigation Bar */}
-        <div className="p-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+        <div className="p-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm">
           {/* Mobile Menu Button */}
           {isMobile && (
             <Button 
@@ -209,9 +219,14 @@ const Dashboard = () => {
             </Button>
           )}
           
-          {/* Title */}
-          <h1 className={`text-xl font-bold ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
-            {viewMode === "chat" ? "Community Chat" : "Workspace"}
+          {/* Title with gradient and sparkle icon */}
+          <h1 className={`text-xl font-bold flex items-center gap-2 ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
+            {viewMode === "chat" ? (
+              <>
+                <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">Community Chat</span>
+                <Sparkles size={16} className="text-purple-500 animate-pulse-glow" />
+              </>
+            ) : "Workspace"}
           </h1>
           
           {/* Right Side Actions */}
@@ -220,19 +235,31 @@ const Dashboard = () => {
               variant="ghost" 
               size="icon" 
               onClick={handleNotificationClick}
-              className="relative"
+              className="relative hover:bg-primary/10 rounded-full"
             >
               <BellRing size={18} />
               {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary"></span>
+                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary animate-pulse"></span>
               )}
             </Button>
             {!isMobile && <ThemeToggle />}
           </div>
         </div>
         
-        {/* Main Content Area */}
-        {renderContent()}
+        {/* Main Content Area with enhanced background effect */}
+        <div className="flex-1 relative">
+          {/* Decorative floating elements in the background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl animate-float"></div>
+            <div className="absolute top-1/3 -left-32 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200"></div>
+            <div className="absolute -bottom-20 right-1/3 w-64 h-64 bg-green-500/10 dark:bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400"></div>
+          </div>
+          
+          {/* Actual content */}
+          <div className="relative z-10 h-full">
+            {renderContent()}
+          </div>
+        </div>
       </div>
     </div>
   );
