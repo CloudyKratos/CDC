@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { 
   Send, 
@@ -27,7 +26,7 @@ import {
   MessageSquare,
   Camera,
   Sticker,
-  GIF
+  Gift
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +51,7 @@ interface Message {
   sender: string;
   timestamp: Date;
   status: "sent" | "delivered" | "read" | "pending";
+  replyingTo?: Message | null;
   attachments?: {
     type: "document" | "image" | "audio";
     name: string;
@@ -77,9 +77,9 @@ interface Contact {
   isMuted?: boolean;
 }
 
-const EMOJIS = ["😊", "😂", "❤️", "👍", "🔥", "🎉", "😍", "🙏", "😮", "😢", "👏", "🤔"];
+const EMOJIS = ["😊", "😂", "❤️", "😂", "🔥", "🎉", "😍", "🙏", "😮", "😢", "👏", "🤔"];
 
-export const ChatPanel: React.FC = () => {
+export const ChatPanel: React.FC<{channelType?: string}> = ({ channelType = "community" }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -106,20 +106,31 @@ export const ChatPanel: React.FC = () => {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
-    // Select the first contact by default
     if (contacts.length > 0 && !selectedContact) {
       setSelectedContact(contacts[0]);
     }
   }, [contacts]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change or when selectedContact changes
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, selectedContact]);
 
   function getDefaultContacts(): Contact[] {
+    if (channelType === "community") {
+      return [
+        {
+          id: "1",
+          name: "Community Channel",
+          avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Community",
+          status: "online",
+          unreadCount: 3,
+          isPinned: true
+        }
+      ];
+    }
+    
     return [
       {
         id: "1",
@@ -279,6 +290,7 @@ export const ChatPanel: React.FC = () => {
         sender: "You",
         timestamp: new Date(),
         status: "pending",
+        replyingTo: replyingTo,
         attachments: fileUploads.length > 0 ? [...fileUploads] : undefined
       };
       
@@ -864,10 +876,10 @@ export const ChatPanel: React.FC = () => {
                       message.sender === "system" && "w-4/5 md:w-2/3"
                     )}>
                       {/* Reply indicator */}
-                      {message.replyTo && (
+                      {message.replyingTo && (
                         <div className="bg-gray-100 dark:bg-gray-800 rounded p-2 text-xs text-gray-600 dark:text-gray-300 mb-1 border-l-2 border-primary">
-                          <span className="font-semibold">Replying to {message.replyTo.sender}</span>
-                          <p className="truncate">{message.replyTo.content}</p>
+                          <span className="font-semibold">Replying to {message.replyingTo.sender}</span>
+                          <p className="truncate">{message.replyingTo.content}</p>
                         </div>
                       )}
                       
@@ -1133,147 +1145,5 @@ export const ChatPanel: React.FC = () => {
                     <span>Sticker</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <GIF size={14} className="mr-2" />
-                    <span>GIF</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <div className="relative flex-1">
-                <Input
-                  ref={messageInputRef}
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 focus-visible:ring-primary pl-3 pr-10 rounded-full py-6 h-9"
-                />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 h-7 w-7 rounded-full"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                >
-                  <Smile size={18} />
-                </Button>
-                
-                {showEmojiPicker && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 p-2 grid grid-cols-6 gap-1 glass-morphism animate-scale-in">
-                    {EMOJIS.map(emoji => (
-                      <button 
-                        key={emoji}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg"
-                        onClick={() => {
-                          setNewMessage(prev => prev + emoji);
-                          setShowEmojiPicker(false);
-                        }}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {isRecording ? (
-                <Button 
-                  onClick={stopVoiceRecording}
-                  size="icon"
-                  className="bg-red-500 hover:bg-red-600 text-white animate-pulse rounded-full"
-                >
-                  <Stop size={16} />
-                </Button>
-              ) : newMessage.trim() || fileUploads.length > 0 ? (
-                <Button 
-                  onClick={handleSendMessage} 
-                  size="icon"
-                  className="bg-primary hover:bg-primary/90 rounded-full"
-                >
-                  <Send size={16} />
-                </Button>
-              ) : (
-                <Button 
-                  onClick={startVoiceRecording}
-                  size="icon"
-                  className="bg-primary hover:bg-primary/90 rounded-full"
-                >
-                  <Mic size={16} />
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={(e) => handleFileUpload(e, "document")}
-            accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
-          />
-          <input
-            type="file"
-            ref={imageInputRef}
-            className="hidden"
-            onChange={(e) => handleFileUpload(e, "image")}
-            accept="image/*"
-          />
-          <input
-            type="file"
-            ref={audioInputRef}
-            className="hidden"
-            onChange={(e) => handleFileUpload(e, "audio")}
-            accept="audio/*"
-          />
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/30 gap-4">
-          <div className="h-40 w-40 rounded-full bg-primary/10 dark:bg-primary/5 flex items-center justify-center">
-            <MessageSquare size={60} className="text-primary/50" />
-          </div>
-          <h3 className="text-xl font-medium">Select a chat to start messaging</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md text-balance">
-            Choose from your existing conversations or start a new one to begin chatting
-          </p>
-          <Button className="mt-4">
-            Start New Chat
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-};
+                    <Gift
 
-// Utility components
-const Play = (props: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <polygon points="5 3 19 12 5 21 5 3" />
-  </svg>
-);
-
-const Stop = (props: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <rect x="6" y="6" width="12" height="12" rx="1" />
-  </svg>
-);
