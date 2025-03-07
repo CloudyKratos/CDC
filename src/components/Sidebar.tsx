@@ -60,12 +60,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Updated interface to match what Dashboard.tsx is passing
 interface SidebarProps {
-  onSelectItem: (item: string) => void;
-  activeItem: string;
+  viewMode: string;
+  setViewMode: (viewMode: string) => void;
+  unreadCount: number;
+  onSelectItem?: (item: string);
+  activeItem?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onSelectItem, activeItem }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  viewMode, 
+  setViewMode, 
+  unreadCount, 
+  onSelectItem = () => {}, 
+  activeItem = "" 
+}) => {
   const [collapsed, setCollapsed] = useState(false);
   const [communityExpanded, setCommunityExpanded] = useState(true);
   const [communitiesExpanded, setCommunitiesExpanded] = useState(true);
@@ -146,6 +156,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSelectItem, activeItem }) =>
     return community ? community.name : "Community";
   };
 
+  // Modified to use the passed viewMode and setViewMode
+  const handleItemSelect = (itemId: string) => {
+    onSelectItem(itemId);
+    
+    // If a community channel is selected, set view mode to "chat"
+    if (itemId.startsWith("community-")) {
+      setViewMode("chat");
+    } else if (itemId === "documents") {
+      setViewMode("workspace");
+    }
+  };
+
   return (
     <div 
       className={cn(
@@ -195,7 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSelectItem, activeItem }) =>
                       collapsed ? "justify-center px-2" : "justify-start px-3",
                       "animate-fade-in"
                     )}
-                    onClick={() => onSelectItem(item.id)}
+                    onClick={() => handleItemSelect(item.id)}
                   >
                     <item.icon size={20} className={cn(
                       collapsed ? "mx-auto" : "mr-2",

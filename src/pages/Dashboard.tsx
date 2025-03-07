@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -17,6 +18,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("chat");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
+  const [activeItem, setActiveItem] = useState<string>("chat"); // Added activeItem state
   const { toast } = useToast();
   const isMobile = useIsMobile(); // Changed from useMobile to useIsMobile
   
@@ -47,6 +49,18 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('user');
     window.location.href = '/login';
+  };
+
+  // Updated to set activeItem state
+  const handleSelectItem = (item: string) => {
+    setActiveItem(item);
+    
+    // Set the appropriate view mode based on the selected item
+    if (item === "documents") {
+      setViewMode("workspace");
+    } else if (item.startsWith("community-") || item === "chat") {
+      setViewMode("chat");
+    }
   };
 
   const renderContent = () => {
@@ -168,7 +182,13 @@ const Dashboard = () => {
     <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80">
       {/* Left Sidebar - Hidden on Mobile */}
       {!isMobile && (
-        <Sidebar viewMode={viewMode} setViewMode={setViewMode} unreadCount={unreadCount} />
+        <Sidebar 
+          viewMode={viewMode} 
+          setViewMode={setViewMode} 
+          unreadCount={unreadCount} 
+          onSelectItem={handleSelectItem}
+          activeItem={activeItem}
+        />
       )}
       
       {/* Main Content */}
