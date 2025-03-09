@@ -58,7 +58,13 @@ const Dashboard = () => {
     // Set the appropriate view mode based on the selected item
     if (item === "documents") {
       setViewMode("workspace");
-    } else if (item.startsWith("community-") || item === "chat") {
+    } else if (
+      item === "community-general" || 
+      item === "community-introduction" || 
+      item === "community-hall-of-fame" || 
+      item === "community-round-table" ||
+      item === "chat"
+    ) {
       setViewMode("chat");
     }
   };
@@ -105,8 +111,8 @@ const Dashboard = () => {
                 <FileText size={24} />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium">Workspace</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your tasks</p>
+                <h3 className="font-medium">Documents</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your files</p>
               </div>
             </button>
             
@@ -179,11 +185,11 @@ const Dashboard = () => {
     
     switch (viewMode) {
       case "chat":
-        return <ChatPanel channelType={activeItem.startsWith("community-") ? "community" : "direct"} />;
+        return <ChatPanel channelType={activeItem.startsWith("community-") ? activeItem.replace("community-", "") : "direct"} />;
       case "workspace":
         return <WorkspacePanel />;
       default:
-        return <ChatPanel channelType="community" />;
+        return <ChatPanel channelType="general" />;
     }
   };
 
@@ -223,11 +229,17 @@ const Dashboard = () => {
             {viewMode === "chat" ? (
               <>
                 <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
-                  {activeItem.startsWith("community-") ? "Community" : "Messages"}
+                  {activeItem.startsWith("community-") ? 
+                    activeItem.replace("community-", "").charAt(0).toUpperCase() + activeItem.replace("community-", "").slice(1) : 
+                    "Messages"}
                 </span>
                 <Sparkles size={16} className="text-purple-500 animate-pulse-glow" />
               </>
-            ) : "Workspace"}
+            ) : viewMode === "workspace" ? (
+              <span className="bg-gradient-to-r from-blue-500 to-cyan-400 text-transparent bg-clip-text">Documents</span>
+            ) : (
+              <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">Dashboard</span>
+            )}
           </h1>
           
           {/* Right Side Actions */}

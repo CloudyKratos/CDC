@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Home, 
@@ -23,7 +22,10 @@ import {
   Hash,
   Send,
   Plus,
-  Heart
+  Heart,
+  Trophy,
+  Mic,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -63,11 +65,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   
-  const communities = [
-    { id: "stoic", name: "Stoicism", icon: "S", color: "bg-blue-500", notifications: 3 },
-    { id: "mindful", name: "Mindfulness", icon: "M", color: "bg-green-500", notifications: 1 },
-    { id: "productivity", name: "Productivity", icon: "P", color: "bg-purple-500", notifications: 0 },
-    { id: "growth", name: "Growth", icon: "G", color: "bg-orange-500", notifications: 2 },
+  // Updated community channels to match Discord-like structure
+  const communityChannels = [
+    { id: "community-general", label: "general", icon: Hash, hasNotification: true, notificationCount: 2 },
+    { id: "community-introduction", label: "introduction", icon: BookOpen, hasNotification: false, notificationCount: 0 },
+    { id: "community-hall-of-fame", label: "hall-of-fame", icon: Trophy, hasNotification: false, notificationCount: 0 },
+    { id: "community-round-table", label: "round-table", icon: Mic, hasNotification: true, notificationCount: 1 },
   ];
   
   useEffect(() => {
@@ -103,16 +106,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "explore", label: "Explore", icon: Compass, notifications: 0 },
     { id: "settings", label: "Settings", icon: Settings, notifications: 0 }
   ];
-
-  // Simplified to just one channel
-  const communityChannel = {
-    id: "community-general", 
-    label: "general", 
-    icon: Hash, 
-    hasNotification: true, 
-    notificationCount: 3, 
-    description: "Community discussion"
-  };
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
@@ -233,7 +226,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center justify-between mb-2 px-2">
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="p-0 h-auto hover:bg-transparent flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <span>COMMUNITIES</span>
+                    <span>COMMUNITY</span>
                     <span className="ml-1 text-xs transition-transform duration-200">
                       {communitiesExpanded ? "▼" : "►"}
                     </span>
@@ -242,109 +235,77 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               
               <CollapsibleContent className="animate-accordion-down space-y-1">
-                {communities.map((community) => (
+                {communityChannels.map((channel) => (
                   <Button
-                    key={community.id}
-                    variant={activeItem && activeItem.includes(community.id) ? "secondary" : "ghost"}
+                    key={channel.id}
+                    variant={activeItem === channel.id ? "secondary" : "ghost"}
                     className={cn(
                       "w-full justify-start mb-1 transition-all group",
-                      activeItem && activeItem.includes(community.id) 
+                      activeItem === channel.id 
                         ? "bg-secondary dark:bg-gray-800 text-primary dark:text-primary-foreground" 
                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                     )}
-                    onClick={() => handleItemSelect(`community-${community.id}`)}
+                    onClick={() => handleItemSelect(channel.id)}
                   >
-                    <div className={cn(
-                      "w-6 h-6 rounded-md mr-2 flex items-center justify-center text-white text-xs font-bold",
-                      community.color
-                    )}>
-                      {community.icon}
-                    </div>
-                    <span className="truncate flex-1">{community.name}</span>
-                    {community.notifications > 0 && (
+                    <channel.icon size={18} className="mr-2 opacity-70" />
+                    <span className="truncate flex-1">{channel.label}</span>
+                    {channel.hasNotification && (
                       <Badge className="ml-auto h-5 min-w-[20px] p-0 flex items-center justify-center rounded-full bg-primary text-white text-xs">
-                        {community.notifications}
+                        {channel.notificationCount}
                       </Badge>
                     )}
                   </Button>
                 ))}
-                
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start mb-1 text-sm text-gray-500 dark:text-gray-500 hover:text-primary dark:hover:text-primary-foreground hover:bg-gray-50 dark:hover:bg-gray-800 group"
-                >
-                  <Plus size={16} className="mr-2 text-gray-400 group-hover:text-primary dark:text-gray-600 dark:group-hover:text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
-                  <span className="transition-transform duration-300 group-hover:translate-x-0.5">Join Community</span>
-                </Button>
               </CollapsibleContent>
             </Collapsible>
           </>
         ) : (
           <div className="py-4 flex flex-col items-center border-t border-gray-100 dark:border-gray-800 space-y-3">
-            {communities.map((community) => (
-              <TooltipProvider key={community.id}>
+            {communityChannels.map((channel) => (
+              <TooltipProvider key={channel.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant={activeItem && activeItem.includes(community.id) ? "secondary" : "ghost"}
+                      variant={activeItem === channel.id ? "secondary" : "ghost"}
                       size="icon" 
                       className={cn(
-                        "w-10 h-10 rounded-full relative",
-                        activeItem && activeItem.includes(community.id) 
+                        "w-10 h-10 rounded-lg relative",
+                        activeItem === channel.id 
                           ? "bg-secondary dark:bg-gray-800 text-primary dark:text-primary-foreground" 
-                          : community.color
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                       )}
-                      onClick={() => handleItemSelect(`community-${community.id}`)}
+                      onClick={() => handleItemSelect(channel.id)}
                     >
-                      <span className={cn(
-                        "text-sm font-bold",
-                        activeItem && activeItem.includes(community.id) ? "text-primary" : "text-white"
-                      )}>
-                        {community.icon}
-                      </span>
-                      {community.notifications > 0 && (
+                      <channel.icon size={18} />
+                      {channel.hasNotification && (
                         <Badge variant="destructive" className="absolute -top-1 -right-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
-                          {community.notifications}
+                          {channel.notificationCount}
                         </Badge>
                       )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="bg-black/90 text-white border-0 text-xs py-1 px-2">
-                    {community.name}
+                    {channel.label}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             ))}
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-gray-200 dark:hover:bg-gray-700"
-                  >
-                    <Plus size={18} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-black/90 text-white border-0 text-xs py-1 px-2">
-                  Join Community
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         )}
         
-        {activeItem && activeItem.startsWith("community-") && !collapsed && (
-          <div className="mt-4 px-3 py-4 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-100 dark:border-gray-800 animate-fade-in">
-            <h4 className="text-sm font-medium mb-2 flex items-center">
-              <Video size={14} className="mr-1.5" /> Live Roundtable
+        {/* Improved Live Roundtable section */}
+        {!collapsed && activeItem === "community-round-table" && (
+          <div className="mt-4 px-3 py-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-200/50 dark:border-red-900/30 backdrop-blur-sm animate-fade-in">
+            <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
+              <Video size={14} className="mr-1.5 text-red-500" /> Live Roundtable
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Join the weekly community discussion on mindfulness practices
+              Join the weekly community discussion on entrepreneurship strategies
             </p>
             <div className="flex items-center space-x-2">
-              <Button size="sm" className="text-xs h-7 bg-red-500 hover:bg-red-600">Join Now</Button>
+              <Button size="sm" className="text-xs h-7 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-0">
+                Join Now
+              </Button>
               <Button size="sm" variant="outline" className="text-xs h-7">Remind Me</Button>
             </div>
             <div className="mt-3 flex -space-x-1.5">
@@ -356,6 +317,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ))}
               <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs">+8</div>
             </div>
+          </div>
+        )}
+
+        {/* Hall of Fame spotlight section */}
+        {!collapsed && activeItem === "community-hall-of-fame" && (
+          <div className="mt-4 px-3 py-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-lg border border-yellow-200/50 dark:border-yellow-900/30 backdrop-blur-sm animate-fade-in">
+            <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
+              <Trophy size={14} className="mr-1.5 text-yellow-500" /> Member Spotlight
+            </h4>
+            <div className="flex items-center space-x-3 mb-3">
+              <Avatar className="h-10 w-10 border-2 border-yellow-200 dark:border-yellow-900/50">
+                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" />
+                <AvatarFallback>AS</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">Alex Smith</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Entrepreneur of the Month</p>
+              </div>
+            </div>
+            <Button size="sm" className="text-xs h-7 w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white border-0">
+              View Achievements
+            </Button>
           </div>
         )}
       </ScrollArea>
@@ -444,108 +427,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </DropdownMenu>
         )}
       </div>
-      
-      {/* Community chat - now just one channel */}
-      {activeItem && activeItem.startsWith("community-") && (
-        <div className="fixed top-0 left-0 right-0 bottom-0 bg-white dark:bg-gray-900 z-30 md:pl-64 pt-16 transition-all duration-300" style={{ left: collapsed ? "64px" : "256px" }}>
-          <div className="flex flex-col h-full">
-            <div className="border-b border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between">
-              <div className="flex items-center">
-                <Hash className="mr-2 text-gray-500" size={20} />
-                <h2 className="font-medium text-lg">{communityChannel.label}</h2>
-                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
-                  <Pin size={10} className="mr-1" /> Featured
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
-                        <Bell size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Notification settings</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
-                        <Users size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Member list</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-            
-            <div className="flex-grow overflow-y-auto p-4">
-              <div className="space-y-4">
-                {/* Enhanced community chat messages */}
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-start space-x-3 group hover:bg-gray-50 dark:hover:bg-gray-800/30 p-2 rounded-lg transition-colors">
-                    <Avatar className="h-8 w-8 mt-1 ring-2 ring-primary/10">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} />
-                      <AvatarFallback>U{i}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <p className="font-medium text-sm bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">User {i+1}</p>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Today at {10+i}:{Math.floor(Math.random()*60).toString().padStart(2, '0')} AM</span>
-                      </div>
-                      <p className="text-sm mt-1">This is a message in the community channel. Let's discuss our daily mindfulness practices and share ideas!</p>
-                      
-                      <div className="flex items-center space-x-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10">
-                          <Heart size={12} className="text-gray-500 hover:text-red-500 transition-colors" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10">
-                          <MessageSquare size={12} className="text-gray-500 hover:text-primary transition-colors" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Live discussion section with improved visuals */}
-                <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-200 dark:border-red-900/30 rounded-lg p-4 my-6 backdrop-blur-sm">
-                  <div className="flex items-center">
-                    <Video className="text-red-500 animate-pulse mr-2" size={20} />
-                    <h3 className="font-medium bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Live Roundtable Discussion</h3>
-                    <Badge className="ml-2 bg-red-500 text-white">LIVE</Badge>
-                  </div>
-                  <p className="text-sm mt-2">The weekly community roundtable is currently active with 13 participants. Join to discuss this week's topic: "Building consistent mindfulness habits".</p>
-                  <Button className="mt-3 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white">
-                    Join Call <Sparkles size={14} className="ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Enhanced message input */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-900/80">
-              <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                  <Input 
-                    placeholder="Message the community..."
-                    className="pr-20 rounded-full border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  />
-                </div>
-                <Button className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 rounded-full">
-                  <Send size={16} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
