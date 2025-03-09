@@ -12,14 +12,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import HomePage from "@/components/HomePage";
 import CalendarPanel from "@/components/CalendarPanel";
+import CommunityPanel from "@/components/CommunityPanel";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
+import ProfilePanel from "@/components/ProfilePanel";
+import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
 
-type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu";
+type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -27,9 +32,11 @@ const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const [activeItem, setActiveItem] = useState<string>("home");
-  const { toast } = useToast();
+  const [activeChannel, setActiveChannel] = useState<string>("general");
+  const { toast: useToastHook } = useToast();
   const isMobile = useIsMobile(); 
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   // Sample notifications data
   const notifications = [
@@ -72,8 +79,23 @@ const Dashboard = () => {
       time: "2 days ago",
       read: true,
       type: "system"
+    },
+    {
+      id: 6,
+      title: "New announcement",
+      description: "Community guidelines have been updated",
+      time: "3 days ago",
+      read: true,
+      type: "announcement"
     }
   ];
+  
+  // Latest announcement for the banner
+  const latestAnnouncement = {
+    title: "Community Roundtable",
+    content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",
+    date: "Friday, 3:00 PM"
+  };
   
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -97,8 +119,9 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    toast.success("Successfully logged out");
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   // Updated to set activeItem state
@@ -112,21 +135,25 @@ const Dashboard = () => {
       setViewMode("workspace");
     } else if (item === "calendar") {
       setViewMode("calendar");
+    } else if (item === "profile") {
+      setViewMode("profile");
+    } else if (item === "chat") {
+      setViewMode("chat");
     } else if (
       item === "community-general" || 
       item === "community-introduction" || 
       item === "community-hall-of-fame" || 
-      item === "community-round-table" ||
-      item === "chat"
+      item === "community-round-table"
     ) {
-      setViewMode("chat");
+      setViewMode("community");
+      setActiveChannel(item.replace("community-", ""));
     }
   };
 
   // This is the function we'll pass to the Sidebar component
   const handleViewModeChange = (newViewMode: string) => {
     // Only set if it's a valid ViewMode
-    if (["home", "chat", "workspace", "calendar", "mobile-menu"].includes(newViewMode)) {
+    if (["home", "chat", "workspace", "calendar", "mobile-menu", "community", "profile"].includes(newViewMode)) {
       setViewMode(newViewMode as ViewMode);
     }
   };
@@ -137,7 +164,14 @@ const Dashboard = () => {
         <div className="flex-1 flex flex-col p-5 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-500">Nexus Community</h1>
-            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={toggleDarkMode}
+              className="h-9 w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </Button>
           </div>
           
           <div className="flex flex-col space-y-4 mb-6">
@@ -162,12 +196,28 @@ const Dashboard = () => {
                 <MessageCircle size={24} />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium">Community Chat</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Connect with others</p>
+                <h3 className="font-medium">Direct Messages</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Chat with others</p>
               </div>
               {unreadCount > 0 && (
                 <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white animate-pulse-glow">{unreadCount}</Badge>
               )}
+            </button>
+            
+            <button 
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
+              onClick={() => {
+                setViewMode("community");
+                setActiveChannel("general");
+              }}
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white">
+                <Users size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Community</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Connect with the community</p>
+              </div>
             </button>
             
             <button 
@@ -198,6 +248,22 @@ const Dashboard = () => {
             
             <button 
               className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
+              onClick={() => setViewMode("profile")}
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white">
+                <Avatar>
+                  <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
+                  <AvatarFallback>FX</AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Profile</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Your account details</p>
+              </div>
+            </button>
+            
+            <button 
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
               onClick={handleNotificationClick}
             >
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
@@ -210,18 +276,6 @@ const Dashboard = () => {
               {unreadCount > 0 && (
                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse-glow">{unreadCount}</Badge>
               )}
-            </button>
-            
-            <button 
-              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white">
-                <Users size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-medium">Connections</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your network</p>
-              </div>
             </button>
             
             <button 
@@ -265,15 +319,29 @@ const Dashboard = () => {
     
     switch (viewMode) {
       case "home":
-        return <HomePage />;
+        return (
+          <>
+            <AnnouncementBanner announcement={latestAnnouncement} />
+            <HomePage />
+          </>
+        );
       case "chat":
-        return <ChatPanel channelType={activeItem.startsWith("community-") ? activeItem.replace("community-", "") : "direct"} />;
+        return <ChatPanel channelType="direct" />;
+      case "community":
+        return <CommunityPanel channelName={activeChannel} />;
       case "workspace":
         return <WorkspacePanel />;
       case "calendar":
         return <CalendarPanel />;
+      case "profile":
+        return <ProfilePanel />;
       default:
-        return <HomePage />;
+        return (
+          <>
+            <AnnouncementBanner announcement={latestAnnouncement} />
+            <HomePage />
+          </>
+        );
     }
   };
 
@@ -287,6 +355,7 @@ const Dashboard = () => {
           unreadCount={unreadCount} 
           onSelectItem={handleSelectItem}
           activeItem={activeItem}
+          activeChannel={activeChannel}
         />
       )}
       
@@ -313,11 +382,13 @@ const Dashboard = () => {
             {viewMode === "home" ? (
               <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-transparent bg-clip-text">Home</span>
             ) : viewMode === "chat" ? (
+              <span className="bg-gradient-to-r from-indigo-600 to-blue-500 text-transparent bg-clip-text">
+                Direct Messages
+              </span>
+            ) : viewMode === "community" ? (
               <>
-                <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
-                  {activeItem.startsWith("community-") ? 
-                    activeItem.replace("community-", "").charAt(0).toUpperCase() + activeItem.replace("community-", "").slice(1) : 
-                    "Messages"}
+                <span className="bg-gradient-to-r from-purple-600 to-pink-500 text-transparent bg-clip-text">
+                  {activeChannel.charAt(0).toUpperCase() + activeChannel.slice(1).replace(/-/g, ' ')}
                 </span>
                 <Sparkles size={16} className="text-purple-500 animate-pulse-glow" />
               </>
@@ -325,6 +396,8 @@ const Dashboard = () => {
               <span className="bg-gradient-to-r from-blue-500 to-cyan-400 text-transparent bg-clip-text">Documents</span>
             ) : viewMode === "calendar" ? (
               <span className="bg-gradient-to-r from-orange-400 to-red-500 text-transparent bg-clip-text">Calendar</span>
+            ) : viewMode === "profile" ? (
+              <span className="bg-gradient-to-r from-green-400 to-teal-500 text-transparent bg-clip-text">Profile</span>
             ) : (
               <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">Dashboard</span>
             )}
@@ -346,7 +419,7 @@ const Dashboard = () => {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
+              <PopoverContent className="w-80 p-0 mr-2" align="end">
                 <div className="flex items-center justify-between p-4 border-b">
                   <h4 className="font-medium">Notifications</h4>
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{unreadCount} new</Badge>
@@ -368,12 +441,15 @@ const Dashboard = () => {
                               ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               : notification.type === 'user'
                               ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                              : notification.type === 'announcement'
+                              ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
                           }`}>
                             {notification.type === 'message' ? <MessageCircle size={16} /> :
                              notification.type === 'event' ? <Calendar size={16} /> :
                              notification.type === 'document' ? <FileText size={16} /> :
                              notification.type === 'user' ? <Users size={16} /> :
+                             notification.type === 'announcement' ? <BellRing size={16} /> :
                              <Settings size={16} />}
                           </div>
                           <div className="flex-1">
@@ -391,7 +467,16 @@ const Dashboard = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {!isMobile && <ThemeToggle />}
+            {!isMobile && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={toggleDarkMode}
+                className="h-9 w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </Button>
+            )}
           </div>
         </div>
         

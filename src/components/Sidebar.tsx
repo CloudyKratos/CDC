@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Home, 
@@ -25,7 +26,8 @@ import {
   Heart,
   Trophy,
   Mic,
-  BookOpen
+  BookOpen,
+  Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,6 +45,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 // Updated interface to match what Dashboard.tsx is passing
 interface SidebarProps {
@@ -51,6 +55,7 @@ interface SidebarProps {
   unreadCount: number;
   onSelectItem?: (item: string) => void;
   activeItem?: string;
+  activeChannel?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -58,12 +63,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setViewMode, 
   unreadCount, 
   onSelectItem = () => {}, 
-  activeItem = "" 
+  activeItem = "",
+  activeChannel = "general"
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [communitiesExpanded, setCommunitiesExpanded] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const navigate = useNavigate();
   
   // Updated community channels to match Discord-like structure
   const communityChannels = [
@@ -71,6 +78,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "community-introduction", label: "introduction", icon: BookOpen, hasNotification: false, notificationCount: 0 },
     { id: "community-hall-of-fame", label: "hall-of-fame", icon: Trophy, hasNotification: false, notificationCount: 0 },
     { id: "community-round-table", label: "round-table", icon: Mic, hasNotification: true, notificationCount: 1 },
+  ];
+  
+  // Added announcements section
+  const announcements = [
+    { id: "announcement-weekly", title: "Weekly Update", date: "Today", read: false },
+    { id: "announcement-event", title: "Upcoming Roundtable", date: "Tomorrow", read: false },
   ];
   
   useEffect(() => {
@@ -98,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   
   const mainMenuItems = [
     { id: "home", label: "Home", icon: Home, notifications: 0 },
-    { id: "chat", label: "Messages", icon: MessageSquare, notifications: 3 },
+    { id: "chat", label: "Direct Messages", icon: MessageSquare, notifications: 3 },
     { id: "calendar", label: "Calendar", icon: CalendarDays, notifications: 1 },
     { id: "documents", label: "Documents", icon: FileText, notifications: 0 },
     { id: "profile", label: "My Profile", icon: UserCircle, notifications: 0 },
@@ -118,12 +131,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleItemSelect = (itemId: string) => {
     onSelectItem(itemId);
     
-    // If a community channel is selected, set view mode to "chat"
+    // If a community channel is selected, set view mode to "community"
     if (itemId.startsWith("community-")) {
-      setViewMode("chat");
+      setViewMode("community");
     } else if (itemId === "documents") {
       setViewMode("workspace");
+    } else if (itemId === "profile") {
+      setViewMode("profile");
     }
+  };
+  
+  const handleLogout = () => {
+    toast.success("Successfully logged out");
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   return (
@@ -235,13 +256,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               
               <CollapsibleContent className="animate-accordion-down space-y-1">
+                {/* Community channels */}
                 {communityChannels.map((channel) => (
                   <Button
                     key={channel.id}
-                    variant={activeItem === channel.id ? "secondary" : "ghost"}
+                    variant={activeItem === channel.id || (viewMode === "community" && activeChannel === channel.label) ? "secondary" : "ghost"}
                     className={cn(
                       "w-full justify-start mb-1 transition-all group",
-                      activeItem === channel.id 
+                      (activeItem === channel.id || (viewMode === "community" && activeChannel === channel.label))
                         ? "bg-secondary dark:bg-gray-800 text-primary dark:text-primary-foreground" 
                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                     )}
@@ -256,6 +278,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     )}
                   </Button>
                 ))}
+                
+                {/* Announcements section */}
+                <div className="mt-3 mb-1 px-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    ANNOUNCEMENTS
+                  </p>
+                </div>
+                
+                {announcements.map((announcement) => (
+                  <Button
+                    key={announcement.id}
+                    variant="ghost"
+                    className="w-full justify-start mb-1 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => onSelectItem("home")}
+                  >
+                    <Megaphone size={18} className="mr-2 opacity-70 text-purple-500" />
+                    <div className="flex flex-col items-start text-left">
+                      <span className="truncate text-sm">{announcement.title}</span>
+                      <span className="text-xs text-gray-500">{announcement.date}</span>
+                    </div>
+                    {!announcement.read && (
+                      <div className="ml-auto h-2 w-2 rounded-full bg-primary"></div>
+                    )}
+                  </Button>
+                ))}
               </CollapsibleContent>
             </Collapsible>
           </>
@@ -266,11 +313,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant={activeItem === channel.id ? "secondary" : "ghost"}
+                      variant={(viewMode === "community" && activeChannel === channel.label) ? "secondary" : "ghost"}
                       size="icon" 
                       className={cn(
                         "w-10 h-10 rounded-lg relative",
-                        activeItem === channel.id 
+                        (viewMode === "community" && activeChannel === channel.label)
                           ? "bg-secondary dark:bg-gray-800 text-primary dark:text-primary-foreground" 
                           : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                       )}
@@ -290,6 +337,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </Tooltip>
               </TooltipProvider>
             ))}
+            
+            {/* Announcement icon for collapsed mode */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost"
+                    size="icon" 
+                    className="w-10 h-10 rounded-lg relative text-purple-500"
+                    onClick={() => onSelectItem("home")}
+                  >
+                    <Megaphone size={18} />
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
+                      2
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-black/90 text-white border-0 text-xs py-1 px-2">
+                  Announcements
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         )}
         
@@ -321,7 +390,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Hall of Fame spotlight section */}
-        {!collapsed && activeItem === "community-hall-of-fame" && (
+        {!collapsed && (viewMode === "community" && activeChannel === "hall-of-fame") && (
           <div className="mt-4 px-3 py-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-lg border border-yellow-200/50 dark:border-yellow-900/30 backdrop-blur-sm animate-fade-in">
             <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
               <Trophy size={14} className="mr-1.5 text-yellow-500" /> Member Spotlight
@@ -348,7 +417,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Avatar className="cursor-pointer mx-auto hover:ring-2 hover:ring-primary/20 transition-all">
+                <Avatar 
+                  className="cursor-pointer mx-auto hover:ring-2 hover:ring-primary/20 transition-all"
+                  onClick={() => onSelectItem("profile")}
+                >
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
                   <AvatarFallback>FX</AvatarFallback>
                 </Avatar>
@@ -362,7 +434,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
-                <Avatar className="h-9 w-9 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
+                <Avatar 
+                  className="h-9 w-9 group-hover:ring-2 group-hover:ring-primary/20 transition-all"
+                  onClick={() => onSelectItem("profile")}
+                >
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
                   <AvatarFallback>FX</AvatarFallback>
                 </Avatar>
@@ -419,7 +494,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex items-center text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer">
+              <DropdownMenuItem 
+                className="flex items-center text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Logout</span>
               </DropdownMenuItem>
