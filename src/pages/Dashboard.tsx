@@ -63,8 +63,7 @@ const Dashboard = () => {
     }
   };
 
-  // This is the function we'll pass to the Sidebar component 
-  // Fixed to match the expected function signature in Sidebar.tsx
+  // This is the function we'll pass to the Sidebar component
   const handleViewModeChange = (newViewMode: string) => {
     // Only set if it's a valid ViewMode
     if (newViewMode === "chat" || newViewMode === "workspace" || newViewMode === "mobile-menu") {
@@ -180,7 +179,7 @@ const Dashboard = () => {
     
     switch (viewMode) {
       case "chat":
-        return <ChatPanel channelType="community" />;
+        return <ChatPanel channelType={activeItem.startsWith("community-") ? "community" : "direct"} />;
       case "workspace":
         return <WorkspacePanel />;
       default:
@@ -223,7 +222,9 @@ const Dashboard = () => {
           <h1 className={`text-xl font-bold flex items-center gap-2 ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
             {viewMode === "chat" ? (
               <>
-                <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">Community Chat</span>
+                <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
+                  {activeItem.startsWith("community-") ? "Community" : "Messages"}
+                </span>
                 <Sparkles size={16} className="text-purple-500 animate-pulse-glow" />
               </>
             ) : "Workspace"}
