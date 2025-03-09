@@ -5,11 +5,40 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatedTransition } from "./components/AnimatedTransition";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext } from "react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+
+// Beta testers data
+const BETA_TESTERS = [
+  { id: '1', email: 'user@example.com', name: 'Demo User', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
+  { id: '2', email: 'jane@example.com', name: 'Jane Smith', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane' },
+  { id: '3', email: 'john@example.com', name: 'John Doe', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
+  { id: '4', email: 'alex@example.com', name: 'Alex Johnson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex' },
+  { id: '5', email: 'maria@example.com', name: 'Maria Garcia', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria' },
+  { id: '6', email: 'sam@example.com', name: 'Sam Wilson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam' },
+  { id: '7', email: 'taylor@example.com', name: 'Taylor Swift', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor' },
+  { id: '8', email: 'chris@example.com', name: 'Chris Evans', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chris' },
+  { id: '9', email: 'emma@example.com', name: 'Emma Watson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma' },
+  { id: '10', email: 'robert@example.com', name: 'Robert Downey', role: 'Admin', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert' },
+];
+
+// Create auth context
+export const AuthContext = createContext<{
+  user: any;
+  setUser: React.Dispatch<React.SetStateAction<any>>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+}>({
+  user: null,
+  setUser: () => {},
+  isAuthenticated: false,
+  login: async () => false,
+  logout: () => {},
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +69,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  const [user, setUser] = useState<any>(null);
+  
   useEffect(() => {
     // Check if dark mode is enabled
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -53,14 +84,10 @@ const App = () => {
     const colorTheme = localStorage.getItem('colorTheme') || 'blue';
     document.documentElement.classList.add(`theme-${colorTheme}`);
     
-    // Add user to local storage if not exists (for demo)
-    if (!localStorage.getItem('user')) {
-      localStorage.setItem('user', JSON.stringify({
-        id: '1',
-        name: 'Demo User',
-        email: 'user@example.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
-      }));
+    // Load user from local storage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
     
     // Apply prefers-color-scheme detection
@@ -81,27 +108,60 @@ const App = () => {
     };
   }, []);
   
+  const login = async (email: string, password: string) => {
+    // For beta testing, we only allow specific emails
+    const betaTester = BETA_TESTERS.find(tester => tester.email.toLowerCase() === email.toLowerCase());
+    
+    if (betaTester) {
+      // In a real app, we would validate the password here
+      const loggedInUser = {
+        ...betaTester,
+        // Add any additional user data here
+        lastLogin: new Date().toISOString(),
+      };
+      
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+      return true;
+    }
+    
+    return false;
+  };
+  
+  const logout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-right" closeButton richColors />
-        <BrowserRouter>
-          <AnimatedTransition>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatedTransition>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <AuthContext.Provider value={{ 
+      user, 
+      setUser, 
+      isAuthenticated: !!user, 
+      login,
+      logout
+    }}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner position="top-right" closeButton richColors />
+          <BrowserRouter>
+            <AnimatedTransition>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AnimatedTransition>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AuthContext.Provider>
   );
 };
 
