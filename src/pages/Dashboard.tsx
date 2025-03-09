@@ -4,23 +4,76 @@ import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, BellRing, MessageCircle, FileText, Users, Settings, X, Sparkles } from "lucide-react";
+import { Sun, Moon, BellRing, MessageCircle, FileText, Users, Settings, X, Sparkles, Calendar, Home as HomeIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import HomePage from "@/components/HomePage";
+import CalendarPanel from "@/components/CalendarPanel";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-type ViewMode = "chat" | "workspace" | "mobile-menu";
+type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu";
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("chat");
+  const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
-  const [activeItem, setActiveItem] = useState<string>("chat");
+  const [activeItem, setActiveItem] = useState<string>("home");
   const { toast } = useToast();
   const isMobile = useIsMobile(); 
+  const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
+  
+  // Sample notifications data
+  const notifications = [
+    {
+      id: 1,
+      title: "New message",
+      description: "John posted in General channel",
+      time: "10 min ago",
+      read: false,
+      type: "message"
+    },
+    {
+      id: 2,
+      title: "Event reminder",
+      description: "Weekly Round Table starts in 1 hour",
+      time: "1 hour ago",
+      read: false,
+      type: "event"
+    },
+    {
+      id: 3,
+      title: "Document shared",
+      description: "Sarah shared a business plan with you",
+      time: "2 hours ago",
+      read: false,
+      type: "document"
+    },
+    {
+      id: 4,
+      title: "New community member",
+      description: "Michael joined the community",
+      time: "Yesterday",
+      read: true,
+      type: "user"
+    },
+    {
+      id: 5,
+      title: "System update",
+      description: "New features are available",
+      time: "2 days ago",
+      read: true,
+      type: "system"
+    }
+  ];
   
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -40,10 +93,7 @@ const Dashboard = () => {
   };
 
   const handleNotificationClick = () => {
-    toast({
-      title: "Notifications",
-      description: "You have 3 unread notifications.",
-    });
+    setNotificationsOpen(true);
   };
 
   const handleLogout = () => {
@@ -56,8 +106,12 @@ const Dashboard = () => {
     setActiveItem(item);
     
     // Set the appropriate view mode based on the selected item
-    if (item === "documents") {
+    if (item === "home") {
+      setViewMode("home");
+    } else if (item === "documents") {
       setViewMode("workspace");
+    } else if (item === "calendar") {
+      setViewMode("calendar");
     } else if (
       item === "community-general" || 
       item === "community-introduction" || 
@@ -72,7 +126,7 @@ const Dashboard = () => {
   // This is the function we'll pass to the Sidebar component
   const handleViewModeChange = (newViewMode: string) => {
     // Only set if it's a valid ViewMode
-    if (newViewMode === "chat" || newViewMode === "workspace" || newViewMode === "mobile-menu") {
+    if (["home", "chat", "workspace", "calendar", "mobile-menu"].includes(newViewMode)) {
       setViewMode(newViewMode as ViewMode);
     }
   };
@@ -87,6 +141,19 @@ const Dashboard = () => {
           </div>
           
           <div className="flex flex-col space-y-4 mb-6">
+            <button 
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
+              onClick={() => setViewMode("home")}
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
+                <HomeIcon size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Home</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Dashboard overview</p>
+              </div>
+            </button>
+            
             <button 
               className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
               onClick={() => setViewMode("chat")}
@@ -113,6 +180,19 @@ const Dashboard = () => {
               <div className="flex-1">
                 <h3 className="font-medium">Documents</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Manage your files</p>
+              </div>
+            </button>
+            
+            <button 
+              className="flex items-center space-x-3 p-4 rounded-lg glass-card hover:scale-[1.02] transition-all"
+              onClick={() => setViewMode("calendar")}
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white">
+                <Calendar size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Calendar</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">View upcoming events</p>
               </div>
             </button>
             
@@ -184,12 +264,16 @@ const Dashboard = () => {
     }
     
     switch (viewMode) {
+      case "home":
+        return <HomePage />;
       case "chat":
         return <ChatPanel channelType={activeItem.startsWith("community-") ? activeItem.replace("community-", "") : "direct"} />;
       case "workspace":
         return <WorkspacePanel />;
+      case "calendar":
+        return <CalendarPanel />;
       default:
-        return <ChatPanel channelType="general" />;
+        return <HomePage />;
     }
   };
 
@@ -209,7 +293,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Top Navigation Bar */}
-        <div className="p-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm">
+        <div className="p-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm sticky top-0 z-30">
           {/* Mobile Menu Button */}
           {isMobile && (
             <Button 
@@ -225,8 +309,10 @@ const Dashboard = () => {
           )}
           
           {/* Title with gradient and sparkle icon */}
-          <h1 className={`text-xl font-bold flex items-center gap-2 ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
-            {viewMode === "chat" ? (
+          <div className={`text-xl font-bold flex items-center gap-2 ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
+            {viewMode === "home" ? (
+              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-transparent bg-clip-text">Home</span>
+            ) : viewMode === "chat" ? (
               <>
                 <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
                   {activeItem.startsWith("community-") ? 
@@ -237,30 +323,80 @@ const Dashboard = () => {
               </>
             ) : viewMode === "workspace" ? (
               <span className="bg-gradient-to-r from-blue-500 to-cyan-400 text-transparent bg-clip-text">Documents</span>
+            ) : viewMode === "calendar" ? (
+              <span className="bg-gradient-to-r from-orange-400 to-red-500 text-transparent bg-clip-text">Calendar</span>
             ) : (
               <span className="bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">Dashboard</span>
             )}
-          </h1>
+          </div>
           
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleNotificationClick}
-              className="relative hover:bg-primary/10 rounded-full"
-            >
-              <BellRing size={18} />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-              )}
-            </Button>
+            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleNotificationClick}
+                  className="relative hover:bg-primary/10 rounded-full h-9 w-9"
+                >
+                  <BellRing size={18} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h4 className="font-medium">Notifications</h4>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{unreadCount} new</Badge>
+                </div>
+                <ScrollArea className="h-[300px]">
+                  <div className="py-2">
+                    {notifications.map((notification) => (
+                      <div 
+                        key={notification.id} 
+                        className={`px-4 py-3 hover:bg-muted/50 cursor-pointer ${!notification.read ? 'border-l-2 border-primary' : ''}`}
+                      >
+                        <div className="flex gap-3 items-start">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                            notification.type === 'message' 
+                              ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' 
+                              : notification.type === 'event'
+                              ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                              : notification.type === 'document'
+                              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                              : notification.type === 'user'
+                              ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
+                          }`}>
+                            {notification.type === 'message' ? <MessageCircle size={16} /> :
+                             notification.type === 'event' ? <Calendar size={16} /> :
+                             notification.type === 'document' ? <FileText size={16} /> :
+                             notification.type === 'user' ? <Users size={16} /> :
+                             <Settings size={16} />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{notification.title}</p>
+                            <p className="text-xs text-muted-foreground">{notification.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="p-4 border-t text-center">
+                  <Button variant="ghost" className="w-full text-sm">View All Notifications</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             {!isMobile && <ThemeToggle />}
           </div>
         </div>
         
         {/* Main Content Area with enhanced background effect */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           {/* Decorative floating elements in the background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl animate-float"></div>
@@ -269,7 +405,7 @@ const Dashboard = () => {
           </div>
           
           {/* Actual content */}
-          <div className="relative z-10 h-full">
+          <div className="relative z-10 h-full overflow-hidden">
             {renderContent()}
           </div>
         </div>
