@@ -8,10 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CommunityChannelContentProps {
-  channelType: string;
+  channelName: string;
 }
 
-const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ channelType }) => {
+const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ channelName }) => {
   const channelInfo = {
     general: {
       title: "General",
@@ -35,7 +35,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
     },
   };
 
-  const currentChannel = channelInfo[channelType as keyof typeof channelInfo] || channelInfo.general;
+  const currentChannel = channelInfo[channelName as keyof typeof channelInfo] || channelInfo.general;
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
@@ -79,7 +79,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
       <div className="flex-grow overflow-y-auto p-4">
         <div className="space-y-4">
           {/* Channel-specific content */}
-          {channelType === "round-table" && (
+          {channelName === "round-table" && (
             <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-200 dark:border-red-900/30 rounded-lg p-4 my-6 backdrop-blur-sm">
               <div className="flex items-center">
                 <Video className="text-red-500 animate-pulse mr-2" size={20} />
@@ -93,7 +93,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
             </div>
           )}
 
-          {channelType === "hall-of-fame" && (
+          {channelName === "hall-of-fame" && (
             <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-4 my-6 backdrop-blur-sm">
               <div className="flex items-center mb-3">
                 <Avatar className="h-12 w-12 border-2 border-yellow-200 dark:border-yellow-900/50 mr-3">
@@ -119,9 +119,9 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
           )}
 
           {/* Standard community chat messages */}
-          {(channelType === "general" || channelType === "introduction") && (
+          {(channelName === "general" || channelName === "introduction") && (
             <>
-              {channelType === "introduction" && (
+              {channelName === "introduction" && (
                 <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-200 dark:border-green-900/30 rounded-lg p-4 mb-6 backdrop-blur-sm">
                   <h3 className="font-medium bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent mb-2">
                     Welcome to the Community!
@@ -145,11 +145,11 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
                   <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Today at {10+i}:{Math.floor(Math.random()*60).toString().padStart(2, '0')} AM</span>
                 </div>
                 <p className="text-sm mt-1">
-                  {channelType === "introduction" 
+                  {channelName === "introduction" 
                     ? "Hi everyone! I'm excited to join this community. I'm working on a new project related to sustainable business practices."
-                    : channelType === "hall-of-fame"
+                    : channelName === "hall-of-fame"
                     ? "Congratulations to all the amazing entrepreneurs who achieved their milestones this month!"
-                    : channelType === "round-table"
+                    : channelName === "round-table"
                     ? "I think the most important aspect of entrepreneurship is resilience and adaptability."
                     : "This is a great community for entrepreneurs to share ideas and collaborate!"}
                 </p>
@@ -173,7 +173,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
         <div className="flex items-center space-x-2">
           <div className="relative flex-1">
             <Input 
-              placeholder={`Message #${channelType}...`}
+              placeholder={`Message #${channelName}...`}
               className="pr-20 rounded-full border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
           </div>

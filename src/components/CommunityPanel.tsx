@@ -24,8 +24,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { EmojiPicker } from './EmojiPicker';
-import { CommunityChannelContent } from './CommunityChannelContent';
+import EmojiPicker from './EmojiPicker';
+import CommunityChannelContent from './CommunityChannelContent';
 
 interface CommunityPanelProps {
   channelName: string;
@@ -90,6 +90,9 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
         return <Hash className="mr-2" size={20} />;
     }
   };
+  
+  // List of emojis for the emoji picker
+  const emojis = ['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋', '✅', '⭐', '💡', '📈', '🙌', '💪', '🌟', '🎯', '💯', '🏆', '🎊', '🙏', '👌', '💬'];
   
   return (
     <div className="flex h-full overflow-hidden">
@@ -183,7 +186,11 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
               
               {showEmojiPicker && (
                 <div className="absolute bottom-full right-0 mb-2">
-                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                  <EmojiPicker 
+                    emojis={emojis}
+                    onSelectEmoji={handleEmojiSelect}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
                 </div>
               )}
             </div>
