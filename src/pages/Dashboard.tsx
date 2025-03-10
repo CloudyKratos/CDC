@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -88,7 +89,7 @@ const Dashboard = () => {
     }
   ];
   
-  const latestAnnouncement = {
+  const latestAnnouncement: AnnouncementProps = {
     id: "rt-001",
     title: "Community Roundtable",
     content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",
