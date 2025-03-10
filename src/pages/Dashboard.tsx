@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const [activeItem, setActiveItem] = useState<string>("home");
   const [activeChannel, setActiveChannel] = useState<string>("general");
+  const [viewMode, setViewMode] = useState<ViewMode>("home");
   const { toast: useToastHook } = useToast();
   const isMobile = useIsMobile(); 
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
@@ -342,10 +343,17 @@ const Dashboard = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-indigo-900/10 to-gray-900">
       <Sidebar 
-        unreadCount={unreadCount} 
-        onSelectItem={handleSelectItem} 
-        activeItem={activeItem} 
-        activeChannel={activeChannel}
+        activeSection={activeItem}
+        setActiveSection={handleSelectItem}
+        isMobile={isMobile}
+        isOpen={viewMode !== "mobile-menu"}
+        setIsOpen={(open) => {
+          if (open) {
+            setViewMode("home");
+          } else {
+            setViewMode("mobile-menu");
+          }
+        }}
       />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">

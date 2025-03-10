@@ -1,3 +1,4 @@
+
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom"; 
 import { cn } from "@/lib/utils";
@@ -18,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { AuthContext } from "@/App";
 import { useToast } from "@/hooks/use-toast";
 
-interface SidebarProps {
+export interface SidebarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
   isMobile: boolean;
