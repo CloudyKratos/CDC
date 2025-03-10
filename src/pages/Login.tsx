@@ -1,4 +1,3 @@
-
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -63,7 +62,11 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      // Adding console logs for debugging
+      console.log("Attempting login with:", { email, password });
+      
       const success = await login(email, password);
+      console.log("Login result:", success);
       
       if (success) {
         toast.success("Login successful! Redirecting to dashboard...");
@@ -75,6 +78,7 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       setError("An error occurred during login. Please try again.");
       toast.error("Login failed", {
         description: "An unexpected error occurred"
@@ -91,16 +95,25 @@ const Login = () => {
     setIsLoading(true);
     
     setTimeout(async () => {
-      const success = await login("user@example.com", "password");
-      
-      if (success) {
-        toast.success("Demo login successful! Redirecting to dashboard...");
-        navigate("/dashboard");
-      } else {
-        setError("Demo login failed. Please try again.");
+      try {
+        console.log("Attempting demo login");
+        const success = await login("user@example.com", "password");
+        console.log("Demo login result:", success);
+        
+        if (success) {
+          toast.success("Demo login successful! Redirecting to dashboard...");
+          navigate("/dashboard");
+        } else {
+          setError("Demo login failed. Please try again.");
+          toast.error("Demo login failed");
+        }
+      } catch (error) {
+        console.error("Demo login error:", error);
+        setError("An error occurred during demo login.");
         toast.error("Demo login failed");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }, 1000);
   };
 

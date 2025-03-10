@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -28,8 +27,6 @@ type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "co
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("home");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const [activeItem, setActiveItem] = useState<string>("home");
   const [activeChannel, setActiveChannel] = useState<string>("general");
@@ -343,17 +340,13 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80 doodle-pattern">
-      {!isMobile && (
-        <Sidebar 
-          viewMode={viewMode} 
-          setViewMode={handleViewModeChange} 
-          unreadCount={unreadCount} 
-          onSelectItem={handleSelectItem}
-          activeItem={activeItem}
-          activeChannel={activeChannel}
-        />
-      )}
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-indigo-900/10 to-gray-900">
+      <Sidebar 
+        unreadCount={unreadCount} 
+        onSelectItem={handleSelectItem} 
+        activeItem={activeItem} 
+        activeChannel={activeChannel}
+      />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="p-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm sticky top-0 z-30">

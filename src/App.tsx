@@ -130,27 +130,40 @@ const App = () => {
   }, []);
   
   const login = async (email: string, password: string) => {
-    // Get beta testers from localStorage, falling back to default list
-    const storedTesters = localStorage.getItem('betaTesters');
-    const betaTesters = storedTesters ? JSON.parse(storedTesters) : DEFAULT_BETA_TESTERS;
-    
-    // For beta testing, we only allow specific emails
-    const betaTester = betaTesters.find((tester: any) => tester.email.toLowerCase() === email.toLowerCase());
-    
-    if (betaTester) {
-      // In a real app, we would validate the password here
-      const loggedInUser = {
-        ...betaTester,
-        // Add any additional user data here
-        lastLogin: new Date().toISOString(),
-      };
+    try {
+      console.log("Login function called with email:", email);
       
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
-      return true;
+      // Get beta testers from localStorage, falling back to default list
+      const storedTesters = localStorage.getItem('betaTesters');
+      const betaTesters = storedTesters ? JSON.parse(storedTesters) : DEFAULT_BETA_TESTERS;
+      
+      console.log("Available beta testers:", betaTesters);
+      
+      // For beta testing, we only allow specific emails
+      const betaTester = betaTesters.find((tester: any) => 
+        tester.email.toLowerCase() === email.toLowerCase()
+      );
+      
+      console.log("Found beta tester:", betaTester);
+      
+      if (betaTester) {
+        // In a real app, we would validate the password here
+        const loggedInUser = {
+          ...betaTester,
+          // Add any additional user data here
+          lastLogin: new Date().toISOString(),
+        };
+        
+        localStorage.setItem('user', JSON.stringify(loggedInUser));
+        setUser(loggedInUser);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error in login function:", error);
+      return false;
     }
-    
-    return false;
   };
   
   const logout = () => {
