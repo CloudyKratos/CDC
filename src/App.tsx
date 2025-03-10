@@ -10,21 +10,6 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
-import BetaAdmin from "./pages/BetaAdmin";
-
-// Default beta testers data as fallback
-const DEFAULT_BETA_TESTERS = [
-  { id: '1', email: 'user@example.com', name: 'Demo User', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
-  { id: '2', email: 'jane@example.com', name: 'Jane Smith', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane' },
-  { id: '3', email: 'john@example.com', name: 'John Doe', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
-  { id: '4', email: 'alex@example.com', name: 'Alex Johnson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex' },
-  { id: '5', email: 'maria@example.com', name: 'Maria Garcia', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria' },
-  { id: '6', email: 'sam@example.com', name: 'Sam Wilson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam' },
-  { id: '7', email: 'taylor@example.com', name: 'Taylor Swift', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor' },
-  { id: '8', email: 'chris@example.com', name: 'Chris Evans', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chris' },
-  { id: '9', email: 'emma@example.com', name: 'Emma Watson', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma' },
-  { id: '10', email: 'robert@example.com', name: 'Robert Downey', role: 'Admin', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert' },
-];
 
 // Create auth context
 export const AuthContext = createContext<{
@@ -50,17 +35,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   
   useEffect(() => {
     // Check if user is logged in
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const user = JSON.parse(storedUser);
       setIsAuthenticated(true);
-      setIsAdmin(user.role === 'Admin');
     } else {
       setIsAuthenticated(false);
     }
@@ -75,10 +57,6 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: React.React
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-  
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -115,11 +93,6 @@ const App = () => {
       }
     }
     
-    // Initialize beta testers in localStorage if not present
-    if (!localStorage.getItem('betaTesters')) {
-      localStorage.setItem('betaTesters', JSON.stringify(DEFAULT_BETA_TESTERS));
-    }
-    
     // Add smooth scrolling behavior
     document.documentElement.style.scrollBehavior = 'smooth';
     
@@ -133,29 +106,19 @@ const App = () => {
     try {
       console.log("Login function called with email:", email);
       
-      // Get beta testers from localStorage, falling back to default list
-      const storedTesters = localStorage.getItem('betaTesters');
-      const betaTesters = storedTesters ? JSON.parse(storedTesters) : DEFAULT_BETA_TESTERS;
-      
-      console.log("Available beta testers:", betaTesters);
-      
-      // For beta testing, we only allow specific emails
-      const betaTester = betaTesters.find((tester: any) => 
-        tester.email.toLowerCase() === email.toLowerCase()
-      );
-      
-      console.log("Found beta tester:", betaTester);
-      
-      if (betaTester) {
-        // In a real app, we would validate the password here
-        const loggedInUser = {
-          ...betaTester,
-          // Add any additional user data here
-          lastLogin: new Date().toISOString(),
+      // Simple demo login logic
+      if (email === "user@example.com" && password === "password") {
+        const demoUser = {
+          id: '1',
+          email: 'user@example.com',
+          name: 'Demo User',
+          role: 'User',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+          lastLogin: new Date().toISOString()
         };
         
-        localStorage.setItem('user', JSON.stringify(loggedInUser));
-        setUser(loggedInUser);
+        localStorage.setItem('user', JSON.stringify(demoUser));
+        setUser(demoUser);
         return true;
       }
       
@@ -191,11 +154,6 @@ const App = () => {
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/beta-admin" element={
-                  <ProtectedRoute adminOnly={true}>
-                    <BetaAdmin />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />

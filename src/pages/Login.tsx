@@ -1,3 +1,4 @@
+
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,19 +13,10 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { AuthContext } from "../App";
 import { Lock, Mail, Eye, EyeOff, UserCheck, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import WaitlistForm from "@/components/beta/WaitlistForm";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -32,7 +24,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [showWaitlist, setShowWaitlist] = useState(false);
   const { login, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -72,9 +63,9 @@ const Login = () => {
         toast.success("Login successful! Redirecting to dashboard...");
         navigate("/dashboard");
       } else {
-        setError("Invalid email or password. Note: This is a beta version, only registered beta testers can login.");
+        setError("Invalid email or password. Try user@example.com and password.");
         toast.error("Login failed", {
-          description: "Invalid credentials or you're not a registered beta tester."
+          description: "Invalid credentials. Try the demo login."
         });
       }
     } catch (error) {
@@ -243,35 +234,9 @@ const Login = () => {
             <p className="text-center text-xs text-gray-400">
               By signing in, you agree to our <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.
             </p>
-            
-            <p className="text-center text-xs text-gray-500">
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Beta Access Only
-              </span> - Currently accepting new beta testers
-            </p>
           </CardFooter>
         </Card>
-        
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-400">
-            Don't have an account? <button onClick={() => setShowWaitlist(true)} className="text-blue-400 hover:underline">Join the waitlist</button>
-          </p>
-        </div>
       </motion.div>
-
-      <Dialog open={showWaitlist} onOpenChange={setShowWaitlist}>
-        <DialogContent className="bg-black/60 backdrop-blur-xl border-gray-800 text-white w-full max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-              Join Nexus Beta
-            </DialogTitle>
-            <DialogDescription className="text-center text-gray-400">
-              Apply to be part of our exclusive beta testing program
-            </DialogDescription>
-          </DialogHeader>
-          <WaitlistForm />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

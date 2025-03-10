@@ -12,8 +12,7 @@ import {
   X,
   LogOut,
   Settings,
-  Bell,
-  ShieldCheck
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthContext } from "@/App";
@@ -47,9 +46,6 @@ const Sidebar = ({
     });
   };
   
-  // Check if user is an admin
-  const isAdmin = user && user.role === 'Admin';
-
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
@@ -182,17 +178,6 @@ const Sidebar = ({
           <Bell className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-300" />
           Notifications
         </a>
-        
-        {/* Add Admin link for admin users */}
-        {isAdmin && (
-          <a
-            href="/beta-admin"
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white group"
-          >
-            <ShieldCheck className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-300" />
-            Beta Admin
-          </a>
-        )}
       </nav>
     </div>
     
