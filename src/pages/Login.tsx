@@ -13,10 +13,19 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { AuthContext } from "../App";
 import { Lock, Mail, Eye, EyeOff, UserCheck, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import WaitlistForm from "@/components/beta/WaitlistForm";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -24,6 +33,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [showWaitlist, setShowWaitlist] = useState(false);
   const { login, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -72,6 +82,26 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = async () => {
+    setEmail("user@example.com");
+    setPassword("password");
+    
+    setIsLoading(true);
+    
+    setTimeout(async () => {
+      const success = await login("user@example.com", "password");
+      
+      if (success) {
+        toast.success("Demo login successful! Redirecting to dashboard...");
+        navigate("/dashboard");
+      } else {
+        setError("Demo login failed. Please try again.");
+        toast.error("Demo login failed");
+      }
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
@@ -189,6 +219,7 @@ const Login = () => {
                 type="button"
                 variant="outline"
                 className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
+                onClick={handleDemoLogin}
               >
                 <UserCheck className="h-4 w-4" />
                 <span>Continue as Demo User</span>
@@ -210,10 +241,24 @@ const Login = () => {
         
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-400">
-            Don't have an account? <a href="#" className="text-blue-400 hover:underline">Join the waitlist</a>
+            Don't have an account? <button onClick={() => setShowWaitlist(true)} className="text-blue-400 hover:underline">Join the waitlist</button>
           </p>
         </div>
       </motion.div>
+
+      <Dialog open={showWaitlist} onOpenChange={setShowWaitlist}>
+        <DialogContent className="bg-black/60 backdrop-blur-xl border-gray-800 text-white w-full max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+              Join Nexus Beta
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-400">
+              Apply to be part of our exclusive beta testing program
+            </DialogDescription>
+          </DialogHeader>
+          <WaitlistForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

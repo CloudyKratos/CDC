@@ -10,9 +10,10 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import BetaAdmin from "./pages/BetaAdmin";
 
-// Beta testers data
-const BETA_TESTERS = [
+// Default beta testers data as fallback
+const DEFAULT_BETA_TESTERS = [
   { id: '1', email: 'user@example.com', name: 'Demo User', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
   { id: '2', email: 'jane@example.com', name: 'Jane Smith', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane' },
   { id: '3', email: 'john@example.com', name: 'John Doe', role: 'Beta Tester', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
@@ -49,13 +50,20 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   
   useEffect(() => {
     // Check if user is logged in
-    const user = localStorage.getItem("user");
-    setIsAuthenticated(!!user);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setIsAuthenticated(true);
+      setIsAdmin(user.role === 'Admin');
+    } else {
+      setIsAuthenticated(false);
+    }
   }, []);
   
   if (isAuthenticated === null) {
@@ -65,7 +73,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     </div>;
   }
   
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
 };
 
 const App = () => {
@@ -99,6 +115,11 @@ const App = () => {
       }
     }
     
+    // Initialize beta testers in localStorage if not present
+    if (!localStorage.getItem('betaTesters')) {
+      localStorage.setItem('betaTesters', JSON.stringify(DEFAULT_BETA_TESTERS));
+    }
+    
     // Add smooth scrolling behavior
     document.documentElement.style.scrollBehavior = 'smooth';
     
@@ -109,8 +130,12 @@ const App = () => {
   }, []);
   
   const login = async (email: string, password: string) => {
+    // Get beta testers from localStorage, falling back to default list
+    const storedTesters = localStorage.getItem('betaTesters');
+    const betaTesters = storedTesters ? JSON.parse(storedTesters) : DEFAULT_BETA_TESTERS;
+    
     // For beta testing, we only allow specific emails
-    const betaTester = BETA_TESTERS.find(tester => tester.email.toLowerCase() === email.toLowerCase());
+    const betaTester = betaTesters.find((tester: any) => tester.email.toLowerCase() === email.toLowerCase());
     
     if (betaTester) {
       // In a real app, we would validate the password here
@@ -153,6 +178,11 @@ const App = () => {
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/beta-admin" element={
+                  <ProtectedRoute adminOnly={true}>
+                    <BetaAdmin />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />
