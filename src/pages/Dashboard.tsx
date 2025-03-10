@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -38,7 +37,6 @@ const Dashboard = () => {
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
   const navigate = useNavigate();
   
-  // Sample notifications data
   const notifications = [
     {
       id: 1,
@@ -90,18 +88,20 @@ const Dashboard = () => {
     }
   ];
   
-  // Latest announcement for the banner
   const latestAnnouncement = {
+    id: "rt-001",
     title: "Community Roundtable",
     content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",
-    date: "Friday, 3:00 PM"
+    date: "Friday, 3:00 PM",
+    type: "roundtable",
+    attendees: 12,
+    maxAttendees: 30
   };
   
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(isDarkMode);
     
-    // Check if we should show mobile menu on initial load
     if (isMobile) {
       setViewMode("mobile-menu");
     }
@@ -124,11 +124,9 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  // Updated to set activeItem state
   const handleSelectItem = (item: string) => {
     setActiveItem(item);
     
-    // Set the appropriate view mode based on the selected item
     if (item === "home") {
       setViewMode("home");
     } else if (item === "documents") {
@@ -150,9 +148,7 @@ const Dashboard = () => {
     }
   };
 
-  // This is the function we'll pass to the Sidebar component
   const handleViewModeChange = (newViewMode: string) => {
-    // Only set if it's a valid ViewMode
     if (["home", "chat", "workspace", "calendar", "mobile-menu", "community", "profile"].includes(newViewMode)) {
       setViewMode(newViewMode as ViewMode);
     }
@@ -347,7 +343,6 @@ const Dashboard = () => {
 
   return (
     <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80 doodle-pattern">
-      {/* Left Sidebar - Hidden on Mobile */}
       {!isMobile && (
         <Sidebar 
           viewMode={viewMode} 
@@ -359,11 +354,8 @@ const Dashboard = () => {
         />
       )}
       
-      {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Top Navigation Bar */}
         <div className="p-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm sticky top-0 z-30">
-          {/* Mobile Menu Button */}
           {isMobile && (
             <Button 
               variant="ghost" 
@@ -377,7 +369,6 @@ const Dashboard = () => {
             </Button>
           )}
           
-          {/* Title with gradient and sparkle icon */}
           <div className={`text-xl font-bold flex items-center gap-2 ${isMobile && viewMode !== "mobile-menu" ? "text-center flex-1" : ""}`}>
             {viewMode === "home" ? (
               <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-transparent bg-clip-text">Home</span>
@@ -403,7 +394,6 @@ const Dashboard = () => {
             )}
           </div>
           
-          {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
             <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
               <PopoverTrigger asChild>
@@ -480,16 +470,13 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Main Content Area with enhanced background effect */}
         <div className="flex-1 relative overflow-hidden">
-          {/* Decorative floating elements in the background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl animate-float"></div>
             <div className="absolute top-1/3 -left-32 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200"></div>
             <div className="absolute -bottom-20 right-1/3 w-64 h-64 bg-green-500/10 dark:bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400"></div>
           </div>
           
-          {/* Actual content */}
           <div className="relative z-10 h-full overflow-hidden">
             {renderContent()}
           </div>

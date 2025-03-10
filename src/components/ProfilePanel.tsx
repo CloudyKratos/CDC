@@ -1,276 +1,602 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Avatar } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Camera, X, Edit, LogOut } from 'lucide-react';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  bio?: string;
-  role?: string;
-  status?: 'online' | 'away' | 'busy' | 'offline';
-  timezone?: string;
-}
+import React, { useContext, useState } from "react";
+import { AuthContext } from "../App";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { 
+  User, 
+  Settings, 
+  Shield, 
+  Bell, 
+  Moon, 
+  Sun, 
+  Palette, 
+  Lock, 
+  LifeBuoy, 
+  LogOut,
+  Mail,
+  Calendar,
+  Clock,
+  Edit,
+  Save,
+  X,
+  Check,
+  UserCircle,
+  MessageSquare
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ProfilePanel = () => {
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserProfile>(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : {
-      id: '1',
-      name: 'Demo User',
-      email: 'user@example.com',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-      bio: 'Product designer and developer based in SF.',
-      role: 'Beta Tester',
-      status: 'online',
-      timezone: 'Pacific Time (PT)'
-    };
+  const [activeTab, setActiveTab] = useState("profile");
+  const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
+  const [colorTheme, setColorTheme] = useState(localStorage.getItem('colorTheme') || 'blue');
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const [profileData, setProfileData] = useState({
+    displayName: user?.name || "Demo User",
+    bio: "UI/UX Designer and Developer based in San Francisco. I love creating beautiful and functional interfaces.",
+    website: "example.com",
+    location: "San Francisco, CA",
+    timeZone: "PST (UTC-8)",
   });
   
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState<UserProfile>(user);
-  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
-  const [newAvatarUrl, setNewAvatarUrl] = useState('');
-  const [isConfirmLogoutOpen, setIsConfirmLogoutOpen] = useState(false);
+  // Settings state
+  const [settings, setSettings] = useState({
+    emailNotifications: true,
+    desktopNotifications: true,
+    soundEnabled: true,
+    darkMode: darkMode,
+    colorTheme: colorTheme,
+    twoFactorEnabled: false,
+    autoStatus: true
+  });
   
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    toast.success('Logged out successfully');
-    navigate('/login');
-  };
-  
-  const handleSaveProfile = () => {
-    setUser(editedUser);
-    localStorage.setItem('user', JSON.stringify(editedUser));
-    setIsEditing(false);
-    toast.success('Profile updated successfully');
-  };
-  
-  const handleAvatarSave = () => {
-    if (newAvatarUrl) {
-      const updatedUser = { ...editedUser, avatar: newAvatarUrl };
-      setEditedUser(updatedUser);
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      toast.success('Avatar updated');
-    }
-    setIsAvatarDialogOpen(false);
-    setNewAvatarUrl('');
-  };
-  
-  const statusOptions = [
-    { value: 'online', label: 'Online', color: 'bg-green-500' },
-    { value: 'away', label: 'Away', color: 'bg-yellow-500' },
-    { value: 'busy', label: 'Busy', color: 'bg-red-500' },
-    { value: 'offline', label: 'Offline', color: 'bg-gray-500' }
+  // Activity data (mock)
+  const activityData = [
+    { id: 1, type: "message", content: "Posted in General channel", time: "2 hours ago" },
+    { id: 2, type: "event", content: "Joined Weekly Roundtable event", time: "Yesterday" },
+    { id: 3, type: "login", content: "Logged in from new device", time: "3 days ago" },
+    { id: 4, type: "upload", content: "Uploaded file: project-proposal.pdf", time: "1 week ago" },
+    { id: 5, type: "message", content: "Commented on Alex's post", time: "1 week ago" },
   ];
   
+  const handleLogout = () => {
+    toast.success("Successfully logged out");
+    logout();
+    navigate("/login");
+  };
+  
+  const handleToggleDarkMode = () => {
+    const newDarkMode = !settings.darkMode;
+    setSettings({ ...settings, darkMode: newDarkMode });
+    setDarkMode(newDarkMode);
+    
+    document.documentElement.classList.toggle('dark', newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode.toString());
+  };
+  
+  const handleColorThemeChange = (theme: string) => {
+    setSettings({ ...settings, colorTheme: theme });
+    setColorTheme(theme);
+    
+    // Remove all theme classes
+    document.documentElement.classList.remove('theme-blue', 'theme-purple', 'theme-green', 'theme-orange');
+    // Add the new theme class
+    document.documentElement.classList.add(`theme-${theme}`);
+    localStorage.setItem('colorTheme', theme);
+  };
+  
+  const handleEditProfile = () => {
+    if (isEditing) {
+      // Save changes
+      toast.success("Profile updated successfully");
+    }
+    setIsEditing(!isEditing);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileData({ ...profileData, [name]: value });
+  };
+  
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border">
-      <div className="p-4 border-b border-border flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Profile</h2>
-        {!isEditing ? (
-          <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-            <Edit size={16} className="mr-1" /> Edit
-          </Button>
-        ) : (
-          <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
-            <X size={16} className="mr-1" /> Cancel
-          </Button>
-        )}
-      </div>
-      
-      <div className="p-6 flex-1 overflow-y-auto">
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative group">
-            <Avatar className="h-24 w-24 border-2 border-border">
-              <img 
-                src={user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} 
-                alt={user.name}
-                className="object-cover"
-              />
-            </Avatar>
-            {isEditing && (
-              <button 
-                className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1 rounded-full"
-                onClick={() => setIsAvatarDialogOpen(true)}
-              >
-                <Camera size={16} />
-              </button>
-            )}
-          </div>
-          <div className="mt-4 text-center">
-            <h3 className="text-lg font-medium">{user.name}</h3>
-            <p className="text-sm text-muted-foreground">{user.role || 'Beta Tester'}</p>
-            <div className="flex items-center justify-center mt-1">
-              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${statusOptions.find(s => s.value === user.status)?.color || 'bg-gray-500'}`}></span>
-              <span className="text-xs text-muted-foreground">
-                {statusOptions.find(s => s.value === user.status)?.label || 'Offline'}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        {!isEditing ? (
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Email</h4>
-              <p>{user.email}</p>
-            </div>
-            
-            {user.bio && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Bio</h4>
-                <p className="text-sm">{user.bio}</p>
-              </div>
-            )}
-            
-            {user.timezone && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Timezone</h4>
-                <p className="text-sm">{user.timezone}</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="text-sm font-medium mb-1 block">Name</label>
-              <Input 
-                id="name" 
-                value={editedUser.name} 
-                onChange={e => setEditedUser({...editedUser, name: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="text-sm font-medium mb-1 block">Email</label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={editedUser.email} 
-                onChange={e => setEditedUser({...editedUser, email: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="bio" className="text-sm font-medium mb-1 block">Bio</label>
-              <Textarea 
-                id="bio" 
-                value={editedUser.bio || ''} 
-                onChange={e => setEditedUser({...editedUser, bio: e.target.value})}
-                className="min-h-[100px]"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="role" className="text-sm font-medium mb-1 block">Role</label>
-              <Input 
-                id="role" 
-                value={editedUser.role || ''} 
-                onChange={e => setEditedUser({...editedUser, role: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="status" className="text-sm font-medium mb-1 block">Status</label>
-              <select 
-                id="status"
-                value={editedUser.status || 'offline'}
-                onChange={e => setEditedUser({...editedUser, status: e.target.value as 'online' | 'away' | 'busy' | 'offline'})}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="timezone" className="text-sm font-medium mb-1 block">Timezone</label>
-              <Input 
-                id="timezone" 
-                value={editedUser.timezone || ''} 
-                onChange={e => setEditedUser({...editedUser, timezone: e.target.value})}
-              />
-            </div>
-            
-            <div className="pt-4">
-              <Button onClick={handleSaveProfile} className="w-full">Save Profile</Button>
-            </div>
-          </div>
-        )}
-        
-        <div className="mt-8 pt-4 border-t border-border">
+    <div className="container mx-auto px-4 py-6 max-w-6xl animate-fade-in">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3 h-12 glass-card">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+          </TabsList>
+          
           <Button 
             variant="destructive" 
             size="sm" 
-            className="w-full"
-            onClick={() => setIsConfirmLogoutOpen(true)}
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white"
           >
-            <LogOut size={16} className="mr-2" /> Log Out
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
           </Button>
         </div>
-      </div>
-      
-      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change Avatar</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <label htmlFor="avatar-url" className="text-sm font-medium mb-1 block">Avatar URL</label>
-            <Input 
-              id="avatar-url" 
-              placeholder="https://example.com/avatar.png" 
-              value={newAvatarUrl} 
-              onChange={e => setNewAvatarUrl(e.target.value)}
-            />
-            
-            {newAvatarUrl && (
-              <div className="mt-4 flex justify-center">
-                <Avatar className="h-20 w-20">
-                  <img 
-                    src={newAvatarUrl} 
-                    alt="New avatar" 
-                    className="object-cover"
-                    onError={() => {
-                      toast.error('Invalid image URL');
-                      setNewAvatarUrl('');
-                    }}
-                  />
-                </Avatar>
+        
+        <TabsContent value="profile" className="mt-6 space-y-6">
+          <Card className="glass-card">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20 border-4 border-white dark:border-gray-800 shadow-md">
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "DU"}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-xl">{user?.name || "Demo User"}</CardTitle>
+                      <Badge variant="outline" className="bg-purple-500/10 text-purple-500 dark:bg-purple-500/20 border-purple-500/30">
+                        {user?.role || "Beta Tester"}
+                      </Badge>
+                    </div>
+                    <CardDescription>{user?.email || "user@example.com"}</CardDescription>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        Joined April 2023
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEditProfile}
+                  className="self-start md:self-center"
+                >
+                  {isEditing ? (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAvatarDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAvatarSave}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isConfirmLogoutOpen} onOpenChange={setIsConfirmLogoutOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Logout</DialogTitle>
-          </DialogHeader>
-          <p className="py-4">Are you sure you want to log out?</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfirmLogoutOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleLogout}>Log Out</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-medium flex items-center gap-2 mb-3">
+                      <UserCircle className="h-4 w-4" />
+                      About
+                    </h3>
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="displayName">Display Name</Label>
+                          <Input 
+                            id="displayName" 
+                            name="displayName" 
+                            value={profileData.displayName} 
+                            onChange={handleInputChange} 
+                            className="form-input-modern"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="bio">Bio</Label>
+                          <Input 
+                            id="bio" 
+                            name="bio" 
+                            value={profileData.bio} 
+                            onChange={handleInputChange} 
+                            className="form-input-modern"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-300">
+                        {profileData.bio}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium flex items-center gap-2 mb-3">
+                      <Mail className="h-4 w-4" />
+                      Contact Information
+                    </h3>
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="website">Website</Label>
+                            <Input 
+                              id="website" 
+                              name="website" 
+                              value={profileData.website} 
+                              onChange={handleInputChange} 
+                              className="form-input-modern"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
+                            <Input 
+                              id="location" 
+                              name="location" 
+                              value={profileData.location} 
+                              onChange={handleInputChange} 
+                              className="form-input-modern"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="flex items-center gap-2">
+                            <span className="font-medium w-24">Email:</span>
+                            <span>{user?.email || "user@example.com"}</span>
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <span className="font-medium w-24">Website:</span>
+                            <span>{profileData.website}</span>
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <span className="font-medium w-24">Location:</span>
+                            <span>{profileData.location}</span>
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium flex items-center gap-2 mb-3">
+                      <Clock className="h-4 w-4" />
+                      Time Zone
+                    </h3>
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="timeZone">Time Zone</Label>
+                        <Input 
+                          id="timeZone" 
+                          name="timeZone" 
+                          value={profileData.timeZone} 
+                          onChange={handleInputChange} 
+                          className="form-input-modern"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {profileData.timeZone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-medium flex items-center gap-2 mb-3">
+                      <MessageSquare className="h-4 w-4" />
+                      Recent Activity
+                    </h3>
+                    <div className="space-y-3">
+                      {activityData.map(activity => (
+                        <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-b-0 border-gray-100 dark:border-gray-800">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                            activity.type === 'message' 
+                              ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' 
+                              : activity.type === 'event'
+                              ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                              : activity.type === 'login'
+                              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                              : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                          }`}>
+                            {activity.type === 'message' ? <MessageSquare size={16} /> :
+                             activity.type === 'event' ? <Calendar size={16} /> :
+                             activity.type === 'login' ? <User size={16} /> :
+                             <Calendar size={16} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">{activity.content}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium flex items-center gap-2 mb-3">
+                      <Shield className="h-4 w-4" />
+                      Security Overview
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">Two-factor authentication</span>
+                        </div>
+                        <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/30">
+                          Not enabled
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">Last password change</span>
+                        </div>
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                          2 weeks ago
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="settings" className="mt-6 space-y-6 animate-fade-in">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-xl">General Settings</CardTitle>
+              <CardDescription>Manage your account preferences</CardDescription>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    Notifications
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="emailNotifications" className="flex-1">
+                        Email notifications
+                      </Label>
+                      <Switch
+                        id="emailNotifications"
+                        checked={settings.emailNotifications}
+                        onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="desktopNotifications" className="flex-1">
+                        Desktop notifications
+                      </Label>
+                      <Switch
+                        id="desktopNotifications"
+                        checked={settings.desktopNotifications}
+                        onCheckedChange={(checked) => setSettings({ ...settings, desktopNotifications: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="soundEnabled" className="flex-1">
+                        Sound effects
+                      </Label>
+                      <Switch
+                        id="soundEnabled"
+                        checked={settings.soundEnabled}
+                        onCheckedChange={(checked) => setSettings({ ...settings, soundEnabled: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Appearance
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="darkMode" className="flex items-center gap-2">
+                          <span>Dark Mode</span>
+                        </Label>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Switch between light and dark mode
+                        </p>
+                      </div>
+                      <div className="flex items-center border rounded-full p-1 bg-gray-100 dark:bg-gray-800">
+                        <button
+                          type="button"
+                          onClick={() => !settings.darkMode && handleToggleDarkMode()}
+                          className={`p-1.5 rounded-full ${!settings.darkMode ? 'bg-white shadow-sm dark:bg-gray-700' : ''}`}
+                        >
+                          <Sun className="h-4 w-4 text-amber-500" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => settings.darkMode && handleToggleDarkMode()}
+                          className={`p-1.5 rounded-full ${settings.darkMode ? 'bg-gray-700 shadow-sm' : ''}`}
+                        >
+                          <Moon className="h-4 w-4 text-indigo-400" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <Label className="block mb-3">Color Theme</Label>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleColorThemeChange('blue')}
+                          className={`h-10 w-10 rounded-full bg-blue-500 ${settings.colorTheme === 'blue' ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                        >
+                          {settings.colorTheme === 'blue' && <Check className="h-5 w-5 text-white mx-auto" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleColorThemeChange('purple')}
+                          className={`h-10 w-10 rounded-full bg-purple-500 ${settings.colorTheme === 'purple' ? 'ring-2 ring-offset-2 ring-purple-500' : ''}`}
+                        >
+                          {settings.colorTheme === 'purple' && <Check className="h-5 w-5 text-white mx-auto" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleColorThemeChange('green')}
+                          className={`h-10 w-10 rounded-full bg-green-500 ${settings.colorTheme === 'green' ? 'ring-2 ring-offset-2 ring-green-500' : ''}`}
+                        >
+                          {settings.colorTheme === 'green' && <Check className="h-5 w-5 text-white mx-auto" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleColorThemeChange('orange')}
+                          className={`h-10 w-10 rounded-full bg-orange-500 ${settings.colorTheme === 'orange' ? 'ring-2 ring-offset-2 ring-orange-500' : ''}`}
+                        >
+                          {settings.colorTheme === 'orange' && <Check className="h-5 w-5 text-white mx-auto" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Status & Presence
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="autoStatus" className="flex-1">
+                        Automatically update status
+                      </Label>
+                      <Switch
+                        id="autoStatus"
+                        checked={settings.autoStatus}
+                        onCheckedChange={(checked) => setSettings({ ...settings, autoStatus: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="security" className="mt-6 space-y-6 animate-fade-in">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-xl">Security Settings</CardTitle>
+              <CardDescription>Manage your account security settings</CardDescription>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="font-medium">Two-Factor Authentication</h3>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <div className="space-y-1">
+                      <p className="font-medium">Add an extra layer of security</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Protect your account with an additional verification step
+                      </p>
+                    </div>
+                    <Button variant="outline">
+                      {settings.twoFactorEnabled ? "Manage" : "Enable"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="font-medium">Password</h3>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <div className="space-y-1">
+                      <p className="font-medium">Change your password</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Last updated 2 weeks ago
+                      </p>
+                    </div>
+                    <Button variant="outline">Update</Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="font-medium">Sessions</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">Current session</p>
+                          <Badge className="bg-green-500/10 text-green-500 border-green-500/30">
+                            Active
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          San Francisco, CA • Chrome on macOS
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                      <div className="space-y-1">
+                        <p className="font-medium">Mobile App</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          iOS • Last active 2 days ago
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="font-medium">Account Danger Zone</h3>
+                  <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20">
+                    <h4 className="font-medium text-red-600 dark:text-red-400">Delete account</h4>
+                    <p className="text-sm text-red-500/80 dark:text-red-400/80 mt-1">
+                      This action is permanent and cannot be undone. All your data will be permanently deleted.
+                    </p>
+                    <Button variant="destructive" size="sm" className="mt-3 bg-red-600 hover:bg-red-700">
+                      Delete Account
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
