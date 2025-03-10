@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import HomePage from "@/components/HomePage";
 import CalendarPanel from "@/components/CalendarPanel";
 import CommunityPanel from "@/components/CommunityPanel";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
+import AnnouncementBanner, { AnnouncementProps } from "@/components/AnnouncementBanner";
 import ProfilePanel from "@/components/ProfilePanel";
 import { toast } from "sonner";
 import {
