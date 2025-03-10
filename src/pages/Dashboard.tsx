@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Sidebar } from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Button } from "@/components/ui/button";

@@ -7,7 +7,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import Navbar from "@/components/Navbar";
+import { Navbar } from "@/components/Navbar";
 import AdminPanel from "@/components/beta/AdminPanel";
 import { AuthContext } from "../App";
 import { useNavigate } from "react-router-dom";

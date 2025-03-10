@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +106,7 @@ const AdminPanel = () => {
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'approved':
-        return <Badge variant="success" className="bg-green-500/20 text-green-400 border border-green-500/50">Approved</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border border-green-500/50">Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="bg-red-500/20 text-red-400 border border-red-500/50">Rejected</Badge>;
       default:
