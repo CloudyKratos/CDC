@@ -14,7 +14,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { AuthContext } from "../App";
-import { Lock, Mail, Eye, EyeOff, UserCheck, AlertCircle } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, UserCheck, AlertCircle, User, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -59,14 +59,41 @@ const Login = () => {
         toast.success("Login successful! Redirecting to dashboard...");
         navigate("/dashboard");
       } else {
-        setError("Invalid email or password. Note: This is a beta version, only registered beta testers can login.");
+        setError("Invalid email or password. Please try again or use one of the test accounts below.");
         toast.error("Login failed", {
-          description: "Invalid credentials or you're not a registered beta tester."
+          description: "Invalid credentials."
         });
       }
     } catch (error) {
       setError("An error occurred during login. Please try again.");
       toast.error("Login failed", {
+        description: "An unexpected error occurred"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (testEmail: string) => {
+    setEmail(testEmail);
+    setPassword("password123"); // Using a standard test password
+    setIsLoading(true);
+    
+    try {
+      const success = await login(testEmail, "password123");
+      
+      if (success) {
+        toast.success("Test login successful! Redirecting to dashboard...");
+        navigate("/dashboard");
+      } else {
+        setError("Test login failed. Please try again.");
+        toast.error("Test login failed", {
+          description: "Unable to log in with test account."
+        });
+      }
+    } catch (error) {
+      setError("An error occurred during test login. Please try again.");
+      toast.error("Test login failed", {
         description: "An unexpected error occurred"
       });
     } finally {
@@ -182,16 +209,39 @@ const Login = () => {
               
               <div className="relative flex items-center justify-center mt-4">
                 <Separator className="w-full bg-gray-700" />
-                <span className="absolute px-2 bg-black/40 text-gray-400 text-xs">OR</span>
+                <span className="absolute px-2 bg-black/40 text-gray-400 text-xs">TEST ACCOUNTS</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleQuickLogin("user@example.com")}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  <span>Standard User</span>
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleQuickLogin("admin@example.com")}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Admin User</span>
+                </Button>
               </div>
               
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
+                onClick={() => handleQuickLogin("demo@example.com")}
+                className="w-full border-gray-700 border-dashed bg-gradient-to-r from-indigo-500/5 to-purple-500/5 text-gray-300 hover:bg-indigo-900/20 hover:text-white flex items-center justify-center gap-2"
               >
-                <UserCheck className="h-4 w-4" />
-                <span>Continue as Demo User</span>
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                <span>Explore Demo Account</span>
               </Button>
             </form>
           </CardContent>
@@ -202,15 +252,15 @@ const Login = () => {
             
             <p className="text-center text-xs text-gray-500">
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Beta Access Only
-              </span> - Currently accepting new beta testers
+                Need help? 
+              </span> - Contact support@nexus-app.com
             </p>
           </CardFooter>
         </Card>
         
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-400">
-            Don't have an account? <a href="#" className="text-blue-400 hover:underline">Join the waitlist</a>
+            Don't have an account? <a href="#" className="text-blue-400 hover:underline">Create one now</a>
           </p>
         </div>
       </motion.div>
