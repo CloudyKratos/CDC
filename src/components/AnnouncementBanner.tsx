@@ -4,6 +4,7 @@ import { X, Calendar, Bell, Megaphone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AnnouncementProps } from "@/types/announcement";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const AnnouncementBanner: React.FC<{ announcement: AnnouncementProps }> = ({ announcement }) => {
   const [isVisible, setIsVisible] = React.useState(true);
@@ -62,20 +63,29 @@ const AnnouncementBanner: React.FC<{ announcement: AnnouncementProps }> = ({ ann
     : 0;
 
   return (
-    <div className={`p-4 mb-4 rounded-lg border animate-fade-in ${getBgColor()}`}>
+    <div className={`p-4 mb-4 rounded-lg border shadow-sm animate-fade-in ${getBgColor()}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {getIcon()}
           <h3 className="font-semibold">{announcement.title}</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-          onClick={() => setIsVisible(false)}
-        >
-          <X className="h-3 w-3" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                onClick={() => setIsVisible(false)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Dismiss</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{announcement.content}</p>
       
