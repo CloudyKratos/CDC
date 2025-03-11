@@ -61,7 +61,6 @@ class WebRTCService {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' }
-        // In a production app, you would include TURN servers here
       ]
     };
 
@@ -98,7 +97,7 @@ class WebRTCService {
     this.connectionStateChangeListeners.push(callback);
   }
 
-  public async handleSignalingData(userId: string, data: any): Promise<void> {
+  public async handleSignalingData(userId: string, data: any): Promise<any> {
     if (!this.peerConnections[userId]) {
       await this.createPeerConnection(userId);
     }

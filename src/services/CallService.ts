@@ -110,8 +110,6 @@ class CallService {
             avatar: user.avatar
           }
         })}`,
-        id: `call_invite_${Date.now()}`,
-        timestamp: new Date().toISOString(),
         sender: {
           id: user.id,
           name: user.name,
@@ -158,6 +156,8 @@ class CallService {
     
     await this.webRTC.initialize();
     await this.webRTC.createPeerConnection(initiatorId);
+    
+    return null; // Will be updated when call details are received
   }
   
   public async endCall(): Promise<void> {
