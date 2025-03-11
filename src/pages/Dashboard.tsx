@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -15,6 +14,7 @@ import CommunityPanel from "@/components/CommunityPanel";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ProfilePanel from "@/components/ProfilePanel";
 import { NotificationType } from "@/types/notification";
+import { AnnouncementProps } from "@/types/announcement";
 
 type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
@@ -86,7 +86,7 @@ const Dashboard = () => {
     }
   ];
   
-  const latestAnnouncement = {
+  const latestAnnouncement: AnnouncementProps = {
     id: "rt-001",
     title: "Community Roundtable",
     content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",

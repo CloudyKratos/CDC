@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Clock, 
   BarChart3, 
@@ -10,15 +9,38 @@ import {
   ArrowRight,
   Sparkles,
   Star,
-  TrendingUp
+  TrendingUp,
+  Book,
+  ListTodo,
+  Sun
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import DailyJournal from "./home/DailyJournal";
+import TodoList from "./home/TodoList";
+import MorningStrategyPopup from "./home/MorningStrategyPopup";
 
 const HomePage = () => {
+  const [showMorningStrategy, setShowMorningStrategy] = useState(false);
+  const [showStrategyReminder, setShowStrategyReminder] = useState(true);
+  
+  useEffect(() => {
+    const hour = new Date().getHours();
+    const isFirstVisitToday = !localStorage.getItem(`morning-strategy-${new Date().toDateString()}`);
+    
+    if (hour >= 5 && hour <= 11 && isFirstVisitToday) {
+      const timer = setTimeout(() => {
+        setShowMorningStrategy(true);
+        localStorage.setItem(`morning-strategy-${new Date().toDateString()}`, 'true');
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  
   const currentTime = new Date();
   const hours = currentTime.getHours();
   
@@ -29,7 +51,6 @@ const HomePage = () => {
     greeting = "Good evening";
   }
 
-  // Simulate user data - in a real app, this would come from a backend
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   
   const upcomingEvents = [
@@ -94,7 +115,11 @@ const HomePage = () => {
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
-      {/* Welcome section */}
+      <MorningStrategyPopup 
+        isOpen={showMorningStrategy} 
+        onClose={() => setShowMorningStrategy(false)} 
+      />
+      
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold mb-1">{greeting}, {user.name || "User"}!</h1>
@@ -113,7 +138,6 @@ const HomePage = () => {
         </div>
       </div>
       
-      {/* Quick stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "0.1s" }}>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 border-purple-200/50 dark:border-purple-800/30">
           <CardHeader className="pb-2">
@@ -169,69 +193,10 @@ const HomePage = () => {
         </Card>
       </div>
       
-      {/* Middle section: Events and Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-        {/* Upcoming events */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle>Upcoming Events</CardTitle>
-              <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
-                <ArrowRight size={16} />
-              </Button>
-            </div>
-            <CardDescription>Your scheduled events for the next few days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingEvents.map(event => (
-                <div key={event.id} className="flex items-start space-x-3 bg-card/50 p-3 rounded-lg border border-border/50 hover:bg-card/80 transition-all">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center">
-                    <Calendar size={18} className="text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">{event.title}</h4>
-                      <Badge variant="outline" className={
-                        event.category === "community" 
-                          ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800/30" 
-                          : event.category === "workshop"
-                          ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/30"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800/30"
-                      }>
-                        {event.category}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1 space-x-3">
-                      <span>{event.date} • {event.time}</span>
-                      <span>•</span>
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center mt-2">
-                      <div className="flex -space-x-1.5">
-                        {[...Array(3)].map((_, i) => (
-                          <Avatar key={i} className="h-5 w-5 border-2 border-background">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i + event.id}`} alt="Participant" />
-                            <AvatarFallback>U{i}</AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground ml-2">+{event.participants - 3} attending</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
-              View All Events
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        {/* Activity feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
         <div className="space-y-6">
+          <DailyJournal />
+          
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Activity Feed</CardTitle>
@@ -264,35 +229,71 @@ const HomePage = () => {
               </Button>
             </CardFooter>
           </Card>
+        </div>
+        
+        <div className="space-y-6">
+          <TodoList />
           
-          {/* Today's Goals */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle>Today's Goals</CardTitle>
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles size={14} className="text-primary" />
-                </div>
+                <CardTitle>Upcoming Events</CardTitle>
+                <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <ArrowRight size={16} />
+                </Button>
               </div>
+              <CardDescription>Your scheduled events for the next few days</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todaysGoals.map(goal => (
-                  <div key={goal.id} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{goal.title}</p>
-                      <p className="text-sm text-muted-foreground">{goal.progress}%</p>
+                {upcomingEvents.map(event => (
+                  <div key={event.id} className="flex items-start space-x-3 bg-card/50 p-3 rounded-lg border border-border/50 hover:bg-card/80 transition-all">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center">
+                      <Calendar size={18} className="text-primary" />
                     </div>
-                    <Progress value={goal.progress} className="h-2" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">{event.title}</h4>
+                        <Badge variant="outline" className={
+                          event.category === "community" 
+                            ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800/30" 
+                            : event.category === "workshop"
+                            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/30"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800/30"
+                        }>
+                          {event.category}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground mt-1 space-x-3">
+                        <span>{event.date} • {event.time}</span>
+                        <span>•</span>
+                        <span>{event.location}</span>
+                      </div>
+                      <div className="flex items-center mt-2">
+                        <div className="flex -space-x-1.5">
+                          {[...Array(3)].map((_, i) => (
+                            <Avatar key={i} className="h-5 w-5 border-2 border-background">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i + event.id}`} alt="Participant" />
+                              <AvatarFallback>U{i}</AvatarFallback>
+                            </Avatar>
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-2">+{event.participants - 3} attending</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
+                View All Events
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       </div>
       
-      {/* Featured content */}
       <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
         <Card className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-primary/20">
           <CardContent className="p-6">

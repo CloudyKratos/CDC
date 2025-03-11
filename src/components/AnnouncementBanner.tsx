@@ -1,127 +1,96 @@
 
-import React, { useState } from "react";
-import { Bell, Calendar, Users, X } from "lucide-react";
+import React from "react";
+import { X, Calendar, Bell, Megaphone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
+import { AnnouncementProps } from "@/types/announcement";
 
-export type AnnouncementType = "roundtable" | "update" | "maintenance";
+const AnnouncementBanner: React.FC<{ announcement: AnnouncementProps }> = ({ announcement }) => {
+  const [isVisible, setIsVisible] = React.useState(true);
 
-export interface AnnouncementProps {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  type: AnnouncementType;
-  attendees?: number;
-  maxAttendees?: number;
-}
-
-interface AnnouncementBannerProps {
-  announcement: AnnouncementProps;
-}
-
-const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcement }) => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isAttending, setIsAttending] = useState(false);
-  
-  if (!isVisible) return null;
-
-  const handleClose = () => {
-    setIsVisible(false);
-  };
-
-  const handleAttend = () => {
-    if (isAttending) {
-      toast.info("You've been removed from the attendee list");
-      setIsAttending(false);
-    } else {
-      toast.success("You're now attending this event!");
-      setIsAttending(true);
-    }
-  };
-
-  // Calculate attendance percentage
-  const attendancePercentage = announcement.attendees && announcement.maxAttendees 
-    ? (announcement.attendees / announcement.maxAttendees) * 100
-    : 0;
-
-  // Different styling based on announcement type
-  const getBgColor = () => {
-    switch (announcement.type) {
-      case "roundtable":
-        return "bg-gradient-to-r from-purple-600/90 to-indigo-600/90";
-      case "update":
-        return "bg-gradient-to-r from-blue-600/90 to-cyan-600/90";
-      case "maintenance":
-        return "bg-gradient-to-r from-amber-600/90 to-orange-600/90";
-      default:
-        return "bg-gradient-to-r from-purple-600/90 to-indigo-600/90";
-    }
-  };
+  if (!isVisible) {
+    return null;
+  }
 
   const getIcon = () => {
     switch (announcement.type) {
-      case "roundtable":
-        return <Users className="h-5 w-5 text-indigo-200" />;
+      case "event":
+        return <Calendar className="mr-2 h-5 w-5 text-blue-500" />;
+      case "announcement":
+        return <Bell className="mr-2 h-5 w-5 text-purple-500" />;
       case "update":
-        return <Bell className="h-5 w-5 text-blue-200" />;
-      case "maintenance":
-        return <Calendar className="h-5 w-5 text-amber-200" />;
+        return <Megaphone className="mr-2 h-5 w-5 text-orange-500" />;
+      case "roundtable":
+        return <Users className="mr-2 h-5 w-5 text-green-500" />;
       default:
-        return <Bell className="h-5 w-5 text-indigo-200" />;
+        return <Bell className="mr-2 h-5 w-5 text-purple-500" />;
+    }
+  };
+
+  const getBgColor = () => {
+    switch (announcement.type) {
+      case "event":
+        return "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30";
+      case "announcement":
+        return "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30";
+      case "update":
+        return "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30";
+      case "roundtable":
+        return "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30";
+      default:
+        return "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30";
+    }
+  };
+
+  const getButtonColor = () => {
+    switch (announcement.type) {
+      case "event":
+        return "bg-blue-500 hover:bg-blue-600 text-white";
+      case "announcement":
+        return "bg-purple-500 hover:bg-purple-600 text-white";
+      case "update":
+        return "bg-orange-500 hover:bg-orange-600 text-white";
+      case "roundtable":
+        return "bg-green-500 hover:bg-green-600 text-white";
+      default:
+        return "bg-purple-500 hover:bg-purple-600 text-white";
     }
   };
 
   return (
-    <div className={`w-full ${getBgColor()} text-white p-3 sm:p-4 shadow-md relative animate-fade-in`}>
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between">
-        <div className="flex items-center space-x-3 mb-2 sm:mb-0">
-          <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm">
-            {getIcon()}
-          </div>
-          <div>
-            <h3 className="font-medium text-sm sm:text-base">{announcement.title}</h3>
-            <p className="text-xs sm:text-sm text-white/80">{announcement.content}</p>
-          </div>
+    <div className={`p-4 mb-4 rounded-lg border animate-fade-in ${getBgColor()}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          {getIcon()}
+          <h3 className="font-semibold">{announcement.title}</h3>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-          {announcement.type === "roundtable" && announcement.attendees !== undefined && announcement.maxAttendees !== undefined && (
-            <div className="flex flex-col space-y-1 w-full sm:w-48">
-              <div className="flex justify-between text-xs">
-                <span>{announcement.attendees} attending</span>
-                <span>{announcement.maxAttendees} max</span>
-              </div>
-              <Progress value={attendancePercentage} className="h-2 bg-white/20" indicatorClassName="bg-white" />
-            </div>
-          )}
-          
-          <div className="flex space-x-2 w-full sm:w-auto justify-between sm:justify-start">
-            <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 py-1 rounded-full">
-              {announcement.date}
-            </span>
-            
-            {announcement.type === "roundtable" && (
-              <Button 
-                size="sm" 
-                variant={isAttending ? "destructive" : "secondary"} 
-                className="text-xs sm:text-sm h-7"
-                onClick={handleAttend}
-              >
-                {isAttending ? "Cancel" : "Attend"}
-              </Button>
-            )}
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          onClick={() => setIsVisible(false)}
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
+      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{announcement.content}</p>
       
-      <button 
-        className="absolute top-2 right-2 sm:top-4 sm:right-4 text-white/80 hover:text-white transition-colors"
-        onClick={handleClose}
-      >
-        <X className="h-4 w-4" />
-      </button>
+      {announcement.attendees && announcement.maxAttendees && (
+        <div className="mt-2">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <span>{announcement.attendees} attending</span>
+            <span>{announcement.maxAttendees - announcement.attendees} spots left</span>
+          </div>
+          <Progress value={(announcement.attendees / announcement.maxAttendees) * 100} className="h-1.5" />
+        </div>
+      )}
+      
+      <div className="mt-3 flex justify-between items-center">
+        <span className="text-xs text-gray-500 dark:text-gray-400">{announcement.date}</span>
+        <Button className={`text-xs px-3 py-1 h-7 ${getButtonColor()}`}>
+          Join Now
+        </Button>
+      </div>
     </div>
   );
 };
