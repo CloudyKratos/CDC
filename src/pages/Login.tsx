@@ -33,11 +33,11 @@ const Login = () => {
     }
 
     // Apply the background effect
-    document.body.classList.add("login-page");
+    document.body.style.overflow = "hidden";
     
     // Clean up function
     return () => {
-      document.body.classList.remove("login-page");
+      document.body.style.overflow = "";
     };
   }, [isAuthenticated, navigate]);
 
@@ -102,7 +102,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-gray-900 via-indigo-900/70 to-purple-900 text-white">
+    <div className="fixed inset-0 flex flex-col justify-center items-center bg-gradient-to-br from-gray-900 via-indigo-900/70 to-purple-900 text-white">
       {/* Floating elements for visual interest */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/5 w-64 h-64 bg-purple-500/20 rounded-full filter blur-3xl animate-float"></div>
@@ -114,7 +114,7 @@ const Login = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 px-4"
       >
         <div className="text-center mb-8">
           <motion.h1 

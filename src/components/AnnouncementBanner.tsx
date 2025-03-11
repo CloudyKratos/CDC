@@ -57,6 +57,10 @@ const AnnouncementBanner: React.FC<{ announcement: AnnouncementProps }> = ({ ann
     }
   };
 
+  const progressValue = announcement.attendees && announcement.maxAttendees 
+    ? (announcement.attendees / announcement.maxAttendees) * 100 
+    : 0;
+
   return (
     <div className={`p-4 mb-4 rounded-lg border animate-fade-in ${getBgColor()}`}>
       <div className="flex items-center justify-between">
@@ -75,13 +79,13 @@ const AnnouncementBanner: React.FC<{ announcement: AnnouncementProps }> = ({ ann
       </div>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{announcement.content}</p>
       
-      {announcement.attendees && announcement.maxAttendees && (
+      {announcement.attendees !== undefined && announcement.maxAttendees !== undefined && (
         <div className="mt-2">
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
             <span>{announcement.attendees} attending</span>
             <span>{announcement.maxAttendees - announcement.attendees} spots left</span>
           </div>
-          <Progress value={(announcement.attendees / announcement.maxAttendees) * 100} className="h-1.5" />
+          <Progress value={progressValue} className="h-1.5" />
         </div>
       )}
       
