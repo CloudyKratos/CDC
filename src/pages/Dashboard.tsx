@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -164,10 +163,10 @@ const Dashboard = () => {
     switch (viewMode) {
       case "home":
         return (
-          <>
-            <AnnouncementBanner announcement={latestAnnouncement} />
+          <div className="flex flex-col space-y-4 animate-fade-in">
+            {latestAnnouncement && <AnnouncementBanner announcement={latestAnnouncement} />}
             <HomePage />
-          </>
+          </div>
         );
       case "chat":
         return <ChatPanel channelType="direct" />;
@@ -181,16 +180,16 @@ const Dashboard = () => {
         return <ProfilePanel />;
       default:
         return (
-          <>
-            <AnnouncementBanner announcement={latestAnnouncement} />
+          <div className="flex flex-col space-y-4 animate-fade-in">
+            {latestAnnouncement && <AnnouncementBanner announcement={latestAnnouncement} />}
             <HomePage />
-          </>
+          </div>
         );
     }
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80">
+    <div className="h-screen w-screen flex overflow-hidden bg-gradient-to-br from-background via-background to-background/80 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-800/90">
       {!isMobile && (
         <Sidebar 
           viewMode={viewMode} 
@@ -203,6 +202,12 @@ const Dashboard = () => {
       )}
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-1/3 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200" />
+          <div className="absolute -bottom-20 right-1/3 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400" />
+        </div>
+        
         <DashboardHeader 
           isMobile={isMobile}
           viewMode={viewMode}
@@ -217,14 +222,10 @@ const Dashboard = () => {
         />
         
         <div className="flex-1 relative overflow-hidden">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl animate-float"></div>
-            <div className="absolute top-1/3 -left-32 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200"></div>
-            <div className="absolute -bottom-20 right-1/3 w-64 h-64 bg-green-500/10 dark:bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400"></div>
-          </div>
-          
-          <div className="relative z-10 h-full overflow-hidden">
-            {renderContent()}
+          <div className="absolute inset-0 overflow-y-auto">
+            <div className="relative h-full p-4 md:p-6 space-y-4 z-10">
+              {renderContent()}
+            </div>
           </div>
         </div>
       </div>
