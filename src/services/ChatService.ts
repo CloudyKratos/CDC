@@ -1,5 +1,4 @@
-
-import { WebSocketService } from './WebSocketService';
+import WebSocketService from './WebSocketService';
 
 export interface ChatMessage {
   id: string;

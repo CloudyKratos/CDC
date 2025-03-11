@@ -1,5 +1,4 @@
-
-import { WebRTCService } from './WebRTCService';
+import WebRTCService from './WebRTCService';
 import ChatService from './ChatService';
 
 export interface CallParticipant {
@@ -50,7 +49,6 @@ class CallService {
       }
     });
     
-    // Listen for signaling messages from the chat service
     ChatService.onMessage((message) => {
       if (message.content.startsWith('__CALL_SIGNAL:')) {
         const signalData = JSON.parse(message.content.replace('__CALL_SIGNAL:', ''));
@@ -67,7 +65,6 @@ class CallService {
     const callId = `call_${Date.now()}`;
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    // Initialize WebRTC connections
     await this.webRTC.initialize();
     
     const localStream = await this.webRTC.getLocalStream(type === 'video');
@@ -88,7 +85,6 @@ class CallService {
       startTime: new Date()
     };
     
-    // Send call invitation to participants via chat service
     participants.forEach(participantId => {
       ChatService.sendMessage({
         content: `__CALL_INVITATION:${JSON.stringify({
@@ -105,7 +101,7 @@ class CallService {
           name: user.name,
           avatar: user.avatar
         },
-        channelId: participantId // Direct message to participant
+        channelId: participantId
       });
     });
     
@@ -128,7 +124,6 @@ class CallService {
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    // Request call details from initiator
     ChatService.sendMessage({
       content: `__CALL_JOIN_REQUEST:${callId}`,
       sender: {
@@ -136,14 +131,11 @@ class CallService {
         name: user.name,
         avatar: user.avatar
       },
-      channelId: initiatorId // Direct message to initiator
+      channelId: initiatorId
     });
     
-    // Initialize WebRTC connection with initiator
     await this.webRTC.initialize();
     await this.webRTC.createPeerConnection(initiatorId);
-    
-    // Wait for call details (this will be handled by the message listener)
   }
   
   public async endCall(): Promise<void> {
@@ -153,7 +145,6 @@ class CallService {
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    // Notify other participants
     this.activeCall.participants.forEach(participant => {
       if (participant.id !== user.id) {
         ChatService.sendMessage({
@@ -168,12 +159,10 @@ class CallService {
       }
     });
     
-    // Stop local stream
     if (this.activeCall.participants[0]?.stream) {
       this.activeCall.participants[0].stream.getTracks().forEach(track => track.stop());
     }
     
-    // Close all peer connections
     this.webRTC.closeAllConnections();
     
     const callData = { ...this.activeCall };
@@ -260,7 +249,6 @@ class CallService {
         }
       });
       
-      // If no more participants (except self), end the call
       if (this.activeCall.participants.length <= 1) {
         this.endCall();
       }
@@ -282,3 +270,4 @@ class CallService {
 }
 
 export default CallService.getInstance();
+
