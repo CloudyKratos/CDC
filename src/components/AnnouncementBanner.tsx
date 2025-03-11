@@ -4,7 +4,6 @@ import { Bell, Calendar, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export type AnnouncementType = "roundtable" | "update" | "maintenance";
 
@@ -94,10 +93,7 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcement })
                 <span>{announcement.attendees} attending</span>
                 <span>{announcement.maxAttendees} max</span>
               </div>
-              <Progress 
-                value={attendancePercentage} 
-                className="h-2 bg-white/20" 
-              />
+              <Progress value={attendancePercentage} className="h-2 bg-white/20" indicatorClassName="bg-white" />
             </div>
           )}
           

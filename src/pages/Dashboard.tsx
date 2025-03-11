@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import HomePage from "@/components/HomePage";
 import CalendarPanel from "@/components/CalendarPanel";
 import CommunityPanel from "@/components/CommunityPanel";
-import AnnouncementBanner, { AnnouncementProps } from "@/components/AnnouncementBanner";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ProfilePanel from "@/components/ProfilePanel";
 import { toast } from "sonner";
 import {
@@ -27,10 +27,11 @@ type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "co
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("home");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(3);
   const [activeItem, setActiveItem] = useState<string>("home");
   const [activeChannel, setActiveChannel] = useState<string>("general");
-  const [viewMode, setViewMode] = useState<ViewMode>("home");
   const { toast: useToastHook } = useToast();
   const isMobile = useIsMobile(); 
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
@@ -87,7 +88,7 @@ const Dashboard = () => {
     }
   ];
   
-  const latestAnnouncement: AnnouncementProps = {
+  const latestAnnouncement = {
     id: "rt-001",
     title: "Community Roundtable",
     content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",
@@ -341,20 +342,17 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-indigo-900/10 to-gray-900">
-      <Sidebar 
-        activeSection={activeItem}
-        setActiveSection={handleSelectItem}
-        isMobile={isMobile}
-        isOpen={viewMode !== "mobile-menu"}
-        setIsOpen={(open) => {
-          if (open) {
-            setViewMode("home");
-          } else {
-            setViewMode("mobile-menu");
-          }
-        }}
-      />
+    <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-background to-gray-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/80 doodle-pattern">
+      {!isMobile && (
+        <Sidebar 
+          viewMode={viewMode} 
+          setViewMode={handleViewModeChange} 
+          unreadCount={unreadCount} 
+          onSelectItem={handleSelectItem}
+          activeItem={activeItem}
+          activeChannel={activeChannel}
+        />
+      )}
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="p-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm sticky top-0 z-30">

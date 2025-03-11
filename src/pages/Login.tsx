@@ -53,23 +53,18 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Adding console logs for debugging
-      console.log("Attempting login with:", { email, password });
-      
       const success = await login(email, password);
-      console.log("Login result:", success);
       
       if (success) {
         toast.success("Login successful! Redirecting to dashboard...");
         navigate("/dashboard");
       } else {
-        setError("Invalid email or password. Try user@example.com and password.");
+        setError("Invalid email or password. Note: This is a beta version, only registered beta testers can login.");
         toast.error("Login failed", {
-          description: "Invalid credentials. Try the demo login."
+          description: "Invalid credentials or you're not a registered beta tester."
         });
       }
     } catch (error) {
-      console.error("Login error:", error);
       setError("An error occurred during login. Please try again.");
       toast.error("Login failed", {
         description: "An unexpected error occurred"
@@ -77,35 +72,6 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = async () => {
-    setEmail("user@example.com");
-    setPassword("password");
-    
-    setIsLoading(true);
-    
-    setTimeout(async () => {
-      try {
-        console.log("Attempting demo login");
-        const success = await login("user@example.com", "password");
-        console.log("Demo login result:", success);
-        
-        if (success) {
-          toast.success("Demo login successful! Redirecting to dashboard...");
-          navigate("/dashboard");
-        } else {
-          setError("Demo login failed. Please try again.");
-          toast.error("Demo login failed");
-        }
-      } catch (error) {
-        console.error("Demo login error:", error);
-        setError("An error occurred during demo login.");
-        toast.error("Demo login failed");
-      } finally {
-        setIsLoading(false);
-      }
-    }, 1000);
   };
 
   return (
@@ -223,7 +189,6 @@ const Login = () => {
                 type="button"
                 variant="outline"
                 className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
-                onClick={handleDemoLogin}
               >
                 <UserCheck className="h-4 w-4" />
                 <span>Continue as Demo User</span>
@@ -234,8 +199,20 @@ const Login = () => {
             <p className="text-center text-xs text-gray-400">
               By signing in, you agree to our <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.
             </p>
+            
+            <p className="text-center text-xs text-gray-500">
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Beta Access Only
+              </span> - Currently accepting new beta testers
+            </p>
           </CardFooter>
         </Card>
+        
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-400">
+            Don't have an account? <a href="#" className="text-blue-400 hover:underline">Join the waitlist</a>
+          </p>
+        </div>
       </motion.div>
     </div>
   );
