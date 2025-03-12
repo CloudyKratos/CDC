@@ -1,458 +1,522 @@
 
 import React, { useState } from "react";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, MapPin, Clock, Plus, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { addDays, format, startOfToday, startOfWeek, endOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Clock,
+  Users,
+  Video,
+  CheckCircle2,
+  Calendar as CalendarIcon,
+  Plus,
+  ArrowRight,
+  MoreHorizontal,
+  MapPin,
+  Clock8
+} from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format, addDays, isSameDay } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Upcoming events data - in a real app, this would come from a backend
-const upcomingEvents = [
-  {
-    id: 1,
-    title: "Weekly Round Table",
-    description: "Join our weekly community discussion on entrepreneurship strategies",
-    date: new Date(new Date().setHours(15, 0, 0, 0)),
-    endDate: new Date(new Date().setHours(16, 30, 0, 0)),
-    location: "Round Table Channel",
-    attendees: [
-      { id: "1", name: "John Smith", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-      { id: "2", name: "Sarah Lee", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
-      { id: "3", name: "Michael Brown", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael" },
-      { id: "4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma" },
-      { id: "5", name: "James Davis", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James" },
-      { id: "6", name: "Linda Jones", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Linda" },
-      { id: "7", name: "Robert Taylor", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Robert" },
-    ],
-    category: "community",
-    isRecurring: true,
-    recurringDays: "Every Wednesday"
-  },
-  {
-    id: 2,
-    title: "Entrepreneurship Workshop",
-    description: "Learn key strategies for launching your business from experienced mentors",
-    date: addDays(new Date(new Date().setHours(11, 0, 0, 0)), 1),
-    endDate: addDays(new Date(new Date().setHours(13, 0, 0, 0)), 1),
-    location: "General Channel",
-    attendees: [
-      { id: "1", name: "John Smith", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-      { id: "3", name: "Michael Brown", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael" },
-      { id: "8", name: "Patricia White", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Patricia" },
-    ],
-    category: "workshop",
-    isRecurring: false
-  },
-  {
-    id: 3,
-    title: "Business Strategy Session",
-    description: "Focused discussion on growth tactics and market positioning",
-    date: addDays(new Date(new Date().setHours(14, 0, 0, 0)), 3),
-    endDate: addDays(new Date(new Date().setHours(15, 30, 0, 0)), 3),
-    location: "Private Call",
-    attendees: [
-      { id: "1", name: "John Smith", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-      { id: "2", name: "Sarah Lee", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
-    ],
-    category: "meeting",
-    isRecurring: false
-  },
-  {
-    id: 4,
-    title: "Hall of Fame Showcase",
-    description: "Monthly showcase of the community's most outstanding achievements",
-    date: addDays(new Date(new Date().setHours(16, 0, 0, 0)), 5),
-    endDate: addDays(new Date(new Date().setHours(17, 30, 0, 0)), 5),
-    location: "Hall of Fame Channel",
-    attendees: [
-      { id: "1", name: "John Smith", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-      { id: "2", name: "Sarah Lee", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
-      { id: "3", name: "Michael Brown", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael" },
-      { id: "4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma" },
-      { id: "9", name: "David Miller", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David" },
-    ],
-    category: "community",
-    isRecurring: true,
-    recurringDays: "Monthly"
-  }
-];
-
-interface EventDetailProps {
-  event: typeof upcomingEvents[0];
-  onClose: () => void;
-}
-
-const EventDetail: React.FC<EventDetailProps> = ({ event, onClose }) => {
-  const [attending, setAttending] = useState(false);
-  
-  const toggleAttendance = () => {
-    setAttending(!attending);
-  };
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-bold">{event.title}</h3>
-          <p className="text-muted-foreground">{event.description}</p>
-        </div>
-        <Badge variant="outline" className={
-          event.category === "community" 
-            ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800/30" 
-            : event.category === "workshop"
-            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/30"
-            : "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800/30"
-        }>
-          {event.category}
-        </Badge>
-      </div>
-      
-      <div className="space-y-3">
-        <div className="flex items-center text-sm">
-          <CalendarIcon size={16} className="mr-2 text-muted-foreground" />
-          <span>
-            {format(event.date, "EEEE, MMMM d, yyyy")}
-            {event.isRecurring && ` (${event.recurringDays})`}
-          </span>
-        </div>
-        <div className="flex items-center text-sm">
-          <Clock size={16} className="mr-2 text-muted-foreground" />
-          <span>
-            {format(event.date, "h:mm a")} - {format(event.endDate, "h:mm a")}
-          </span>
-        </div>
-        <div className="flex items-center text-sm">
-          <MapPin size={16} className="mr-2 text-muted-foreground" />
-          <span>{event.location}</span>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center">
-          <Users size={16} className="mr-2 text-muted-foreground" />
-          <span className="text-sm font-medium">{event.attendees.length} Attendees</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-          {event.attendees.slice(0, 5).map(attendee => (
-            <Avatar key={attendee.id} className="h-8 w-8 border-2 border-background">
-              <AvatarImage src={attendee.avatar} alt={attendee.name} />
-              <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-          ))}
-          {event.attendees.length > 5 && (
-            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs">
-              +{event.attendees.length - 5}
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
-        <Button 
-          onClick={toggleAttendance}
-          className={attending ? "bg-red-100 hover:bg-red-200 text-red-600 border-red-200" : ""}
-        >
-          {attending ? "Cancel Attendance" : "Attend Event"}
-        </Button>
-      </DialogFooter>
-    </div>
-  );
+// Types for our events
+type Event = {
+  id: string;
+  title: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  description?: string;
+  type: 'meeting' | 'deadline' | 'reminder' | 'task' | 'personal';
+  attendees?: { name: string; avatar?: string }[];
+  isCompleted?: boolean;
 };
 
-const CalendarPanel: React.FC = () => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<typeof upcomingEvents[0] | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+// Sample events data
+const events: Event[] = [
+  {
+    id: "1",
+    title: "Team Standup",
+    date: startOfToday(),
+    startTime: "09:00",
+    endTime: "09:30",
+    location: "Conference Room A",
+    description: "Daily standup meeting with the development team",
+    type: "meeting",
+    attendees: [
+      { name: "John Smith", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Jane" },
+      { name: "Alex Johnson", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Alex" },
+      { name: "Sarah Williams", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Sarah" },
+    ]
+  },
+  {
+    id: "2",
+    title: "Project Deadline",
+    date: addDays(startOfToday(), 2),
+    startTime: "17:00",
+    endTime: "18:00",
+    description: "Final submission for Q3 project",
+    type: "deadline"
+  },
+  {
+    id: "3",
+    title: "Client Meeting",
+    date: addDays(startOfToday(), 1),
+    startTime: "11:00",
+    endTime: "12:00",
+    location: "Virtual - Zoom",
+    description: "Discuss new requirements with the client",
+    type: "meeting",
+    attendees: [
+      { name: "Michael Brown", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Michael" },
+      { name: "Emily Davis", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Emily" },
+    ]
+  },
+  {
+    id: "4",
+    title: "Prepare Presentation",
+    date: startOfToday(),
+    startTime: "14:00",
+    endTime: "16:00",
+    description: "Create slides for the investor meeting",
+    type: "task",
+    isCompleted: false
+  },
+  {
+    id: "5",
+    title: "Marketing Review",
+    date: addDays(startOfToday(), 3),
+    startTime: "10:00",
+    endTime: "11:30",
+    location: "Conference Room B",
+    description: "Review Q3 marketing analytics and plan Q4 campaigns",
+    type: "meeting",
+    attendees: [
+      { name: "Jessica Lee", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=Jessica" },
+      { name: "David Wilson", avatar: "https://api.dicebear.com/7.x/micah/svg?seed=David" },
+    ]
+  },
+  {
+    id: "6",
+    title: "Gym Session",
+    date: addDays(startOfToday(), 1),
+    startTime: "07:00",
+    endTime: "08:00",
+    location: "Fitness Center",
+    type: "personal"
+  },
+  {
+    id: "7",
+    title: "Product Launch",
+    date: addDays(startOfToday(), 7),
+    startTime: "09:00",
+    endTime: "12:00",
+    description: "Launch new product features",
+    type: "deadline"
+  },
+];
+
+// Get events for a specific date
+const getEventsForDate = (date: Date) => {
+  return events.filter(event => isSameDay(event.date, date));
+};
+
+// Get dates with events for the current month
+const getDatesWithEvents = (month: Date) => {
+  const start = startOfMonth(month);
+  const end = endOfMonth(month);
+  const days = eachDayOfInterval({ start, end });
   
-  // Function to get events for a specific day
-  const getDayEvents = (day: Date | undefined) => {
-    if (!day) return [];
-    return upcomingEvents.filter(event => day && isSameDay(event.date, day));
+  return days.filter(day => events.some(event => isSameDay(event.date, day)));
+};
+
+const CalendarPanel = () => {
+  const [date, setDate] = useState<Date>(new Date());
+  const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('month');
+  const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
+  const [filter, setFilter] = useState<string>("all");
+
+  // Get events based on currently selected date and filter
+  const filteredEvents = getEventsForDate(selectedDate).filter(event => {
+    if (filter === "all") return true;
+    return event.type === filter;
+  }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  
+  // For highlighting dates with events
+  const datesWithEvents = getDatesWithEvents(date);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+    }
   };
-  
-  // Get today's events
-  const todayEvents = getDayEvents(new Date());
-  
-  // Get selected day's events
-  const selectedDayEvents = getDayEvents(date);
-  
-  // Date with events highlighting function
-  const dateWithEventsClass = (day: Date) => {
-    const hasEvents = upcomingEvents.some(event => isSameDay(day, event.date));
-    return hasEvents ? "bg-primary/10 text-primary font-medium rounded-full" : "";
+
+  const getEventTypeColor = (type: string) => {
+    switch (type) {
+      case 'meeting':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+      case 'deadline':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 border-red-200 dark:border-red-800';
+      case 'reminder':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
+      case 'task':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800';
+      case 'personal':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+    }
   };
-  
-  return (
-    <div id="calendar" className="h-full flex flex-col">
-      <div className="px-6 py-4 border-b">
-        <h1 className="text-2xl font-bold mb-1">Calendar</h1>
-        <p className="text-muted-foreground">Manage and view your scheduled events</p>
-      </div>
-      
-      <div className="flex flex-col md:flex-row h-full overflow-hidden">
-        {/* Calendar sidebar */}
-        <div className="w-full md:w-80 border-r p-4 bg-card/50">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="font-medium">Calendar</h2>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="h-8">
-                    <Plus size={14} className="mr-1" /> Add Event
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Event</DialogTitle>
-                    <DialogDescription>
-                      Create a new event in your calendar
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <p className="text-center text-muted-foreground">Event creation form would go here</p>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Create Event</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+
+  const renderWeekView = () => {
+    const startDay = startOfWeek(selectedDate);
+    const endDay = endOfWeek(selectedDate);
+    const days = eachDayOfInterval({ start: startDay, end: endDay });
+
+    return (
+      <div className="grid grid-cols-7 gap-2 mt-4">
+        {days.map((day) => (
+          <div 
+            key={day.toString()}
+            className="border border-gray-200 dark:border-gray-700 rounded p-2"
+          >
+            <div className="font-medium text-center mb-2">
+              {format(day, 'EEE')}
+              <div className={`text-sm mt-1 rounded-full w-6 h-6 flex items-center justify-center mx-auto ${
+                isSameDay(day, new Date()) ? 'bg-primary text-white' : ''
+              }`}>
+                {format(day, 'd')}
+              </div>
             </div>
-            
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border shadow-sm"
-              modifiersClassNames={{
-                today: "bg-primary text-primary-foreground",
-              }}
-              modifiersStyles={{
-                selected: {
-                  backgroundColor: "hsl(var(--primary))",
-                  color: "hsl(var(--primary-foreground))",
-                },
-              }}
-              components={{
-                DayContent: (props) => (
-                  <div className={`flex h-8 w-8 items-center justify-center ${dateWithEventsClass(props.date)}`}>
-                    {props.date.getDate()}
-                  </div>
-                ),
-              }}
-            />
-            
-            <div>
-              <h3 className="font-medium text-sm mb-2">Today's Events</h3>
-              {todayEvents.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No events scheduled for today</p>
-              ) : (
-                <div className="space-y-2">
-                  {todayEvents.map(event => (
-                    <div 
-                      key={event.id} 
-                      className="p-2 rounded border bg-card hover:bg-card/80 cursor-pointer"
-                      onClick={() => {
-                        setSelectedEvent(event);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <p className="text-sm font-medium truncate">{event.title}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {format(event.date, "h:mm a")}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {event.category}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+            <div className="space-y-1 overflow-hidden max-h-32">
+              {getEventsForDate(day).slice(0, 3).map((event) => (
+                <div 
+                  key={event.id}
+                  className={`text-xs p-1 rounded truncate ${getEventTypeColor(event.type)}`}
+                >
+                  {event.startTime} {event.title}
+                </div>
+              ))}
+              {getEventsForDate(day).length > 3 && (
+                <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                  +{getEventsForDate(day).length - 3} more
                 </div>
               )}
             </div>
           </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-0 h-full">
+      <Tabs defaultValue="calendar" className="h-full flex flex-col">
+        <div className="flex justify-between items-center mb-4 px-6 pt-6">
+          <TabsList>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          </TabsList>
+          
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm">
+              <Plus className="mr-1 h-4 w-4" />
+              Create Event
+            </Button>
+            
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Filter Events" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Events</SelectItem>
+                <SelectItem value="meeting">Meetings</SelectItem>
+                <SelectItem value="deadline">Deadlines</SelectItem>
+                <SelectItem value="task">Tasks</SelectItem>
+                <SelectItem value="reminder">Reminders</SelectItem>
+                <SelectItem value="personal">Personal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
-        {/* Main content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Tabs defaultValue="day" className="h-full flex flex-col">
-            <div className="px-4 pt-4 pb-2 flex items-center justify-between border-b">
-              <div className="flex items-center">
-                <Button variant="ghost" size="icon" className="mr-1">
-                  <ChevronLeft size={16} />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <ChevronRight size={16} />
-                </Button>
-                <h2 className="text-lg font-medium ml-2">
-                  {date ? format(date, "MMMM d, yyyy") : "Today"}
-                </h2>
-              </div>
-              <TabsList>
-                <TabsTrigger value="day">Day</TabsTrigger>
-                <TabsTrigger value="week">Week</TabsTrigger>
-                <TabsTrigger value="month">Month</TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <TabsContent value="day" className="flex-1 p-4 overflow-auto">
-              {selectedDayEvents.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <CalendarIcon size={32} className="text-muted-foreground" />
+        <TabsContent value="calendar" className="flex-1 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 h-full gap-6 px-6">
+            {/* Calendar View */}
+            <Card className="col-span-1 md:col-span-2 flex flex-col shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>
+                    {format(date, 'MMMM yyyy')}
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setCalendarView('month')}
+                      className={calendarView === 'month' ? 'bg-primary text-white' : ''}
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setCalendarView('week')}
+                      className={calendarView === 'week' ? 'bg-primary text-white' : ''}
+                    >
+                      <Users className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setCalendarView('day')}
+                      className={calendarView === 'day' ? 'bg-primary text-white' : ''}
+                    >
+                      <Clock className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <h3 className="font-medium text-lg mb-2">No Events Scheduled</h3>
-                  <p className="text-muted-foreground max-w-sm mb-6">
-                    There are no events scheduled for this day. You can add a new event using the button below.
-                  </p>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus size={16} className="mr-2" /> Add Event
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Event</DialogTitle>
-                        <DialogDescription>
-                          Create a new event in your calendar
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <p className="text-center text-muted-foreground">Event creation form would go here</p>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline">Cancel</Button>
-                        <Button>Create Event</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedDayEvents.map(event => (
-                    <Card key={event.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle>{event.title}</CardTitle>
-                            <CardDescription className="mt-1">{event.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-auto">
+                {calendarView === 'month' ? (
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    month={date}
+                    onMonthChange={setDate}
+                    className="rounded-md border h-full"
+                    modifiers={{
+                      event: datesWithEvents,
+                    }}
+                    modifiersStyles={{
+                      event: { 
+                        fontWeight: 'bold',
+                        textDecoration: 'underline',
+                        textDecorationColor: 'var(--primary)',
+                        textDecorationThickness: '2px',
+                      }
+                    }}
+                  />
+                ) : calendarView === 'week' ? (
+                  renderWeekView()
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-lg font-medium">
+                      {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                    </div>
+                    <div className="space-y-2">
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <div key={i} className="flex items-start py-2 border-b border-gray-100 dark:border-gray-800">
+                          <div className="w-16 text-sm text-gray-500 dark:text-gray-400">
+                            {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal size={16} />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setIsDialogOpen(true);
-                                }}
-                              >
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>Edit Event</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/20">
-                                Delete Event
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex-1">
+                            {filteredEvents
+                              .filter(event => {
+                                const hour = parseInt(event.startTime.split(':')[0]);
+                                return hour === i;
+                              })
+                              .map(event => (
+                                <div 
+                                  key={event.id}
+                                  className={`p-2 rounded mb-1 ${getEventTypeColor(event.type)}`}
+                                >
+                                  <div className="font-medium">{event.title}</div>
+                                  <div className="text-xs">
+                                    {event.startTime} - {event.endTime}
+                                    {event.location && ` • ${event.location}`}
+                                  </div>
+                                </div>
+                              ))
+                            }
+                          </div>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex items-center text-sm">
-                            <Clock size={16} className="mr-2 text-muted-foreground" />
-                            <span>{format(event.date, "h:mm a")} - {format(event.endDate, "h:mm a")}</span>
-                          </div>
-                          <div className="flex items-center text-sm">
-                            <MapPin size={16} className="mr-2 text-muted-foreground" />
-                            <span>{event.location}</span>
-                          </div>
-                          <div className="flex items-center text-sm mt-2">
-                            <Users size={16} className="mr-2 text-muted-foreground" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Events List */}
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>{format(selectedDate, 'MMMM d, yyyy')}</span>
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {filteredEvents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <CalendarIcon className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                      <p>No events scheduled for this day</p>
+                      <Button variant="outline" className="mt-4">
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add Event
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredEvents.map((event) => (
+                        <div 
+                          key={event.id}
+                          className="p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">{event.title}</h3>
+                              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                <Clock8 className="h-3.5 w-3.5 mr-1" />
+                                {event.startTime} - {event.endTime}
+                              </div>
+                              {event.location && (
+                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                                  {event.location}
+                                </div>
+                              )}
+                            </div>
                             <div className="flex items-center">
-                              <div className="flex -space-x-1.5 mr-2">
-                                {event.attendees.slice(0, 3).map(attendee => (
-                                  <Avatar key={attendee.id} className="h-6 w-6 border-2 border-background">
-                                    <AvatarImage src={attendee.avatar} alt={attendee.name} />
+                              <Badge className={getEventTypeColor(event.type)}>
+                                {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                              </Badge>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 ml-1">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>Edit</DropdownMenuItem>
+                                  <DropdownMenuItem>Copy Link</DropdownMenuItem>
+                                  <DropdownMenuItem>Add Reminder</DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                          
+                          {event.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                              {event.description}
+                            </p>
+                          )}
+                          
+                          {event.attendees && event.attendees.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex -space-x-2 overflow-hidden">
+                                {event.attendees.map((attendee, index) => (
+                                  <Avatar key={index} className="border-2 border-background h-8 w-8">
+                                    <AvatarImage src={attendee.avatar} />
                                     <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                                   </Avatar>
                                 ))}
+                                {event.attendees.length > 3 && (
+                                  <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-background bg-gray-100 dark:bg-gray-700 text-xs font-medium">
+                                    +{event.attendees.length - 3}
+                                  </div>
+                                )}
                               </div>
-                              <span className="text-sm text-muted-foreground">
-                                {event.attendees.length} attendees
-                              </span>
                             </div>
-                          </div>
+                          )}
+                          
+                          {event.type === 'meeting' && (
+                            <div className="mt-3">
+                              <Button variant="outline" size="sm" className="mr-2">
+                                <Video className="h-3.5 w-3.5 mr-1" />
+                                Join
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                Edit
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {event.type === 'task' && (
+                            <div className="mt-3">
+                              <Button variant={event.isCompleted ? "outline" : "default"} size="sm">
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                {event.isCompleted ? "Completed" : "Mark Complete"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      </CardContent>
-                      <CardFooter className="pt-0">
-                        <Button 
-                          className="w-full"
-                          onClick={() => {
-                            setSelectedEvent(event);
-                            setIsDialogOpen(true);
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="week" className="flex-1 p-4 overflow-auto">
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <p className="text-muted-foreground">Weekly view would be displayed here</p>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="month" className="flex-1 p-4 overflow-auto">
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <p className="text-muted-foreground">Monthly view would be displayed here</p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-      
-      {/* Event detail dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Event Details</DialogTitle>
-          </DialogHeader>
-          {selectedEvent && <EventDetail event={selectedEvent} onClose={() => setIsDialogOpen(false)} />}
-        </DialogContent>
-      </Dialog>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="schedule">
+          <div className="px-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500 dark:text-gray-400">Schedule view will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="timeline">
+          <div className="px-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500 dark:text-gray-400">Timeline view will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

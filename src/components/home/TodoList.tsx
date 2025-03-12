@@ -1,303 +1,242 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  CheckSquare, 
-  Calendar as CalendarIcon, 
+  CheckCircle2, 
+  Circle, 
   Plus, 
-  Trash2, 
-  Edit, 
-  AlertCircle, 
-  CheckCircle2,
-  Circle,
-  ArrowUp,
-  ArrowRight,
-  ArrowDown
+  X, 
+  MoreHorizontal, 
+  CalendarClock,
+  Users,
+  Tag
 } from "lucide-react";
-import { TodoItem } from "@/types/journal";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface TodoListProps {
-  className?: string;
+  fullWidth?: boolean;
 }
 
-const TodoList: React.FC<TodoListProps> = ({ className }) => {
-  const [todos, setTodos] = useState<TodoItem[]>([
-    {
-      id: "1",
-      text: "Complete daily journal entry",
+interface Task {
+  id: string;
+  text: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  label?: string;
+}
+
+const TodoList: React.FC<TodoListProps> = ({ fullWidth = false }) => {
+  const [tasks, setTasks] = useState<Task[]>([
+    { 
+      id: '1', 
+      text: 'Review quarterly business strategy', 
       completed: false,
-      priority: "high",
-      category: "personal"
+      priority: 'high',
+      label: 'Strategy'
     },
-    {
-      id: "2",
-      text: "Join community round table discussion",
+    { 
+      id: '2', 
+      text: 'Prepare for investor meeting', 
       completed: false,
-      priority: "medium",
-      dueDate: "2023-05-12",
-      category: "community"
+      priority: 'high',
+      label: 'Finance'
     },
-    {
-      id: "3",
-      text: "Review business plan document",
+    { 
+      id: '3', 
+      text: 'Update marketing campaign assets', 
       completed: true,
-      priority: "low",
-      category: "work"
+      priority: 'medium',
+      label: 'Marketing'
+    },
+    { 
+      id: '4', 
+      text: 'Review new feature requests', 
+      completed: false,
+      priority: 'medium',
+      label: 'Product'
+    },
+    { 
+      id: '5', 
+      text: 'Schedule team building event', 
+      completed: false,
+      priority: 'low',
+      label: 'HR'
     }
   ]);
-  const [newTodo, setNewTodo] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
-  const { toast } = useToast();
+  
+  const [newTask, setNewTask] = useState("");
 
-  const getPriorityIcon = (priority: string) => {
+  const toggleTaskCompletion = (id: string) => {
+    setTasks(tasks.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const addTask = () => {
+    if (newTask.trim()) {
+      const task: Task = {
+        id: Date.now().toString(),
+        text: newTask.trim(),
+        completed: false,
+        priority: 'medium'
+      };
+      setTasks([...tasks, task]);
+      setNewTask("");
+    }
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter(task => task.id !== id));
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTask();
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
-        return <ArrowUp size={14} className="text-red-500" />;
-      case "medium":
-        return <ArrowRight size={14} className="text-amber-500" />;
-      case "low":
-        return <ArrowDown size={14} className="text-green-500" />;
+      case 'high':
+        return 'text-red-500 dark:text-red-400';
+      case 'medium':
+        return 'text-yellow-500 dark:text-yellow-400';
+      case 'low':
+        return 'text-green-500 dark:text-green-400';
       default:
-        return null;
+        return 'text-blue-500 dark:text-blue-400';
     }
   };
 
-  const getCategoryColor = (category?: string) => {
-    switch (category) {
-      case "personal":
-        return "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800/30";
-      case "work":
-        return "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/30";
-      case "community":
-        return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800/30";
+  const getLabelColor = (label: string) => {
+    switch (label) {
+      case 'Strategy':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'Finance':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'Marketing':
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300';
+      case 'Product':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'HR':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
       default:
-        return "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800/30";
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
-  };
-
-  const handleAddTodo = () => {
-    if (!newTodo.trim()) return;
-    
-    const newItem: TodoItem = {
-      id: Date.now().toString(),
-      text: newTodo,
-      completed: false,
-      priority: "medium",
-    };
-    
-    setTodos([newItem, ...todos]);
-    setNewTodo("");
-    
-    toast({
-      title: "Task Added",
-      description: "New task has been added to your list."
-    });
-  };
-
-  const handleToggleTodo = (id: string) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
-  };
-
-  const handleDeleteTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-    
-    toast({
-      title: "Task Deleted",
-      description: "The task has been removed from your list."
-    });
-  };
-
-  const startEdit = (todo: TodoItem) => {
-    setEditingId(todo.id);
-    setEditText(todo.text);
-  };
-
-  const saveEdit = () => {
-    if (!editText.trim()) return;
-    
-    setTodos(todos.map(todo => 
-      todo.id === editingId ? { ...todo, text: editText } : todo
-    ));
-    
-    setEditingId(null);
-    setEditText("");
-    
-    toast({
-      title: "Task Updated",
-      description: "Your changes have been saved."
-    });
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditText("");
-  };
-
-  const changePriority = (id: string, priority: 'high' | 'medium' | 'low') => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, priority } : todo
-    ));
   };
 
   return (
-    <Card className={`shadow-md ${className}`}>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <CheckSquare size={18} className="mr-2 text-primary" />
-          To-Do List
+    <Card className={cn(
+      "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow",
+      fullWidth ? "w-full" : ""
+    )}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-semibold flex items-center">
+          <CheckCircle2 className="h-5 w-5 mr-2 text-primary" />
+          Daily Tasks
         </CardTitle>
-        <CardDescription>
-          Track your tasks and stay productive
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Add new todo */}
-        <div className="flex items-center space-x-2">
-          <Input
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            placeholder="Add a new task..."
-            className="flex-1"
-            onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-          />
-          <Button onClick={handleAddTodo} size="icon">
-            <Plus size={16} />
-          </Button>
-        </div>
-        
-        {/* Todo list */}
-        <div className="space-y-2">
-          {todos.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
-              No tasks yet. Add some to get started!
-            </div>
-          ) : (
-            todos.map(todo => (
-              <div 
-                key={todo.id} 
-                className={cn(
-                  "flex items-center p-3 rounded-lg border border-border/50",
-                  todo.completed ? "bg-secondary/30 text-muted-foreground" : "bg-card/50 hover:bg-card/80"
-                )}
-              >
-                {editingId === todo.id ? (
-                  <div className="flex-1 flex items-center space-x-2">
-                    <Input
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="flex-1"
-                      autoFocus
-                    />
-                    <Button size="sm" onClick={saveEdit}>Save</Button>
-                    <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+      <CardContent className="pb-2">
+        <div className="space-y-4">
+          {tasks.map(task => (
+            <div 
+              key={task.id}
+              className={cn(
+                "flex items-start justify-between p-3 rounded-lg transition-colors",
+                task.completed 
+                  ? "bg-gray-50 dark:bg-gray-900/30" 
+                  : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+              )}
+            >
+              <div className="flex items-start space-x-3 flex-1">
+                <button
+                  onClick={() => toggleTaskCompletion(task.id)}
+                  className="flex-shrink-0 mt-0.5"
+                >
+                  {task.completed ? (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400" />
+                  )}
+                </button>
+                <div className="flex-1">
+                  <p className={cn(
+                    "text-sm font-medium",
+                    task.completed && "line-through text-gray-500 dark:text-gray-400"
+                  )}>
+                    {task.text}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {task.label && (
+                      <Badge variant="outline" className={cn("text-xs font-normal px-2 py-0.5", getLabelColor(task.label))}>
+                        <Tag className="mr-1 h-3 w-3" />
+                        {task.label}
+                      </Badge>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center mr-2">
-                      <Checkbox
-                        checked={todo.completed}
-                        onCheckedChange={() => handleToggleTodo(todo.id)}
-                        className="mr-2"
-                      />
-                      <div className="mr-2">{getPriorityIcon(todo.priority)}</div>
-                    </div>
-                    <div className="flex-1">
-                      <p className={cn(
-                        "text-sm", 
-                        todo.completed && "line-through"
-                      )}>
-                        {todo.text}
-                      </p>
-                      <div className="flex items-center mt-1">
-                        {todo.category && (
-                          <Badge variant="outline" className={`mr-2 text-xs ${getCategoryColor(todo.category)}`}>
-                            {todo.category}
-                          </Badge>
-                        )}
-                        {todo.dueDate && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <CalendarIcon size={12} className="mr-1" />
-                            {new Date(todo.dueDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowUp size={14} className={todo.priority === 'high' ? 'text-red-500' : 'text-muted-foreground'} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => changePriority(todo.id, 'high')}>
-                            <ArrowUp size={14} className="mr-2 text-red-500" />
-                            <span>High Priority</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => changePriority(todo.id, 'medium')}>
-                            <ArrowRight size={14} className="mr-2 text-amber-500" />
-                            <span>Medium Priority</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => changePriority(todo.id, 'low')}>
-                            <ArrowDown size={14} className="mr-2 text-green-500" />
-                            <span>Low Priority</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => startEdit(todo)}
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => handleDeleteTodo(todo.id)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </>
-                )}
+                </div>
               </div>
-            ))
-          )}
+              
+              <div className="flex items-center space-x-1 ml-2">
+                <div className={cn(
+                  "h-2 w-2 rounded-full",
+                  task.priority === 'high' ? "bg-red-500" :
+                  task.priority === 'medium' ? "bg-yellow-500" : "bg-green-500"
+                )} />
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => toggleTaskCompletion(task.id)}>
+                      {task.completed ? "Mark as incomplete" : "Mark as complete"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      Set deadline
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Users className="mr-2 h-4 w-4" />
+                      Assign to team
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => deleteTask(task.id)} className="text-red-600">
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between text-xs text-muted-foreground">
-        <div className="flex items-center">
-          <CheckCircle2 size={14} className="mr-1 text-green-500" />
-          {todos.filter(t => t.completed).length} completed
+      <CardFooter className="pt-2">
+        <div className="flex w-full space-x-2">
+          <Input
+            placeholder="Add a new task..."
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1"
+          />
+          <Button onClick={addTask} size="icon">
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
-        <div className="flex items-center">
-          <Circle size={14} className="mr-1 text-blue-500" />
-          {todos.filter(t => !t.completed).length} remaining
-        </div>
-        {todos.some(t => t.priority === 'high' && !t.completed) && (
-          <div className="flex items-center">
-            <AlertCircle size={14} className="mr-1 text-red-500" />
-            {todos.filter(t => t.priority === 'high' && !t.completed).length} high priority
-          </div>
-        )}
       </CardFooter>
     </Card>
   );

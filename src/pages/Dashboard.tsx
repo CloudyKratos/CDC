@@ -99,6 +99,7 @@ const Dashboard = () => {
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(isDarkMode);
+    document.documentElement.classList.toggle('dark', isDarkMode);
     
     if (isMobile) {
       setViewMode("mobile-menu");
