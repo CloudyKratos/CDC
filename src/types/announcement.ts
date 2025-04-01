@@ -1,3 +1,4 @@
+
 export interface AnnouncementProps {
   id: string;
   title: string;
@@ -8,4 +9,4 @@ export interface AnnouncementProps {
   maxAttendees: number;
 }
 
-export type AnnouncementType = "event" | "update" | "summit" | "reminder" | "alert";
+export type AnnouncementType = "event" | "update" | "summit" | "reminder" | "alert" | "announcement" | "roundtable";

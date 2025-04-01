@@ -1,67 +1,86 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Activity, DollarSign, Users, BarChart } from "lucide-react";
+import { ArrowUp, ArrowDown, DollarSign, Users, BarChart, Activity } from "lucide-react";
 
-interface MetricProps {
+interface BusinessMetricsCardProps {
   title: string;
-  value: string | number;
-  change?: string;
-  trend?: "up" | "down" | "neutral";
-  icon: "activity" | "dollar" | "users" | "chart";
-  description?: string;
+  value: string;
+  change: string;
+  trend: "up" | "down" | "neutral";
+  icon: "dollar" | "users" | "chart" | "activity";
+  description: string;
 }
 
-const BusinessMetricsCard: React.FC<MetricProps> = ({
+const BusinessMetricsCard: React.FC<BusinessMetricsCardProps> = ({
   title,
   value,
   change,
-  trend = "neutral",
+  trend,
   icon,
   description
 }) => {
-  const getIcon = () => {
+  const renderIcon = () => {
     switch (icon) {
-      case "activity":
-        return <Activity className="h-5 w-5 text-primary" />;
       case "dollar":
-        return <DollarSign className="h-5 w-5 text-green-500" />;
+        return <DollarSign className="h-4 w-4" />;
       case "users":
-        return <Users className="h-5 w-5 text-blue-500" />;
+        return <Users className="h-4 w-4" />;
       case "chart":
-        return <BarChart className="h-5 w-5 text-purple-500" />;
+        return <BarChart className="h-4 w-4" />;
+      case "activity":
+        return <Activity className="h-4 w-4" />;
       default:
-        return <Activity className="h-5 w-5 text-primary" />;
+        return <BarChart className="h-4 w-4" />;
     }
   };
 
+  const getTrendIcon = () => {
+    if (trend === "up") {
+      return <ArrowUp className="h-3 w-3 text-green-500" />;
+    } else if (trend === "down") {
+      return <ArrowDown className="h-3 w-3 text-red-500" />;
+    }
+    return null;
+  };
+
+  const getTrendColor = () => {
+    if (trend === "up") {
+      return "text-green-500";
+    } else if (trend === "down") {
+      return "text-red-500";
+    }
+    return "text-gray-500";
+  };
+
+  const getBadgeVariant = () => {
+    if (trend === "up") {
+      return "outline" as const;
+    } else if (trend === "down") {
+      return "destructive" as const;
+    }
+    return "outline" as const;
+  };
+
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-card to-background/80 backdrop-blur-sm">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            {getIcon()}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          <div className="text-2xl font-bold">{value}</div>
-          {change && (
-            <div className="flex items-center text-xs">
-              {trend === "up" ? (
-                <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              ) : trend === "down" ? (
-                <TrendingDown className="h-3 w-3 mr-1 text-red-500" />
-              ) : null}
-              <Badge variant={trend === "up" ? "success" : trend === "down" ? "destructive" : "outline"} className="px-1.5 py-0">
-                {change}
+    <Card className="overflow-hidden hover:shadow-md transition-shadow dark:bg-gray-800/50 backdrop-blur-sm">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <h3 className="text-2xl font-bold">{value}</h3>
+            <div className="flex items-center mt-1">
+              <Badge variant={getBadgeVariant()} className="h-5 flex items-center gap-1 font-normal">
+                {getTrendIcon()}
+                <span className={getTrendColor()}>{change}</span>
               </Badge>
-              {description && <span className="ml-2 text-muted-foreground">{description}</span>}
+              <span className="text-xs text-muted-foreground ml-2">{description}</span>
             </div>
-          )}
+          </div>
+          <div className="bg-primary/10 dark:bg-primary/20 p-2.5 rounded-lg">
+            {renderIcon()}
+          </div>
         </div>
       </CardContent>
     </Card>

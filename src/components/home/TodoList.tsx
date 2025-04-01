@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   CheckCircle2, 
@@ -25,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface TodoListProps {
   fullWidth?: boolean;
+  className?: string;
 }
 
 interface Task {
@@ -35,7 +35,7 @@ interface Task {
   label?: string;
 }
 
-const TodoList: React.FC<TodoListProps> = ({ fullWidth = false }) => {
+const TodoList: React.FC<TodoListProps> = ({ fullWidth = false, className }) => {
   const [tasks, setTasks] = useState<Task[]>([
     { 
       id: '1', 
@@ -139,7 +139,8 @@ const TodoList: React.FC<TodoListProps> = ({ fullWidth = false }) => {
   return (
     <Card className={cn(
       "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow",
-      fullWidth ? "w-full" : ""
+      fullWidth ? "w-full" : "",
+      className
     )}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold flex items-center">

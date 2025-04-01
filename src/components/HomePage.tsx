@@ -11,6 +11,7 @@ import BusinessMetricsCard from "./home/BusinessMetricsCard";
 import TopographicBackground from "./home/TopographicBackground";
 import EntrepreneurialInsightCard from "./home/EntrepreneurialInsightCard";
 import TaskProgressCard from "./home/TaskProgressCard";
+import WorkInProgressBanner from "./WorkInProgressBanner";
 import { toast } from "sonner";
 
 const HomePage = () => {
@@ -272,6 +273,10 @@ const HomePage = () => {
           </TabsContent>
           
           <TabsContent value="metrics" className="space-y-4">
+            <WorkInProgressBanner 
+              title="Business Metrics Dashboard in Development"
+              description="We're building a comprehensive metrics dashboard with in-depth analytics, customizable charts, and data export capabilities."
+            />
             <Card>
               <CardHeader>
                 <CardTitle>Business Metrics</CardTitle>
@@ -280,14 +285,25 @@ const HomePage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  The business metrics dashboard will display charts and detailed analytics. This section is under development.
+                <p className="text-muted-foreground mb-4">
+                  The business metrics dashboard will display charts and detailed analytics, helping you track:
                 </p>
+                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                  <li>Revenue growth and projections</li>
+                  <li>Customer acquisition costs and lifetime value</li>
+                  <li>Marketing campaign performance</li>
+                  <li>Sales funnel conversions</li>
+                  <li>Team productivity metrics</li>
+                </ul>
               </CardContent>
             </Card>
           </TabsContent>
           
           <TabsContent value="insights" className="space-y-4">
+            <WorkInProgressBanner 
+              title="Business Insights Hub in Development"
+              description="Our insights library is being expanded with curated content from industry experts, AI-generated recommendations, and personalized growth strategies."
+            />
             <Card>
               <CardHeader>
                 <CardTitle>Business Insights</CardTitle>
@@ -296,9 +312,16 @@ const HomePage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  The business insights section will provide articles, guides, and resources for entrepreneurs. This section is under development.
+                <p className="text-muted-foreground mb-4">
+                  The business insights section will provide articles, guides, and resources for entrepreneurs, including:
                 </p>
+                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                  <li>Industry trend analysis</li>
+                  <li>Growth strategy templates</li>
+                  <li>Expert interviews and case studies</li>
+                  <li>Recommended tools and resources</li>
+                  <li>Personalized AI-driven recommendations</li>
+                </ul>
               </CardContent>
             </Card>
           </TabsContent>

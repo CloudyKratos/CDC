@@ -1,7 +1,6 @@
-
 import WebRTCService from './WebRTCService';
-import ChatService from './ChatService';
-import { Message } from '../types/chat';
+import { ChatService } from './ChatService';
+import { ChatMessage, ChannelType } from '../types/chat';
 
 export interface CallParticipant {
   id: string;
@@ -11,6 +10,7 @@ export interface CallParticipant {
   connectionState?: string;
   isMuted?: boolean;
   isVideoOff?: boolean;
+  isScreenSharing?: boolean;
   isScreenSharing?: boolean;
 }
 
@@ -56,14 +56,14 @@ class CallService {
     
     // Set up chat message handler
     const chatServiceInstance = ChatService;
-    chatServiceInstance.onMessage((message: Message) => {
-      if (message.content.startsWith('__CALL_SIGNAL:')) {
-        const signalData = JSON.parse(message.content.replace('__CALL_SIGNAL:', ''));
+    chatServiceInstance.onMessage = (message: ChatMessage) => {
+      if (message.text.startsWith('__CALL_SIGNAL:')) {
+        const signalData = JSON.parse(message.text.replace('__CALL_SIGNAL:', ''));
         this.webRTC.handleSignalingData(message.sender.id, signalData);
       }
       
       this.handleChatMessage(message);
-    });
+    };
   }
   
   public static getInstance(): CallService {
@@ -104,23 +104,15 @@ class CallService {
     
     const chatServiceInstance = ChatService;
     participants.forEach(participantId => {
-      chatServiceInstance.sendMessage({
-        content: `__CALL_INVITATION:${JSON.stringify({
-          callId,
-          type,
-          initiator: {
-            id: user.id,
-            name: user.name,
-            avatar: user.avatar
-          }
-        })}`,
-        sender: {
+      chatServiceInstance.sendMessage(participantId, `__CALL_INVITATION:${JSON.stringify({
+        callId,
+        type,
+        initiator: {
           id: user.id,
           name: user.name,
           avatar: user.avatar
-        },
-        channelId: participantId
-      });
+        }
+      })}`, 'direct');
     });
     
     this.notifyCallEventListeners();
@@ -149,15 +141,7 @@ class CallService {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const chatServiceInstance = ChatService;
     
-    chatServiceInstance.sendMessage({
-      content: `__CALL_JOIN_REQUEST:${callId}`,
-      sender: {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar
-      },
-      channelId: initiatorId
-    });
+    chatServiceInstance.sendMessage(initiatorId, `__CALL_JOIN_REQUEST:${callId}`, 'direct');
     
     await this.webRTC.initialize();
     await this.webRTC.createPeerConnection(initiatorId);
@@ -176,17 +160,9 @@ class CallService {
     
     this.activeCall.participants.forEach(participant => {
       if (participant.id !== user.id) {
-        chatServiceInstance.sendMessage({
-          content: `__CALL_END:${JSON.stringify({
-            callId: this.activeCall?.id
-          })}`,
-          sender: {
-            id: user.id,
-            name: user.name,
-            avatar: user.avatar
-          },
-          channelId: participant.id
-        });
+        chatServiceInstance.sendMessage(participant.id, `__CALL_END:${JSON.stringify({
+          callId: this.activeCall?.id
+        })}`, 'direct');
       }
     });
     
@@ -267,15 +243,15 @@ class CallService {
     }
   }
   
-  private handleChatMessage(message: Message): void {
-    if (message.content.startsWith('__CALL_INVITATION:')) {
+  private handleChatMessage(message: ChatMessage): void {
+    if (message.text.startsWith('__CALL_INVITATION:')) {
       // Handle incoming call
-      const callData = JSON.parse(message.content.replace('__CALL_INVITATION:', ''));
+      const callData = JSON.parse(message.text.replace('__CALL_INVITATION:', ''));
       // Dispatch to UI for user to accept/decline
       
-    } else if (message.content.startsWith('__CALL_JOIN_REQUEST:')) {
+    } else if (message.text.startsWith('__CALL_JOIN_REQUEST:')) {
       // Handle join request
-      const callId = message.content.replace('__CALL_JOIN_REQUEST:', '');
+      const callId = message.text.replace('__CALL_JOIN_REQUEST:', '');
       
       if (this.activeCall && this.activeCall.id === callId) {
         // Send call details to the participant
@@ -292,9 +268,9 @@ class CallService {
         this.notifyCallEventListeners();
       }
       
-    } else if (message.content.startsWith('__CALL_END:')) {
+    } else if (message.text.startsWith('__CALL_END:')) {
       // Handle call end
-      const callData = JSON.parse(message.content.replace('__CALL_END:', ''));
+      const callData = JSON.parse(message.text.replace('__CALL_END:', ''));
       
       if (this.activeCall && this.activeCall.id === callData.callId) {
         // Remove participant from call

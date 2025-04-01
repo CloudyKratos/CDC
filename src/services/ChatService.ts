@@ -1,5 +1,5 @@
 
-import { WebSocketService } from './WebSocketService';
+import WebSocketService from './WebSocketService';
 import { ChatMessage, ChannelType } from '../types/chat';
 
 // Mock data for testing

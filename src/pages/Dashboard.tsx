@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -16,6 +17,7 @@ import ProfilePanel from "@/components/ProfilePanel";
 import { NotificationType } from "@/types/notification";
 import { AnnouncementProps } from "@/types/announcement";
 import { toast } from "sonner";
+import WorkInProgressBanner from "@/components/WorkInProgressBanner";
 
 type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
@@ -179,15 +181,55 @@ const Dashboard = () => {
           </div>
         );
       case "chat":
-        return <ChatPanel channelType="direct" />;
+        return (
+          <div className="space-y-4">
+            <WorkInProgressBanner 
+              title="Chat System in Development" 
+              description="The chat functionality is being upgraded with real-time WebSocket communication. Basic features are available, but some advanced features are still in progress."
+            />
+            <ChatPanel channelType="direct" />
+          </div>
+        );
       case "community":
-        return <CommunityPanel channelName={activeChannel} />;
+        return (
+          <div className="space-y-4">
+            <WorkInProgressBanner 
+              title="Community Features in Development" 
+              description="We're building a robust community platform with real-time updates, notifications, and interactive features."
+            />
+            <CommunityPanel channelName={activeChannel} />
+          </div>
+        );
       case "workspace":
-        return <WorkspacePanel />;
+        return (
+          <div className="space-y-4">
+            <WorkInProgressBanner 
+              title="Document Management System in Development" 
+              description="Our document workspace will soon support collaborative editing, version control, and media embedding."
+            />
+            <WorkspacePanel />
+          </div>
+        );
       case "calendar":
-        return <CalendarPanel />;
+        return (
+          <div className="space-y-4">
+            <WorkInProgressBanner 
+              title="Calendar System in Development" 
+              description="The calendar is being upgraded with event creation, notifications, and integration with other platform features."
+            />
+            <CalendarPanel />
+          </div>
+        );
       case "profile":
-        return <ProfilePanel />;
+        return (
+          <div className="space-y-4">
+            <WorkInProgressBanner 
+              title="Profile Settings in Development" 
+              description="Advanced profile customization, notification preferences, and privacy settings will be available soon."
+            />
+            <ProfilePanel />
+          </div>
+        );
       default:
         return (
           <div className="flex flex-col space-y-4 animate-fade-in">
