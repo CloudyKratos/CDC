@@ -1,297 +1,316 @@
-import React from "react";
-import { 
-  Activity,
-  BarChart3,
-  Users,
-  Calendar,
-  MessageSquare,
-  FileText,
-  TrendingUp,
-  ChevronRight,
-  ArrowUpRight,
-  BookOpen,
-  Globe,
-  Bell,
-  Compass,
-  Map,
-  Mountain
-} from "lucide-react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight } from "lucide-react";
 import DailyJournal from "./home/DailyJournal";
 import TodoList from "./home/TodoList";
+import MorningStrategyPopup from "./home/MorningStrategyPopup";
+import BusinessMetricsCard from "./home/BusinessMetricsCard";
+import TopographicBackground from "./home/TopographicBackground";
+import EntrepreneurialInsightCard from "./home/EntrepreneurialInsightCard";
+import TaskProgressCard from "./home/TaskProgressCard";
+import { toast } from "sonner";
 
 const HomePage = () => {
-  const navigate = useNavigate();
-
-  const handleNavigate = (path: string) => {
-    // In a real app this would navigate to the specified section
-    console.log(`Navigating to ${path}`);
-  };
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showJournal, setShowJournal] = useState(false);
+  const [showMorningStrategy, setShowMorningStrategy] = useState(false);
+  
+  const upcomingEvents = [
+    {
+      id: "1",
+      title: "Team Standup",
+      time: "9:30 AM",
+      participants: 5,
+    },
+    {
+      id: "2",
+      title: "Investor Meeting",
+      time: "11:00 AM",
+      participants: 3,
+    },
+    {
+      id: "3",
+      title: "Product Review",
+      time: "2:00 PM",
+      participants: 8,
+    }
+  ];
+  
+  const businessTasks = [
+    { id: "1", name: "Update business plan", completed: true },
+    { id: "2", name: "Review quarterly metrics", completed: true },
+    { id: "3", name: "Prepare investor presentation", completed: false },
+    { id: "4", name: "Schedule team building event", completed: false },
+  ];
+  
+  const entrepreneurialInsights = [
+    {
+      id: "1",
+      title: "5 Strategies for Sustainable Growth",
+      content: "Learn how successful entrepreneurs balance rapid growth with long-term sustainability. This insight explores key metrics to track and strategies to implement.",
+      category: "Growth",
+      readTime: "4 min read"
+    },
+    {
+      id: "2",
+      title: "Building a Resilient Business Model",
+      content: "Discover how to create a business model that can withstand market fluctuations and adapt to changing consumer behaviors.",
+      category: "Strategy",
+      readTime: "6 min read"
+    }
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Entrepreneur Welcome Banner */}
-      <div className="relative p-6 rounded-xl overflow-hidden mb-8">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-blue-600/20 opacity-80"></div>
-        <div className="absolute inset-0 bg-[url('/lovable-uploads/f3cc1e68-26e7-4ec4-a61d-f3292452ce2d.png')] bg-cover bg-center mix-blend-overlay opacity-30"></div>
-        <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-bold text-primary">Your Entrepreneurial Journey</h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl">
-            Navigate your business landscape with precision. Track growth, connect with partners, and plan your next summit.
-          </p>
-          <div className="flex flex-wrap gap-3 mt-4">
-            <Button className="bg-primary/90 hover:bg-primary flex gap-2 items-center">
-              <Compass size={16} />
-              <span>Explore Growth Tools</span>
+    <div className="space-y-6 relative">
+      <TopographicBackground />
+      
+      <div className="relative">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Business Dashboard
+            </h2>
+            <p className="text-muted-foreground">
+              Your entrepreneurial journey at a glance
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowJournal(true)}
+              className="gap-1"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Daily Journal</span>
             </Button>
-            <Button variant="outline" className="border-primary/20 bg-background/50 hover:bg-background/80 flex gap-2 items-center">
-              <Map size={16} />
-              <span>Business Roadmap</span>
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => setShowMorningStrategy(true)}
+              className="gap-1"
+            >
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Morning Strategy</span>
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* Main Dashboard Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full md:w-auto mb-2 p-1 bg-background/80 backdrop-blur-sm border border-border/50 rounded-lg">
-          <TabsTrigger value="overview" className="rounded-md">Overview</TabsTrigger>
-          <TabsTrigger value="analytics" className="rounded-md">Analytics</TabsTrigger>
-          <TabsTrigger value="tasks" className="rounded-md">Tasks</TabsTrigger>
-          <TabsTrigger value="projects" className="hidden md:inline-flex rounded-md">Projects</TabsTrigger>
-          <TabsTrigger value="team" className="hidden md:inline-flex rounded-md">Team</TabsTrigger>
-        </TabsList>
         
-        <TabsContent value="overview" className="mt-6">
-          {/* Quick Stats Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 border-purple-200/50 dark:border-purple-800/30 hover:shadow-md transition-all hover:-translate-y-1 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-                <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList className="grid w-full grid-cols-3 md:w-auto">
+            <TabsTrigger value="overview" className="flex items-center gap-1">
+              <Sparkles className="h-4 w-4" />
+              <span>Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-1">
+              <LineChart className="h-4 w-4" />
+              <span>Metrics</span>
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-1">
+              <BookOpen className="h-4 w-4" />
+              <span>Insights</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+              <BusinessMetricsCard 
+                title="Revenue" 
+                value="$24,380" 
+                change="+12.5%" 
+                trend="up" 
+                icon="dollar"
+                description="vs last month" 
+              />
+              <BusinessMetricsCard 
+                title="New Customers" 
+                value="126" 
+                change="+18.2%" 
+                trend="up" 
+                icon="users"
+                description="vs last month"
+              />
+              <BusinessMetricsCard 
+                title="Conversion Rate" 
+                value="3.8%" 
+                change="-0.4%" 
+                trend="down" 
+                icon="chart"
+                description="vs last month"
+              />
+              <BusinessMetricsCard 
+                title="Active Projects" 
+                value="8" 
+                change="+2" 
+                trend="up" 
+                icon="activity" 
+                description="this quarter"
+              />
+            </div>
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+              <Card className="md:col-span-1">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm font-medium">Today's Schedule</CardTitle>
+                    <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {upcomingEvents.map((event) => (
+                      <div key={event.id} className="flex items-start space-x-3">
+                        <div className="bg-muted p-1.5 rounded-md">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="font-medium">{event.title}</div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{event.time}</span>
+                            <div className="flex items-center">
+                              <Users className="h-3 w-3 mr-1" />
+                              <span>{event.participants}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="md:col-span-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-md">
+                        <Users className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm">Sarah joined your team</p>
+                        <p className="text-xs text-muted-foreground">2 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-md">
+                        <BellRing className="h-4 w-4 text-green-500" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm">Project milestone achieved</p>
+                        <p className="text-xs text-muted-foreground">Yesterday</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-1.5 rounded-md">
+                        <LineChart className="h-4 w-4 text-purple-500" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm">Monthly report is ready</p>
+                        <p className="text-xs text-muted-foreground">2 days ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <TaskProgressCard title="Business Tasks" tasks={businessTasks} />
+            </div>
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <TodoList className="h-full" />
+              {showJournal ? (
+                <DailyJournal onClose={() => setShowJournal(false)} />
+              ) : (
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BookOpen size={18} className="mr-2 text-primary" />
+                      Entrepreneurial Insights
+                    </CardTitle>
+                    <CardDescription>
+                      Latest insights to help grow your business
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {entrepreneurialInsights.map(insight => (
+                      <EntrepreneurialInsightCard
+                        key={insight.id}
+                        title={insight.title}
+                        content={insight.content}
+                        category={insight.category}
+                        readTime={insight.readTime}
+                        onClick={() => {
+                          toast("Opening insight...", {
+                            description: "This feature will be available soon!",
+                            action: {
+                              label: "View All",
+                              onClick: () => console.log("View all insights"),
+                            },
+                          });
+                        }}
+                      />
+                    ))}
+                    <Button variant="outline" className="w-full mt-2">
+                      <span className="flex items-center">
+                        View all insights
+                        <ArrowUpRight className="h-4 w-4 ml-1" />
+                      </span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="metrics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Metrics</CardTitle>
+                <CardDescription>
+                  Detailed performance analytics for your business
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$45,231.89</div>
-                <p className="text-xs text-muted-foreground mt-2 flex items-center">
-                  <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
-                  +20.1% from last month
+                <p className="text-muted-foreground">
+                  The business metrics dashboard will display charts and detailed analytics. This section is under development.
                 </p>
               </CardContent>
             </Card>
-
-            {/* Active Users Card */}
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200/50 dark:border-blue-800/30 hover:shadow-md transition-all hover:-translate-y-1 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </TabsContent>
+          
+          <TabsContent value="insights" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Insights</CardTitle>
+                <CardDescription>
+                  Strategic insights to help grow your business
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">+2,350</div>
-                <p className="text-xs text-muted-foreground mt-2 flex items-center">
-                  <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
-                  +180.1% from last month
+                <p className="text-muted-foreground">
+                  The business insights section will provide articles, guides, and resources for entrepreneurs. This section is under development.
                 </p>
               </CardContent>
             </Card>
-
-            {/* Tasks Progress Card */}
-            <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200/50 dark:border-green-800/30 hover:shadow-md transition-all hover:-translate-y-1 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Goals Progress</CardTitle>
-                <Mountain className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">83%</div>
-                <Progress value={83} className="h-2 mt-2" />
-              </CardContent>
-            </Card>
-
-            {/* Upcoming Events Card */}
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10 border-orange-200/50 dark:border-orange-800/30 hover:shadow-md transition-all hover:-translate-y-1 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Events</CardTitle>
-                <Calendar className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">7</div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Next: Entrepreneur Summit in 3h
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-            <DailyJournal />
-            <TodoList />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="analytics" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Analytics data will be displayed here.</p>
-              <div className="h-[300px] w-full bg-gray-100 dark:bg-gray-800 rounded-md mt-4 flex items-center justify-center">
-                <BarChart3 className="h-12 w-12 text-gray-400" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="tasks" className="mt-6">
-          <TodoList fullWidth={true} />
-        </TabsContent>
-        
-        <TabsContent value="projects" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Your projects and milestones will appear here.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="team" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Team member information and performance metrics will appear here.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Entrepreneur Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="hover:shadow-md transition-all backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-gray-200/70 dark:border-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md flex items-center">
-              <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-              Business Network
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <p className="text-sm text-muted-foreground">Connect with investors, partners and mentors.</p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between border-primary/20" 
-              onClick={() => handleNavigate('chat')}
-            >
-              <span>Open Messages</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="hover:shadow-md transition-all backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-gray-200/70 dark:border-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md flex items-center">
-              <Calendar className="h-5 w-5 mr-2 text-primary" />
-              Business Calendar
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <p className="text-sm text-muted-foreground">Manage your critical business timeline.</p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between border-primary/20"
-              onClick={() => handleNavigate('calendar')}
-            >
-              <span>View Calendar</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="hover:shadow-md transition-all backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-gray-200/70 dark:border-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-primary" />
-              Business Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <p className="text-sm text-muted-foreground">Access essential business documents and templates.</p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between border-primary/20"
-              onClick={() => handleNavigate('documents')}
-            >
-              <span>Browse Resources</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Button 
-          variant="outline" 
-          className="h-auto py-3 px-4 flex items-center justify-between hover:bg-primary/5 border-primary/20 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30"
-          onClick={() => handleNavigate('community')}
-        >
-          <div className="flex items-center">
-            <Globe className="h-5 w-5 mr-2 text-primary" />
-            <span>Entrepreneur Community</span>
-          </div>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-
-        <Button 
-          variant="outline" 
-          className="h-auto py-3 px-4 flex items-center justify-between hover:bg-primary/5 border-primary/20 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30"
-          onClick={() => handleNavigate('knowledge')}
-        >
-          <div className="flex items-center">
-            <BookOpen className="h-5 w-5 mr-2 text-primary" />
-            <span>Business Resources</span>
-          </div>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-
-        <Button 
-          variant="outline" 
-          className="h-auto py-3 px-4 flex items-center justify-between hover:bg-primary/5 border-primary/20 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30"
-          onClick={() => handleNavigate('notifications')}
-        >
-          <div className="flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-primary" />
-            <span>Business Alerts</span>
-          </div>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-
-        <Button 
-          variant="outline" 
-          className="h-auto py-3 px-4 flex items-center justify-between hover:bg-primary/5 border-primary/20 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30"
-          onClick={() => handleNavigate('settings')}
-        >
-          <div className="flex items-center">
-            <Users className="h-5 w-5 mr-2 text-primary" />
-            <span>Team Management</span>
-          </div>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      
+      {showMorningStrategy && (
+        <MorningStrategyPopup 
+          isOpen={showMorningStrategy} 
+          onClose={() => setShowMorningStrategy(false)} 
+        />
+      )}
     </div>
   );
 };

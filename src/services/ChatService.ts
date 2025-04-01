@@ -1,94 +1,66 @@
 
-import { Message } from "../types/chat";
-import WebSocketService from "./WebSocketService";
+import { WebSocketService } from './WebSocketService';
+import { ChatMessage, ChannelType } from '../types/chat';
 
-type ChatCallback = (messages: Message[]) => void;
-type MessageCallback = (message: Message) => void;
-type ConnectionCallback = (status: 'connected' | 'disconnected') => void;
+// Mock data for testing
+const mockMessages: ChatMessage[] = [];
 
-class ChatService {
-  private static instance: ChatService;
-  private messages: Message[] = [];
-  private messageCallbacks: ChatCallback[] = [];
-  private singleMessageCallbacks: MessageCallback[] = [];
-  private connectionCallbacks: ConnectionCallback[] = [];
-  private webSocketService: WebSocketService;
+class ChatServiceClass {
+  private static instance: ChatServiceClass;
+  private socket: typeof WebSocketService;
 
   private constructor() {
-    this.webSocketService = WebSocketService.getInstance();
-
-    this.webSocketService.onMessage((data: any) => {
-      if (data.type === 'chat') {
-        const message: Message = data.message;
-        this.messages.push(message);
-        this.notifyMessageCallbacks();
-        this.notifySingleMessageCallbacks(message);
-      }
-    });
-
-    this.webSocketService.onConnectionChange((isConnected: boolean) => {
-      const status = isConnected ? 'connected' : 'disconnected';
-      this.notifyConnectionCallbacks(status);
-    });
+    this.socket = WebSocketService.getInstance();
   }
 
-  public static getInstance(): ChatService {
-    if (!ChatService.instance) {
-      ChatService.instance = new ChatService();
+  public static getInstance(): ChatServiceClass {
+    if (!ChatServiceClass.instance) {
+      ChatServiceClass.instance = new ChatServiceClass();
     }
-    return ChatService.instance;
+    return ChatServiceClass.instance;
   }
 
-  public connect(roomId: string): void {
-    // Connection logic here
-    console.log(`Connecting to room: ${roomId}`);
-  }
-
-  public sendMessage(message: Message): void {
-    // Add to local messages immediately (optimistic update)
-    this.messages.push(message);
-    this.notifyMessageCallbacks();
-    this.notifySingleMessageCallbacks(message);
-
-    // Send via websocket
-    this.webSocketService.send({
-      type: 'chat',
-      message
-    });
-  }
-
-  public getMessages(): Message[] {
-    return [...this.messages];
-  }
-
-  public onNewMessage(callback: ChatCallback): void {
-    this.messageCallbacks.push(callback);
-  }
-
-  public onMessage(callback: MessageCallback): void {
-    this.singleMessageCallbacks.push(callback);
-  }
-
-  public onConnectionChange(callback: ConnectionCallback): void {
-    this.connectionCallbacks.push(callback);
-  }
-
-  private notifyMessageCallbacks(): void {
-    this.messageCallbacks.forEach(callback => callback([...this.messages]));
-  }
-
-  private notifySingleMessageCallbacks(message: Message): void {
-    this.singleMessageCallbacks.forEach(callback => callback(message));
-  }
-
-  private notifyConnectionCallbacks(status: 'connected' | 'disconnected'): void {
-    this.connectionCallbacks.forEach(callback => callback(status));
+  // Mock methods for the chat service - to be implemented with real WebSocket later
+  public connect(userId: string, token: string): void {
+    console.log('ChatService: Connecting with user ID', userId);
   }
 
   public disconnect(): void {
-    // Disconnect logic here
-    console.log("Disconnecting from chat service");
+    console.log('ChatService: Disconnecting');
+  }
+
+  public sendMessage(channelId: string, message: string, channelType: ChannelType): void {
+    console.log('ChatService: Sending message to channel', channelId, message);
+    
+    // Create a mock message
+    const newMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: message,
+      timestamp: new Date().toISOString(),
+      sender: {
+        id: 'current-user',
+        name: 'You',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
+      },
+      channelId,
+      channelType
+    };
+    
+    mockMessages.push(newMessage);
+    
+    // Simulate message received
+    setTimeout(() => {
+      if (this.onMessage) {
+        this.onMessage(newMessage);
+      }
+    }, 500);
+  }
+
+  public onMessage: ((message: ChatMessage) => void) | null = null;
+
+  public getChannelMessages(channelId: string): ChatMessage[] {
+    return mockMessages.filter(msg => msg.channelId === channelId);
   }
 }
 
-export default ChatService.getInstance();
+export const ChatService = ChatServiceClass.getInstance();
