@@ -12,7 +12,7 @@ class ChatService {
   private messageCallbacks: ChatCallback[] = [];
   private singleMessageCallbacks: MessageCallback[] = [];
   private connectionCallbacks: ConnectionCallback[] = [];
-  private webSocketService: typeof WebSocketService;
+  private webSocketService: WebSocketService;
 
   private constructor() {
     this.webSocketService = WebSocketService.getInstance();
@@ -26,7 +26,8 @@ class ChatService {
       }
     });
 
-    this.webSocketService.onConnectionChange((status: 'connected' | 'disconnected') => {
+    this.webSocketService.onConnectionChange((isConnected: boolean) => {
+      const status = isConnected ? 'connected' : 'disconnected';
       this.notifyConnectionCallbacks(status);
     });
   }
