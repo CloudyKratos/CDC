@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
 import { ChatPanel } from "@/components/ChatPanel";
-import { MessageCircle, Calendar, Users, FileText, BellRing, Settings } from "lucide-react";
+import { MessageCircle, Calendar, Users, FileText, BellRing, Settings, Compass, Map } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
@@ -15,6 +15,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ProfilePanel from "@/components/ProfilePanel";
 import { NotificationType } from "@/types/notification";
 import { AnnouncementProps } from "@/types/announcement";
+import { toast } from "sonner";
 
 type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
@@ -88,12 +89,12 @@ const Dashboard = () => {
   
   const latestAnnouncement: AnnouncementProps = {
     id: "rt-001",
-    title: "Community Roundtable",
-    content: "Join us this Friday at 3PM for our weekly Roundtable discussion on startup growth strategies.",
+    title: "Entrepreneurial Summit",
+    content: "Join our exclusive Entrepreneurial Summit this Friday at 3PM where industry leaders will share their startup growth strategies.",
     date: "Friday, 3:00 PM",
-    type: "roundtable",
-    attendees: 12,
-    maxAttendees: 30
+    type: "summit",
+    attendees: 24,
+    maxAttendees: 50
   };
   
   useEffect(() => {
@@ -104,6 +105,14 @@ const Dashboard = () => {
     if (isMobile) {
       setViewMode("mobile-menu");
     }
+    
+    // Add a welcoming toast for better UX
+    setTimeout(() => {
+      toast.success("Welcome to your business dashboard!", {
+        description: "Navigate through your entrepreneurial journey with our comprehensive tools.",
+        duration: 5000,
+      });
+    }, 1000);
   }, [isMobile]);
   
   const toggleDarkMode = () => {
@@ -190,7 +199,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-gradient-to-br from-background via-background to-background/80 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-800/90">
+    <div className="h-screen w-screen flex overflow-hidden bg-[url('/lovable-uploads/f3cc1e68-26e7-4ec4-a61d-f3292452ce2d.png')] bg-cover bg-center bg-no-repeat dark:bg-[url('/lovable-uploads/03b2093a-faf7-41d9-b260-6031c2b802a7.png')] dark:bg-cover dark:bg-center">
+      <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"></div>
+      
       {!isMobile && (
         <Sidebar 
           viewMode={viewMode} 
@@ -202,11 +213,11 @@ const Dashboard = () => {
         />
       )}
       
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" />
-          <div className="absolute top-1/3 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200" />
-          <div className="absolute -bottom-20 right-1/3 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400" />
+          <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute top-1/3 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-float animation-delay-200"></div>
+          <div className="absolute -bottom-20 right-1/3 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-float animation-delay-400"></div>
         </div>
         
         <DashboardHeader 
