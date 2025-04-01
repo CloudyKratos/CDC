@@ -1,6 +1,7 @@
 
 import WebRTCService from './WebRTCService';
 import ChatService from './ChatService';
+import { Message } from '../types/chat';
 
 export interface CallParticipant {
   id: string;
@@ -53,7 +54,9 @@ class CallService {
       }
     });
     
-    ChatService.onMessage((message) => {
+    // Set up chat message handler
+    const chatServiceInstance = ChatService;
+    chatServiceInstance.onMessage((message: Message) => {
       if (message.content.startsWith('__CALL_SIGNAL:')) {
         const signalData = JSON.parse(message.content.replace('__CALL_SIGNAL:', ''));
         this.webRTC.handleSignalingData(message.sender.id, signalData);
@@ -99,8 +102,9 @@ class CallService {
       startTime: new Date()
     };
     
+    const chatServiceInstance = ChatService;
     participants.forEach(participantId => {
-      ChatService.sendMessage({
+      chatServiceInstance.sendMessage({
         content: `__CALL_INVITATION:${JSON.stringify({
           callId,
           type,
@@ -143,8 +147,9 @@ class CallService {
     }
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const chatServiceInstance = ChatService;
     
-    ChatService.sendMessage({
+    chatServiceInstance.sendMessage({
       content: `__CALL_JOIN_REQUEST:${callId}`,
       sender: {
         id: user.id,
@@ -167,10 +172,11 @@ class CallService {
     this.activeCall.endTime = new Date();
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const chatServiceInstance = ChatService;
     
     this.activeCall.participants.forEach(participant => {
       if (participant.id !== user.id) {
-        ChatService.sendMessage({
+        chatServiceInstance.sendMessage({
           content: `__CALL_END:${JSON.stringify({
             callId: this.activeCall?.id
           })}`,
@@ -261,7 +267,7 @@ class CallService {
     }
   }
   
-  private handleChatMessage(message: any): void {
+  private handleChatMessage(message: Message): void {
     if (message.content.startsWith('__CALL_INVITATION:')) {
       // Handle incoming call
       const callData = JSON.parse(message.content.replace('__CALL_INVITATION:', ''));

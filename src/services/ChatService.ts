@@ -3,14 +3,16 @@ import { Message } from "../types/chat";
 import WebSocketService from "./WebSocketService";
 
 type ChatCallback = (messages: Message[]) => void;
+type MessageCallback = (message: Message) => void;
 type ConnectionCallback = (status: 'connected' | 'disconnected') => void;
 
 class ChatService {
   private static instance: ChatService;
   private messages: Message[] = [];
   private messageCallbacks: ChatCallback[] = [];
+  private singleMessageCallbacks: MessageCallback[] = [];
   private connectionCallbacks: ConnectionCallback[] = [];
-  private webSocketService: WebSocketService;
+  private webSocketService: typeof WebSocketService;
 
   private constructor() {
     this.webSocketService = WebSocketService.getInstance();
@@ -20,6 +22,7 @@ class ChatService {
         const message: Message = data.message;
         this.messages.push(message);
         this.notifyMessageCallbacks();
+        this.notifySingleMessageCallbacks(message);
       }
     });
 
@@ -44,6 +47,7 @@ class ChatService {
     // Add to local messages immediately (optimistic update)
     this.messages.push(message);
     this.notifyMessageCallbacks();
+    this.notifySingleMessageCallbacks(message);
 
     // Send via websocket
     this.webSocketService.send({
@@ -60,12 +64,20 @@ class ChatService {
     this.messageCallbacks.push(callback);
   }
 
+  public onMessage(callback: MessageCallback): void {
+    this.singleMessageCallbacks.push(callback);
+  }
+
   public onConnectionChange(callback: ConnectionCallback): void {
     this.connectionCallbacks.push(callback);
   }
 
   private notifyMessageCallbacks(): void {
     this.messageCallbacks.forEach(callback => callback([...this.messages]));
+  }
+
+  private notifySingleMessageCallbacks(message: Message): void {
+    this.singleMessageCallbacks.forEach(callback => callback(message));
   }
 
   private notifyConnectionCallbacks(status: 'connected' | 'disconnected'): void {
@@ -78,4 +90,4 @@ class ChatService {
   }
 }
 
-export default ChatService;
+export default ChatService.getInstance();

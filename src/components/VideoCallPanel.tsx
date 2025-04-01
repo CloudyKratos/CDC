@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CallService, { CallType, CallParticipant } from "@/services/CallService";
+import CallService, { Call, CallParticipant } from "@/services/CallService";
 
 interface VideoCallPanelProps {
   isOpen: boolean;
@@ -13,12 +13,7 @@ interface VideoCallPanelProps {
 }
 
 const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
-  const [activeCall, setActiveCall] = useState<{
-    id: string;
-    type: CallType;
-    participants: CallParticipant[];
-    startTime: Date;
-  } | null>(null);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [localAudioEnabled, setLocalAudioEnabled] = useState(true);
   const [localVideoEnabled, setLocalVideoEnabled] = useState(true);
   const [callDuration, setCallDuration] = useState("00:00");
@@ -27,19 +22,14 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
   const durationIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
-    const unsubscribe = CallService.onCallEvent((event) => {
-      if (event.type === 'call_started') {
-        setActiveCall(event.data);
-        startDurationTimer(new Date());
-      } else if (event.type === 'call_ended') {
+    const unsubscribe = CallService.onCallEvent((call) => {
+      setActiveCall(call);
+      
+      if (call && !call.endTime) {
+        startDurationTimer(call.startTime);
+      } else {
         stopDurationTimer();
         onClose();
-      } else if (event.type === 'participant_joined' || event.type === 'participant_left') {
-        setActiveCall(CallService.getActiveCall());
-      } else if (event.type === 'stream_updated') {
-        setActiveCall(CallService.getActiveCall());
-      } else if (event.type === 'media_status_changed') {
-        setActiveCall(CallService.getActiveCall());
       }
     });
     
@@ -76,13 +66,13 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
   const handleToggleAudio = () => {
     const newState = !localAudioEnabled;
     setLocalAudioEnabled(newState);
-    CallService.toggleAudio(newState);
+    CallService.toggleMute();
   };
   
   const handleToggleVideo = () => {
     const newState = !localVideoEnabled;
     setLocalVideoEnabled(newState);
-    CallService.toggleVideo(newState);
+    CallService.toggleVideo();
   };
   
   const handleEndCall = () => {
@@ -102,7 +92,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
   const renderParticipant = (participant: CallParticipant, isLarge = false) => {
     return (
       <div className={`relative rounded-lg overflow-hidden bg-gray-800 ${isLarge ? 'h-full' : 'h-32'}`}>
-        {participant.stream && participant.videoEnabled ? (
+        {participant.stream && !participant.isVideoOff ? (
           <video
             ref={el => {
               if (el && participant.stream) {
@@ -124,8 +114,8 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
         )}
         
         <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded-full text-white text-xs flex items-center">
-          {!participant.audioEnabled && <MicOff size={12} className="mr-1 text-red-500" />}
-          {!participant.videoEnabled && <VideoOff size={12} className="mr-1 text-red-500" />}
+          {participant.isMuted && <MicOff size={12} className="mr-1 text-red-500" />}
+          {participant.isVideoOff && <VideoOff size={12} className="mr-1 text-red-500" />}
           <span>{participant.name}</span>
           {participant.id === activeCall?.participants[0]?.id && <span className="ml-1">(You)</span>}
         </div>
