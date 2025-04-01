@@ -1,6 +1,6 @@
 
 import React from "react";
-import { AlertTriangle, Tool } from "lucide-react";
+import { AlertTriangle, Construction } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ const WorkInProgressBanner: React.FC<WorkInProgressBannerProps> = ({
       )}
     >
       <div className="flex items-start">
-        <Tool className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2" />
+        <Construction className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2" />
         <div>
           <AlertTitle className="text-yellow-800 dark:text-yellow-300">{title}</AlertTitle>
           <AlertDescription className="text-yellow-700 dark:text-yellow-400 text-sm">

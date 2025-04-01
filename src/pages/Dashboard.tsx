@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -18,6 +17,7 @@ import { NotificationType } from "@/types/notification";
 import { AnnouncementProps } from "@/types/announcement";
 import { toast } from "sonner";
 import WorkInProgressBanner from "@/components/WorkInProgressBanner";
+import TopographicBackground from "@/components/home/TopographicBackground";
 
 type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
@@ -108,7 +108,6 @@ const Dashboard = () => {
       setViewMode("mobile-menu");
     }
     
-    // Add a welcoming toast for better UX
     setTimeout(() => {
       toast.success("Welcome to your business dashboard!", {
         description: "Navigate through your entrepreneurial journey with our comprehensive tools.",
@@ -243,6 +242,7 @@ const Dashboard = () => {
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-[url('/lovable-uploads/f3cc1e68-26e7-4ec4-a61d-f3292452ce2d.png')] bg-cover bg-center bg-no-repeat dark:bg-[url('/lovable-uploads/03b2093a-faf7-41d9-b260-6031c2b802a7.png')] dark:bg-cover dark:bg-center">
       <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"></div>
+      <TopographicBackground variant="modern" className="opacity-80" />
       
       {!isMobile && (
         <Sidebar 

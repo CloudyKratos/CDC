@@ -3,9 +3,22 @@ import React from "react";
 
 interface TopographicBackgroundProps {
   className?: string;
+  variant?: "default" | "modern";
 }
 
-const TopographicBackground: React.FC<TopographicBackgroundProps> = ({ className }) => {
+const TopographicBackground: React.FC<TopographicBackgroundProps> = ({ 
+  className,
+  variant = "default" 
+}) => {
+  if (variant === "modern") {
+    return (
+      <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+        <div className="absolute inset-0 bg-[url('/lovable-uploads/17e88902-c856-44b9-9f88-8a1af08c7e00.png')] bg-repeat opacity-[0.15] dark:opacity-[0.08]"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       <svg

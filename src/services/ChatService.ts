@@ -1,66 +1,92 @@
 
-import WebSocketService from './WebSocketService';
-import { ChatMessage, ChannelType } from '../types/chat';
+// Placeholder for real ChatService implementation
+import { WebSocketService } from './WebSocketService';
+import { Message, MessageStatus } from '../types/chat';
 
-// Mock data for testing
-const mockMessages: ChatMessage[] = [];
-
-class ChatServiceClass {
-  private static instance: ChatServiceClass;
-  private socket: typeof WebSocketService;
-
-  private constructor() {
-    this.socket = WebSocketService.getInstance();
-  }
-
-  public static getInstance(): ChatServiceClass {
-    if (!ChatServiceClass.instance) {
-      ChatServiceClass.instance = new ChatServiceClass();
+export class ChatService {
+  private static instance: ChatService;
+  private messages: Record<string, Message[]> = {};
+  
+  private constructor() {}
+  
+  public static getInstance(): ChatService {
+    if (!ChatService.instance) {
+      ChatService.instance = new ChatService();
     }
-    return ChatServiceClass.instance;
+    return ChatService.instance;
   }
-
-  // Mock methods for the chat service - to be implemented with real WebSocket later
-  public connect(userId: string, token: string): void {
-    console.log('ChatService: Connecting with user ID', userId);
-  }
-
-  public disconnect(): void {
-    console.log('ChatService: Disconnecting');
-  }
-
-  public sendMessage(channelId: string, message: string, channelType: ChannelType): void {
-    console.log('ChatService: Sending message to channel', channelId, message);
+  
+  public async sendMessage(channelId: string, content: string): Promise<Message> {
+    // In a real implementation, this would use WebSocketService to send the message
+    const wsService = WebSocketService.getInstance();
     
-    // Create a mock message
-    const newMessage: ChatMessage = {
+    // Create a message object
+    const message: Message = {
       id: Date.now().toString(),
-      text: message,
-      timestamp: new Date().toISOString(),
+      content,
       sender: {
         id: 'current-user',
-        name: 'You',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
+        name: 'Current User',
+        avatar: '/avatar-placeholder.png'
       },
-      channelId,
-      channelType
+      timestamp: new Date().toISOString(),
+      status: MessageStatus.SENT,
+      reactions: []
     };
     
-    mockMessages.push(newMessage);
+    // Add to local cache
+    if (!this.messages[channelId]) {
+      this.messages[channelId] = [];
+    }
+    this.messages[channelId].push(message);
     
-    // Simulate message received
-    setTimeout(() => {
-      if (this.onMessage) {
-        this.onMessage(newMessage);
-      }
-    }, 500);
+    // Pretend to send via WebSocket (will be implemented later)
+    console.log(`Sending message to channel ${channelId}: ${content}`);
+    
+    return message;
   }
-
-  public onMessage: ((message: ChatMessage) => void) | null = null;
-
-  public getChannelMessages(channelId: string): ChatMessage[] {
-    return mockMessages.filter(msg => msg.channelId === channelId);
+  
+  public async getMessages(channelId: string): Promise<Message[]> {
+    // In a real implementation, this would fetch messages from a backend
+    // For now we'll just return mock data
+    console.log(`Fetching messages for channel ${channelId}`);
+    
+    if (!this.messages[channelId]) {
+      this.messages[channelId] = this.getMockMessages(channelId);
+    }
+    
+    return this.messages[channelId];
+  }
+  
+  private getMockMessages(channelId: string): Message[] {
+    // Generate some mock messages for the channel
+    return [
+      {
+        id: '1',
+        content: `Welcome to the ${channelId} channel!`,
+        sender: {
+          id: 'system',
+          name: 'System',
+          avatar: '/avatar-system.png'
+        },
+        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        status: MessageStatus.DELIVERED,
+        reactions: []
+      },
+      {
+        id: '2',
+        content: `This is a sample message in the ${channelId} channel.`,
+        sender: {
+          id: 'user1',
+          name: 'John Doe',
+          avatar: '/avatar-john.png'
+        },
+        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        status: MessageStatus.DELIVERED,
+        reactions: [
+          { emoji: '👍', count: 2, users: ['user2', 'user3'] }
+        ]
+      }
+    ];
   }
 }
-
-export const ChatService = ChatServiceClass.getInstance();
