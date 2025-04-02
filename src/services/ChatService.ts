@@ -1,3 +1,4 @@
+
 import { CallService } from './CallService';
 import WebSocketService from './WebSocketService';
 
@@ -21,11 +22,11 @@ export enum MessageStatus {
 // Placeholder for real ChatService implementation
 export class ChatService {
   private static instance: ChatService;
-  private wsService: WebSocketService;
+  private wsService: typeof WebSocketService;
   private messages: Map<string, Message[]> = new Map();
   
   private constructor() {
-    this.wsService = WebSocketService.getInstance();
+    this.wsService = WebSocketService;
   }
   
   public static getInstance(): ChatService {

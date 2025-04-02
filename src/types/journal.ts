@@ -10,6 +10,15 @@ export interface JournalEntry {
     completed: boolean;
   }[];
   gratitude: string[];
+  morningReflection?: string;
+  eveningReflection?: string;
+  photoUrl?: string;
+  tags?: string[];
+  stoicPractices?: {
+    id: string;
+    name: string;
+    completed: boolean;
+  }[];
 }
 
 export interface TodoItem {
@@ -20,3 +29,18 @@ export interface TodoItem {
   dueDate?: string;
   category?: string;
 }
+
+export interface JournalFilter {
+  startDate?: string;
+  endDate?: string;
+  mood?: string;
+  tags?: string[];
+  hasPhotos?: boolean;
+}
+
+export type StoicPractice = {
+  id: string;
+  name: string;
+  description: string;
+  category: 'morning' | 'evening' | 'anytime';
+};

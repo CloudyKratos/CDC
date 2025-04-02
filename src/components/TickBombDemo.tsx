@@ -5,7 +5,7 @@ import WorkInProgressBanner from "./WorkInProgressBanner";
 import { Button } from "@/components/ui/button";
 import { AuthContext } from "@/App";
 import { toast } from "sonner";
-import { Clock, AlertOctagon, RefreshCcw, Camera } from "lucide-react";
+import { Clock, AlertOctagon, RefreshCcw, Camera, Shield } from "lucide-react";
 
 interface TickBombDemoProps {
   className?: string;
@@ -36,7 +36,7 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-bold">Community Accountability System</CardTitle>
+            <CardTitle className="text-lg font-bold">Stoic Accountability System</CardTitle>
             <CardDescription>
               Morning Strategy verification required
             </CardDescription>
@@ -56,9 +56,9 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
         />
         
         <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-4 text-sm">
-          <h3 className="font-medium text-gray-900 dark:text-gray-200 mb-2">Community Accountability System:</h3>
+          <h3 className="font-medium text-gray-900 dark:text-gray-200 mb-2">Stoic Accountability System:</h3>
           <ol className="list-decimal ml-5 space-y-1 text-gray-600 dark:text-gray-400">
-            <li>The 6AM morning walk verification is a core community commitment</li>
+            <li>The 6AM morning walk verification is a core Stoic community commitment</li>
             <li>Missing verifications activate the accountability system for 48 hours</li>
             <li>The system displays increasingly urgent reminders</li>
             <li>Complete a new morning strategy with photo verification to deactivate</li>

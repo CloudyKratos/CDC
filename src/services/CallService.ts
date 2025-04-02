@@ -54,6 +54,7 @@ export class CallService {
 export interface Call {
   id: string;
   channelId: string;
+  type?: string;
   startedAt: Date;
   participants: CallParticipant[];
 }
@@ -65,4 +66,6 @@ export interface CallParticipant {
   isMuted: boolean;
   isVideoEnabled: boolean;
   isScreenSharing: boolean;
+  isVideoOff?: boolean;
+  stream?: MediaStream;
 }
