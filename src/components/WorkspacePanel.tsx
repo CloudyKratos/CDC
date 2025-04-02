@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   FileText, 
   Plus, 
@@ -19,7 +18,26 @@ import {
   ArrowUpDown,
   Upload,
   X,
-  Archive
+  Archive,
+  Share2,
+  Copy,
+  History,
+  Lock,
+  Download,
+  Users,
+  Link,
+  Info,
+  Calendar,
+  Tag,
+  Eye,
+  Shield,
+  ExternalLink,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+  CloudOff,
+  CheckCircle2,
+  Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +47,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu";
 import {
   Tabs,
@@ -41,18 +65,91 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import TopographicBackground from "@/components/home/TopographicBackground";
+import { toast } from "sonner";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
+
+// Enhanced types
+interface NoteVersion {
+  id: string;
+  content: string;
+  timestamp: Date;
+  author: string;
+  authorAvatar?: string;
+}
+
+interface NoteComment {
+  id: string;
+  author: string;
+  authorAvatar?: string;
+  content: string;
+  timestamp: Date;
+}
+
+interface NoteCollaborator {
+  id: string;
+  name: string;
+  avatar?: string;
+  role: 'viewer' | 'editor' | 'owner';
+  lastActive?: Date;
+}
 
 interface Note {
   id: string;
   title: string;
   content: string;
   lastUpdated: Date;
+  createdAt: Date;
   emoji?: string;
-  type: 'document' | 'image' | 'video' | 'other';
+  type: 'document' | 'image' | 'video' | 'other' | 'folder';
   mediaUrl?: string;
   starred?: boolean;
   tags?: string[];
   folder?: string;
+  color?: string;
+  isOffline?: boolean;
+  isShared?: boolean;
+  isLocked?: boolean;
+  size?: number;
+  versions?: NoteVersion[];
+  comments?: NoteComment[];
+  collaborators?: NoteCollaborator[];
+  permissions?: 'private' | 'shared' | 'public';
+  shareLink?: string;
+  viewCount?: number;
+  parentFolder?: string;
+  metadata?: Record<string, any>;
+  description?: string;
 }
 
 export const WorkspacePanel: React.FC = () => {
@@ -62,53 +159,105 @@ export const WorkspacePanel: React.FC = () => {
       title: "Project Ideas",
       content: "List of potential startup ideas to explore",
       lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
       emoji: "💡",
       type: 'document',
       starred: true,
       tags: ['ideas', 'startup'],
-      folder: 'Projects'
+      folder: 'Projects',
+      isShared: true,
+      collaborators: [
+        { id: '101', name: 'Alex Chen', role: 'editor', avatar: 'https://i.pravatar.cc/150?img=1' },
+        { id: '102', name: 'Sarah Kim', role: 'viewer', avatar: 'https://i.pravatar.cc/150?img=5' }
+      ],
+      permissions: 'shared',
+      versions: [
+        { id: 'v1', content: "Initial ideas list", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), author: 'You' },
+        { id: 'v2', content: "Updated with feedback", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), author: 'Alex Chen', authorAvatar: 'https://i.pravatar.cc/150?img=1' },
+        { id: 'v3', content: "List of potential startup ideas to explore", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), author: 'You' }
+      ],
+      comments: [
+        { id: 'c1', author: 'Alex Chen', authorAvatar: 'https://i.pravatar.cc/150?img=1', content: 'I really like the SaaS idea, we should explore that further.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12) }
+      ],
+      viewCount: 8,
+      size: 24576
     },
     {
       id: "2",
       title: "Meeting Notes",
       content: "Notes from investor meeting on July 15",
       lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 3),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
       emoji: "📝",
       type: 'document',
       tags: ['meetings', 'investors'],
-      folder: 'Meetings'
+      folder: 'Meetings',
+      versions: [
+        { id: 'v1', content: "Notes from investor meeting on July 15", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), author: 'You' }
+      ],
+      size: 8192
     },
     {
       id: "3",
       title: "Q3 Goals",
       content: "Quarterly objectives and key results",
       lastUpdated: new Date(Date.now() - 1000 * 60 * 30),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
       emoji: "🎯",
       type: 'document',
       tags: ['goals', 'planning'],
-      folder: 'Planning'
+      folder: 'Planning',
+      isLocked: true,
+      size: 16384
     },
     {
       id: "4",
       title: "Product Mockup",
       content: "Visual design for the new product",
       lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 5),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
       emoji: "🖼️",
       type: 'image',
       mediaUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7",
       tags: ['design', 'product'],
-      folder: 'Design'
+      folder: 'Design',
+      size: 2097152
     },
     {
       id: "5",
       title: "Pitch Video",
       content: "Video presentation for investors",
       lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
       emoji: "🎬",
       type: 'video',
       mediaUrl: "https://example.com/video.mp4",
       tags: ['pitch', 'investors'],
-      folder: 'Presentations'
+      folder: 'Presentations',
+      size: 15728640
+    },
+    {
+      id: "6",
+      title: "Design Assets",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10),
+      lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+      emoji: "🗂️",
+      type: 'folder',
+      content: "Contains all design assets",
+      folder: "Design"
+    },
+    {
+      id: "7",
+      title: "Competitive Analysis",
+      content: "In-depth analysis of our top 5 competitors",
+      lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 48),
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8),
+      emoji: "🔍",
+      type: 'document',
+      tags: ['research', 'competition'],
+      folder: 'Research',
+      isOffline: true,
+      size: 51200
     }
   ]);
   
@@ -116,37 +265,133 @@ export const WorkspacePanel: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'type'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'type' | 'size'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [breadcrumbs, setBreadcrumbs] = useState<{id: string | null, name: string}[]>([
+    { id: null, name: 'Home' }
+  ]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
+
   const folders = Array.from(new Set(notes.map(note => note.folder))).filter(Boolean) as string[];
-  
   const allTags = Array.from(new Set(notes.flatMap(note => note.tags || []))).sort();
+  
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+      
+      // Search focus
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      
+      // New document shortcut
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleCreateNote('document');
+      }
+      
+      // Save shortcut (when editing)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && isEditing) {
+        e.preventDefault();
+        toast.success("Changes saved", {
+          description: "Your document has been saved"
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditing]);
   
   const handleCreateNote = (type: Note['type'] = 'document') => {
     const newNote: Note = {
       id: Date.now().toString(),
-      title: type === 'document' ? "Untitled" : type === 'image' ? "New Image" : "New Video",
+      title: type === 'document' ? "Untitled" : type === 'image' ? "New Image" : type === 'folder' ? "New Folder" : "New Video",
       content: "",
       lastUpdated: new Date(),
+      createdAt: new Date(),
       type,
-      emoji: type === 'document' ? "📄" : type === 'image' ? "🖼️" : "🎬"
+      emoji: type === 'document' ? "📄" : type === 'image' ? "🖼️" : type === 'folder' ? "📁" : "🎬",
+      folder: activeFolder || undefined,
+      parentFolder: activeFolder || undefined,
+      size: 0,
+      versions: [
+        { id: 'v1', content: "", timestamp: new Date(), author: 'You' }
+      ]
     };
     
     setNotes([newNote, ...notes]);
     setActiveNote(newNote.id);
     setIsEditing(true);
+    
+    toast.success(
+      type === 'folder' ? "Folder created" : "File created", 
+      { description: `New ${type} has been created successfully` }
+    );
   };
   
   const handleDeleteNote = (id: string) => {
+    toast.success("Item moved to trash", {
+      description: "It will be permanently deleted after 30 days",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          toast("Action cancelled", {
+            description: "The item was restored"
+          });
+        }
+      }
+    });
+    
     const updatedNotes = notes.filter(note => note.id !== id);
     setNotes(updatedNotes);
     
     if (activeNote === id) {
+      setActiveNote(updatedNotes.length > 0 ? updatedNotes[0].id : null);
+      setIsEditing(false);
+    }
+  };
+  
+  const handleBulkDelete = () => {
+    if (selectedItems.length === 0) return;
+    
+    toast.success(`${selectedItems.length} items moved to trash`, {
+      description: "They will be permanently deleted after 30 days",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          toast("Action cancelled", {
+            description: "The items were restored"
+          });
+        }
+      }
+    });
+    
+    const updatedNotes = notes.filter(note => !selectedItems.includes(note.id));
+    setNotes(updatedNotes);
+    setSelectedItems([]);
+    
+    if (selectedItems.includes(activeNote!)) {
       setActiveNote(updatedNotes.length > 0 ? updatedNotes[0].id : null);
       setIsEditing(false);
     }
@@ -165,6 +410,50 @@ export const WorkspacePanel: React.FC = () => {
     }
   };
   
+  const handleDuplicateNote = (id: string) => {
+    const noteToDuplicate = notes.find(note => note.id === id);
+    if (!noteToDuplicate) return;
+    
+    const newNote: Note = {
+      ...noteToDuplicate,
+      id: Date.now().toString(),
+      title: `${noteToDuplicate.title} (Copy)`,
+      lastUpdated: new Date(),
+      createdAt: new Date(),
+      starred: false
+    };
+    
+    setNotes([newNote, ...notes]);
+    toast.success("Item duplicated", {
+      description: `${noteToDuplicate.title} has been duplicated`
+    });
+  };
+  
+  const handleAddComment = () => {
+    if (!newComment.trim() || !activeNote) return;
+    
+    const updatedNotes = notes.map(note => {
+      if (note.id === activeNote) {
+        const newCommentObj: NoteComment = {
+          id: Date.now().toString(),
+          author: 'You',
+          content: newComment,
+          timestamp: new Date()
+        };
+        
+        return {
+          ...note,
+          comments: [...(note.comments || []), newCommentObj]
+        };
+      }
+      return note;
+    });
+    
+    setNotes(updatedNotes);
+    setNewComment("");
+    toast.success("Comment added");
+  };
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -179,14 +468,162 @@ export const WorkspacePanel: React.FC = () => {
       title: file.name,
       content: "",
       lastUpdated: new Date(),
+      createdAt: new Date(),
       type,
       mediaUrl: url,
-      emoji: type === 'image' ? "🖼️" : "🎬"
+      emoji: type === 'image' ? "🖼️" : "🎬",
+      folder: activeFolder || undefined,
+      size: file.size,
+      versions: [
+        { id: 'v1', content: "", timestamp: new Date(), author: 'You' }
+      ]
     };
     
     setNotes([newNote, ...notes]);
     setActiveNote(newNote.id);
     setActiveTab(type === 'image' ? 'images' : 'videos');
+    
+    toast.success("File uploaded", {
+      description: `${file.name} has been uploaded successfully`
+    });
+  };
+  
+  const handleDownloadFile = (id: string) => {
+    const note = notes.find(note => note.id === id);
+    if (!note) return;
+    
+    toast.success("Download started", {
+      description: `${note.title} is downloading`
+    });
+    
+    // In a real app, this would trigger an actual download
+    console.log(`Downloading ${note.title}`);
+  };
+  
+  const handleMoveToFolder = (id: string, targetFolder: string | null) => {
+    const updatedNotes = notes.map(note => 
+      note.id === id ? { ...note, folder: targetFolder || undefined } : note
+    );
+    
+    setNotes(updatedNotes);
+    
+    toast.success("Item moved", {
+      description: targetFolder 
+        ? `Moved to ${targetFolder} folder` 
+        : "Moved to root directory"
+    });
+  };
+  
+  const handleBulkMoveToFolder = (targetFolder: string | null) => {
+    if (selectedItems.length === 0) return;
+    
+    const updatedNotes = notes.map(note => 
+      selectedItems.includes(note.id) 
+        ? { ...note, folder: targetFolder || undefined } 
+        : note
+    );
+    
+    setNotes(updatedNotes);
+    setSelectedItems([]);
+    
+    toast.success(`${selectedItems.length} items moved`, {
+      description: targetFolder 
+        ? `Moved to ${targetFolder} folder` 
+        : "Moved to root directory"
+    });
+  };
+  
+  const handleOpenFolder = (folderId: string | null, folderName: string | null) => {
+    setActiveFolder(folderId);
+    
+    if (folderId === null) {
+      setBreadcrumbs([{ id: null, name: 'Home' }]);
+    } else if (folderName) {
+      setBreadcrumbs([
+        { id: null, name: 'Home' },
+        { id: folderId, name: folderName }
+      ]);
+    }
+  };
+  
+  const handleShareNote = (id: string) => {
+    const updatedNotes = notes.map(note => 
+      note.id === id ? { 
+        ...note, 
+        isShared: true,
+        permissions: 'shared',
+        shareLink: `https://stoic.app/hub/share/${note.id}`
+      } : note
+    );
+    
+    setNotes(updatedNotes);
+    setIsShareDialogOpen(true);
+    
+    toast.success("Share link created", {
+      description: "The share link has been copied to clipboard"
+    });
+  };
+  
+  const handleShareWithUsers = (emails: string[], permission: 'viewer' | 'editor') => {
+    if (!activeNote) return;
+    
+    const updatedNotes = notes.map(note => {
+      if (note.id === activeNote) {
+        // In a real app, this would send invitations to these emails
+        const newCollaborators: NoteCollaborator[] = emails.map(email => ({
+          id: Date.now().toString() + Math.random().toString().slice(2, 8),
+          name: email.split('@')[0],
+          role: permission,
+          avatar: `https://i.pravatar.cc/150?u=${email}`
+        }));
+        
+        return {
+          ...note,
+          collaborators: [...(note.collaborators || []), ...newCollaborators],
+          isShared: true,
+          permissions: 'shared'
+        };
+      }
+      return note;
+    });
+    
+    setNotes(updatedNotes);
+    toast.success("Invitations sent", {
+      description: `${emails.length} people have been invited to collaborate`
+    });
+    
+    setIsShareDialogOpen(false);
+  };
+  
+  const handleSelectionChange = (id: string) => {
+    if (selectedItems.includes(id)) {
+      setSelectedItems(selectedItems.filter(item => item !== id));
+    } else {
+      setSelectedItems([...selectedItems, id]);
+    }
+  };
+  
+  const handleSelectAll = () => {
+    const visibleNotes = getFilteredNotes();
+    if (selectedItems.length === visibleNotes.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(visibleNotes.map(note => note.id));
+    }
+  };
+  
+  const handleToggleLock = (id: string) => {
+    const updatedNotes = notes.map(note => 
+      note.id === id ? { ...note, isLocked: !note.isLocked } : note
+    );
+    
+    setNotes(updatedNotes);
+    
+    const note = notes.find(note => note.id === id);
+    toast.success(
+      note?.isLocked ? "Item unlocked" : "Item locked", 
+      { description: note?.isLocked ? "This item can now be edited" : "This item is now locked from editing" }
+    );
   };
   
   const getFilteredNotes = () => {
@@ -196,7 +633,8 @@ export const WorkspacePanel: React.FC = () => {
     if (searchQuery) {
       filteredNotes = filteredNotes.filter(note => 
         note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchQuery.toLowerCase())
+        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
@@ -209,11 +647,18 @@ export const WorkspacePanel: React.FC = () => {
       filteredNotes = filteredNotes.filter(note => note.type === 'video');
     } else if (activeTab === 'starred') {
       filteredNotes = filteredNotes.filter(note => note.starred);
+    } else if (activeTab === 'shared') {
+      filteredNotes = filteredNotes.filter(note => note.isShared);
+    } else if (activeTab === 'offline') {
+      filteredNotes = filteredNotes.filter(note => note.isOffline);
     }
     
     // Folder filter
     if (activeFolder) {
       filteredNotes = filteredNotes.filter(note => note.folder === activeFolder);
+    } else if (activeTab !== 'all' && activeTab !== 'starred' && activeTab !== 'shared' && activeTab !== 'offline') {
+      // When in a specific tab, show top-level items when no folder is selected
+      filteredNotes = filteredNotes.filter(note => !note.parentFolder);
     }
     
     // Tag filter
@@ -233,6 +678,12 @@ export const WorkspacePanel: React.FC = () => {
         return sortDirection === 'desc'
           ? b.title.localeCompare(a.title)
           : a.title.localeCompare(b.title);
+      } else if (sortBy === 'size') {
+        const sizeA = a.size || 0;
+        const sizeB = b.size || 0;
+        return sortDirection === 'desc'
+          ? sizeB - sizeA
+          : sizeA - sizeB;
       } else {
         return sortDirection === 'desc'
           ? b.type.localeCompare(a.type)
@@ -240,7 +691,11 @@ export const WorkspacePanel: React.FC = () => {
       }
     });
     
-    return filteredNotes;
+    // Put folders first
+    return [
+      ...filteredNotes.filter(note => note.type === 'folder'),
+      ...filteredNotes.filter(note => note.type !== 'folder')
+    ];
   };
   
   const filteredNotes = getFilteredNotes();
@@ -250,7 +705,7 @@ export const WorkspacePanel: React.FC = () => {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
   };
   
-  const changeSortBy = (newSortBy: 'date' | 'name' | 'type') => {
+  const changeSortBy = (newSortBy: 'date' | 'name' | 'type' | 'size') => {
     if (sortBy === newSortBy) {
       toggleSort();
     } else {
@@ -266,6 +721,21 @@ export const WorkspacePanel: React.FC = () => {
       setSelectedTags([...selectedTags, tag]);
     }
   };
+  
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return "0 B";
+    
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
 
   return (
     <div className="flex flex-col h-full bg-white/80 dark:bg-gray-900/90 border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden shadow-xl relative animate-scale-in">
@@ -274,512 +744,140 @@ export const WorkspacePanel: React.FC = () => {
         <TopographicBackground variant="modern" className="opacity-60" />
       </div>
       
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 backdrop-blur-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Archive size={16} />
-          </div>
-          <h3 className="font-medium text-lg">Hub</h3>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-gray-600 hover:text-primary hover:border-primary"
+      {/* Command Palette */}
+      <CommandDialog open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen}>
+        <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-xl">
+          <CommandInput placeholder="Search for files, folders, or actions..." />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup heading="Quick Actions">
+              <CommandItem 
+                onSelect={() => {
+                  handleCreateNote('document');
+                  setIsCommandPaletteOpen(false);
+                }}
               >
-                <Plus size={16} className="mr-1" />
-                New
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => handleCreateNote('document')} className="cursor-pointer">
-                <FileText size={16} className="mr-2 text-blue-500" />
-                <span>Document</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleUploadMedia('image')} className="cursor-pointer">
-                <Image size={16} className="mr-2 text-purple-500" />
-                <span>Upload Image</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleUploadMedia('video')} className="cursor-pointer">
-                <Video size={16} className="mr-2 text-red-500" />
-                <span>Upload Video</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <FolderPlus size={16} className="mr-2 text-green-500" />
+                <FileText className="mr-2 h-4 w-4" />
+                <span>New Document</span>
+                <CommandShortcut>⌘N</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                onSelect={() => {
+                  handleUploadMedia('image');
+                  setIsCommandPaletteOpen(false);
+                }}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                <span>Upload File</span>
+                <CommandShortcut>⌘U</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                onSelect={() => {
+                  handleCreateNote('folder');
+                  setIsCommandPaletteOpen(false);
+                }}
+              >
+                <FolderPlus className="mr-2 h-4 w-4" />
                 <span>New Folder</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/*,video/*"
-          />
-        </div>
-      </div>
-      
-      <div className="flex h-full">
-        <div className="w-64 backdrop-blur-sm flex flex-col border-r border-gray-100 dark:border-gray-800">
-          <div className="p-3">
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search hub..."
-                className="pl-9 bg-white/80 dark:bg-gray-800/80 border-gray-100 dark:border-gray-700"
-              />
-            </div>
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="px-3">
-            <TabsList className="w-full bg-gray-100/80 dark:bg-gray-800/80">
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-              <TabsTrigger value="documents" className="text-xs">Docs</TabsTrigger>
-              <TabsTrigger value="images" className="text-xs">Images</TabsTrigger>
-              <TabsTrigger value="videos" className="text-xs">Videos</TabsTrigger>
-              <TabsTrigger value="starred" className="text-xs">
-                <Star size={14} />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          <div className="flex items-center justify-between px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Filter size={14} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <div className="px-2 py-1.5 text-xs font-semibold">Filter by tags</div>
-                  <DropdownMenuSeparator />
-                  <div className="px-2 py-1.5 flex flex-wrap gap-1">
-                    {allTags.map(tag => (
-                      <Badge 
-                        key={tag}
-                        variant={selectedTags.includes(tag) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleTag(tag)}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                    {allTags.length === 0 && (
-                      <div className="text-xs text-gray-500">No tags available</div>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <ArrowUpDown size={14} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => changeSortBy('date')} className="cursor-pointer">
-                    <Clock size={14} className="mr-2" />
-                    <span>Date {sortBy === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => changeSortBy('name')} className="cursor-pointer">
-                    <FileText size={14} className="mr-2" />
-                    <span>Name {sortBy === 'name' && (sortDirection === 'desc' ? '↓' : '↑')}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => changeSortBy('type')} className="cursor-pointer">
-                    <File size={14} className="mr-2" />
-                    <span>Type {sortBy === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+              </CommandItem>
+            </CommandGroup>
             
-            {selectedTags.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 text-xs" 
-                onClick={() => setSelectedTags([])}
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-          
-          {folders.length > 0 && (
-            <div className="px-2 py-1">
-              <div className="flex flex-col space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "justify-start text-xs",
-                    activeFolder === null ? "bg-gray-100 dark:bg-gray-800" : ""
-                  )}
-                  onClick={() => setActiveFolder(null)}
+            {activeNoteData && (
+              <CommandGroup heading="Current Item">
+                <CommandItem 
+                  onSelect={() => {
+                    handleToggleStar(activeNoteData.id);
+                    setIsCommandPaletteOpen(false);
+                  }}
                 >
-                  <Folder size={14} className="mr-2 text-gray-500" />
-                  All Folders
-                </Button>
-                {folders.map(folder => (
-                  <Button
-                    key={folder}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "justify-start text-xs",
-                      activeFolder === folder ? "bg-gray-100 dark:bg-gray-800" : ""
-                    )}
-                    onClick={() => setActiveFolder(folder)}
-                  >
-                    <Folder size={14} className="mr-2 text-blue-500" />
-                    {folder}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex-1 overflow-y-auto mt-1">
-            {filteredNotes.length > 0 ? (
-              <div className="space-y-1 p-1">
-                {filteredNotes.map((note) => (
-                  <div
-                    key={note.id}
-                    onClick={() => setActiveNote(note.id)}
-                    className={cn(
-                      "p-3 rounded-md cursor-pointer transition-all hover:bg-white/80 dark:hover:bg-gray-800/80",
-                      activeNote === note.id ? "bg-white/80 dark:bg-gray-800/80 shadow-sm" : "bg-transparent",
-                      "animate-fade-in"
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-lg">{note.emoji}</span>
-                        <div>
-                          <h4 className="font-medium text-sm">{note.title}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
-                            {note.type === 'document' ? note.content.substring(0, 40) : note.type.charAt(0).toUpperCase() + note.type.slice(1)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-yellow-500"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleStar(note.id);
-                        }}
-                      >
-                        <Star size={14} className={note.starred ? "fill-yellow-500 text-yellow-500" : ""} />
-                      </Button>
-                    </div>
-                    
-                    {note.tags && note.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {note.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 flex items-center">
-                      {formatDate(note.lastUpdated)}
-                      {note.folder && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <span className="flex items-center">
-                            <Folder size={10} className="mr-0.5" />
-                            {note.folder}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                No items found
-              </div>
+                  <Star className={`mr-2 h-4 w-4 ${activeNoteData.starred ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                  <span>{activeNoteData.starred ? "Remove Star" : "Star Item"}</span>
+                </CommandItem>
+                <CommandItem 
+                  onSelect={() => {
+                    handleShareNote(activeNoteData.id);
+                    setIsCommandPaletteOpen(false);
+                  }}
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  <span>Share</span>
+                </CommandItem>
+                <CommandItem 
+                  onSelect={() => {
+                    handleDuplicateNote(activeNoteData.id);
+                    setIsCommandPaletteOpen(false);
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  <span>Duplicate</span>
+                </CommandItem>
+                <CommandItem 
+                  onSelect={() => {
+                    if (activeNoteData.type !== 'folder') {
+                      handleDownloadFile(activeNoteData.id);
+                    }
+                    setIsCommandPaletteOpen(false);
+                  }}
+                  disabled={activeNoteData.type === 'folder'}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download</span>
+                </CommandItem>
+              </CommandGroup>
             )}
-          </div>
+            
+            <CommandGroup heading="Recent Items">
+              {notes.slice(0, 5).map(note => (
+                <CommandItem 
+                  key={note.id}
+                  onSelect={() => {
+                    setActiveNote(note.id);
+                    setIsCommandPaletteOpen(false);
+                  }}
+                >
+                  {getFileIcon(note.type, note.starred, 16)}
+                  <span className="ml-2">{note.title}</span>
+                  <span className="ml-auto text-xs text-gray-500">
+                    {formatRelativeTime(note.lastUpdated)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            
+            <CommandGroup heading="View">
+              <CommandItem onSelect={() => {
+                setViewMode('list');
+                setIsCommandPaletteOpen(false);
+              }}>
+                <span className="mr-2 w-4 flex justify-center">≡</span>
+                <span>List View</span>
+              </CommandItem>
+              <CommandItem onSelect={() => {
+                setViewMode('grid');
+                setIsCommandPaletteOpen(false);
+              }}>
+                <span className="mr-2 w-4 flex justify-center">▤</span>
+                <span>Grid View</span>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
         </div>
-        
-        <div className="flex-1 flex flex-col backdrop-blur-sm">
-          {activeNoteData ? (
-            <>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xl">{activeNoteData.emoji || "📄"}</span>
-                  <h4 className="font-medium">{activeNoteData.title}</h4>
-                  {activeNoteData.starred && <Star size={16} className="fill-yellow-500 text-yellow-500" />}
-                </div>
-                <div className="flex items-center space-x-1">
-                  {activeNoteData.type === 'document' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setIsEditing(!isEditing)} 
-                      className="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-foreground"
-                    >
-                      <Edit3 size={16} className="mr-1" />
-                      {isEditing ? "View" : "Edit"}
-                    </Button>
-                  )}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        <MoreHorizontal size={18} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => handleToggleStar(activeNoteData.id)}
-                        className="cursor-pointer"
-                      >
-                        <Star size={16} className="mr-2" />
-                        {activeNoteData.starred ? "Remove star" : "Add star"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
-                        <FolderPlus size={16} className="mr-2" />
-                        Move to folder
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteNote(activeNoteData.id)}
-                        className="cursor-pointer text-red-500 focus:text-red-500"
-                      >
-                        <Trash size={16} className="mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              
-              <div className="flex-1 p-6 overflow-y-auto backdrop-blur-sm">
-                {activeNoteData.type === 'document' ? (
-                  isEditing ? (
-                    <div className="h-full flex flex-col">
-                      <Input
-                        value={activeNoteData.title}
-                        onChange={(e) => {
-                          const updatedNotes = notes.map(note => 
-                            note.id === activeNote 
-                              ? { ...note, title: e.target.value, lastUpdated: new Date() } 
-                              : note
-                          );
-                          setNotes(updatedNotes);
-                        }}
-                        className="text-lg font-medium mb-4 border-none p-0 h-auto focus-visible:ring-0 bg-transparent"
-                        placeholder="Note title"
-                      />
-                      <Textarea
-                        value={activeNoteData.content}
-                        onChange={(e) => {
-                          const updatedNotes = notes.map(note => 
-                            note.id === activeNote 
-                              ? { ...note, content: e.target.value, lastUpdated: new Date() } 
-                              : note
-                          );
-                          setNotes(updatedNotes);
-                        }}
-                        className="flex-1 resize-none text-gray-700 dark:text-gray-300 outline-none border-none p-0 bg-transparent"
-                        placeholder="Start writing your note..."
-                      />
-                      
-                      <div className="mt-4">
-                        <div className="text-sm font-medium mb-2">Tags</div>
-                        <div className="flex flex-wrap gap-2">
-                          {activeNoteData.tags?.map(tag => (
-                            <Badge key={tag} className="px-2 py-1">
-                              {tag}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-4 w-4 ml-1 text-gray-400 hover:text-gray-600"
-                                onClick={() => {
-                                  const updatedNotes = notes.map(note => 
-                                    note.id === activeNote 
-                                      ? { ...note, tags: note.tags?.filter(t => t !== tag) } 
-                                      : note
-                                  );
-                                  setNotes(updatedNotes);
-                                }}
-                              >
-                                <X size={12} />
-                              </Button>
-                            </Badge>
-                          ))}
-                          <Input
-                            placeholder="Add tag..."
-                            className="w-24 h-8 text-sm"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && e.currentTarget.value) {
-                                const newTag = e.currentTarget.value.trim().toLowerCase();
-                                if (newTag && !activeNoteData.tags?.includes(newTag)) {
-                                  const updatedNotes = notes.map(note => 
-                                    note.id === activeNote 
-                                      ? { ...note, tags: [...(note.tags || []), newTag] } 
-                                      : note
-                                  );
-                                  setNotes(updatedNotes);
-                                  e.currentTarget.value = '';
-                                }
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="animate-fade-in">
-                      <h2 className="text-2xl font-semibold mb-4">{activeNoteData.title}</h2>
-                      <div className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{activeNoteData.content || "No content yet"}</div>
-                      
-                      {activeNoteData.tags && activeNoteData.tags.length > 0 && (
-                        <div className="mt-6">
-                          <h3 className="text-sm font-medium mb-2">Tags</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {activeNoteData.tags.map(tag => (
-                              <Badge key={tag} variant="secondary" className="px-2 py-1">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-                        Last updated: {activeNoteData.lastUpdated.toLocaleString()}
-                      </div>
-                    </div>
-                  )
-                ) : activeNoteData.type === 'image' ? (
-                  <div className="flex flex-col h-full">
-                    <div className="text-center mb-4">
-                      <h2 className="text-xl font-semibold">{activeNoteData.title}</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Last updated: {activeNoteData.lastUpdated.toLocaleString()}
-                      </p>
-                    </div>
-                    
-                    <div className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                      {activeNoteData.mediaUrl ? (
-                        <img 
-                          src={activeNoteData.mediaUrl} 
-                          alt={activeNoteData.title}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-gray-400 dark:text-gray-500">
-                          <FileImage size={48} className="mx-auto mb-2" />
-                          <p>No image available</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4">
-                      <Textarea
-                        value={activeNoteData.content}
-                        onChange={(e) => {
-                          const updatedNotes = notes.map(note => 
-                            note.id === activeNote 
-                              ? { ...note, content: e.target.value, lastUpdated: new Date() } 
-                              : note
-                          );
-                          setNotes(updatedNotes);
-                        }}
-                        placeholder="Add a description..."
-                        className="resize-none h-24"
-                      />
-                    </div>
-                  </div>
-                ) : activeNoteData.type === 'video' ? (
-                  <div className="flex flex-col h-full">
-                    <div className="text-center mb-4">
-                      <h2 className="text-xl font-semibold">{activeNoteData.title}</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Last updated: {activeNoteData.lastUpdated.toLocaleString()}
-                      </p>
-                    </div>
-                    
-                    <div className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                      {activeNoteData.mediaUrl ? (
-                        <video 
-                          src={activeNoteData.mediaUrl} 
-                          controls
-                          className="max-w-full max-h-full"
-                        />
-                      ) : (
-                        <div className="text-gray-400 dark:text-gray-500">
-                          <Video size={48} className="mx-auto mb-2" />
-                          <p>No video available</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4">
-                      <Textarea
-                        value={activeNoteData.content}
-                        onChange={(e) => {
-                          const updatedNotes = notes.map(note => 
-                            note.id === activeNote 
-                              ? { ...note, content: e.target.value, lastUpdated: new Date() } 
-                              : note
-                          );
-                          setNotes(updatedNotes);
-                        }}
-                        placeholder="Add a description..."
-                        className="resize-none h-24"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                    <p>Unknown file type</p>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
-              Select an item or create a new one
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const formatDate = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffMins < 60) {
-    return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-  } else if (diffDays < 7) {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-  } else {
-    return date.toLocaleDateString();
-  }
-};
+      </CommandDialog>
+      
+      {/* Version History Dialog */}
+      <Dialog open={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Version History</DialogTitle>
+            <DialogDescription>
+              Review and restore previous versions of this document
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[60vh] overflow-y-auto">
+            {activeNoteData?.versions?.map((version, index) => (
+              <div 
+                key={version.id} 
+                className={`py-3 px-4 ${index < (activeNoteData.versions?.length || 0) - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}`}
+              >
+                <div className="flex items-center justify-between">

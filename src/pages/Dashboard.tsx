@@ -204,7 +204,7 @@ const Dashboard = () => {
           <div className="space-y-4">
             <WorkInProgressBanner 
               title="Hub System in Development" 
-              description="Our Hub will soon support collaborative editing, version control, media embedding, and more advanced document management features."
+              description="Our advanced Hub system provides Google Drive-like functionality with file versioning, sharing, collaboration, and more."
             />
             <WorkspacePanel />
           </div>
