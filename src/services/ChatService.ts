@@ -1,13 +1,32 @@
+import { CallService } from './CallService';
+import WebSocketService from './WebSocketService';
+
+// Add necessary types that were causing errors
+export interface Message {
+  id: string;
+  sender: string;
+  content: string;
+  timestamp: Date;
+  status: MessageStatus;
+}
+
+export enum MessageStatus {
+  SENDING = 'sending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  READ = 'read',
+  FAILED = 'failed'
+}
 
 // Placeholder for real ChatService implementation
-import { WebSocketService } from './WebSocketService';
-import { Message, MessageStatus } from '../types/chat';
-
 export class ChatService {
   private static instance: ChatService;
-  private messages: Record<string, Message[]> = {};
+  private wsService: WebSocketService;
+  private messages: Map<string, Message[]> = new Map();
   
-  private constructor() {}
+  private constructor() {
+    this.wsService = WebSocketService.getInstance();
+  }
   
   public static getInstance(): ChatService {
     if (!ChatService.instance) {
@@ -16,77 +35,47 @@ export class ChatService {
     return ChatService.instance;
   }
   
-  public async sendMessage(channelId: string, content: string): Promise<Message> {
-    // In a real implementation, this would use WebSocketService to send the message
-    const wsService = WebSocketService.getInstance();
-    
-    // Create a message object
+  public connect(userId: string, token: string): void {
+    console.log(`Connecting to chat as user: ${userId}`);
+    // Implementation will be added in future
+  }
+  
+  public disconnect(): void {
+    console.log("Disconnecting from chat");
+    // Implementation will be added in future
+  }
+  
+  public getMessages(channelId: string): Message[] {
+    return this.messages.get(channelId) || [];
+  }
+  
+  public sendMessage(channelId: string, content: string): Promise<Message> {
     const message: Message = {
-      id: Date.now().toString(),
+      id: `msg_${Date.now()}`,
+      sender: 'current_user',
       content,
-      sender: {
-        id: 'current-user',
-        name: 'Current User',
-        avatar: '/avatar-placeholder.png'
-      },
-      timestamp: new Date().toISOString(),
-      status: MessageStatus.SENT,
-      reactions: []
+      timestamp: new Date(),
+      status: MessageStatus.SENDING
     };
     
-    // Add to local cache
-    if (!this.messages[channelId]) {
-      this.messages[channelId] = [];
-    }
-    this.messages[channelId].push(message);
-    
-    // Pretend to send via WebSocket (will be implemented later)
     console.log(`Sending message to channel ${channelId}: ${content}`);
     
-    return message;
+    // Add to local cache
+    const channelMessages = this.messages.get(channelId) || [];
+    channelMessages.push(message);
+    this.messages.set(channelId, channelMessages);
+    
+    // Simulate network delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        message.status = MessageStatus.SENT;
+        resolve(message);
+      }, 500);
+    });
   }
   
-  public async getMessages(channelId: string): Promise<Message[]> {
-    // In a real implementation, this would fetch messages from a backend
-    // For now we'll just return mock data
-    console.log(`Fetching messages for channel ${channelId}`);
-    
-    if (!this.messages[channelId]) {
-      this.messages[channelId] = this.getMockMessages(channelId);
-    }
-    
-    return this.messages[channelId];
-  }
-  
-  private getMockMessages(channelId: string): Message[] {
-    // Generate some mock messages for the channel
-    return [
-      {
-        id: '1',
-        content: `Welcome to the ${channelId} channel!`,
-        sender: {
-          id: 'system',
-          name: 'System',
-          avatar: '/avatar-system.png'
-        },
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        status: MessageStatus.DELIVERED,
-        reactions: []
-      },
-      {
-        id: '2',
-        content: `This is a sample message in the ${channelId} channel.`,
-        sender: {
-          id: 'user1',
-          name: 'John Doe',
-          avatar: '/avatar-john.png'
-        },
-        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        status: MessageStatus.DELIVERED,
-        reactions: [
-          { emoji: '👍', count: 2, users: ['user2', 'user3'] }
-        ]
-      }
-    ];
+  public startCall(channelId: string): void {
+    const callService = CallService.getInstance();
+    callService.startCall(channelId);
   }
 }

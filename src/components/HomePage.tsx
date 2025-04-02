@@ -1,23 +1,51 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight } from "lucide-react";
+import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight, Camera } from "lucide-react";
 import DailyJournal from "./home/DailyJournal";
 import TodoList from "./home/TodoList";
-import MorningStrategyPopup from "./home/MorningStrategyPopup";
+import MorningStrategyPopup, { MorningStrategyData } from "./home/MorningStrategyPopup";
 import BusinessMetricsCard from "./home/BusinessMetricsCard";
 import TopographicBackground from "./home/TopographicBackground";
 import EntrepreneurialInsightCard from "./home/EntrepreneurialInsightCard";
 import TaskProgressCard from "./home/TaskProgressCard";
 import WorkInProgressBanner from "./WorkInProgressBanner";
 import { toast } from "sonner";
+import TickBombDemo from "./TickBombDemo";
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showJournal, setShowJournal] = useState(false);
   const [showMorningStrategy, setShowMorningStrategy] = useState(false);
+  const [morningStrategyCompleted, setMorningStrategyCompleted] = useState<boolean>(false);
+  const [tickBombActive, setTickBombActive] = useState<boolean>(false);
+  
+  // Check if morning strategy is completed
+  useEffect(() => {
+    const lastCompleted = localStorage.getItem('lastMorningStrategyCompleted');
+    
+    if (lastCompleted) {
+      const lastCompletedDate = new Date(lastCompleted);
+      const now = new Date();
+      const twoDaysAgo = new Date(now);
+      twoDaysAgo.setHours(now.getHours() - 48);
+      
+      // If completed in the last 48 hours
+      if (lastCompletedDate > twoDaysAgo) {
+        setMorningStrategyCompleted(true);
+        setTickBombActive(false);
+      } else {
+        setMorningStrategyCompleted(false);
+        setTickBombActive(true);
+      }
+    } else {
+      // No completion record found
+      setMorningStrategyCompleted(false);
+      setTickBombActive(true);
+    }
+  }, []);
   
   const upcomingEvents = [
     {
@@ -64,6 +92,25 @@ const HomePage = () => {
     }
   ];
 
+  const handleMorningStrategyComplete = (data: MorningStrategyData) => {
+    setMorningStrategyCompleted(true);
+    setTickBombActive(false);
+    
+    // Save to localStorage or your backend
+    localStorage.setItem('lastMorningStrategyCompleted', new Date().toISOString());
+    
+    toast.success("Morning strategy completed!", {
+      description: "Your tick bomb has been deactivated for 48 hours.",
+    });
+  };
+
+  const handleTimeoutWarning = () => {
+    toast.warning("Activity monitoring is active", {
+      description: "Complete your morning strategy to deactivate the accountability timer.",
+      duration: 5000,
+    });
+  };
+
   return (
     <div className="space-y-6 relative">
       <TopographicBackground />
@@ -90,16 +137,28 @@ const HomePage = () => {
               <span className="hidden sm:inline">Daily Journal</span>
             </Button>
             <Button 
-              variant="default" 
+              variant={morningStrategyCompleted ? "outline" : "default"}
               size="sm"
               onClick={() => setShowMorningStrategy(true)}
-              className="gap-1"
+              className={`gap-1 ${!morningStrategyCompleted ? "animate-pulse" : ""}`}
             >
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Morning Strategy</span>
+              {morningStrategyCompleted ? (
+                <Target className="h-4 w-4" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {morningStrategyCompleted ? "Morning Strategy" : "Morning Walk"}
+              </span>
             </Button>
           </div>
         </div>
+        
+        {tickBombActive && (
+          <div className="mt-6">
+            <TickBombDemo />
+          </div>
+        )}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid w-full grid-cols-3 md:w-auto">
@@ -331,7 +390,8 @@ const HomePage = () => {
       {showMorningStrategy && (
         <MorningStrategyPopup 
           isOpen={showMorningStrategy} 
-          onClose={() => setShowMorningStrategy(false)} 
+          onClose={() => setShowMorningStrategy(false)}
+          onComplete={handleMorningStrategyComplete}
         />
       )}
     </div>

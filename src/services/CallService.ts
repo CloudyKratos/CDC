@@ -49,3 +49,20 @@ export class CallService {
     return this.participants;
   }
 }
+
+// Export types for VideoCallPanel to use
+export interface Call {
+  id: string;
+  channelId: string;
+  startedAt: Date;
+  participants: CallParticipant[];
+}
+
+export interface CallParticipant {
+  id: string;
+  name: string;
+  avatar?: string;
+  isMuted: boolean;
+  isVideoEnabled: boolean;
+  isScreenSharing: boolean;
+}

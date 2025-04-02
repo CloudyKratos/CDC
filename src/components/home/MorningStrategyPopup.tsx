@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,22 +18,41 @@ import {
   ArrowRight, 
   CheckCircle2,
   Calendar,
-  ListTodo
+  ListTodo,
+  Camera,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 interface MorningStrategyPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: (data: MorningStrategyData) => void;
 }
 
-const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onClose }) => {
+export interface MorningStrategyData {
+  intentions: string;
+  priorities: string[];
+  challenges: string;
+  walkImage: string | null;
+  completedAt: Date;
+}
+
+const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ 
+  isOpen, 
+  onClose,
+  onComplete
+}) => {
   const [step, setStep] = useState(0);
   const [intentions, setIntentions] = useState("");
   const [priorities, setPriorities] = useState<string[]>(["", "", ""]);
   const [challenges, setChallenges] = useState("");
-  const { toast } = useToast();
+  const [walkImage, setWalkImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast: uiToast } = useToast();
 
   const steps = [
     {
@@ -53,15 +72,37 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onC
       description: "What obstacles might you face, and how will you overcome them?",
       icon: Shield,
       color: "text-purple-500"
+    },
+    {
+      title: "Upload Morning Walk",
+      description: "Verify you're following the community 6AM morning walk strategy",
+      icon: Camera,
+      color: "text-green-500"
     }
   ];
   
   const handleComplete = () => {
-    // In a real app, we would save this data
+    // Save the morning strategy data
+    const morningData: MorningStrategyData = {
+      intentions,
+      priorities,
+      challenges,
+      walkImage,
+      completedAt: new Date()
+    };
+    
+    // Notify the parent component
+    if (onComplete) {
+      onComplete(morningData);
+    }
+    
     toast({
       title: "Morning Strategy Completed",
       description: "Your morning plan has been saved. Have a productive day!",
     });
+    
+    // Store completion time in localStorage
+    localStorage.setItem('lastMorningStrategyCompleted', new Date().toISOString());
     
     onClose();
     // Reset for next time
@@ -86,6 +127,28 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onC
     if (step > 0) {
       setStep(step - 1);
     }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.includes('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageDataUrl = e.target?.result as string;
+      setWalkImage(imageDataUrl);
+      toast.success("Morning walk image uploaded successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
   
   const renderStepContent = () => {
@@ -169,6 +232,68 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onC
             </div>
           </div>
         );
+      case 3:
+        return (
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center mb-6">
+              <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                <Camera size={40} className="text-green-500" />
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-center space-y-4">
+              {walkImage ? (
+                <div className="relative w-full max-w-md aspect-video border rounded-lg overflow-hidden">
+                  <img 
+                    src={walkImage} 
+                    alt="Morning walk verification" 
+                    className="object-cover w-full h-full"
+                  />
+                  <Button 
+                    variant="outline"
+                    size="sm" 
+                    className="absolute top-2 right-2"
+                    onClick={() => setWalkImage(null)}
+                  >
+                    Change Photo
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div 
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg w-full max-w-md aspect-video flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                    onClick={triggerFileInput}
+                  >
+                    <ImageIcon className="h-16 w-16 text-gray-400" />
+                    <p className="text-muted-foreground">Click to upload your morning walk photo</p>
+                    <p className="text-xs text-muted-foreground">6AM morning walk verification</p>
+                  </div>
+                  <Button variant="outline" onClick={triggerFileInput}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Select Image
+                  </Button>
+                </>
+              )}
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground mt-4">
+              <p className="font-medium mb-1">Community Morning Walk Policy:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Take a photo during your 6AM morning walk</li>
+                <li>Photo should show the morning environment (sunrise, morning sky, etc.)</li>
+                <li>Regular verification helps build consistency in the community</li>
+                <li>Missing verifications will activate accountability features</li>
+              </ul>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -180,12 +305,12 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onC
         <DialogHeader>
           <DialogTitle className="text-center text-xl">Morning Strategy</DialogTitle>
           <DialogDescription className="text-center">
-            Set yourself up for success with a 3-step morning planning routine
+            Set yourself up for success with our 4-step morning planning routine
           </DialogDescription>
         </DialogHeader>
         
         <Tabs value={`${step}`} onValueChange={(value) => setStep(parseInt(value))}>
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-4 mb-4">
             {steps.map((s, i) => (
               <TabsTrigger key={i} value={`${i}`} className="flex flex-col py-2 space-y-1">
                 <s.icon size={16} className={s.color} />
@@ -215,7 +340,7 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ isOpen, onC
             Step {step + 1} of {steps.length}
           </div>
           <div className="flex-1 flex justify-end">
-            <Button onClick={nextStep}>
+            <Button onClick={nextStep} disabled={step === 3 && !walkImage}>
               {step < steps.length - 1 ? (
                 <>
                   Next <ArrowRight size={16} className="ml-2" />
