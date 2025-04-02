@@ -203,8 +203,8 @@ const Dashboard = () => {
         return (
           <div className="space-y-4">
             <WorkInProgressBanner 
-              title="Document Management System in Development" 
-              description="Our document workspace will soon support collaborative editing, version control, and media embedding."
+              title="Hub System in Development" 
+              description="Our Hub will soon support collaborative editing, version control, media embedding, and more advanced document management features."
             />
             <WorkspacePanel />
           </div>

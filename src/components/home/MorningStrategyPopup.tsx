@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { 
   Dialog, 
@@ -82,7 +81,6 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
   ];
   
   const handleComplete = () => {
-    // Save the morning strategy data
     const morningData: MorningStrategyData = {
       intentions,
       priorities,
@@ -91,7 +89,6 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
       completedAt: new Date()
     };
     
-    // Notify the parent component
     if (onComplete) {
       onComplete(morningData);
     }
@@ -101,11 +98,9 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
       description: "Your morning plan has been saved. Have a productive day!",
     });
     
-    // Store completion time in localStorage
     localStorage.setItem('lastMorningStrategyCompleted', new Date().toISOString());
     
     onClose();
-    // Reset for next time
     setStep(0);
   };
   

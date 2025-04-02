@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Maximize, Minimize, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CallService, { Call, CallParticipant } from "@/services/CallService";
+import { CallService, CallParticipant } from "../services/CallService";
 
 interface VideoCallPanelProps {
   isOpen: boolean;
@@ -123,7 +122,6 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
     );
   };
   
-  // If call is not active, don't render anything
   if (!isOpen || !activeCall) {
     return null;
   }
@@ -132,7 +130,6 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[90vw] h-[90vh] p-0 overflow-hidden" ref={callContainerRef}>
         <div className="flex flex-col h-full">
-          {/* Call header */}
           <div className="bg-gray-900 p-3 flex items-center justify-between border-b border-gray-800">
             <div className="flex items-center">
               <Users size={18} className="text-primary mr-2" />
@@ -162,13 +159,10 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
           
-          {/* Call content */}
           <div className="flex-1 bg-gray-900 p-4 overflow-hidden">
             {activeCall.participants.length <= 2 ? (
-              // 1-2 participants: One large video feed
               <div className="h-full flex flex-col">
                 <div className="flex-1 relative">
-                  {/* Main participant (the other person, or self if alone) */}
                   {renderParticipant(
                     activeCall.participants.length > 1
                       ? activeCall.participants.find(p => p.id !== activeCall.participants[0].id)!
@@ -176,7 +170,6 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
                     true
                   )}
                   
-                  {/* PiP for self view if 2 participants */}
                   {activeCall.participants.length > 1 && (
                     <div className="absolute bottom-4 right-4 w-48 rounded-lg overflow-hidden shadow-lg">
                       {renderParticipant(activeCall.participants[0])}
@@ -185,7 +178,6 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
             ) : (
-              // 3+ participants: Grid layout
               <div className="h-full grid grid-cols-2 gap-4 overflow-auto">
                 {activeCall.participants.map(participant => (
                   <div key={participant.id} className="aspect-video">
@@ -196,7 +188,6 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
             )}
           </div>
           
-          {/* Call controls */}
           <div className="bg-gray-900 p-4 border-t border-gray-800 flex items-center justify-center space-x-4">
             <TooltipProvider>
               <Tooltip>

@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "home", label: "Home", icon: Home, notifications: 0 },
     { id: "chat", label: "Direct Messages", icon: MessageSquare, notifications: 3 },
     { id: "calendar", label: "Calendar", icon: CalendarDays, notifications: 1 },
-    { id: "documents", label: "Documents", icon: FileText, notifications: 0 },
+    { id: "documents", label: "Hub", icon: FileText, notifications: 0 }, // Changed label from "Documents" to "Hub"
     { id: "profile", label: "My Profile", icon: UserCircle, notifications: 0 },
     { id: "analytics", label: "Analytics", icon: BarChart, notifications: 0 },
     { id: "explore", label: "Explore", icon: Compass, notifications: 0 },
