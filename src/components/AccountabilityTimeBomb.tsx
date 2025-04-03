@@ -1,343 +1,281 @@
 
-import React, { useState, useEffect, useContext } from "react";
-import { AlertTriangle, Clock, CheckCircle2, BellRing, Shield, X } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { AuthContext } from "@/App";
+import { BellRing, Clock, CheckCircle, AlertTriangle, AlertCircle, Camera, Waves, BrainCircuit, SunMedium, Sunrise, MoonStar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+type TimeBombSeverity = "low" | "medium" | "high" | "critical";
+type TaskType = "morning" | "daily" | "weekly" | "custom";
 
 interface AccountabilityTimeBombProps {
-  title?: string;
+  title: string;
   description?: string;
-  duration?: number; // In minutes
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-  taskType?: 'morning' | 'evening' | 'workout' | 'meditation' | 'custom';
-  className?: string;
+  duration: number; // in minutes
+  severity: TimeBombSeverity;
+  taskType: TaskType;
   onComplete?: () => void;
   onTimeout?: () => void;
-  dismissable?: boolean;
+  className?: string;
 }
 
 const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
-  title = "Accountability Time Bomb",
-  description = "Complete your task before the timer runs out to maintain your streak and accountability",
-  duration = 60,
-  severity = 'medium',
-  taskType = 'morning',
-  className,
+  title,
+  description,
+  duration,
+  severity = "medium",
+  taskType = "daily",
   onComplete,
   onTimeout,
-  dismissable = false
+  className,
 }) => {
-  const { user } = useContext(AuthContext);
-  const [remainingTime, setRemainingTime] = useState<number>(duration * 60); // Convert to seconds
-  const [lastActivity, setLastActivity] = useState<number>(Date.now());
-  const [progress, setProgress] = useState<number>(100);
-  const [isDismissed, setIsDismissed] = useState<boolean>(false);
-  const [isComplete, setIsComplete] = useState<boolean>(false);
-  const [warningTriggered, setWarningTriggered] = useState<boolean>(false);
+  const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert minutes to seconds
+  const [isPaused, setIsPaused] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Update time and check for activity
-  useEffect(() => {
-    if (isDismissed || isComplete) return;
-    
-    // Reset activity tracker on user interaction
-    const resetActivity = () => {
-      setLastActivity(Date.now());
-    };
-    
-    // Track user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => {
-      window.addEventListener(event, resetActivity);
-    });
-    
-    // Timer countdown
-    const timer = setInterval(() => {
-      const inactiveTime = Math.floor((Date.now() - lastActivity) / 1000);
-      
-      // If user has been inactive for more than 30 seconds, time runs out faster
-      const timeDeduction = inactiveTime > 30 ? 2 : 1; // 2 seconds deducted when inactive
-      
-      // Update remaining time
-      setRemainingTime(prev => {
-        const newTime = Math.max(0, prev - timeDeduction);
-        
-        // Calculate progress percentage
-        const newProgress = (newTime / (duration * 60)) * 100;
-        setProgress(newProgress);
-        
-        // Warning at 25% remaining
-        if (newProgress <= 25 && !warningTriggered) {
-          toast.warning("Time is running out!", {
-            description: "Complete your task soon to maintain accountability",
-            duration: 5000,
-          });
-          setWarningTriggered(true);
-        }
-        
-        // Time's up
-        if (newTime === 0 && onTimeout) {
-          toast.error("Accountability breach!", {
-            description: "Your time has run out without completing the required task",
-            duration: 8000,
-          });
-          onTimeout();
-        }
-        
-        return newTime;
-      });
-    }, 1000);
-    
-    return () => {
-      clearInterval(timer);
-      events.forEach(event => {
-        window.removeEventListener(event, resetActivity);
-      });
-    };
-  }, [duration, lastActivity, onTimeout, isDismissed, isComplete, warningTriggered]);
+  const totalSeconds = duration * 60;
+  const progressPercentage = (timeLeft / totalSeconds) * 100;
   
-  const handleComplete = () => {
-    setIsComplete(true);
-    toast.success("Task completed!", {
-      description: "You've successfully completed your accountability task",
-    });
-    if (onComplete) onComplete();
-  };
-  
-  const handleDismiss = () => {
-    if (dismissable) {
-      setIsDismissed(true);
-      toast.info("Time bomb dismissed", {
-        description: "You've dismissed this reminder, but remember your commitment"
-      });
-    } else {
-      toast.error("Cannot dismiss", {
-        description: "This accountability timer cannot be dismissed"
-      });
+  // Get color based on severity
+  const getSeverityColor = () => {
+    switch (severity) {
+      case "low":
+        return "bg-blue-500 text-blue-50";
+      case "medium":
+        return "bg-yellow-500 text-yellow-50";
+      case "high":
+        return "bg-orange-500 text-orange-50";
+      case "critical":
+        return "bg-red-500 text-red-50";
+      default:
+        return "bg-gray-500 text-gray-50";
     }
   };
   
-  // Format time as MM:SS
+  // Get icon based on task type
+  const getTaskIcon = () => {
+    switch (taskType) {
+      case "morning":
+        return <Sunrise className="h-5 w-5" />;
+      case "daily":
+        return <SunMedium className="h-5 w-5" />;
+      case "weekly":
+        return <BrainCircuit className="h-5 w-5" />;
+      case "custom":
+        return <Waves className="h-5 w-5" />;
+      default:
+        return <Clock className="h-5 w-5" />;
+    }
+  };
+  
+  // Format time as mm:ss
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Start timer
+  useEffect(() => {
+    if (isActive && !isPaused && !isCompleted) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(intervalRef.current as NodeJS.Timeout);
+            setIsActive(false);
+            if (onTimeout) onTimeout();
+            toast.error("Time's up!", {
+              description: "Your accountability activity has timed out.",
+              duration: 5000,
+            });
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isActive, isPaused, isCompleted, onTimeout]);
   
-  // Don't render if dismissed or complete
-  if (isDismissed || isComplete) return null;
+  // Handle task completion
+  const handleComplete = () => {
+    setIsCompleted(true);
+    setIsActive(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    if (onComplete) onComplete();
+    toast.success("Task completed!", {
+      description: "Great job completing your accountability task.",
+      duration: 5000,
+    });
+  };
   
-  // Determine severity styles
-  const getSeverityStyles = () => {
+  // Handle pause/resume
+  const handlePauseResume = () => {
+    setIsPaused((prev) => !prev);
+    if (isPaused) {
+      toast.info("Timer resumed", {
+        description: "Your accountability timer is running again.",
+        duration: 3000,
+      });
+    } else {
+      toast.info("Timer paused", {
+        description: "Your accountability timer is paused.",
+        duration: 3000,
+      });
+    }
+  };
+  
+  // Add 5 minutes to the timer
+  const handleExtendTime = (additionalMinutes: number) => {
+    setTimeLeft((prevTime) => prevTime + (additionalMinutes * 60));
+    setShowExtendDialog(false);
+    toast.success(`Added ${additionalMinutes} minutes`, {
+      description: "Your accountability timer has been extended.",
+      duration: 3000,
+    });
+  };
+  
+  // Get progress bar color based on remaining time percentage
+  const getProgressColor = () => {
+    const percentage = (timeLeft / totalSeconds) * 100;
+    if (percentage > 66) return "bg-green-500";
+    if (percentage > 33) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+  
+  // Get severity icon
+  const getSeverityIcon = () => {
     switch (severity) {
-      case 'low':
-        return {
-          bg: "bg-blue-50 dark:bg-blue-900/20",
-          border: "border-blue-200 dark:border-blue-800/30",
-          text: "text-blue-800 dark:text-blue-300",
-          icon: <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-          progress: "bg-blue-600 dark:bg-blue-400"
-        };
-      case 'medium':
-        return {
-          bg: "bg-yellow-50 dark:bg-yellow-900/20",
-          border: "border-yellow-200 dark:border-yellow-800/30",
-          text: "text-yellow-800 dark:text-yellow-300",
-          icon: <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />,
-          progress: "bg-yellow-600 dark:bg-yellow-400"
-        };
-      case 'high':
-        return {
-          bg: "bg-orange-50 dark:bg-orange-900/20",
-          border: "border-orange-200 dark:border-orange-800/30",
-          text: "text-orange-800 dark:text-orange-300",
-          icon: <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />,
-          progress: "bg-orange-600 dark:bg-orange-400"
-        };
-      case 'critical':
-        return {
-          bg: "bg-red-50 dark:bg-red-900/20",
-          border: "border-red-200 dark:border-red-800/30", 
-          text: "text-red-800 dark:text-red-300",
-          icon: <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />,
-          progress: "bg-red-600 dark:bg-red-400"
-        };
-      default:
-        return {
-          bg: "bg-yellow-50 dark:bg-yellow-900/20",
-          border: "border-yellow-200 dark:border-yellow-800/30",
-          text: "text-yellow-800 dark:text-yellow-300",
-          icon: <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />,
-          progress: "bg-yellow-600 dark:bg-yellow-400"
-        };
-    }
-  };
-  
-  // Get task type icon
-  const getTaskIcon = () => {
-    switch (taskType) {
-      case 'morning':
-        return <Clock className="h-5 w-5" />;
-      case 'evening':
+      case "low":
+        return <CheckCircle className="h-5 w-5" />;
+      case "medium":
+        return <AlertTriangle className="h-5 w-5" />;
+      case "high":
+        return <AlertCircle className="h-5 w-5" />;
+      case "critical":
         return <BellRing className="h-5 w-5" />;
-      case 'workout':
-        return <Shield className="h-5 w-5" />;
-      case 'meditation':
-        return <CheckCircle2 className="h-5 w-5" />;
       default:
         return <Clock className="h-5 w-5" />;
     }
   };
   
-  const styles = getSeverityStyles();
-  const isUrgent = progress <= 25;
-  
-  // Compact version - alert style
-  if (duration <= 15 || progress <= 15) {
+  if (isCompleted) {
     return (
-      <Alert 
-        className={cn(
-          styles.bg,
-          styles.border,
-          isUrgent && "animate-pulse",
-          className
-        )}
-      >
-        <div className="flex items-start space-x-3">
-          {styles.icon}
-          <div className="flex-1">
-            <AlertTitle className={styles.text}>{title}</AlertTitle>
-            <AlertDescription className="text-sm flex items-center justify-between">
-              <span className={isUrgent ? "text-red-700 dark:text-red-400" : undefined}>
-                {description}
-              </span>
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "ml-2 font-mono text-sm",
-                  isUrgent ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300" : styles.text
-                )}
-              >
-                {formatTime(remainingTime)}
-              </Badge>
-            </AlertDescription>
-            <Progress 
-              value={progress} 
-              className={cn("h-1 mt-2", isUrgent ? "bg-red-200 dark:bg-red-950" : "bg-gray-200 dark:bg-gray-800")}
-              indicatorClassName={isUrgent ? "bg-red-600 dark:bg-red-400" : styles.progress}
-            />
+      <Card className={cn("w-full bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800", className)}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-base text-green-800 dark:text-green-300 flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+              {title}
+            </CardTitle>
+            <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800">
+              Completed
+            </Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
-              className={cn(
-                "bg-green-600 hover:bg-green-700 text-white",
-                isUrgent && "animate-pulse"
-              )}
-              onClick={handleComplete}
-            >
-              Complete
-            </Button>
-            {dismissable && (
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="text-gray-500" 
-                onClick={handleDismiss}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </Alert>
+          <CardDescription className="text-green-700 dark:text-green-300 opacity-90">
+            {description || "You've successfully completed this accountability task."}
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
   
-  // Standard version - card style
   return (
-    <Card className={cn(
-      styles.bg, 
-      styles.border,
-      isUrgent && "shadow-lg shadow-red-500/10",
-      className
-    )}>
-      <CardHeader className="pb-2">
+    <Card className={cn("w-full", className, isActive ? "border-yellow-200 dark:border-yellow-800" : "border-red-200 dark:border-red-800")}>
+      <CardHeader className={cn("pb-2", !isActive ? "bg-red-50 dark:bg-red-900/20" : "")}>
         <div className="flex justify-between items-center">
-          <div>
-            <CardTitle className={styles.text}>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <div className="h-10 w-10 rounded-full bg-white/80 dark:bg-gray-800/80 flex items-center justify-center">
+          <CardTitle className="text-base flex items-center">
             {getTaskIcon()}
-          </div>
+            <span className="ml-2">{title}</span>
+          </CardTitle>
+          <Badge className={cn("ml-2", getSeverityColor())}>
+            <span className="flex items-center">
+              {getSeverityIcon()}
+              <span className="ml-1 capitalize">{severity}</span>
+            </span>
+          </Badge>
         </div>
+        <CardDescription>
+          {description || "Complete this task within the time limit to maintain your streak."}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <Badge variant="outline" className={cn(
-              "text-sm font-normal",
-              isUrgent ? "border-red-200 dark:border-red-800" : ""
-            )}>
-              Time Remaining
-            </Badge>
-            <Badge 
-              variant={isUrgent ? "destructive" : "outline"} 
-              className={cn(
-                "text-xl px-3 py-1 font-mono",
-                isUrgent ? "animate-pulse" : ""
-              )}
-            >
-              {formatTime(remainingTime)}
-            </Badge>
+      <CardContent className="pb-2">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-sm font-medium">
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-1 text-gray-500" />
+              <span>{formatTime(timeLeft)}</span>
+            </div>
+            <span className="text-xs text-gray-500">
+              {Math.floor((progressPercentage + 0.5))}% remaining
+            </span>
           </div>
           
           <Progress 
-            value={progress} 
-            className={cn("h-2", isUrgent ? "bg-red-200 dark:bg-red-950" : "bg-gray-200 dark:bg-gray-800")}
-            indicatorClassName={isUrgent ? "bg-red-600 dark:bg-red-400" : styles.progress}
+            value={progressPercentage} 
+            className="h-2 w-full bg-gray-100 dark:bg-gray-800"
           />
           
-          <div className="flex justify-between text-sm">
-            <span className={styles.text}>
-              {progress <= 25 
-                ? "Critical - Act now!" 
-                : progress <= 50 
-                  ? "Urgent - Time is limited" 
-                  : "Time remaining"}
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">
-              {Math.floor(progress)}% remaining
-            </span>
-          </div>
+          {!isActive && !isCompleted && (
+            <div className="mt-2 text-center text-sm text-red-600 dark:text-red-400 font-medium">
+              Time's up! Your accountability bomb has detonated.
+            </div>
+          )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-        {dismissable && (
-          <Button 
-            variant="outline" 
-            className="bg-white dark:bg-gray-800"
-            onClick={handleDismiss}
-          >
-            Dismiss
-          </Button>
+      <CardFooter className="pt-2 flex justify-between">
+        {isActive ? (
+          <>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePauseResume}
+            >
+              {isPaused ? "Resume" : "Pause"}
+            </Button>
+            <div className="space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleExtendTime(5)}
+              >
+                +5 Min
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleComplete}
+              >
+                Complete
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="w-full">
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="w-full"
+              onClick={handleComplete}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Complete Anyway
+            </Button>
+          </div>
         )}
-        <Button 
-          className={cn(
-            "ml-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600",
-            isUrgent && "animate-pulse from-green-600 to-emerald-600"
-          )}
-          onClick={handleComplete}
-        >
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          Complete Task
-        </Button>
       </CardFooter>
     </Card>
   );

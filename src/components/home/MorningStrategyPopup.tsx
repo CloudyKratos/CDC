@@ -1,373 +1,405 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState, useRef } from 'react';
 import { 
   Dialog, 
   DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
   DialogHeader, 
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
+  DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Camera, CheckCircle, Save, Camera as CameraIcon, SunMedium, Brain, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { 
-  Sun, 
-  Target, 
-  Shield,
-  ArrowRight, 
-  CheckCircle2,
-  Calendar,
-  ListTodo,
-  Camera,
-  Upload,
-  Image as ImageIcon
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { Progress } from '@/components/ui/progress';
+
+export interface MorningStrategyData {
+  reflections: string;
+  intentions: string;
+  gratitude: string;
+  photoProof?: string | null;
+}
 
 interface MorningStrategyPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplete?: (data: MorningStrategyData) => void;
-}
-
-export interface MorningStrategyData {
-  intentions: string;
-  priorities: string[];
-  challenges: string;
-  walkImage: string | null;
-  completedAt: Date;
+  onComplete: (data: MorningStrategyData) => void;
 }
 
 const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({ 
   isOpen, 
-  onClose,
-  onComplete
+  onClose, 
+  onComplete 
 }) => {
-  const [step, setStep] = useState(0);
-  const [intentions, setIntentions] = useState("");
-  const [priorities, setPriorities] = useState<string[]>(["", "", ""]);
-  const [challenges, setChallenges] = useState("");
-  const [walkImage, setWalkImage] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [morningData, setMorningData] = useState<MorningStrategyData>({
+    reflections: '',
+    intentions: '',
+    gratitude: '',
+    photoProof: null
+  });
+  const [photoTaken, setPhotoTaken] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [processingCompletion, setProcessingCompletion] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast: uiToast } = useToast();
-
-  const steps = [
-    {
-      title: "Set Your Intentions",
-      description: "What energy do you want to bring into today?",
-      icon: Sun,
-      color: "text-amber-500"
-    },
-    {
-      title: "Define 3 Key Priorities",
-      description: "What are the most important tasks for today?",
-      icon: Target,
-      color: "text-blue-500"
-    },
-    {
-      title: "Anticipate Challenges",
-      description: "What obstacles might you face, and how will you overcome them?",
-      icon: Shield,
-      color: "text-purple-500"
-    },
-    {
-      title: "Upload Morning Walk",
-      description: "Verify you're following the community 6AM morning walk strategy",
-      icon: Camera,
-      color: "text-green-500"
-    }
-  ];
   
-  const handleComplete = () => {
-    const morningData: MorningStrategyData = {
-      intentions,
-      priorities,
-      challenges,
-      walkImage,
-      completedAt: new Date()
-    };
-    
-    if (onComplete) {
-      onComplete(morningData);
-    }
-    
-    toast({
-      title: "Morning Strategy Completed",
-      description: "Your morning plan has been saved. Have a productive day!",
-    });
-    
-    localStorage.setItem('lastMorningStrategyCompleted', new Date().toISOString());
-    
-    onClose();
-    setStep(0);
-  };
-  
-  const updatePriority = (index: number, value: string) => {
-    const newPriorities = [...priorities];
-    newPriorities[index] = value;
-    setPriorities(newPriorities);
-  };
+  const totalSteps = 4;
   
   const nextStep = () => {
-    if (step < steps.length - 1) {
+    if (step < totalSteps) {
       setStep(step + 1);
-    } else {
-      handleComplete();
     }
   };
   
   const prevStep = () => {
-    if (step > 0) {
+    if (step > 1) {
       setStep(step - 1);
     }
   };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.includes('image/')) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageDataUrl = e.target?.result as string;
-      setWalkImage(imageDataUrl);
-      toast.success("Morning walk image uploaded successfully!");
-    };
-    reader.readAsDataURL(file);
+  
+  const handleInputChange = (field: keyof MorningStrategyData, value: string) => {
+    setMorningData({
+      ...morningData,
+      [field]: value
+    });
   };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+  
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      toast.error("Could not access camera", {
+        description: "Please check your camera permissions and try again."
+      });
+    }
+  };
+  
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+  
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context.drawImage(videoRef.current, 0, 0);
+        
+        const photoData = canvasRef.current.toDataURL('image/jpeg');
+        setMorningData({
+          ...morningData,
+          photoProof: photoData
+        });
+        setPhotoTaken(true);
+        stopCamera();
+      }
+    }
+  };
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUploadingPhoto(true);
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target) {
+          setMorningData({
+            ...morningData,
+            photoProof: event.target.result as string
+          });
+          setPhotoTaken(true);
+          setUploadingPhoto(false);
+        }
+      };
+      
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+  
+  const handleComplete = () => {
+    setProcessingCompletion(true);
+    
+    // Simulate processing
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setProgressValue(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setProcessingCompletion(false);
+          onComplete(morningData);
+          onClose();
+        }, 500);
+      }
+    }, 200);
   };
   
   const renderStepContent = () => {
     switch (step) {
-      case 0:
-        return (
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                <Sun size={40} className="text-amber-500" />
-              </div>
-            </div>
-            <Textarea
-              value={intentions}
-              onChange={(e) => setIntentions(e.target.value)}
-              placeholder="Today, my intention is to be focused, creative, and present in all my interactions..."
-              className="min-h-[150px] text-base"
-            />
-            <div className="text-sm text-muted-foreground mt-2">
-              <p>Think about:</p>
-              <ul className="list-disc pl-5 space-y-1 mt-1">
-                <li>How do you want to feel today?</li>
-                <li>What mindset will serve you best?</li>
-                <li>What values do you want to embody?</li>
-              </ul>
-            </div>
-          </div>
-        );
       case 1:
         return (
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Target size={40} className="text-blue-500" />
+          <div className="space-y-4">
+            <div className="flex items-center mb-4 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+              <CameraIcon className="h-5 w-5 text-blue-500 mr-2" />
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                Morning walks and fresh air help clear your mind for a productive day. Start with a photo of your walk.
               </div>
             </div>
-            <div className="space-y-4">
-              {priorities.map((priority, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="mr-3 font-bold text-primary">{index + 1}</div>
-                  <Input
-                    value={priority}
-                    onChange={(e) => updatePriority(index, e.target.value)}
-                    placeholder={`Priority #${index + 1}`}
-                    className="flex-1"
-                  />
+            
+            {!photoTaken ? (
+              <div className="space-y-4">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline
+                    className="w-full max-h-[300px] object-cover"
+                  ></video>
+                  <canvas ref={canvasRef} className="hidden"></canvas>
                 </div>
-              ))}
-            </div>
-            <div className="text-sm text-muted-foreground mt-2">
-              <p>Remember:</p>
-              <ul className="list-disc pl-5 space-y-1 mt-1">
-                <li>Focus on what will move the needle the most</li>
-                <li>Be specific and actionable</li>
-                <li>Prioritize based on importance, not urgency</li>
-              </ul>
-            </div>
+                
+                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                  <Button 
+                    onClick={startCamera} 
+                    className="flex-1"
+                    type="button"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Start Camera
+                  </Button>
+                  
+                  <Button 
+                    onClick={capturePhoto} 
+                    className="flex-1"
+                    type="button"
+                    disabled={!videoRef.current?.srcObject}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Take Photo
+                  </Button>
+                  
+                  <div className="relative flex-1">
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="w-full"
+                      type="button"
+                      disabled={uploadingPhoto}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Photo
+                    </Button>
+                    <input 
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploadingPhoto}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
+                  <img 
+                    src={morningData.photoProof || ''} 
+                    alt="Morning walk" 
+                    className="w-full max-h-[300px] object-cover"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="bg-white/80 hover:bg-white"
+                      onClick={() => {
+                        setPhotoTaken(false);
+                        setMorningData({
+                          ...morningData,
+                          photoProof: null
+                        });
+                      }}
+                    >
+                      Retake
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-center text-green-600 dark:text-green-400 font-medium flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Morning walk photo captured!
+                </div>
+              </div>
+            )}
           </div>
         );
+        
       case 2:
         return (
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <Shield size={40} className="text-purple-500" />
-              </div>
-            </div>
-            <Textarea
-              value={challenges}
-              onChange={(e) => setChallenges(e.target.value)}
-              placeholder="Today's potential challenges might be distractions from social media, the difficult conversation with my team, and managing my energy after lunch..."
-              className="min-h-[150px] text-base"
-            />
-            <div className="text-sm text-muted-foreground mt-2">
-              <p>Consider:</p>
-              <ul className="list-disc pl-5 space-y-1 mt-1">
-                <li>What obstacles typically derail your productivity?</li>
-                <li>How will you respond when faced with these challenges?</li>
-                <li>What resources or support might you need?</li>
-              </ul>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <Camera size={40} className="text-green-500" />
+          <div className="space-y-4">
+            <div className="flex items-center mb-4 bg-green-50 dark:bg-green-900/30 p-3 rounded-lg">
+              <SunMedium className="h-5 w-5 text-green-500 mr-2" />
+              <div className="text-sm text-green-700 dark:text-green-300">
+                Reflect on your intention for the day. What do you want to accomplish?
               </div>
             </div>
             
-            <div className="flex flex-col items-center space-y-4">
-              {walkImage ? (
-                <div className="relative w-full max-w-md aspect-video border rounded-lg overflow-hidden">
-                  <img 
-                    src={walkImage} 
-                    alt="Morning walk verification" 
-                    className="object-cover w-full h-full"
-                  />
-                  <Button 
-                    variant="outline"
-                    size="sm" 
-                    className="absolute top-2 right-2"
-                    onClick={() => setWalkImage(null)}
-                  >
-                    Change Photo
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div 
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg w-full max-w-md aspect-video flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
-                    onClick={triggerFileInput}
-                  >
-                    <ImageIcon className="h-16 w-16 text-gray-400" />
-                    <p className="text-muted-foreground">Click to upload your morning walk photo</p>
-                    <p className="text-xs text-muted-foreground">6AM morning walk verification</p>
-                  </div>
-                  <Button variant="outline" onClick={triggerFileInput}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Select Image
-                  </Button>
-                </>
-              )}
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                accept="image/*" 
-                className="hidden"
-                onChange={handleImageUpload}
+            <div className="space-y-3">
+              <Label htmlFor="intentions">Today's Intentions</Label>
+              <Textarea
+                id="intentions"
+                placeholder="I will focus on completing..."
+                value={morningData.intentions}
+                onChange={(e) => handleInputChange('intentions', e.target.value)}
+                className="min-h-[150px] resize-none"
               />
             </div>
+          </div>
+        );
+        
+      case 3:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center mb-4 bg-purple-50 dark:bg-purple-900/30 p-3 rounded-lg">
+              <Brain className="h-5 w-5 text-purple-500 mr-2" />
+              <div className="text-sm text-purple-700 dark:text-purple-300">
+                Reflect on your mental state. How are you feeling? What are you grateful for?
+              </div>
+            </div>
             
-            <div className="text-sm text-muted-foreground mt-4">
-              <p className="font-medium mb-1">Community Morning Walk Policy:</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Take a photo during your 6AM morning walk</li>
-                <li>Photo should show the morning environment (sunrise, morning sky, etc.)</li>
-                <li>Regular verification helps build consistency in the community</li>
-                <li>Missing verifications will activate accountability features</li>
-              </ul>
+            <div className="space-y-3">
+              <Label htmlFor="reflections">Morning Reflections</Label>
+              <Textarea
+                id="reflections"
+                placeholder="I'm feeling..."
+                value={morningData.reflections}
+                onChange={(e) => handleInputChange('reflections', e.target.value)}
+                className="min-h-[150px] resize-none"
+              />
             </div>
           </div>
         );
+        
+      case 4:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center mb-4 bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-lg">
+              <SunMedium className="h-5 w-5 text-yellow-500 mr-2" />
+              <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                Express gratitude for three things in your life right now.
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <Label htmlFor="gratitude">Gratitude</Label>
+              <Textarea
+                id="gratitude"
+                placeholder="I am grateful for..."
+                value={morningData.gratitude}
+                onChange={(e) => handleInputChange('gratitude', e.target.value)}
+                className="min-h-[150px] resize-none"
+              />
+            </div>
+          </div>
+        );
+        
       default:
         return null;
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl">Morning Strategy</DialogTitle>
-          <DialogDescription className="text-center">
-            Set yourself up for success with our 4-step morning planning routine
+          <DialogTitle>Morning Strategy</DialogTitle>
+          <DialogDescription>
+            Complete your morning walk and reflection to deactivate the tick bomb.
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={`${step}`} onValueChange={(value) => setStep(parseInt(value))}>
-          <TabsList className="grid grid-cols-4 mb-4">
-            {steps.map((s, i) => (
-              <TabsTrigger key={i} value={`${i}`} className="flex flex-col py-2 space-y-1">
-                <s.icon size={16} className={s.color} />
-                <span className="text-xs">{s.title}</span>
-              </TabsTrigger>
+        <div className="py-4">
+          <div className="mb-4 flex justify-between">
+            {Array.from({ length: totalSteps }).map((_, index) => (
+              <div 
+                key={index}
+                className={`rounded-full w-2 h-2 ${
+                  index + 1 === step 
+                    ? 'bg-primary' 
+                    : index + 1 < step 
+                      ? 'bg-green-500' 
+                      : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              />
             ))}
-          </TabsList>
+          </div>
           
-          {steps.map((s, i) => (
-            <TabsContent key={i} value={`${i}`} className="pt-2">
-              <h3 className="text-lg font-semibold">{s.title}</h3>
-              <p className="text-muted-foreground mb-4">{s.description}</p>
-              {step === i && renderStepContent()}
-            </TabsContent>
-          ))}
-        </Tabs>
-        
-        <DialogFooter className="flex justify-between items-center mt-4">
-          <div className="flex-1">
-            {step > 0 && (
-              <Button variant="ghost" onClick={prevStep}>
-                Back
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            Step {step + 1} of {steps.length}
-          </div>
-          <div className="flex-1 flex justify-end">
-            <Button onClick={nextStep} disabled={step === 3 && !walkImage}>
-              {step < steps.length - 1 ? (
-                <>
-                  Next <ArrowRight size={16} className="ml-2" />
-                </>
-              ) : (
-                <>
-                  Complete <CheckCircle2 size={16} className="ml-2" />
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-        
-        <div className="flex justify-center gap-4 mt-4 border-t pt-4">
-          <Button variant="outline" size="sm" className="text-xs" onClick={onClose}>
-            <Calendar size={14} className="mr-1" />
-            Do Later
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-            onClose();
-            toast({
-              title: "Strategy Skipped",
-              description: "You can access this anytime from your dashboard.",
-            });
-          }}>
-            <ListTodo size={14} className="mr-1" />
-            Skip Today
-          </Button>
+          {renderStepContent()}
         </div>
+        
+        <DialogFooter className="flex items-center justify-between">
+          {processingCompletion ? (
+            <div className="w-full space-y-2">
+              <div className="text-center text-sm text-muted-foreground">
+                Processing your morning strategy...
+              </div>
+              <Progress 
+                value={progressValue} 
+                className="w-full"
+              />
+            </div>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={step === 1 ? onClose : prevStep}
+                type="button"
+              >
+                {step === 1 ? 'Cancel' : 'Back'}
+              </Button>
+              
+              <Button 
+                type="button"
+                onClick={step === totalSteps ? handleComplete : nextStep}
+                disabled={(step === 1 && !photoTaken) || 
+                          (step === 2 && morningData.intentions.trim() === '') ||
+                          (step === 3 && morningData.reflections.trim() === '') ||
+                          (step === 4 && morningData.gratitude.trim() === '')}
+              >
+                {step === totalSteps ? (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Complete
+                  </>
+                ) : (
+                  'Next'
+                )}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
 export default MorningStrategyPopup;
+export type { MorningStrategyData };
