@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { Menu, X, Bell, Search, User, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight } from "lucide-react";
+import { Menu, X, Bell, Search, User, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, LogOut, Settings } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -16,10 +16,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface NavbarProps {
   transparent?: boolean;
@@ -34,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     { id: 3, text: "Your daily reflection reminder", time: "2h ago", read: true },
   ]);
   const navbarRef = useRef<HTMLDivElement>(null);
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +70,13 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         notif.id === id ? { ...notif, read: true } : notif
       )
     );
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.success("You've been successfully logged out");
+    navigate("/login");
+    setMobileMenuOpen(false);
   };
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
@@ -191,50 +203,69 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           <ThemeToggle />
           
           {/* User profile menu for desktop */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild className="hidden md:flex">
-              <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
-                <Avatar>
-                  <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-                  <AvatarFallback>FX</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 glass-morphism animate-scale-in">
-              <div className="py-2 px-3 mb-1 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-                  <AvatarFallback>FX</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">Felix Chen</p>
-                  <p className="text-xs text-gray-500">felix@example.com</p>
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="hidden md:flex">
+                <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
+                  <Avatar>
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 glass-morphism animate-scale-in">
+                <div className="py-2 px-3 mb-1 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user?.name || "User"}</p>
+                    <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+                  </div>
                 </div>
-              </div>
-              
-              <Link to="/dashboard">
-                <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
-                  <span>Dashboard</span>
+                
+                <Link to="/dashboard">
+                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                </Link>
+                
+                <Link to="/settings">
+                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </Link>
+                
+                <DropdownMenuSeparator className="my-1 bg-gray-100 dark:bg-gray-800" />
+                
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer rounded-md py-2 my-1 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/10">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Sign out</span>
                 </DropdownMenuItem>
-              </Link>
-              
-              <Link to="/settings">
-                <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
-                  <span>Settings</span>
-                </DropdownMenuItem>
-              </Link>
-              
-              <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 text-red-500 focus:text-red-500">
-                <span>Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login" className="hidden md:block">
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                Sign In
+              </Button>
+            </Link>
+          )}
           
-          <Link to="/dashboard" className="hidden md:block">
-            <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
-              Dashboard
-            </Button>
-          </Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="hidden md:block">
+              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
+                Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/login" className="hidden md:block">
+              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
+                Get Started
+              </Button>
+            </Link>
+          )}
           
           <Button 
             variant="ghost" 
@@ -261,6 +292,18 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
       >
         <div className="container mx-auto px-4 pt-24 pb-6">
           <div className="flex flex-col space-y-5 items-center">
+            {isAuthenticated && (
+              <div className="w-full mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-800">
+                  <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                  <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-medium">{user?.name || "User"}</p>
+                  <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col w-full space-y-3">
               {navItems.map((item, index) => (
                 <Link 
@@ -295,24 +338,85 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
               
               <div className="h-px w-full bg-gray-100 dark:bg-gray-800 my-2"></div>
               
-              <Link 
-                to="/dashboard" 
-                className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 dark:from-primary/20 dark:to-blue-500/20 hover:from-primary/20 hover:to-blue-500/20 dark:hover:from-primary/30 dark:hover:to-blue-500/30 transition-all duration-300 hover:scale-[1.02]"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ 
-                  animation: "fade-in 0.5s ease-out forwards",
-                  animationDelay: `${navItems.length * 100}ms`,
-                  opacity: 0
-                }}
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-primary/30 to-blue-500/30 flex items-center justify-center mr-3">
-                    <Sparkles className="text-white" size={20} />
-                  </div>
-                  <span className="text-base font-medium">Dashboard</span>
-                </div>
-                <ChevronRight size={18} className="text-primary" />
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 dark:from-primary/20 dark:to-blue-500/20 hover:from-primary/20 hover:to-blue-500/20 dark:hover:from-primary/30 dark:hover:to-blue-500/30 transition-all duration-300 hover:scale-[1.02]"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      animation: "fade-in 0.5s ease-out forwards",
+                      animationDelay: `${navItems.length * 100}ms`,
+                      opacity: 0
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-primary/30 to-blue-500/30 flex items-center justify-center mr-3">
+                        <Sparkles className="text-white" size={20} />
+                      </div>
+                      <span className="text-base font-medium">Dashboard</span>
+                    </div>
+                    <ChevronRight size={18} className="text-primary" />
+                  </Link>
+
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center justify-between p-3 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-300 hover:scale-[1.02] text-red-600 dark:text-red-400"
+                    style={{ 
+                      animation: "fade-in 0.5s ease-out forwards",
+                      animationDelay: `${(navItems.length + 1) * 100}ms`,
+                      opacity: 0
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-red-200/50 dark:bg-red-900/20 flex items-center justify-center mr-3">
+                        <LogOut className="text-red-600 dark:text-red-400" size={20} />
+                      </div>
+                      <span className="text-base font-medium">Sign Out</span>
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-300 hover:scale-[1.02]"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      animation: "fade-in 0.5s ease-out forwards",
+                      animationDelay: `${navItems.length * 100}ms`,
+                      opacity: 0
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center mr-3">
+                        <User className="text-primary" size={20} />
+                      </div>
+                      <span className="text-base font-medium">Sign In</span>
+                    </div>
+                    <ChevronRight size={18} className="text-primary" />
+                  </Link>
+                  
+                  <Link 
+                    to="/login" 
+                    className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 dark:from-primary/20 dark:to-blue-500/20 hover:from-primary/20 hover:to-blue-500/20 dark:hover:from-primary/30 dark:hover:to-blue-500/30 transition-all duration-300 hover:scale-[1.02]"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      animation: "fade-in 0.5s ease-out forwards",
+                      animationDelay: `${(navItems.length + 1) * 100}ms`,
+                      opacity: 0
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-primary/30 to-blue-500/30 flex items-center justify-center mr-3">
+                        <Sparkles className="text-white" size={20} />
+                      </div>
+                      <span className="text-base font-medium">Get Started</span>
+                    </div>
+                    <ChevronRight size={18} className="text-primary" />
+                  </Link>
+                </>
+              )}
             </div>
             
             <div className="flex items-center justify-center space-x-3 pt-8">
@@ -326,7 +430,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                 )}
               </Button>
               <Button variant="outline" size="icon" className="rounded-full" onClick={() => setMobileMenuOpen(false)}>
-                <User size={18} />
+                <Settings size={18} />
               </Button>
             </div>
           </div>

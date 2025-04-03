@@ -1,5 +1,5 @@
 
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,8 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { AuthContext } from "../App";
-import { Lock, Mail, Eye, EyeOff, UserCheck, AlertCircle, User, Users, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Lock, Mail, Eye, EyeOff, AlertCircle, User, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -23,8 +23,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const { login, isAuthenticated } = useContext(AuthContext);
+  const { login, isAuthenticated, error, clearError } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,11 +44,11 @@ const Login = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      setError("Please enter both email and password");
+      toast.error("Please enter both email and password");
       return;
     }
     
-    setError("");
+    clearError();
     setIsLoading(true);
     
     try {
@@ -59,13 +58,11 @@ const Login = () => {
         toast.success("Login successful! Redirecting to dashboard...");
         navigate("/dashboard");
       } else {
-        setError("Invalid email or password. Please try again or use one of the test accounts below.");
         toast.error("Login failed", {
-          description: "Invalid credentials."
+          description: "Invalid credentials. Please try again or use one of the test accounts below."
         });
       }
     } catch (error) {
-      setError("An error occurred during login. Please try again.");
       toast.error("Login failed", {
         description: "An unexpected error occurred"
       });
@@ -86,13 +83,11 @@ const Login = () => {
         toast.success("Test login successful! Redirecting to dashboard...");
         navigate("/dashboard");
       } else {
-        setError("Test login failed. Please try again.");
         toast.error("Test login failed", {
           description: "Unable to log in with test account."
         });
       }
     } catch (error) {
-      setError("An error occurred during test login. Please try again.");
       toast.error("Test login failed", {
         description: "An unexpected error occurred"
       });

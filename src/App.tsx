@@ -9,50 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
-
-// Test users data - enhanced with proper roles and profiles
-const TEST_USERS = [
-  { 
-    id: '1', 
-    email: 'user@example.com', 
-    name: 'Standard User', 
-    role: 'user',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-    permissions: ['read', 'comment']
-  },
-  { 
-    id: '2', 
-    email: 'admin@example.com', 
-    name: 'Admin User', 
-    role: 'admin',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
-    permissions: ['read', 'write', 'delete', 'moderate', 'admin']
-  },
-  { 
-    id: '3', 
-    email: 'demo@example.com', 
-    name: 'Demo Account', 
-    role: 'demo',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
-    permissions: ['read', 'comment', 'limited_write'],
-    isDemo: true
-  }
-];
-
-// Create auth context
-export const AuthContext = createContext<{
-  user: any;
-  setUser: React.Dispatch<React.SetStateAction<any>>;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-}>({
-  user: null,
-  setUser: () => {},
-  isAuthenticated: false,
-  login: async () => false,
-  logout: () => {},
-});
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,15 +21,9 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
   
-  useEffect(() => {
-    // Check if user is logged in
-    const user = localStorage.getItem("user");
-    setIsAuthenticated(!!user);
-  }, []);
-  
-  if (isAuthenticated === null) {
+  if (isLoading) {
     // Loading state
     return <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -83,8 +34,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
-  const [user, setUser] = useState<any>(null);
-  
   useEffect(() => {
     // Check if dark mode is enabled
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -97,12 +46,6 @@ const App = () => {
     // Apply color theme
     const colorTheme = localStorage.getItem('colorTheme') || 'blue';
     document.documentElement.classList.add(`theme-${colorTheme}`);
-    
-    // Load user from local storage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
     
     // Apply prefers-color-scheme detection
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -122,41 +65,9 @@ const App = () => {
     };
   }, []);
   
-  const login = async (email: string, password: string) => {
-    // Simple login for test accounts
-    // In a real app, we would validate against a backend
-    const testUser = TEST_USERS.find(user => user.email.toLowerCase() === email.toLowerCase());
-    
-    if (testUser) {
-      // In this test version, we're accepting any password for easy testing
-      // In a real app, we would validate the password
-      const loggedInUser = {
-        ...testUser,
-        lastLogin: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
-      return true;
-    }
-    
-    return false;
-  };
-  
-  const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-  
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      setUser, 
-      isAuthenticated: !!user, 
-      login,
-      logout
-    }}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <TooltipProvider>
           <BrowserRouter>
             <Toaster />
@@ -173,8 +84,8 @@ const App = () => {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </QueryClientProvider>
-    </AuthContext.Provider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
