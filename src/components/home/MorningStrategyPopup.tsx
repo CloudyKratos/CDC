@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   Dialog, 
@@ -136,7 +135,6 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
   const handleComplete = () => {
     setProcessingCompletion(true);
     
-    // Simulate processing
     let progress = 0;
     const interval = setInterval(() => {
       progress += 10;

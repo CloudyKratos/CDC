@@ -58,3 +58,5 @@ export type Note = {
   subfolders?: string[];
   description?: string;
 };
+
+export type TaskType = "morning" | "daily" | "weekly" | "custom" | "meditation" | "workout" | "evening";

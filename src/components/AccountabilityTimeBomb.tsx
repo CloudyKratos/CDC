@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -7,9 +6,9 @@ import { BellRing, Clock, CheckCircle, AlertTriangle, AlertCircle, Camera, Waves
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { TaskType } from "@/types/workspace";
 
 type TimeBombSeverity = "low" | "medium" | "high" | "critical";
-type TaskType = "morning" | "daily" | "weekly" | "custom";
 
 interface AccountabilityTimeBombProps {
   title: string;
@@ -42,7 +41,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
   const totalSeconds = duration * 60;
   const progressPercentage = (timeLeft / totalSeconds) * 100;
   
-  // Get color based on severity
   const getSeverityColor = () => {
     switch (severity) {
       case "low":
@@ -58,7 +56,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     }
   };
   
-  // Get icon based on task type
   const getTaskIcon = () => {
     switch (taskType) {
       case "morning":
@@ -67,21 +64,24 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
         return <SunMedium className="h-5 w-5" />;
       case "weekly":
         return <BrainCircuit className="h-5 w-5" />;
-      case "custom":
+      case "meditation":
+        return <BrainCircuit className="h-5 w-5" />;
+      case "workout":
         return <Waves className="h-5 w-5" />;
+      case "evening":
+        return <MoonStar className="h-5 w-5" />;
+      case "custom":
       default:
-        return <Clock className="h-5 w-5" />;
+        return <Waves className="h-5 w-5" />;
     }
   };
   
-  // Format time as mm:ss
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Start timer
   useEffect(() => {
     if (isActive && !isPaused && !isCompleted) {
       intervalRef.current = setInterval(() => {
@@ -108,7 +108,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     };
   }, [isActive, isPaused, isCompleted, onTimeout]);
   
-  // Handle task completion
   const handleComplete = () => {
     setIsCompleted(true);
     setIsActive(false);
@@ -122,7 +121,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     });
   };
   
-  // Handle pause/resume
   const handlePauseResume = () => {
     setIsPaused((prev) => !prev);
     if (isPaused) {
@@ -138,7 +136,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     }
   };
   
-  // Add 5 minutes to the timer
   const handleExtendTime = (additionalMinutes: number) => {
     setTimeLeft((prevTime) => prevTime + (additionalMinutes * 60));
     setShowExtendDialog(false);
@@ -148,7 +145,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     });
   };
   
-  // Get progress bar color based on remaining time percentage
   const getProgressColor = () => {
     const percentage = (timeLeft / totalSeconds) * 100;
     if (percentage > 66) return "bg-green-500";
@@ -156,7 +152,6 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     return "bg-red-500";
   };
   
-  // Get severity icon
   const getSeverityIcon = () => {
     switch (severity) {
       case "low":
