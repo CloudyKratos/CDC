@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { WorkspacePanel } from "@/components/WorkspacePanel";
@@ -18,6 +19,8 @@ import { AnnouncementProps } from "@/types/announcement";
 import { toast } from "sonner";
 import WorkInProgressBanner from "@/components/WorkInProgressBanner";
 import TopographicBackground from "@/components/home/TopographicBackground";
+import AccountabilityTimeBomb from "@/components/AccountabilityTimeBomb";
+import TickBombDemo from "@/components/TickBombDemo";
 
 type ViewMode = "home" | "chat" | "workspace" | "calendar" | "mobile-menu" | "community" | "profile";
 
@@ -29,6 +32,7 @@ const Dashboard = () => {
   const [activeChannel, setActiveChannel] = useState<string>("general");
   const isMobile = useIsMobile(); 
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
+  const [showAccountabilityReminder, setShowAccountabilityReminder] = useState<boolean>(true);
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   
@@ -109,11 +113,19 @@ const Dashboard = () => {
     }
     
     setTimeout(() => {
-      toast.success("Welcome to your business dashboard!", {
+      toast.success("Welcome to your Stoic dashboard!", {
         description: "Navigate through your entrepreneurial journey with our comprehensive tools.",
         duration: 5000,
       });
     }, 1000);
+    
+    // Set up random accountability reminder
+    const randomDelay = Math.floor(Math.random() * 300000) + 600000; // Between 10-15 minutes
+    const timer = setTimeout(() => {
+      setShowAccountabilityReminder(true);
+    }, randomDelay);
+    
+    return () => clearTimeout(timer);
   }, [isMobile]);
   
   const toggleDarkMode = () => {
@@ -156,6 +168,14 @@ const Dashboard = () => {
       setViewMode(newViewMode as ViewMode);
     }
   };
+  
+  const handleAccountabilityComplete = () => {
+    setShowAccountabilityReminder(false);
+    toast.success("Morning accountability completed!", {
+      description: "Your daily commitment has been recorded. Keep up the good work!",
+      duration: 5000,
+    });
+  };
 
   const renderContent = () => {
     if (isMobile && viewMode === "mobile-menu") {
@@ -176,7 +196,21 @@ const Dashboard = () => {
         return (
           <div className="flex flex-col space-y-4 animate-fade-in">
             {latestAnnouncement && <AnnouncementBanner announcement={latestAnnouncement} />}
+            
+            {showAccountabilityReminder && (
+              <AccountabilityTimeBomb
+                title="Morning Strategy Verification"
+                description="Complete your morning walk and reflection to maintain your accountability streak"
+                duration={15} // 15 minutes for the actual feature
+                severity="medium"
+                taskType="morning"
+                onComplete={handleAccountabilityComplete}
+              />
+            )}
+            
             <HomePage />
+            
+            <TickBombDemo className="mt-4" />
           </div>
         );
       case "chat":

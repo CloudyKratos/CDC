@@ -737,6 +737,44 @@ export const WorkspacePanel: React.FC = () => {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
+  const formatRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    if (diffDay > 30) {
+      return date.toLocaleDateString();
+    } else if (diffDay >= 1) {
+      return `${diffDay} ${diffDay === 1 ? 'day' : 'days'} ago`;
+    } else if (diffHour >= 1) {
+      return `${diffHour} ${diffHour === 1 ? 'hour' : 'hours'} ago`;
+    } else if (diffMin >= 1) {
+      return `${diffMin} ${diffMin === 1 ? 'minute' : 'minutes'} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+  
+  const getFileIcon = (type: string, starred: boolean = false, size: number = 20): JSX.Element => {
+    const starredClass = starred ? "text-yellow-500 fill-yellow-500" : "";
+    
+    switch (type) {
+      case 'document':
+        return <FileText className={`h-${size/4} w-${size/4} ${starredClass}`} />;
+      case 'image':
+        return <Image className={`h-${size/4} w-${size/4} ${starredClass}`} />;
+      case 'video':
+        return <Video className={`h-${size/4} w-${size/4} ${starredClass}`} />;
+      case 'folder':
+        return <Folder className={`h-${size/4} w-${size/4} ${starredClass}`} />;
+      default:
+        return <File className={`h-${size/4} w-${size/4} ${starredClass}`} />;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white/80 dark:bg-gray-900/90 border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden shadow-xl relative animate-scale-in">
       {/* Background */}
@@ -830,54 +868,4 @@ export const WorkspacePanel: React.FC = () => {
               {notes.slice(0, 5).map(note => (
                 <CommandItem 
                   key={note.id}
-                  onSelect={() => {
-                    setActiveNote(note.id);
-                    setIsCommandPaletteOpen(false);
-                  }}
-                >
-                  {getFileIcon(note.type, note.starred, 16)}
-                  <span className="ml-2">{note.title}</span>
-                  <span className="ml-auto text-xs text-gray-500">
-                    {formatRelativeTime(note.lastUpdated)}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            
-            <CommandGroup heading="View">
-              <CommandItem onSelect={() => {
-                setViewMode('list');
-                setIsCommandPaletteOpen(false);
-              }}>
-                <span className="mr-2 w-4 flex justify-center">≡</span>
-                <span>List View</span>
-              </CommandItem>
-              <CommandItem onSelect={() => {
-                setViewMode('grid');
-                setIsCommandPaletteOpen(false);
-              }}>
-                <span className="mr-2 w-4 flex justify-center">▤</span>
-                <span>Grid View</span>
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </div>
-      </CommandDialog>
-      
-      {/* Version History Dialog */}
-      <Dialog open={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Version History</DialogTitle>
-            <DialogDescription>
-              Review and restore previous versions of this document
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-[60vh] overflow-y-auto">
-            {activeNoteData?.versions?.map((version, index) => (
-              <div 
-                key={version.id} 
-                className={`py-3 px-4 ${index < (activeNoteData.versions?.length || 0) - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""}`}
-              >
-                <div className="flex items-center justify-between">
+                  onSelect={() =>
