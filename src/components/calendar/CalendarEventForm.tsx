@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { z } from 'zod';
@@ -13,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarEvent } from '@/utils/calendarUtils';
+import { CalendarEvent, Reminder } from '@/types/workspace';
 import { CalendarIcon, Clock, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,8 +28,8 @@ const formSchema = z.object({
   location: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   reminder: z.object({
-    time: z.number().optional(),
-    unit: z.enum(['minutes', 'hours', 'days']).optional(),
+    time: z.number(),
+    unit: z.enum(['minutes', 'hours', 'days']),
   }).optional(),
   url: z.string().url().optional(),
 });
@@ -46,6 +45,13 @@ interface CalendarEventFormProps {
 const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ event, onSubmit, onCancel }) => {
   const [attendees, setAttendees] = useState<string>('');
   
+  const [reminderTime, setReminderTime] = useState<string>(
+    event?.reminder?.time.toString() || "30"
+  );
+  const [reminderUnit, setReminderUnit] = useState<"minutes" | "hours" | "days">(
+    event?.reminder?.unit || "minutes"
+  );
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,6 +64,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ event, onSubmit, 
       location: event?.location || '',
       priority: event?.priority || 'medium',
       url: event?.url || '',
+      reminder: event?.reminder,
     },
   });
 
@@ -70,10 +77,16 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ event, onSubmit, 
         id: `attendee-${index}`,
         name,
       }));
+      
+    const reminder: Reminder | undefined = reminderTime ? {
+      time: parseInt(reminderTime),
+      unit: reminderUnit
+    } : undefined;
 
     onSubmit({
       ...values,
-      attendees: attendeesList.length > 0 ? attendeesList : undefined,
+      reminder,
+      attendees: attendeesList.length > 0 ? attendeesList : [],
     });
   };
 
@@ -232,6 +245,30 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ event, onSubmit, 
             </FormItem>
           )}
         />
+        
+        <div className="space-y-2">
+          <Label>Reminder</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              value={reminderTime}
+              onChange={(e) => setReminderTime(e.target.value)}
+              className="w-20"
+              min="1"
+            />
+            <Select value={reminderUnit} onValueChange={(value) => setReminderUnit(value as "minutes" | "hours" | "days")}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minutes">Minutes</SelectItem>
+                <SelectItem value="hours">Hours</SelectItem>
+                <SelectItem value="days">Days</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-gray-500">before event</span>
+          </div>
+        </div>
         
         <div>
           <Label htmlFor="attendees">Attendees (comma-separated)</Label>

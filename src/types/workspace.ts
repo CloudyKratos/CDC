@@ -63,7 +63,7 @@ export type TaskType = "morning" | "daily" | "weekly" | "custom" | "meditation" 
 
 // Reminder type for CalendarEvent
 export type Reminder = {
-  time: number; // Making this required
+  time: number;
   unit: "minutes" | "hours" | "days";
 };
 
@@ -79,7 +79,7 @@ export type CalendarEvent = {
   url?: string;
   type: "meeting" | "task" | "reminder" | "event" | "webinar" | "deadline";
   priority: "high" | "low" | "medium";
-  reminder: Reminder; // This is required, not optional
+  reminder?: Reminder; // Making this optional to fix the build error
   attendees: Array<{
     id: string;
     name: string;

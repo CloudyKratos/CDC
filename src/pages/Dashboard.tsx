@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -8,7 +7,7 @@ import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import CommunityPanel from "@/components/CommunityPanel";
-import { VideoCallPanel } from "@/components/VideoCallPanel";
+import VideoCallPanel from "@/components/VideoCallPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -89,7 +88,6 @@ const Dashboard = () => {
     }
   };
 
-  // Welcome message with user's name
   React.useEffect(() => {
     if (user) {
       // Show welcome toast only on first render
@@ -112,7 +110,7 @@ const Dashboard = () => {
       />
 
       <MobileMenu
-        isOpen={isMobileMenuOpen}
+        open={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
         activePanel={activePanel}
         onPanelChange={handlePanelChange}
@@ -120,7 +118,7 @@ const Dashboard = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
-          activePanel={activePanel}
+          panel={activePanel}
           onOpenMobileMenu={handleOpenMobileMenu}
           onPanelChange={handlePanelChange}
         />
