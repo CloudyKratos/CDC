@@ -289,28 +289,23 @@ export const WorkspacePanel: React.FC = () => {
   const folders = Array.from(new Set(notes.map(note => note.folder))).filter(Boolean) as string[];
   const allTags = Array.from(new Set(notes.flatMap(note => note.tags || []))).sort();
   
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command palette
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen(true);
       }
       
-      // Search focus
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
       
-      // New document shortcut
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
         handleCreateNote('document');
       }
       
-      // Save shortcut (when editing)
       if ((e.ctrlKey || e.metaKey) && e.key === 's' && isEditing) {
         e.preventDefault();
         toast.success("Changes saved", {
@@ -458,8 +453,6 @@ export const WorkspacePanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // In a real app, we would upload the file to a server and get a URL back
-    // For now, we'll create a local URL
     const url = URL.createObjectURL(file);
     const type = file.type.startsWith('image/') ? 'image' : 'video';
     
@@ -496,7 +489,6 @@ export const WorkspacePanel: React.FC = () => {
       description: `${note.title} is downloading`
     });
     
-    // In a real app, this would trigger an actual download
     console.log(`Downloading ${note.title}`);
   };
   
@@ -569,7 +561,6 @@ export const WorkspacePanel: React.FC = () => {
     
     const updatedNotes = notes.map(note => {
       if (note.id === activeNote) {
-        // In a real app, this would send invitations to these emails
         const newCollaborators: NoteCollaborator[] = emails.map(email => ({
           id: Date.now().toString() + Math.random().toString().slice(2, 8),
           name: email.split('@')[0],
@@ -629,7 +620,6 @@ export const WorkspacePanel: React.FC = () => {
   const getFilteredNotes = () => {
     let filteredNotes = notes;
     
-    // Search filter
     if (searchQuery) {
       filteredNotes = filteredNotes.filter(note => 
         note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -638,7 +628,6 @@ export const WorkspacePanel: React.FC = () => {
       );
     }
     
-    // Tab filter
     if (activeTab === 'documents') {
       filteredNotes = filteredNotes.filter(note => note.type === 'document');
     } else if (activeTab === 'images') {
@@ -653,22 +642,18 @@ export const WorkspacePanel: React.FC = () => {
       filteredNotes = filteredNotes.filter(note => note.isOffline);
     }
     
-    // Folder filter
     if (activeFolder) {
       filteredNotes = filteredNotes.filter(note => note.folder === activeFolder);
     } else if (activeTab !== 'all' && activeTab !== 'starred' && activeTab !== 'shared' && activeTab !== 'offline') {
-      // When in a specific tab, show top-level items when no folder is selected
       filteredNotes = filteredNotes.filter(note => !note.parentFolder);
     }
     
-    // Tag filter
     if (selectedTags.length > 0) {
       filteredNotes = filteredNotes.filter(note => 
         selectedTags.every(tag => note.tags?.includes(tag))
       );
     }
     
-    // Sorting
     filteredNotes.sort((a, b) => {
       if (sortBy === 'date') {
         return sortDirection === 'desc' 
@@ -691,7 +676,6 @@ export const WorkspacePanel: React.FC = () => {
       }
     });
     
-    // Put folders first
     return [
       ...filteredNotes.filter(note => note.type === 'folder'),
       ...filteredNotes.filter(note => note.type !== 'folder')
@@ -777,12 +761,10 @@ export const WorkspacePanel: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-white/80 dark:bg-gray-900/90 border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden shadow-xl relative animate-scale-in">
-      {/* Background */}
       <div className="absolute inset-0 -z-10">
         <TopographicBackground variant="modern" className="opacity-60" />
       </div>
       
-      {/* Command Palette */}
       <CommandDialog open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen}>
         <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-xl">
           <CommandInput placeholder="Search for files, folders, or actions..." />
@@ -868,4 +850,24 @@ export const WorkspacePanel: React.FC = () => {
               {notes.slice(0, 5).map(note => (
                 <CommandItem 
                   key={note.id}
-                  onSelect={() =>
+                  onSelect={() => {
+                    setActiveNote(note.id);
+                    setIsCommandPaletteOpen(false);
+                  }}
+                >
+                  {getFileIcon(note.type, note.starred, 16)}
+                  <span className="ml-2">{note.title}</span>
+                  <span className="ml-auto text-xs text-gray-500">
+                    {formatRelativeTime(note.lastUpdated)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </div>
+      </CommandDialog>
+      
+      {/* Rest of the component implementation */}
+    </div>
+  );
+};
