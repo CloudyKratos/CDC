@@ -1,14 +1,14 @@
 
 import React, { useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { MobileMenu } from "@/components/dashboard/MobileMenu";
+import { Sidebar } from "@/components/Sidebar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import MobileMenu from "@/components/dashboard/MobileMenu";
 import UserProfilePanel from "@/components/UserProfilePanel";
 import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
-import ChatPanel from "@/components/ChatPanel";
+import { ChatPanel } from "@/components/ChatPanel";
 import CommunityPanel from "@/components/CommunityPanel";
-import VideoCallPanel from "@/components/VideoCallPanel";
+import { VideoCallPanel } from "@/components/VideoCallPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -17,11 +17,25 @@ type ActivePanel = "workspace" | "calendar" | "chat" | "community" | "video" | "
 const Dashboard = () => {
   const [activePanel, setActivePanel] = useState<ActivePanel>("workspace");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("workspace");
+  const [activeChannel, setActiveChannel] = useState("general");
+  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const { user } = useAuth();
 
   const handlePanelChange = (panel: ActivePanel) => {
     setActivePanel(panel);
     setIsMobileMenuOpen(false);
+
+    // Update viewMode based on panel
+    if (panel === "community") {
+      setViewMode("community");
+    } else if (panel === "workspace") {
+      setViewMode("workspace");
+    } else if (panel === "profile") {
+      setViewMode("profile");
+    } else {
+      setViewMode(panel);
+    }
   };
 
   const handleOpenMobileMenu = () => {
@@ -30,6 +44,30 @@ const Dashboard = () => {
 
   const handleCloseMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleSelectItem = (itemId: string) => {
+    // Handle community channel selection
+    if (itemId.startsWith("community-")) {
+      const channelName = itemId.replace("community-", "");
+      setActiveChannel(channelName);
+      setActivePanel("community");
+      setViewMode("community");
+    } else if (itemId === "profile") {
+      setActivePanel("profile");
+    } else if (itemId === "chat") {
+      setActivePanel("chat");
+    } else if (itemId === "calendar") {
+      setActivePanel("calendar");
+    } else if (itemId === "video") {
+      setActivePanel("video");
+      setIsVideoCallOpen(true);
+    }
+  };
+
+  const handleCloseVideoCall = () => {
+    setIsVideoCallOpen(false);
+    setActivePanel("workspace");
   };
 
   const renderActivePanel = () => {
@@ -41,9 +79,9 @@ const Dashboard = () => {
       case "chat":
         return <ChatPanel />;
       case "community":
-        return <CommunityPanel />;
+        return <CommunityPanel channelName={activeChannel} />;
       case "video":
-        return <VideoCallPanel />;
+        return <VideoCallPanel isOpen={isVideoCallOpen} onClose={handleCloseVideoCall} />;
       case "profile":
         return <UserProfilePanel />;
       default:
@@ -65,8 +103,12 @@ const Dashboard = () => {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Sidebar
-        activePanel={activePanel}
-        onPanelChange={handlePanelChange}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        unreadCount={3}
+        onSelectItem={handleSelectItem}
+        activeItem={activePanel}
+        activeChannel={activeChannel}
       />
 
       <MobileMenu

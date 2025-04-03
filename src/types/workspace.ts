@@ -61,13 +61,13 @@ export type Note = {
 
 export type TaskType = "morning" | "daily" | "weekly" | "custom" | "meditation" | "workout" | "evening";
 
-// New type for Reminder to fix the CalendarEventForm error
+// Reminder type for CalendarEvent
 export type Reminder = {
-  time: number;
+  time: number; // Making this required
   unit: "minutes" | "hours" | "days";
 };
 
-// New type for CalendarEvent
+// CalendarEvent type
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -79,7 +79,7 @@ export type CalendarEvent = {
   url?: string;
   type: "meeting" | "task" | "reminder" | "event" | "webinar" | "deadline";
   priority: "high" | "low" | "medium";
-  reminder: Reminder;
+  reminder: Reminder; // This is required, not optional
   attendees: Array<{
     id: string;
     name: string;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Home, 
@@ -48,7 +47,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-// Updated interface to match what Dashboard.tsx is passing
 interface SidebarProps {
   viewMode: string;
   setViewMode: (viewMode: string) => void;
@@ -72,7 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
   
-  // Updated community channels to match Discord-like structure
   const communityChannels = [
     { id: "community-general", label: "general", icon: Hash, hasNotification: true, notificationCount: 2 },
     { id: "community-introduction", label: "introduction", icon: BookOpen, hasNotification: false, notificationCount: 0 },
@@ -80,7 +77,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "community-round-table", label: "round-table", icon: Mic, hasNotification: true, notificationCount: 1 },
   ];
   
-  // Added announcements section
   const announcements = [
     { id: "announcement-weekly", title: "Weekly Update", date: "Today", read: false },
     { id: "announcement-event", title: "Upcoming Roundtable", date: "Tomorrow", read: false },
@@ -113,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "home", label: "Home", icon: Home, notifications: 0 },
     { id: "chat", label: "Direct Messages", icon: MessageSquare, notifications: 3 },
     { id: "calendar", label: "Calendar", icon: CalendarDays, notifications: 1 },
-    { id: "documents", label: "Hub", icon: FileText, notifications: 0 }, // Changed label from "Documents" to "Hub"
+    { id: "documents", label: "Hub", icon: FileText, notifications: 0 },
     { id: "profile", label: "My Profile", icon: UserCircle, notifications: 0 },
     { id: "analytics", label: "Analytics", icon: BarChart, notifications: 0 },
     { id: "explore", label: "Explore", icon: Compass, notifications: 0 },
@@ -131,7 +127,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleItemSelect = (itemId: string) => {
     onSelectItem(itemId);
     
-    // If a community channel is selected, set view mode to "community"
     if (itemId.startsWith("community-")) {
       setViewMode("community");
     } else if (itemId === "documents") {
@@ -256,7 +251,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               
               <CollapsibleContent className="animate-accordion-down space-y-1">
-                {/* Community channels */}
                 {communityChannels.map((channel) => (
                   <Button
                     key={channel.id}
@@ -279,7 +273,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </Button>
                 ))}
                 
-                {/* Announcements section */}
                 <div className="mt-3 mb-1 px-2">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     ANNOUNCEMENTS
@@ -338,7 +331,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </TooltipProvider>
             ))}
             
-            {/* Announcement icon for collapsed mode */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -362,7 +354,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
         
-        {/* Improved Live Roundtable section */}
         {!collapsed && activeItem === "community-round-table" && (
           <div className="mt-4 px-3 py-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-200/50 dark:border-red-900/30 backdrop-blur-sm animate-fade-in">
             <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
@@ -389,7 +380,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Hall of Fame spotlight section */}
         {!collapsed && (viewMode === "community" && activeChannel === "hall-of-fame") && (
           <div className="mt-4 px-3 py-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-lg border border-yellow-200/50 dark:border-yellow-900/30 backdrop-blur-sm animate-fade-in">
             <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
