@@ -14,13 +14,15 @@ interface CelestialBackgroundProps {
   starCount?: number;
   backgroundImage?: string;
   overlayColor?: string;
+  showWhales?: boolean;
 }
 
 const CelestialBackground: React.FC<CelestialBackgroundProps> = ({
   className = "",
   starCount = 80,
-  backgroundImage = "/public/lovable-uploads/f61a938f-4bf8-44f0-8e79-84bbe1a177b0.png",
-  overlayColor = "rgba(8, 16, 33, 0.7)"
+  backgroundImage = "/public/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png",
+  overlayColor = "rgba(8, 16, 33, 0.8)",
+  showWhales = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [stars, setStars] = React.useState<Star[]>([]);
@@ -60,10 +62,11 @@ const CelestialBackground: React.FC<CelestialBackgroundProps> = ({
         style={{ backgroundColor: overlayColor }}
       ></div>
       
+      {/* Additional stars */}
       {stars.map((star, index) => (
         <div
           key={index}
-          className="star"
+          className="star absolute rounded-full bg-white animate-twinkle"
           style={{
             left: `${star.x}px`,
             top: `${star.y}px`,
@@ -75,6 +78,7 @@ const CelestialBackground: React.FC<CelestialBackgroundProps> = ({
         ></div>
       ))}
       
+      {/* Gradient overlay at the bottom */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-celestial-dark/80"></div>
     </div>
   );

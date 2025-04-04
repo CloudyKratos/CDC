@@ -1,473 +1,376 @@
-
 import React, { useState } from 'react';
-import { Hash, Pin, Bell, Users, Heart, MessageSquare, Video, Sparkles, Send, Share2, FileText, Link, Smile, Gift, Award } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { EmojiPicker } from '@/components/EmojiPicker';
+import { MessageSquare, FileText, Image, Smile, Send, Heart, Share2, Bookmark, MoreHorizontal, Search } from 'lucide-react';
+import Icons from '@/utils/IconUtils';
+import WorkInProgressBanner from '@/components/WorkInProgressBanner';
+import ComingSoonBanner from '@/components/ComingSoonBanner';
 
-interface CommunityChannelContentProps {
-  channelName: string;
+interface Author {
+  id: string;
+  name: string;
+  avatar: string;
 }
 
-const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ channelName }) => {
-  const [showRichFeatures, setShowRichFeatures] = useState(false);
-  const [message, setMessage] = useState('');
-  const [likedMessages, setLikedMessages] = useState<string[]>([]);
-  const [showReactions, setShowReactions] = useState<string | null>(null);
-  
-  const channelInfo = {
-    general: {
-      title: "General",
-      description: "General community discussion",
-      iconColor: "text-blue-500",
+interface Comment {
+  id: string;
+  author: Author;
+  content: string;
+  timeAgo: string;
+}
+
+interface Post {
+  id: string;
+  author: Author;
+  content: string;
+  timeAgo: string;
+  category: string;
+  likes: number;
+  comments: Comment[];
+  media?: string;
+}
+
+const initialPosts: Post[] = [
+  {
+    id: "1",
+    author: {
+      id: "1",
+      name: "John Doe",
+      avatar: "https://github.com/shadcn.png"
     },
-    introduction: {
-      title: "Introduction",
-      description: "Introduce yourself to the community",
-      iconColor: "text-green-500",
+    content: "Hey everyone! Check out this article I found on sustainable business practices. It's a game-changer!",
+    timeAgo: "2 hours ago",
+    category: "Sustainability",
+    likes: 42,
+    comments: [
+      {
+        id: "1",
+        author: {
+          id: "2",
+          name: "Jane Smith",
+          avatar: "https://avatars.githubusercontent.com/u/284139?s=48&v=4"
+        },
+        content: "Thanks for sharing, John! I'll definitely give it a read.",
+        timeAgo: "1 hour ago"
+      }
+    ]
+  },
+  {
+    id: "2",
+    author: {
+      id: "3",
+      name: "Alice Johnson",
+      avatar: "https://pbs.twimg.com/profile_images/1587647094267049984/FvGAodaS_400x400.jpg"
     },
-    "hall-of-fame": {
-      title: "Hall of Fame",
-      description: "Celebrate community achievements",
-      iconColor: "text-yellow-500",
+    content: "I'm excited to announce that we're launching a new product next month! Stay tuned for more details.",
+    timeAgo: "5 hours ago",
+    category: "Product Launch",
+    likes: 128,
+    comments: []
+  },
+  {
+    id: "3",
+    author: {
+      id: "1",
+      name: "John Doe",
+      avatar: "https://github.com/shadcn.png"
     },
-    "round-table": {
-      title: "Round Table",
-      description: "Weekly community discussions",
-      iconColor: "text-red-500",
-    },
+    content: "Just finished a great book on leadership. Highly recommend it to all entrepreneurs!",
+    timeAgo: "1 day ago",
+    category: "Leadership",
+    likes: 75,
+    comments: [
+      {
+        id: "2",
+        author: {
+          id: "2",
+          name: "Jane Smith",
+          avatar: "https://avatars.githubusercontent.com/u/284139?s=48&v=4"
+        },
+        content: "I've heard great things about that book. Adding it to my reading list!",
+        timeAgo: "12 hours ago"
+      },
+      {
+        id: "3",
+        author: {
+          id: "3",
+          name: "Alice Johnson",
+          avatar: "https://pbs.twimg.com/profile_images/1587647094267049984/FvGAodaS_400x400.jpg"
+        },
+        content: "Thanks for the recommendation!",
+        timeAgo: "8 hours ago"
+      }
+    ],
+    media: "https://images.unsplash.com/photo-1556761175-b413da4ca6d8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8YnVzaW5lc3N8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60"
+  }
+];
+
+const CommunityChannelContent: React.FC = () => {
+  const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const [newPostContent, setNewPostContent] = useState<string>("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+
+  const handlePostSubmit = () => {
+    if (newPostContent.trim() !== "") {
+      const newPost: Post = {
+        id: String(posts.length + 1),
+        author: {
+          id: "1",
+          name: "You",
+          avatar: "https://github.com/shadcn.png"
+        },
+        content: newPostContent,
+        timeAgo: "Just now",
+        category: "General",
+        likes: 0,
+        comments: [],
+        media: undefined
+      };
+
+      setPosts([newPost, ...posts]);
+      setNewPostContent("");
+    }
   };
 
-  const currentChannel = channelInfo[channelName as keyof typeof channelInfo] || channelInfo.general;
-  
-  // User messages for the demo
-  const messages = [
-    {
-      id: "msg1",
-      user: {
-        id: "user1",
-        name: "Alex Johnson",
-        avatar: "Alex",
-        role: "Admin",
-        badge: "Founder"
-      },
-      content: channelName === "introduction" 
-        ? "Hi everyone! I'm excited to join this community. I'm working on a new project related to sustainable business practices."
-        : channelName === "hall-of-fame"
-        ? "Congratulations to all the amazing entrepreneurs who achieved their milestones this month!"
-        : channelName === "round-table"
-        ? "I think the most important aspect of entrepreneurship is resilience and adaptability."
-        : "This is a great community for entrepreneurs to share ideas and collaborate!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      pinned: channelName === "general",
-      reactions: {
-        "👍": 5,
-        "🔥": 3,
-        "💯": 2
-      }
-    },
-    {
-      id: "msg2",
-      user: {
-        id: "user2",
-        name: "Emily Davis",
-        avatar: "Emily",
-        role: "Member",
-        badge: "Investor"
-      },
-      content: channelName === "introduction" 
-        ? "Hello! I'm a marketing specialist with experience in growth hacking strategies for startups."
-        : channelName === "hall-of-fame"
-        ? "I just closed my first funding round of $500k! Thanks to everyone who provided advice along the way."
-        : channelName === "round-table"
-        ? "Finding the right co-founder is critical. Someone who complements your skills and shares your vision."
-        : "Has anyone used no-code tools to validate their MVP? Any recommendations?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      pinned: false,
-      reactions: {
-        "🎉": 8,
-        "👏": 4
-      }
-    },
-    {
-      id: "msg3",
-      user: {
-        id: "user3",
-        name: "Michael Brown",
-        avatar: "Michael",
-        role: "Moderator",
-        badge: "Mentor"
-      },
-      content: channelName === "introduction" 
-        ? "Welcome to all the new members! Feel free to reach out if you need any help getting oriented."
-        : channelName === "hall-of-fame"
-        ? "Excited to announce that my startup was featured in TechCrunch last week! The power of good PR!"
-        : channelName === "round-table"
-        ? "Market validation before building is essential. I've seen too many startups build something nobody wants."
-        : "Just shared a resource on funding strategies in the resources channel. Check it out!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15),
-      pinned: false,
-      reactions: {
-        "💡": 6,
-        "💪": 3
-      },
-      hasAttachment: channelName !== "introduction"
-    }
-  ];
-  
-  const handleLikeToggle = (messageId: string) => {
-    setLikedMessages(prev => 
-      prev.includes(messageId) 
-        ? prev.filter(id => id !== messageId)
-        : [...prev, messageId]
-    );
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
   };
-  
-  const toggleReactionPanel = (messageId: string | null) => {
-    setShowReactions(messageId);
-  };
-  
-  const renderReactionLabel = (count: number) => {
-    return count > 0 ? count.toString() : "";
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewPostContent(newPostContent + emoji);
   };
 
   return (
-    <div className="flex flex-col h-full animate-fade-in">
-      <div className="border-b border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center">
-          <Hash className={`mr-2 ${currentChannel.iconColor}`} size={20} />
-          <h2 className="font-medium text-lg">{currentChannel.title}</h2>
-          <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
-            <Pin size={10} className="mr-1" /> Featured
-          </Badge>
-        </div>
-        <div className="flex items-center space-x-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
-                  <Bell size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Notification settings</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
-                  <Users size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Member list</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
-      
-      <div className="flex-grow overflow-y-auto p-4">
-        <div className="space-y-4">
-          {/* Channel-specific content */}
-          {channelName === "round-table" && (
-            <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-200 dark:border-red-900/30 rounded-lg p-4 my-6 backdrop-blur-sm">
-              <div className="flex items-center">
-                <Video className="text-red-500 animate-pulse mr-2" size={20} />
-                <h3 className="font-medium bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Live Roundtable Discussion</h3>
-                <Badge className="ml-2 bg-red-500 text-white">LIVE</Badge>
-              </div>
-              <p className="text-sm mt-2">The weekly community roundtable is currently active with 13 participants. Join to discuss this week's topic: "Building a successful entrepreneurial mindset".</p>
-              <Button className="mt-3 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white">
-                Join Call <Sparkles size={14} className="ml-1" />
-              </Button>
-            </div>
-          )}
-
-          {channelName === "hall-of-fame" && (
-            <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-4 my-6 backdrop-blur-sm">
-              <div className="flex items-center mb-3">
-                <div className="relative">
-                  <Avatar className="h-12 w-12 border-2 border-yellow-200 dark:border-yellow-900/50 mr-3">
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" />
-                    <AvatarFallback>AS</AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1">
-                    <Award className="h-3 w-3 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-medium bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">Entrepreneur of the Month</h3>
-                  <p className="text-sm">Alex Smith</p>
-                </div>
-                <Badge className="ml-auto bg-yellow-500 text-white">TOP ACHIEVER</Badge>
-              </div>
-              <p className="text-sm mt-2">Congratulations to Alex for successfully launching his startup and securing $1M in seed funding!</p>
-              <div className="flex items-center space-x-2 mt-3">
-                <Button size="sm" variant="outline" className="text-yellow-500 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-900/20">
-                  <Heart size={14} className="mr-1" /> Congratulate
-                </Button>
-                <Button size="sm" variant="outline" className="text-yellow-500 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-900/20">
-                  <MessageSquare size={14} className="mr-1" /> Send Message
-                </Button>
-                <Button size="sm" variant="outline" className="text-yellow-500 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-900/20">
-                  <Gift size={14} className="mr-1" /> Send Gift
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Standard community chat messages */}
-          {(channelName === "general" || channelName === "introduction") && (
-            <>
-              {channelName === "introduction" && (
-                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-200 dark:border-green-900/30 rounded-lg p-4 mb-6 backdrop-blur-sm">
-                  <h3 className="font-medium bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent mb-2">
-                    Welcome to the Community!
-                  </h3>
-                  <p className="text-sm">This is a place to introduce yourself to other entrepreneurs. Share your background, interests, and what you're working on!</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Standard community messages - shown in all channels */}
-          {messages.map((message) => (
-            <div key={message.id} className={cn(
-              "flex items-start space-x-3 group hover:bg-gray-50 dark:hover:bg-gray-800/30 p-3 rounded-lg transition-colors",
-              message.pinned && "border-l-2 border-amber-500 pl-3 bg-amber-50/30 dark:bg-amber-900/10"
-            )}>
-              <Avatar className="h-9 w-9 mt-1 ring-2 ring-primary/10">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.user.avatar}`} />
-                <AvatarFallback>{message.user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <div className="flex items-center flex-wrap">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className="font-medium text-sm bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent cursor-pointer">
-                          {message.user.name}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1 p-1">
-                          <p className="text-xs font-semibold">{message.user.name}</p>
-                          <p className="text-xs text-gray-500">Role: {message.user.role}</p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  {message.user.badge && (
-                    <Badge variant="outline" className="ml-2 text-xs h-5 bg-primary/10 text-primary border-primary/20">
-                      {message.user.badge}
-                    </Badge>
-                  )}
-                  
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                    {format(message.timestamp, "h:mm a")}
-                  </span>
-                  
-                  {message.pinned && (
-                    <Badge variant="outline" className="ml-2 text-xs h-5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800">
-                      <Pin size={10} className="mr-1" /> Pinned
-                    </Badge>
-                  )}
-                </div>
-                
-                <p className="text-sm mt-1">
-                  {message.content}
-                </p>
-                
-                {message.hasAttachment && (
-                  <div className="mt-2 border border-gray-200 dark:border-gray-700 rounded-md p-2 bg-gray-50 dark:bg-gray-800/50 flex items-center">
-                    <FileText className="h-4 w-4 text-blue-500 mr-2" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">Funding_Strategies_2025.pdf</p>
-                      <p className="text-xs text-gray-500">2.4 MB · PDF</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-7 px-2">
-                      <Link className="h-3 w-3 mr-1" />
-                      <span className="text-xs">Open</span>
-                    </Button>
-                  </div>
-                )}
-                
-                {/* Reactions */}
-                {Object.keys(message.reactions).length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {Object.entries(message.reactions).map(([emoji, count]) => (
-                      <Badge
-                        key={emoji}
-                        variant="outline"
-                        className={cn(
-                          "text-xs py-0 h-6 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors",
-                          likedMessages.includes(`${message.id}-${emoji}`) && "bg-primary/10 text-primary border-primary/20"
-                        )}
-                        onClick={() => handleLikeToggle(`${message.id}-${emoji}`)}
-                      >
-                        {emoji} {renderReactionLabel(count + (likedMessages.includes(`${message.id}-${emoji}`) ? 1 : 0))}
-                      </Badge>
-                    ))}
-                    <Badge
-                      variant="outline"
-                      className="text-xs py-0 h-6 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                      onClick={() => toggleReactionPanel(message.id)}
-                    >
-                      <Smile className="h-3 w-3" />
-                    </Badge>
-                  </div>
-                )}
-                
-                {showReactions === message.id && (
-                  <div className="mt-2 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-                    <div className="flex flex-wrap gap-1">
-                      {["👍", "❤️", "🎉", "🔥", "👀", "💯", "🙌", "👏"].map(emoji => (
-                        <button
-                          key={emoji}
-                          className="text-lg hover:bg-gray-100 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-                          onClick={() => {
-                            handleLikeToggle(`${message.id}-${emoji}`);
-                            toggleReactionPanel(null);
-                          }}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex items-center space-x-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 rounded-full hover:bg-primary/10"
-                    onClick={() => handleLikeToggle(`${message.id}-👍`)}
-                  >
-                    <Heart 
-                      size={12} 
-                      className={cn(
-                        "transition-colors",
-                        likedMessages.includes(`${message.id}-👍`) 
-                          ? "text-red-500 fill-red-500" 
-                          : "text-gray-500 hover:text-red-500"
-                      )} 
-                    />
-                  </Button>
-                  
-                  <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10">
-                    <MessageSquare size={12} className="text-gray-500 hover:text-primary transition-colors" />
-                  </Button>
-                  
-                  <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10">
-                    <Share2 size={12} className="text-gray-500 hover:text-primary transition-colors" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Enhanced message input */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-900/80 sticky bottom-0">
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1">
-            <Input 
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={`Message #${channelName}...`}
-              className="pr-20 rounded-full border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/40 focus:border-primary"
-            />
-            
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <Smile size={15} className="text-gray-500" />
-              </Button>
-              
-              <Popover open={showRichFeatures} onOpenChange={setShowRichFeatures}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <Plus size={15} className="text-gray-500" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="end">
-                  <div className="grid grid-cols-3 gap-1">
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <FileText size={14} />
-                      <span className="text-xs">File</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <Link size={14} />
-                      <span className="text-xs">Link</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <Poll size={14} />
-                      <span className="text-xs">Poll</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <Calendar size={14} />
-                      <span className="text-xs">Event</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <Gift size={14} />
-                      <span className="text-xs">Gift</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex flex-col items-center h-16 w-full justify-center space-y-1">
-                      <Sparkles size={14} />
-                      <span className="text-xs">Kudos</span>
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+          <Avatar className="h-8 w-8 mr-2">
+            <AvatarImage src="https://github.com/shadcn.png" alt="Channel Avatar" />
+            <AvatarFallback>CH</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-lg font-bold"># entrepreneurs</h2>
+            <p className="text-xs text-muted-foreground">General discussion for entrepreneurs</p>
           </div>
-          
-          <Button 
-            className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 rounded-full"
-            disabled={!message.trim()}
-          >
-            <Send size={16} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Search className="h-4 w-4" />
           </Button>
+          <span className="text-xs text-muted-foreground">234 members</span>
         </div>
       </div>
+
+      <Tabs defaultValue="posts" className="flex-1 flex flex-col">
+        <div className="px-4 pt-2">
+          <TabsList className="w-full justify-start gap-2 h-9">
+            <TabsTrigger value="posts" className="text-xs">Posts</TabsTrigger>
+            <TabsTrigger value="media" className="text-xs">Media</TabsTrigger>
+            <TabsTrigger value="files" className="text-xs">Files</TabsTrigger>
+            <TabsTrigger value="events" className="text-xs">Events</TabsTrigger>
+          </TabsList>
+        </div>
+
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="posts" className="m-0 h-full flex flex-col">
+            <ScrollArea className="flex-1 px-4 py-2">
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <Card key={post.id} className="p-4">
+                    <div className="flex space-x-3">
+                      <Avatar>
+                        <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                        <AvatarFallback>{post.author.name.slice(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-medium">{post.author.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">posted {post.timeAgo}</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {post.category}
+                          </Badge>
+                        </div>
+                        <p className="mt-2">{post.content}</p>
+
+                        {post.media && (
+                          <div className="mt-3 overflow-hidden rounded-md">
+                            <img 
+                              src={post.media} 
+                              alt="Post media" 
+                              className="w-full h-auto object-cover"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center space-x-3">
+                            <Button variant="ghost" size="sm" className="h-8 gap-1">
+                              <Heart className="h-4 w-4" />
+                              <span className="text-xs">{post.likes}</span>
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1">
+                              <MessageSquare className="h-4 w-4" />
+                              <span className="text-xs">{post.comments.length}</span>
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1">
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1">
+                              <Bookmark className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {post.comments.length > 0 && (
+                          <div className="mt-3 space-y-3">
+                            <Separator />
+                            {post.comments.map((comment) => (
+                              <div key={comment.id} className="flex space-x-3 pt-3">
+                                <Avatar className="h-7 w-7">
+                                  <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+                                  <AvatarFallback>{comment.author.name.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="flex items-center">
+                                    <span className="text-sm font-medium">{comment.author.name}</span>
+                                    <span className="text-xs text-muted-foreground ml-2">{comment.timeAgo}</span>
+                                  </div>
+                                  <p className="text-sm mt-1">{comment.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <div className="p-4 border-t bg-background">
+              <div className="flex space-x-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src="https://github.com/shadcn.png" alt="User Avatar" />
+                  <AvatarFallback>ME</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-3">
+                  <Textarea 
+                    placeholder="Share your thoughts with the community..." 
+                    className="resize-none" 
+                    value={newPostContent} 
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                  />
+                  <div className="flex justify-between items-center">
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Image className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleEmojiPicker}>
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-24">
+                          <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                        </div>
+                      )}
+                    </div>
+                    <Button size="sm" className="h-8" onClick={handlePostSubmit}>
+                      <Send className="h-4 w-4 mr-2" />
+                      Post
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="media" className="h-full m-0 p-4">
+            <ComingSoonBanner 
+              title="Media Gallery Coming Soon"
+              description="Share and browse images, videos, and other media with your community."
+            />
+          </TabsContent>
+
+          <TabsContent value="files" className="h-full m-0 p-4">
+            <ComingSoonBanner 
+              title="Files Repository Coming Soon"
+              description="Access and share documents, presentations, and other files with your community."
+            />
+          </TabsContent>
+
+          <TabsContent value="events" className="h-full m-0 p-4">
+            <div className="h-full flex flex-col space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Community Events</h3>
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Icons.Plus className="h-4 w-4 mr-1" />
+                    New Event
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Icons.Calendar className="h-4 w-4 mr-1" />
+                    View Calendar
+                  </Button>
+                </div>
+              </div>
+              
+              <WorkInProgressBanner 
+                title="Community Events Feature in Development"
+                description="We're building a comprehensive events system for community meetups, webinars, and collaborations."
+              />
+              
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                <Card className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Badge className="mb-2">Webinar</Badge>
+                      <h4 className="font-medium">Growth Strategies for SaaS Startups</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        May 15, 2025 • 2:00 PM - 3:30 PM EST
+                      </p>
+                    </div>
+                    <Badge variant="outline">14 attending</Badge>
+                  </div>
+                </Card>
+                
+                <Card className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Badge className="mb-2">Meetup</Badge>
+                      <h4 className="font-medium">NYC Entrepreneur Networking Event</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        June 3, 2025 • 6:30 PM - 8:30 PM EST
+                      </p>
+                    </div>
+                    <Badge variant="outline">23 attending</Badge>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 };
-
-// Custom Poll icon component
-const Poll = ({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M3 7h18"></path>
-    <path d="M3 12h18"></path>
-    <path d="M3 17h9"></path>
-    <path d="M16 16l1.5 1.5"></path>
-    <path d="M19 14l-1.5 1.5"></path>
-    <rect x="15" y="11" width="4" height="6" rx="1"></rect>
-  </svg>
-);
 
 export default CommunityChannelContent;

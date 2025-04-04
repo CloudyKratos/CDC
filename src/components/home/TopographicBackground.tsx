@@ -4,13 +4,22 @@ import CelestialBackground from "./CelestialBackground";
 
 interface TopographicBackgroundProps {
   className?: string;
-  variant?: "default" | "modern" | "celestial";
+  variant?: "default" | "modern" | "celestial" | "whales";
 }
 
 const TopographicBackground: React.FC<TopographicBackgroundProps> = ({ 
   className,
-  variant = "celestial" 
+  variant = "whales" 
 }) => {
+  if (variant === "whales") {
+    return <CelestialBackground 
+      className={className} 
+      backgroundImage="/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png"
+      overlayColor="rgba(8, 16, 33, 0.7)"
+      showWhales={true}
+    />;
+  }
+  
   if (variant === "celestial") {
     return <CelestialBackground className={className} />;
   }
