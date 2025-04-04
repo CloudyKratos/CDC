@@ -1,14 +1,17 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { BellRing, Clock, CheckCircle, AlertTriangle, AlertCircle, Camera, Waves, BrainCircuit, SunMedium, Sunrise, MoonStar } from "lucide-react";
+import { BellRing, Clock, CheckCircle, AlertTriangle, AlertCircle, Camera, Waves, BrainCircuit, SunMedium, Sunrise, MoonStar, Play, Pause, PlusCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { TaskType } from "@/types/workspace";
-
-type TimeBombSeverity = "low" | "medium" | "high" | "critical";
+import { TaskType, TimeBombSeverity } from "@/types/workspace";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface AccountabilityTimeBombProps {
   title: string;
@@ -19,6 +22,8 @@ interface AccountabilityTimeBombProps {
   onComplete?: () => void;
   onTimeout?: () => void;
   className?: string;
+  streakCount?: number;
+  enableGamification?: boolean;
 }
 
 const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
@@ -30,16 +35,49 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
   onComplete,
   onTimeout,
   className,
+  streakCount = 0,
+  enableGamification = true,
 }) => {
   const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert minutes to seconds
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const [extensionMinutes, setExtensionMinutes] = useState(5);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [autoStartNext, setAutoStartNext] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const totalSeconds = duration * 60;
   const progressPercentage = (timeLeft / totalSeconds) * 100;
+  
+  const calculatePointsForCompletion = () => {
+    // Points are based on:
+    // 1. Task duration (longer tasks give more points)
+    // 2. Severity (higher severity gives more points)
+    // 3. Streak (consecutive completions multiply points)
+    
+    let basePoints = Math.floor(duration / 5) * 10; // 10 points per 5 minutes
+    
+    // Severity multiplier
+    const severityMultiplier = {
+      low: 1,
+      medium: 1.5,
+      high: 2,
+      critical: 3
+    };
+    
+    basePoints *= severityMultiplier[severity];
+    
+    // Streak bonus (max 2x multiplier)
+    const streakMultiplier = Math.min(2, 1 + (streakCount * 0.1));
+    
+    return Math.round(basePoints * streakMultiplier);
+  };
   
   const getSeverityColor = () => {
     switch (severity) {
@@ -108,15 +146,37 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     };
   }, [isActive, isPaused, isCompleted, onTimeout]);
   
+  const handleStart = () => {
+    setIsPaused(false);
+    setHasStarted(true);
+    toast.info("Timer started", {
+      description: "Focus on completing your task.",
+      duration: 3000,
+    });
+  };
+  
   const handleComplete = () => {
     setIsCompleted(true);
     setIsActive(false);
+    
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    
+    if (enableGamification) {
+      const points = calculatePointsForCompletion();
+      setEarnedPoints(points);
+      setShowConfetti(true);
+      
+      setTimeout(() => {
+        setShowConfetti(false);
+      }, 3000);
+    }
+    
     if (onComplete) onComplete();
+    
     toast.success("Task completed!", {
-      description: "Great job completing your accountability task.",
+      description: enableGamification ? `Great job! You earned ${calculatePointsForCompletion()} points.` : "Great job completing your accountability task.",
       duration: 5000,
     });
   };
@@ -136,10 +196,10 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
     }
   };
   
-  const handleExtendTime = (additionalMinutes: number) => {
-    setTimeLeft((prevTime) => prevTime + (additionalMinutes * 60));
+  const handleExtendTime = () => {
+    setTimeLeft((prevTime) => prevTime + (extensionMinutes * 60));
     setShowExtendDialog(false);
-    toast.success(`Added ${additionalMinutes} minutes`, {
+    toast.success(`Added ${extensionMinutes} minutes`, {
       description: "Your accountability timer has been extended.",
       duration: 3000,
     });
@@ -184,24 +244,61 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
             {description || "You've successfully completed this accountability task."}
           </CardDescription>
         </CardHeader>
+        {enableGamification && (
+          <CardContent className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Sparkles className="h-4 w-4 mr-2 text-yellow-500" />
+                <span className="font-medium text-sm">Points earned:</span>
+              </div>
+              <span className="text-yellow-600 dark:text-yellow-400 font-bold">{earnedPoints}</span>
+            </div>
+            {streakCount > 0 && (
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2 text-orange-500" />
+                  <span className="font-medium text-sm">Current streak:</span>
+                </div>
+                <span className="text-orange-600 dark:text-orange-400 font-bold">{streakCount} days</span>
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
     );
   }
   
   return (
-    <Card className={cn("w-full", className, isActive ? "border-yellow-200 dark:border-yellow-800" : "border-red-200 dark:border-red-800")}>
+    <Card className={cn("w-full relative", className, isActive ? "border-yellow-200 dark:border-yellow-800" : "border-red-200 dark:border-red-800")}>
+      {showConfetti && (
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          {/* Confetti effect would be rendered here (using a confetti library) */}
+          <div className="absolute top-0 left-1/4 animate-bounce">✨</div>
+          <div className="absolute top-10 left-1/2 animate-bounce delay-100">🎉</div>
+          <div className="absolute top-5 right-1/4 animate-bounce delay-200">🏆</div>
+          <div className="absolute top-20 left-1/3 animate-bounce delay-300">🌟</div>
+        </div>
+      )}
+      
       <CardHeader className={cn("pb-2", !isActive ? "bg-red-50 dark:bg-red-900/20" : "")}>
         <div className="flex justify-between items-center">
           <CardTitle className="text-base flex items-center">
             {getTaskIcon()}
             <span className="ml-2">{title}</span>
           </CardTitle>
-          <Badge className={cn("ml-2", getSeverityColor())}>
-            <span className="flex items-center">
-              {getSeverityIcon()}
-              <span className="ml-1 capitalize">{severity}</span>
-            </span>
-          </Badge>
+          <div className="flex items-center">
+            {streakCount > 0 && enableGamification && (
+              <Badge variant="outline" className="mr-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                <Sparkles className="h-3 w-3 mr-1" /> {streakCount} streak
+              </Badge>
+            )}
+            <Badge className={cn("ml-2", getSeverityColor())}>
+              <span className="flex items-center">
+                {getSeverityIcon()}
+                <span className="ml-1 capitalize">{severity}</span>
+              </span>
+            </Badge>
+          </div>
         </div>
         <CardDescription>
           {description || "Complete this task within the time limit to maintain your streak."}
@@ -234,29 +331,76 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
       <CardFooter className="pt-2 flex justify-between">
         {isActive ? (
           <>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handlePauseResume}
-            >
-              {isPaused ? "Resume" : "Pause"}
-            </Button>
-            <div className="space-x-2">
+            {!hasStarted ? (
               <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleExtendTime(5)}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                onClick={handleStart}
               >
-                +5 Min
+                <Play className="h-4 w-4 mr-2" /> Start Timer
               </Button>
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={handleComplete}
-              >
-                Complete
-              </Button>
-            </div>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handlePauseResume}
+                >
+                  {isPaused ? <Play className="h-4 w-4 mr-1" /> : <Pause className="h-4 w-4 mr-1" />}
+                  {isPaused ? "Resume" : "Pause"}
+                </Button>
+                <div className="space-x-2">
+                  <Popover open={showExtendDialog} onOpenChange={setShowExtendDialog}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        <PlusCircle className="h-4 w-4 mr-1" /> Extend
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Extend timer</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span>Additional minutes: {extensionMinutes}</span>
+                          </div>
+                          <Slider
+                            value={[extensionMinutes]}
+                            min={1}
+                            max={30}
+                            step={1}
+                            onValueChange={(value) => setExtensionMinutes(value[0])}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setShowExtendDialog(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={handleExtendTime}
+                          >
+                            Add Time
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={handleComplete}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" /> Complete
+                  </Button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <div className="w-full">
@@ -272,6 +416,38 @@ const AccountabilityTimeBomb: React.FC<AccountabilityTimeBombProps> = ({
           </div>
         )}
       </CardFooter>
+      
+      {enableGamification && (
+        <div className="absolute top-3 right-3">
+          <Popover open={showSettings} onOpenChange={setShowSettings}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <Sparkles className="h-4 w-4 text-yellow-500" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <h4 className="font-medium">Gamification Settings</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="auto-start">Auto-start next bomb</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically start the next scheduled bomb
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-start"
+                      checked={autoStartNext}
+                      onCheckedChange={setAutoStartNext}
+                    />
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
     </Card>
   );
 };

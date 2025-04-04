@@ -35,7 +35,7 @@ const Dashboard = () => {
       case "chat":
         return <ChatPanel />;
       case "community":
-        return <CommunityPanel channelName="Community" />;
+        return <CommunityPanel channelName="general" />;
       case "video":
         return <VideoCallPanel isOpen={true} onClose={() => setActivePanel("workspace")} />;
       case "profile":

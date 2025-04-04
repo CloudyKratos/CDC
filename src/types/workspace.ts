@@ -1,3 +1,4 @@
+
 export type NotePermission = "private" | "shared" | "public";
 
 export type NoteCollaborator = {
@@ -119,3 +120,37 @@ export type AuthState = {
   isLoading: boolean;
   error: string | null;
 };
+
+// Improved types for Accountability Time Bomb
+export type TimeBombSeverity = "low" | "medium" | "high" | "critical";
+
+export interface TimeBombStatus {
+  isActive: boolean;
+  isPaused: boolean;
+  isCompleted: boolean;
+  timeLeft: number; // in seconds
+  totalTime: number; // in seconds
+}
+
+export interface TimeBombStats {
+  completedCount: number;
+  streakDays: number;
+  lastCompletedDate?: Date;
+  totalTimeSpent: number; // in minutes
+}
+
+export interface AccountabilityBomb {
+  id: string;
+  title: string;
+  description?: string;
+  taskType: TaskType;
+  duration: number; // in minutes
+  severity: TimeBombSeverity;
+  createdAt: Date;
+  status: TimeBombStatus;
+  stats: TimeBombStats;
+  customIcon?: string;
+  reminderTime?: number; // minutes before start to remind
+  scheduledTime?: string; // time of day for recurring bombs
+  recurringDays?: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
+}

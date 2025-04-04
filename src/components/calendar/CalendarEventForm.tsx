@@ -34,18 +34,18 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
   );
   const [startTime, setStartTime] = useState(event?.startTime || "09:00");
   const [endTime, setEndTime] = useState(event?.endTime || "10:00");
-  const [type, setType] = useState(event?.type || "meeting");
+  const [eventType, setEventType] = useState<CalendarEvent["type"]>(event?.type || "meeting");
   const [description, setDescription] = useState(event?.description || "");
-  const [priority, setPriority] = useState(event?.priority || "medium");
+  const [priority, setPriority] = useState<CalendarEvent["priority"]>(event?.priority || "medium");
   const [location, setLocation] = useState(event?.location || "");
   const [url, setUrl] = useState(event?.url || "");
   const [isAllDay, setIsAllDay] = useState(event?.isAllDay || false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>(event?.attendees || defaultAttendees);
-  const [reminderType, setReminderType] = useState<string>(
+  const [reminderType, setReminderType] = useState<"email" | "notification" | "sms">(
     event?.reminder 
       ? (typeof event.reminder === 'string' 
-          ? event.reminder 
+          ? "notification"
           : event.reminder.type) 
       : "notification"
   );
@@ -60,21 +60,21 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !date || !type || !priority) {
+    if (!title || !date || !eventType || !priority) {
       return; // Form validation
     }
     
     const eventData: Partial<CalendarEvent> = {
       title,
       date,
-      type: type as CalendarEvent["type"],
-      description,
-      priority: priority as CalendarEvent["priority"],
+      type: eventType,
+      description: description || "No description provided",
+      priority,
       attendees,
       isAllDay,
       reminder: {
         time: reminderTime,
-        type: reminderType as "email" | "notification" | "sms"
+        type: reminderType
       }
     };
     
@@ -130,7 +130,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
         
         <div>
           <label className="block text-sm font-medium mb-1">Type</label>
-          <Select value={type} onValueChange={setType}>
+          <Select 
+            value={eventType} 
+            onValueChange={(value: CalendarEvent["type"]) => setEventType(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
@@ -198,7 +201,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Priority</label>
-          <Select value={priority} onValueChange={setPriority}>
+          <Select 
+            value={priority} 
+            onValueChange={(value: CalendarEvent["priority"]) => setPriority(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
@@ -227,7 +233,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
         
         <div>
           <label className="block text-sm font-medium mb-1">Reminder</label>
-          <Select value={reminderType} onValueChange={setReminderType}>
+          <Select 
+            value={reminderType}
+            onValueChange={(value: "email" | "notification" | "sms") => setReminderType(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Reminder type" />
             </SelectTrigger>
@@ -242,7 +251,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
       
       <div>
         <label className="block text-sm font-medium mb-1">Reminder time</label>
-        <Select value={reminderTime} onValueChange={setReminderTime}>
+        <Select 
+          value={reminderTime} 
+          onValueChange={setReminderTime}
+        >
           <SelectTrigger>
             <SelectValue placeholder="When to remind" />
           </SelectTrigger>
@@ -256,7 +268,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
         </Select>
       </div>
       
-      {(type === "meeting" || type === "event" || type === "webinar") && (
+      {(eventType === "meeting" || eventType === "event" || eventType === "webinar") && (
         <div>
           <label className="block text-sm font-medium mb-1">Location</label>
           <div className="flex items-center">
@@ -270,7 +282,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
         </div>
       )}
       
-      {type === "webinar" && (
+      {eventType === "webinar" && (
         <div>
           <label className="block text-sm font-medium mb-1">URL</label>
           <div className="flex items-center">
