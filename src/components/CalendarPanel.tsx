@@ -47,7 +47,6 @@ const CalendarPanel: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
   
-  // Sample events data
   useEffect(() => {
     const mockEvents: CalendarEvent[] = [
       {
@@ -125,7 +124,6 @@ const CalendarPanel: React.FC = () => {
     setEvents(mockEvents);
   }, []);
   
-  // Update calendar cells and filtered events when data changes
   useEffect(() => {
     const cells = getCalendarCells(currentDate);
     const filtered = filterEvents(events, currentDate, filters, searchTerm);
@@ -135,7 +133,6 @@ const CalendarPanel: React.FC = () => {
     setFilteredEvents(filtered);
   }, [currentDate, events, filters, searchTerm]);
   
-  // Handle filter change
   const handleFilterChange = (type: string) => {
     setFilters({
       ...filters,
@@ -143,22 +140,21 @@ const CalendarPanel: React.FC = () => {
     });
   };
   
-  // Handle creating or updating an event
   const handleEventSubmit = (eventData: Partial<CalendarEvent>) => {
     if (selectedEvent) {
-      // Update existing event
       const updatedEvents = events.map(event => 
         event.id === selectedEvent.id ? { ...event, ...eventData } : event
       );
       setEvents(updatedEvents);
       toast.success('Event updated successfully');
     } else {
-      // Create new event
       const newEvent: CalendarEvent = {
         id: `event-${events.length + 1}`,
         title: eventData.title || 'Untitled Event',
-        date: eventData.date || new Date(),
+        date: eventData.date instanceof Date ? eventData.date : new Date(),
         type: eventData.type || 'event',
+        priority: eventData.priority || 'medium',
+        attendees: eventData.attendees || [],
         ...eventData
       };
       
@@ -170,38 +166,30 @@ const CalendarPanel: React.FC = () => {
     setSelectedEvent(null);
   };
   
-  // Handle day click
   const handleDayClick = (day: any) => {
     setSelectedDate(day.date);
     
-    // If there are events on this day, show them
     if (day.events.length > 0) {
-      // If only one event, show its details
       if (day.events.length === 1) {
         setSelectedEvent(day.events[0]);
         setEventDetailOpen(true);
       }
-      // Otherwise, we could show a list of events for this day (not implemented here)
     } else {
-      // If no events, allow creating a new one on this date
       setCreateEventOpen(true);
     }
   };
   
-  // Handle event click
   const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedEvent(event);
     setEventDetailOpen(true);
   };
   
-  // Render month view
   const renderMonthView = () => {
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-        {/* Calendar header */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {weekdays.map(day => (
             <div key={day} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -210,7 +198,6 @@ const CalendarPanel: React.FC = () => {
           ))}
         </div>
         
-        {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-1">
           {calendarCells.map((day, index) => (
             <div
@@ -257,8 +244,7 @@ const CalendarPanel: React.FC = () => {
       </div>
     );
   };
-
-  // Render week view
+  
   const renderWeekView = () => {
     const startDay = startOfWeek(currentDate);
     const endDay = endOfWeek(currentDate);
@@ -339,9 +325,7 @@ const CalendarPanel: React.FC = () => {
     );
   };
   
-  // Render timeline view
   const renderTimelineView = () => {
-    // Group events by day for the timeline
     const groupedEvents = groupEventsByDate(filteredEvents);
     const sortedDates = Object.keys(groupedEvents).sort();
     
@@ -705,7 +689,6 @@ const CalendarPanel: React.FC = () => {
         </CardContent>
       </Card>
       
-      {/* Create/Edit Event Dialog */}
       <Dialog open={createEventOpen} onOpenChange={setCreateEventOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -732,7 +715,6 @@ const CalendarPanel: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Event Details Dialog */}
       <Dialog open={eventDetailOpen} onOpenChange={setEventDetailOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>

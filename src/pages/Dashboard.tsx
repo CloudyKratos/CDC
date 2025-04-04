@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -110,7 +111,7 @@ const Dashboard = () => {
       />
 
       <MobileMenu
-        open={isMobileMenuOpen}
+        isOpen={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
         activePanel={activePanel}
         onPanelChange={handlePanelChange}
@@ -118,7 +119,7 @@ const Dashboard = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
-          panel={activePanel}
+          activePanel={activePanel}
           onOpenMobileMenu={handleOpenMobileMenu}
           onPanelChange={handlePanelChange}
         />

@@ -1,6 +1,5 @@
-
-import React, { useContext, useState } from "react";
-import { AuthContext } from "../App";
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const ProfilePanel = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
   const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
@@ -50,7 +49,6 @@ const ProfilePanel = () => {
     timeZone: "PST (UTC-8)",
   });
   
-  // Settings state
   const [settings, setSettings] = useState({
     emailNotifications: true,
     desktopNotifications: true,
@@ -61,7 +59,6 @@ const ProfilePanel = () => {
     autoStatus: true
   });
   
-  // Activity data (mock)
   const activityData = [
     { id: 1, type: "message", content: "Posted in General channel", time: "2 hours ago" },
     { id: 2, type: "event", content: "Joined Weekly Roundtable event", time: "Yesterday" },
@@ -89,16 +86,13 @@ const ProfilePanel = () => {
     setSettings({ ...settings, colorTheme: theme });
     setColorTheme(theme);
     
-    // Remove all theme classes
     document.documentElement.classList.remove('theme-blue', 'theme-purple', 'theme-green', 'theme-orange');
-    // Add the new theme class
     document.documentElement.classList.add(`theme-${theme}`);
     localStorage.setItem('colorTheme', theme);
   };
   
   const handleEditProfile = () => {
     if (isEditing) {
-      // Save changes
       toast.success("Profile updated successfully");
     }
     setIsEditing(!isEditing);
