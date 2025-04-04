@@ -2,13 +2,15 @@
 import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { 
   LayoutGrid, 
   Calendar, 
   MessageSquare, 
   Users, 
   Video,
-  User
+  User,
+  Home
 } from "lucide-react";
 
 export type ActivePanel = "workspace" | "calendar" | "chat" | "community" | "video" | "profile";
@@ -35,6 +37,16 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <div className="grid grid-cols-2 gap-2 p-4">
+          <Link to="/home" className="w-full">
+            <Button
+              variant="outline"
+              className="flex flex-col h-24 items-center justify-center gap-2 w-full"
+            >
+              <Home className="h-6 w-6" />
+              <span>Home</span>
+            </Button>
+          </Link>
+          
           <Button
             variant={activePanel === "workspace" ? "default" : "outline"}
             className="flex flex-col h-24 items-center justify-center gap-2"

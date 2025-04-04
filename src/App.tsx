@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import HomePage from "./components/HomePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,11 @@ const App = () => {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/home" element={
+                <ProtectedRoute>
+                  <HomePage />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

@@ -105,3 +105,6 @@ export const groupEventsByDate = (events: CalendarEvent[]) => {
   
   return grouped;
 };
+
+// Re-export CalendarEvent type
+export type { CalendarEvent };

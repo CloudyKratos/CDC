@@ -2,7 +2,7 @@
 import React from "react";
 import ProfilePanel from "./ProfilePanel";
 
-const UserProfilePanel = () => {
+const UserProfilePanel: React.FC = () => {
   return <ProfilePanel />;
 };
 

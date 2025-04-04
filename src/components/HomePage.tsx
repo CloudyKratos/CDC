@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight, Camera } from "lucide-react";
+import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight, Camera, Home, LayoutDashboard } from "lucide-react";
+import { Link } from "react-router-dom";
 import DailyJournal from "./home/DailyJournal";
 import TodoList from "./home/TodoList";
 import MorningStrategyPopup, { MorningStrategyData } from "./home/MorningStrategyPopup";
@@ -104,21 +105,17 @@ const HomePage = () => {
     });
   };
 
-  const handleTimeoutWarning = () => {
-    toast.warning("Activity monitoring is active", {
-      description: "Complete your morning strategy to deactivate the accountability timer.",
-      duration: 5000,
-    });
-  };
-
   return (
-    <div className="space-y-6 relative">
-      <TopographicBackground />
+    <div className="space-y-6 relative min-h-screen bg-gradient-to-br from-background to-primary/5 p-4 md:p-6">
+      <div className="absolute inset-0 -z-10 opacity-50">
+        <TopographicBackground />
+      </div>
       
-      <div className="relative">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="relative max-w-7xl mx-auto">
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-primary/10 shadow-md">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Home className="h-6 w-6 text-primary" />
               Business Dashboard
             </h2>
             <p className="text-muted-foreground">
@@ -127,6 +124,16 @@ const HomePage = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            <Link to="/dashboard">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Workspace</span>
+              </Button>
+            </Link>
             <Button 
               variant="outline" 
               size="sm" 
@@ -152,16 +159,16 @@ const HomePage = () => {
               </span>
             </Button>
           </div>
-        </div>
+        </header>
         
         {tickBombActive && (
-          <div className="mt-6">
+          <div className="mt-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-red-400/30 shadow-md">
             <TickBombDemo />
           </div>
         )}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-3 md:w-auto">
+          <TabsList className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md grid w-full grid-cols-3 md:w-auto">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <Sparkles className="h-4 w-4" />
               <span>Overview</span>
@@ -213,7 +220,7 @@ const HomePage = () => {
             </div>
             
             <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-              <Card className="md:col-span-1">
+              <Card className="md:col-span-1 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-sm font-medium">Today's Schedule</CardTitle>
@@ -245,7 +252,7 @@ const HomePage = () => {
                 </CardContent>
               </Card>
               
-              <Card className="md:col-span-1">
+              <Card className="md:col-span-1 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
                 </CardHeader>
@@ -286,11 +293,11 @@ const HomePage = () => {
             </div>
             
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              <TodoList className="h-full" />
+              <TodoList className="h-full backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10" />
               {showJournal ? (
                 <DailyJournal onClose={() => setShowJournal(false)} />
               ) : (
-                <Card className="h-full">
+                <Card className="h-full backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <BookOpen size={18} className="mr-2 text-primary" />
@@ -336,7 +343,7 @@ const HomePage = () => {
               title="Business Metrics Dashboard in Development"
               description="We're building a comprehensive metrics dashboard with in-depth analytics, customizable charts, and data export capabilities."
             />
-            <Card>
+            <Card className="backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
               <CardHeader>
                 <CardTitle>Business Metrics</CardTitle>
                 <CardDescription>
@@ -363,7 +370,7 @@ const HomePage = () => {
               title="Business Insights Hub in Development"
               description="Our insights library is being expanded with curated content from industry experts, AI-generated recommendations, and personalized growth strategies."
             />
-            <Card>
+            <Card className="backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
               <CardHeader>
                 <CardTitle>Business Insights</CardTitle>
                 <CardDescription>
