@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, addDays, addMonths, subMonths, parseISO, isToday, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ const CalendarPanel: React.FC = () => {
         startTime: '09:00',
         endTime: '10:30',
         location: 'Conference Room A',
+        priority: 'medium',
         attendees: [
           { id: '1', name: 'John Doe', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
           { id: '2', name: 'Jane Smith', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane' },
@@ -73,7 +75,9 @@ const CalendarPanel: React.FC = () => {
         startTime: '13:00',
         endTime: '15:00',
         location: 'Online',
-        url: 'https://zoom.us/j/123456789'
+        url: 'https://zoom.us/j/123456789',
+        priority: 'medium',
+        attendees: []
       },
       {
         id: '3',
@@ -81,7 +85,8 @@ const CalendarPanel: React.FC = () => {
         date: addDays(new Date(), 5),
         type: 'deadline',
         description: 'Submit final pitch deck for investor meeting',
-        priority: 'high'
+        priority: 'high',
+        attendees: []
       },
       {
         id: '4',
@@ -91,7 +96,9 @@ const CalendarPanel: React.FC = () => {
         description: 'Official launch of our new product line',
         startTime: '10:00',
         endTime: '14:00',
-        location: 'Main Auditorium'
+        location: 'Main Auditorium',
+        priority: 'high',
+        attendees: []
       },
       {
         id: '5',
@@ -99,7 +106,8 @@ const CalendarPanel: React.FC = () => {
         date: addDays(new Date(), -1),
         type: 'task',
         description: 'Complete the quarterly competitor analysis report',
-        priority: 'medium'
+        priority: 'medium',
+        attendees: []
       },
       {
         id: '6',
@@ -109,7 +117,9 @@ const CalendarPanel: React.FC = () => {
         description: 'Review the performance of our recent marketing campaigns',
         startTime: '11:00',
         endTime: '12:00',
-        location: 'Marketing Department'
+        location: 'Marketing Department',
+        priority: 'medium',
+        attendees: []
       },
       {
         id: '7',
@@ -117,7 +127,8 @@ const CalendarPanel: React.FC = () => {
         date: addDays(new Date(), 10),
         type: 'reminder',
         description: 'Deadline for quarterly tax filing',
-        priority: 'high'
+        priority: 'high',
+        attendees: []
       }
     ];
     
@@ -148,14 +159,21 @@ const CalendarPanel: React.FC = () => {
       setEvents(updatedEvents);
       toast.success('Event updated successfully');
     } else {
+      // Ensure all required properties are set for new events
       const newEvent: CalendarEvent = {
         id: `event-${events.length + 1}`,
         title: eventData.title || 'Untitled Event',
         date: eventData.date instanceof Date ? eventData.date : new Date(),
         type: eventData.type || 'event',
         priority: eventData.priority || 'medium',
+        description: eventData.description || 'No description provided',
         attendees: eventData.attendees || [],
-        ...eventData
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        location: eventData.location,
+        url: eventData.url,
+        isAllDay: eventData.isAllDay,
+        reminder: eventData.reminder
       };
       
       setEvents([...events, newEvent]);
