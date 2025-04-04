@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import MobileMenu, { ActivePanel } from "@/components/dashboard/MobileMenu";
 import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
-import ChatPanel from "@/components/ChatPanel";
+import { ChatPanel } from "@/components/ChatPanel";
 import CommunityPanel from "@/components/CommunityPanel";
 import VideoCallPanel from "@/components/VideoCallPanel";
 import UserProfilePanel from "@/components/UserProfilePanel";
@@ -35,9 +35,9 @@ const Dashboard = () => {
       case "chat":
         return <ChatPanel />;
       case "community":
-        return <CommunityPanel />;
+        return <CommunityPanel channelName="Community" />;
       case "video":
-        return <VideoCallPanel />;
+        return <VideoCallPanel isOpen={true} onClose={() => setActivePanel("workspace")} />;
       case "profile":
         return <UserProfilePanel />;
       default:
@@ -47,7 +47,11 @@ const Dashboard = () => {
   
   return (
     <div className="h-screen flex flex-col bg-background">
-      <DashboardHeader activePanel={activePanel} onMenuOpen={() => setMobileMenuOpen(true)} />
+      <DashboardHeader 
+        activePanel={activePanel} 
+        onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        onPanelChange={setActivePanel}
+      />
       
       <main className="flex flex-1 overflow-hidden">
         {!isMobile && (

@@ -1,4 +1,3 @@
-
 export type NotePermission = "private" | "shared" | "public";
 
 export type NoteCollaborator = {
@@ -61,38 +60,33 @@ export type Note = {
 
 export type TaskType = "morning" | "daily" | "weekly" | "custom" | "meditation" | "workout" | "evening";
 
-// Reminder type for CalendarEvent
-export type Reminder = {
-  time: number;
-  unit: "minutes" | "hours" | "days";
-};
+export interface Attendee {
+  id: string;
+  name: string;
+  avatar?: string;
+}
 
-// CalendarEvent type
-export type CalendarEvent = {
+export interface Reminder {
+  time: string;
+  type: "email" | "notification" | "sms";
+}
+
+export interface CalendarEvent {
   id: string;
   title: string;
-  description?: string;
-  date: Date;
+  date: Date | string;
   startTime?: string;
   endTime?: string;
+  type: "meeting" | "task" | "reminder" | "event" | "webinar" | "deadline";
+  description: string;
+  priority: "low" | "medium" | "high";
   location?: string;
   url?: string;
-  type: "meeting" | "task" | "reminder" | "event" | "webinar" | "deadline";
-  priority: "high" | "low" | "medium";
-  reminder?: Reminder; // Making this optional to fix the build error
-  attendees: Array<{
-    id: string;
-    name: string;
-  }>;
-  createdBy?: string;
-  createdAt?: Date;
-  isCompleted?: boolean;
-  isCancelled?: boolean;
-  color?: string;
-  recurring?: "daily" | "weekly" | "monthly" | "none";
-};
+  attendees: Attendee[];
+  reminder?: Reminder | string;
+  isAllDay?: boolean;
+}
 
-// User type definition for enhanced auth functionality
 export type User = {
   id: string;
   email: string;
@@ -119,7 +113,6 @@ export type User = {
   status?: "active" | "inactive" | "suspended";
 };
 
-// Enhanced auth state type
 export type AuthState = {
   user: User | null;
   isAuthenticated: boolean;
