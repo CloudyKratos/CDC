@@ -53,6 +53,13 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				celestial: {
+					DEFAULT: '#0f1e38',
+					dark: '#081021',
+					gold: '#d4af37',
+					silver: '#e6e6e6',
+					light: '#1b2d4e'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -103,8 +110,8 @@ export default {
 					'100%': { opacity: '1', filter: 'blur(0)' }
 				},
 				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 0 0 rgba(var(--primary), 0.5)' },
-					'50%': { boxShadow: '0 0 10px 3px rgba(var(--primary), 0.25)' }
+					'0%, 100%': { boxShadow: '0 0 0 0 rgba(212, 175, 55, 0.5)' },
+					'50%': { boxShadow: '0 0 10px 3px rgba(212, 175, 55, 0.25)' }
 				},
 				'float': {
 					'0%, 100%': { transform: 'translateY(0)' },
@@ -113,6 +120,10 @@ export default {
 				'rotate-slow': {
 					from: { transform: 'rotate(0deg)' },
 					to: { transform: 'rotate(360deg)' }
+				},
+				'twinkle': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
 				}
 			},
 			animation: {
@@ -128,7 +139,8 @@ export default {
 				'exit': 'fade-out 0.4s ease-out forwards',
 				'pulse-glow': 'pulse-glow 2s infinite',
 				'float': 'float 3s ease-in-out infinite',
-				'rotate-slow': 'rotate-slow 8s linear infinite'
+				'rotate-slow': 'rotate-slow 8s linear infinite',
+				'twinkle': 'twinkle 4s ease-in-out infinite'
 			}
 		}
 	},

@@ -1,15 +1,20 @@
 
 import React from "react";
+import CelestialBackground from "./CelestialBackground";
 
 interface TopographicBackgroundProps {
   className?: string;
-  variant?: "default" | "modern";
+  variant?: "default" | "modern" | "celestial";
 }
 
 const TopographicBackground: React.FC<TopographicBackgroundProps> = ({ 
   className,
-  variant = "default" 
+  variant = "celestial" 
 }) => {
+  if (variant === "celestial") {
+    return <CelestialBackground className={className} />;
+  }
+  
   if (variant === "modern") {
     return (
       <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
