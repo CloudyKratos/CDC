@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { MessageSquare, FileText, Image, Smile, Send, Heart, Share2, Bookmark, MoreHorizontal, Search } from 'lucide-react';
 import Icons from '@/utils/IconUtils';
 import WorkInProgressBanner from '@/components/WorkInProgressBanner';
 import ComingSoonBanner from '@/components/ComingSoonBanner';
+
+interface CommunityChannelContentProps {
+  channelName: string;
+}
 
 interface Author {
   id: string;
@@ -115,10 +116,11 @@ const initialPosts: Post[] = [
   }
 ];
 
-const CommunityChannelContent: React.FC = () => {
+const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ channelName }) => {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [newPostContent, setNewPostContent] = useState<string>("");
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  const emojis = ['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋', '✅', '⭐', '💡', '📈', '🙌', '💪', '🌟', '🎯', '💯', '🏆', '🎊', '🙏', '👌', '💬'];
 
   const handlePostSubmit = () => {
     if (newPostContent.trim() !== "") {
@@ -159,8 +161,8 @@ const CommunityChannelContent: React.FC = () => {
             <AvatarFallback>CH</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-lg font-bold"># entrepreneurs</h2>
-            <p className="text-xs text-muted-foreground">General discussion for entrepreneurs</p>
+            <h2 className="text-lg font-bold"># {channelName || 'entrepreneurs'}</h2>
+            <p className="text-xs text-muted-foreground">General discussion for {channelName || 'entrepreneurs'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -289,7 +291,12 @@ const CommunityChannelContent: React.FC = () => {
                       </Button>
                       {showEmojiPicker && (
                         <div className="absolute bottom-24">
-                          <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                          <EmojiPicker
+                            emojis={emojis}
+                            onSelectEmoji={handleEmojiSelect}
+                            onEmojiSelect={handleEmojiSelect}
+                            onClose={() => setShowEmojiPicker(false)}
+                          />
                         </div>
                       )}
                     </div>

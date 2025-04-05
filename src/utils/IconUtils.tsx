@@ -47,7 +47,8 @@ import {
   Camera,
   Target,
   BookOpen,
-  MousePointerClick
+  MousePointerClick,
+  Upload // Added Upload icon
 } from "lucide-react";
 
 // Icon mapping for easy access
@@ -98,7 +99,8 @@ export const Icons = {
   Camera,
   Target,
   BookOpen,
-  MousePointerClick
+  MousePointerClick,
+  Upload // Added Upload icon to the Icons object
 };
 
 export default Icons;

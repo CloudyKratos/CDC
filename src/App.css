@@ -61,3 +61,67 @@
     transform: translateY(0px) translateX(0px);
   }
 }
+
+/* Celestial theme styles */
+.celestial-dark {
+  background-color: #081021;
+}
+
+.celestial-gold {
+  color: #d4af37;
+}
+
+.bg-celestial-dark {
+  background-color: #081021;
+}
+
+.bg-celestial-gold {
+  background-color: #d4af37;
+}
+
+.text-celestial-gold {
+  color: #d4af37;
+}
+
+.border-celestial-gold {
+  border-color: #d4af37;
+}
+
+/* Animate twinkle effect for stars */
+@keyframes twinkle {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* Glass morphism effect */
+.glass-morphism {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-morphism {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scale in animation */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
