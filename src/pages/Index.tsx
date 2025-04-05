@@ -127,16 +127,19 @@ const Index = () => {
                   title="Accountability Partners"
                   description="Connect with warriors who will hold you to your word and push you beyond your limits."
                   icon={Icons.Users}
+                  text="Connect with warriors who will hold you to your word and push you beyond your limits."
                 />
                 <FeaturePoint
                   title="Daily Check-ins"
                   description="Share your victories, challenges, and insights with the community through daily check-ins."
                   icon={Icons.MessageSquare}
+                  text="Share your victories, challenges, and insights with the community through daily check-ins."
                 />
                 <FeaturePoint
                   title="Live Training Sessions"
                   description="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
                   icon={Icons.Video}
+                  text="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
                 />
               </div>
               

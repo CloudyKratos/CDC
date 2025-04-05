@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import HomePage from "./components/HomePage";
 import ErrorBoundary from "./components/ErrorBoundary";
+import "./App.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,45 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Add custom CSS for better background image rendering
+const customStyles = `
+  .celestial-background {
+    filter: contrast(1.05) brightness(1.05);
+    mix-blend-mode: normal;
+  }
+  
+  .animate-on-scroll {
+    opacity: 0;
+    animation: fadeInUp 0.8s forwards;
+    animation-delay: calc(var(--scroll-delay, 0) * 100ms);
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: twinkle 5s infinite;
+  }
+  
+  @keyframes twinkle {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+`;
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -61,9 +101,52 @@ const App = () => {
     // Add smooth scrolling behavior
     document.documentElement.style.scrollBehavior = 'smooth';
     
+    // Append the custom styles
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customStyles;
+    document.head.appendChild(styleElement);
+    
+    // Add stars to the background
+    const addStars = () => {
+      const body = document.body;
+      for (let i = 0; i < 50; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = `${Math.random() * 2 + 1}px`;
+        star.style.height = star.style.width;
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.animationDelay = `${Math.random() * 5}s`;
+        body.appendChild(star);
+      }
+    };
+    
+    addStars();
+    
+    // Implement scroll-based animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("animate-active");
+            entry.target.style.opacity = "1";
+            entry.target.style.transform = "translateY(0)";
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    
+    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+      observer.observe(el);
+    });
+    
     // Cleanup function
     return () => {
       document.documentElement.style.scrollBehavior = '';
+      document.querySelectorAll('.star').forEach(star => star.remove());
+      document.head.removeChild(styleElement);
+      observer.disconnect();
     };
   }, []);
   
