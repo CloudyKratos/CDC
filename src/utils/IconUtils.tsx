@@ -48,7 +48,15 @@ import {
   Target,
   BookOpen,
   MousePointerClick,
-  Upload // Added Upload icon
+  Upload,
+  Download,
+  RefreshCw,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Loader,
+  ExternalLink
 } from "lucide-react";
 
 // Icon mapping for easy access
@@ -100,7 +108,15 @@ export const Icons = {
   Target,
   BookOpen,
   MousePointerClick,
-  Upload // Added Upload icon to the Icons object
+  Upload,
+  Download,
+  RefreshCw,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Loader,
+  ExternalLink
 };
 
 export default Icons;

@@ -6,24 +6,17 @@ interface EmojiPickerProps {
   emojis: string[];
   onSelectEmoji: (emoji: string) => void;
   onClose: () => void;
-  onEmojiSelect?: (emoji: string) => void; // Added this prop to maintain backward compatibility
   className?: string;
 }
 
 export const EmojiPicker: React.FC<EmojiPickerProps> = ({ 
   emojis, 
   onSelectEmoji, 
-  onEmojiSelect,
   onClose,
   className
 }) => {
-  // Use the appropriate handler based on which one is provided
   const handleEmojiClick = (emoji: string) => {
-    if (onEmojiSelect) {
-      onEmojiSelect(emoji);
-    } else {
-      onSelectEmoji(emoji);
-    }
+    onSelectEmoji(emoji);
     onClose();
   };
 
