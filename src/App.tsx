@@ -60,6 +60,28 @@ const customStyles = `
     50% { opacity: 1; }
     100% { opacity: 0; }
   }
+  
+  .bg-blur-effect {
+    backdrop-filter: blur(4px);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .profile-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -99,7 +121,7 @@ const App = () => {
     }
     
     // Add smooth scrolling behavior
-    document.documentElement.style.scrollBehavior = 'smooth';
+    document.documentElement.setAttribute('style', 'scroll-behavior: smooth;');
     
     // Append the custom styles
     const styleElement = document.createElement('style');
@@ -129,8 +151,10 @@ const App = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("animate-active");
-            entry.target.style.opacity = "1";
-            entry.target.style.transform = "translateY(0)";
+            if (entry.target instanceof HTMLElement) {
+              entry.target.style.opacity = "1";
+              entry.target.style.transform = "translateY(0)";
+            }
           }
         });
       },
@@ -143,7 +167,7 @@ const App = () => {
     
     // Cleanup function
     return () => {
-      document.documentElement.style.scrollBehavior = '';
+      document.documentElement.removeAttribute('style');
       document.querySelectorAll('.star').forEach(star => star.remove());
       document.head.removeChild(styleElement);
       observer.disconnect();
