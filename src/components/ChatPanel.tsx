@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +85,7 @@ export const ChatPanel = () => {
       id: '3',
       name: 'CDC Warriors',
       avatar: 'https://avatars.githubusercontent.com/u/1500684?s=48&v=4',
-      lastMessage: 'Emma: I'll be joining the meeting shortly',
+      lastMessage: "Emma: I'll be joining the meeting shortly",
       lastMessageTime: 'Yesterday',
       unreadCount: 5,
       isOnline: true,
@@ -96,7 +95,7 @@ export const ChatPanel = () => {
       id: '4',
       name: 'Product Team',
       avatar: 'https://avatars.githubusercontent.com/u/6764957?s=48&v=4',
-      lastMessage: 'Alex: Here's the latest design update',
+      lastMessage: "Alex: Here's the latest design update",
       lastMessageTime: 'Yesterday',
       unreadCount: 0,
       isOnline: true,
@@ -114,6 +113,7 @@ export const ChatPanel = () => {
       isAdmin: true
     },
   ]);
+  
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -223,6 +223,7 @@ export const ChatPanel = () => {
     
     setMessages(mockMessages);
   };
+  
   
   const handleSendMessage = () => {
     if (newMessage.trim() && activeContact) {
@@ -401,6 +402,8 @@ export const ChatPanel = () => {
           </div>
         </div>
         
+        
+        
         <ScrollArea className="flex-1">
           <div className="pt-2">
             <Tabs defaultValue="all">
@@ -411,6 +414,7 @@ export const ChatPanel = () => {
               </TabsList>
               
               <TabsContent value="all" className="m-0 p-0">
+                
                 {filteredContacts.map(contact => (
                   <button
                     key={contact.id}
@@ -461,6 +465,7 @@ export const ChatPanel = () => {
                   </div>
                 )}
               </TabsContent>
+              
               
               <TabsContent value="unread" className="m-0 p-0">
                 {filteredContacts.filter(contact => contact.unreadCount > 0).length > 0 ? (
@@ -608,6 +613,7 @@ export const ChatPanel = () => {
                     ) : null}
                     
                     {message.text && <p>{message.text}</p>}
+                    
                     
                     {/* Message timestamp and status */}
                     <div className={`flex items-center text-xs mt-1 ${message.senderId === 'me' ? 'justify-end' : ''}`}>
