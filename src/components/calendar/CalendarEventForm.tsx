@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { CalendarEvent, Attendee, Reminder } from "@/types/workspace";
 import { Button } from "@/components/ui/button";

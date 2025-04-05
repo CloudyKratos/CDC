@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarEventForm } from '@/components/calendar/CalendarEventForm';
+import CalendarEventForm from '@/components/calendar/CalendarEventForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import Icons from '@/utils/IconUtils';
 import { toast } from 'sonner';

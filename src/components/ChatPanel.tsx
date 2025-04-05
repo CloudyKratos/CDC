@@ -114,7 +114,6 @@ export const ChatPanel = () => {
     },
   ]);
   
-  
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAlertDialog, setShowAlertDialog] = useState(false);
@@ -123,14 +122,12 @@ export const ChatPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Initialize chat with first contact
   useEffect(() => {
     if (contacts.length > 0 && !activeContact) {
       handleSelectContact(contacts[0]);
     }
   }, [contacts, activeContact]);
   
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -138,7 +135,6 @@ export const ChatPanel = () => {
   const handleSelectContact = (contact: Contact) => {
     setActiveContact(contact);
     
-    // Load mock messages for the selected contact
     const mockMessages: Message[] = [
       {
         id: '1',
@@ -177,7 +173,6 @@ export const ChatPanel = () => {
       }
     ];
     
-    // Add some sample media messages if this is the first contact
     if (contact.id === '1') {
       mockMessages.push(
         {
@@ -214,7 +209,6 @@ export const ChatPanel = () => {
       );
     }
     
-    // Mark contact's messages as read
     setContacts(prevContacts => 
       prevContacts.map(c => 
         c.id === contact.id ? { ...c, unreadCount: 0 } : c
@@ -223,7 +217,6 @@ export const ChatPanel = () => {
     
     setMessages(mockMessages);
   };
-  
   
   const handleSendMessage = () => {
     if (newMessage.trim() && activeContact) {
@@ -239,17 +232,14 @@ export const ChatPanel = () => {
       setNewMessage('');
       setShowEmojiPicker(false);
       
-      // Simulate reply after 2 seconds
       if (Math.random() > 0.4) {
         setTimeout(() => {
-          // Set contact to typing
           setContacts(prevContacts => 
             prevContacts.map(c => 
               c.id === activeContact.id ? { ...c, isTyping: true } : c
             )
           );
           
-          // Send response after "typing"
           setTimeout(() => {
             const reply: Message = {
               id: (messages.length + 2).toString(),
@@ -303,12 +293,10 @@ export const ChatPanel = () => {
   const handleAttachMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && activeContact) {
-      // Check file type
       let mediaType: 'image' | 'audio' | 'document' = 'document';
       if (file.type.startsWith('image/')) mediaType = 'image';
       if (file.type.startsWith('audio/')) mediaType = 'audio';
       
-      // Create a temporary URL for the file
       const url = URL.createObjectURL(file);
       
       const newMsg: Message = {
@@ -327,7 +315,6 @@ export const ChatPanel = () => {
       
       setMessages([...messages, newMsg]);
       
-      // Reset the input
       e.target.value = '';
     }
   };
@@ -359,7 +346,6 @@ export const ChatPanel = () => {
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Function to get message class based on sender
   const getMessageClass = (senderId: string) => {
     return senderId === 'me'
       ? 'chat-message-user ml-auto bg-primary/90 text-white'
@@ -370,7 +356,6 @@ export const ChatPanel = () => {
   
   return (
     <div className="flex h-full overflow-hidden relative">
-      {/* Celestial background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 dark:opacity-20">
         <img 
           src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
@@ -379,7 +364,6 @@ export const ChatPanel = () => {
         />
       </div>
       
-      {/* Contacts List */}
       <div className="w-80 border-r dark:border-gray-800 flex flex-col bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm relative z-10">
         <div className="p-4 border-b dark:border-gray-800 bg-white/80 dark:bg-gray-900/80">
           <div className="flex items-center justify-between mb-4">
@@ -401,8 +385,6 @@ export const ChatPanel = () => {
             />
           </div>
         </div>
-        
-        
         
         <ScrollArea className="flex-1">
           <div className="pt-2">
@@ -466,7 +448,6 @@ export const ChatPanel = () => {
                 )}
               </TabsContent>
               
-              
               <TabsContent value="unread" className="m-0 p-0">
                 {filteredContacts.filter(contact => contact.unreadCount > 0).length > 0 ? (
                   filteredContacts
@@ -490,14 +471,21 @@ export const ChatPanel = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between">
-                            <p className="font-bold truncate">{contact.name}</p>
+                            <div className="flex items-center">
+                              <p className={`font-medium truncate ${contact.unreadCount > 0 ? 'font-bold' : ''}`}>
+                                {contact.name}
+                              </p>
+                              <Badge variant="outline" className="ml-2 text-[10px] py-0">Admin</Badge>
+                            </div>
                             <p className="text-xs text-muted-foreground">{contact.lastMessageTime}</p>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm truncate text-foreground font-medium">
+                            <p className={`text-sm truncate ${contact.unreadCount > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                               {contact.lastMessage}
                             </p>
-                            <Badge className="ml-2 px-2">{contact.unreadCount}</Badge>
+                            {contact.unreadCount > 0 && (
+                              <Badge className="ml-2 px-2">{contact.unreadCount}</Badge>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -564,13 +552,12 @@ export const ChatPanel = () => {
         </ScrollArea>
       </div>
       
-      {/* Messages */}
       <div className="flex-1 flex flex-col relative z-10 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         {activeContact ? (
           <>
             <MessagesHeader
               title={activeContact.name}
-              subtitle={activeContact.isOnline ? 'Online' : 'Last seen today at 12:45'}
+              status={activeContact.isOnline ? 'Online' : 'Last seen today at 12:45'}
               avatar={activeContact.avatar}
               isOnline={activeContact.isOnline}
             />
@@ -588,7 +575,6 @@ export const ChatPanel = () => {
                     key={message.id}
                     className={`chat-message ${getMessageClass(message.senderId)} ${message.reaction ? 'mb-8' : ''}`}
                   >
-                    {/* Message content */}
                     {message.media ? (
                       message.media.type === 'image' ? (
                         <div className="rounded-md overflow-hidden mb-1">
@@ -614,8 +600,6 @@ export const ChatPanel = () => {
                     
                     {message.text && <p>{message.text}</p>}
                     
-                    
-                    {/* Message timestamp and status */}
                     <div className={`flex items-center text-xs mt-1 ${message.senderId === 'me' ? 'justify-end' : ''}`}>
                       <span className={message.senderId === 'me' ? 'text-white/70' : 'text-gray-500'}>
                         {message.timestamp}
@@ -627,7 +611,6 @@ export const ChatPanel = () => {
                       )}
                     </div>
                     
-                    {/* Message actions */}
                     <div className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {message.senderId === 'me' ? (
                         <div className="absolute -left-8">
@@ -671,7 +654,6 @@ export const ChatPanel = () => {
                       )}
                     </div>
                     
-                    {/* Reaction */}
                     {message.reaction && (
                       <div className="absolute bottom-0 right-0 transform translate-y-4 bg-white dark:bg-gray-800 rounded-full px-2 py-1 shadow-sm border border-gray-100 dark:border-gray-700">
                         <span>{message.reaction}</span>
@@ -714,7 +696,6 @@ export const ChatPanel = () => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    multiline
                   />
                   <Button
                     variant="ghost"
@@ -761,7 +742,6 @@ export const ChatPanel = () => {
         )}
       </div>
       
-      {/* Delete confirmation dialog */}
       <AlertDialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
