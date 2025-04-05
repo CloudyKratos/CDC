@@ -56,7 +56,17 @@ import {
   ChevronLeft,
   Check,
   Loader,
-  ExternalLink
+  ExternalLink,
+  Trash,
+  FolderOpen,
+  FolderClosed,
+  File,
+  Pin,
+  AtSign,
+  Hash,
+  Trophy,
+  Mic,
+  Gift
 } from "lucide-react";
 
 // Icon mapping for easy access
@@ -116,7 +126,17 @@ export const Icons = {
   ChevronLeft,
   Check,
   Loader,
-  ExternalLink
+  ExternalLink,
+  Trash,
+  FolderOpen,
+  FolderClosed,
+  File,
+  Pin,
+  AtSign,
+  Hash,
+  Trophy,
+  Mic,
+  Gift
 };
 
 export default Icons;

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight, Camera, Home, LayoutDashboard } from "lucide-react";
+import { BellRing, Calendar, Users, LineChart, Clock, Sparkles, BookOpen, Target, ArrowUpRight, Camera, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import DailyJournal from "./home/DailyJournal";
 import TodoList from "./home/TodoList";
@@ -15,6 +15,7 @@ import TaskProgressCard from "./home/TaskProgressCard";
 import WorkInProgressBanner from "./WorkInProgressBanner";
 import { toast } from "sonner";
 import TickBombDemo from "./TickBombDemo";
+import Icons from "@/utils/IconUtils";
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -30,11 +31,11 @@ const HomePage = () => {
     if (lastCompleted) {
       const lastCompletedDate = new Date(lastCompleted);
       const now = new Date();
-      const twoDaysAgo = new Date(now);
-      twoDaysAgo.setHours(now.getHours() - 48);
+      const oneDayAgo = new Date(now);
+      oneDayAgo.setHours(now.getHours() - 24); // Changed from 48 to 24 hours
       
-      // If completed in the last 48 hours
-      if (lastCompletedDate > twoDaysAgo) {
+      // If completed in the last 24 hours
+      if (lastCompletedDate > oneDayAgo) {
         setMorningStrategyCompleted(true);
         setTickBombActive(false);
       } else {
@@ -79,17 +80,24 @@ const HomePage = () => {
   const entrepreneurialInsights = [
     {
       id: "1",
-      title: "5 Strategies for Sustainable Growth",
-      content: "Learn how successful entrepreneurs balance rapid growth with long-term sustainability. This insight explores key metrics to track and strategies to implement.",
-      category: "Growth",
-      readTime: "4 min read"
+      title: "Commit First, Figure Out Later",
+      content: "CDC Warrior Mindset: Commitment breeds results. Make the decision to commit first, then develop the plan to achieve it.",
+      category: "CDC",
+      readTime: "3 min read"
     },
     {
       id: "2",
-      title: "Building a Resilient Business Model",
-      content: "Discover how to create a business model that can withstand market fluctuations and adapt to changing consumer behaviors.",
-      category: "Strategy",
-      readTime: "6 min read"
+      title: "Daily Discipline Builds Unstoppable Momentum",
+      content: "Small, consistent actions compound over time. Discover how elite performers use discipline as the foundation for extraordinary results.",
+      category: "CDC",
+      readTime: "5 min read"
+    },
+    {
+      id: "3",
+      title: "Consistency: The Ultimate Competitive Edge",
+      content: "While others quit, consistency separates warriors from dreamers. Learn practical strategies to maintain consistency when motivation fades.",
+      category: "CDC",
+      readTime: "4 min read"
     }
   ];
 
@@ -101,7 +109,7 @@ const HomePage = () => {
     localStorage.setItem('lastMorningStrategyCompleted', new Date().toISOString());
     
     toast.success("Morning strategy completed!", {
-      description: "Your tick bomb has been deactivated for 48 hours.",
+      description: "Your tick bomb has been deactivated for 24 hours.",
     });
   };
 
@@ -111,15 +119,23 @@ const HomePage = () => {
         <TopographicBackground />
       </div>
       
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-15 dark:opacity-25 -z-5">
+        <img 
+          src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
+          alt="Celestial whales background"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
       <div className="relative max-w-7xl mx-auto">
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-primary/10 shadow-md">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
               <Home className="h-6 w-6 text-primary" />
-              Business Dashboard
+              Warrior's Space
             </h2>
             <p className="text-muted-foreground">
-              Your entrepreneurial journey at a glance
+              Commitment. Discipline. Consistency.
             </p>
           </div>
           
@@ -130,7 +146,7 @@ const HomePage = () => {
                 size="sm"
                 className="gap-1"
               >
-                <LayoutDashboard className="h-4 w-4" />
+                <Icons.LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Workspace</span>
               </Button>
             </Link>
@@ -163,9 +179,67 @@ const HomePage = () => {
         
         {tickBombActive && (
           <div className="mt-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-red-400/30 shadow-md">
-            <TickBombDemo />
+            <div className="flex items-start gap-3">
+              <div className="bg-red-500/10 p-3 rounded-full">
+                <Icons.Clock className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium mb-1">Time Bomb Active</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Complete your morning strategy walk within the next 24 hours to deactivate the time bomb.
+                  Warriors start each day with intention and clarity.
+                </p>
+                <Button 
+                  onClick={() => setShowMorningStrategy(true)}
+                  size="sm"
+                  className="gap-2 animate-pulse"
+                >
+                  <Camera size={16} />
+                  Complete Morning Walk & Strategy
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4">
+              <TickBombDemo />
+            </div>
           </div>
         )}
+        
+        <Card className="mt-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-celestial-gold/20">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-center celestial-text bg-clip-text text-transparent bg-gradient-to-r from-yellow-600 to-yellow-400">
+              CDC: The Warrior's Path
+            </CardTitle>
+            <CardDescription className="text-center max-w-3xl mx-auto">
+              <p className="mb-2">
+                Warriors understand that <strong>Commitment</strong>, <strong>Discipline</strong>, and <strong>Consistency</strong> are the foundation of all extraordinary achievement.
+              </p>
+              <div className="flex flex-col md:flex-row gap-4 justify-center mt-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                    <Icons.Target className="h-6 w-6 text-primary" />
+                  </div>
+                  <h4 className="font-medium">Commitment</h4>
+                  <p className="text-xs text-center text-muted-foreground">Decision before action</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                    <Icons.Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <h4 className="font-medium">Discipline</h4>
+                  <p className="text-xs text-center text-muted-foreground">Action despite feelings</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                    <Icons.RefreshCw className="h-6 w-6 text-primary" />
+                  </div>
+                  <h4 className="font-medium">Consistency</h4>
+                  <p className="text-xs text-center text-muted-foreground">Repeated excellence</p>
+                </div>
+              </div>
+            </CardDescription>
+          </CardHeader>
+        </Card>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md grid w-full grid-cols-3 md:w-auto">
@@ -179,7 +253,7 @@ const HomePage = () => {
             </TabsTrigger>
             <TabsTrigger value="insights" className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              <span>Insights</span>
+              <span>CDC Insights</span>
             </TabsTrigger>
           </TabsList>
           
@@ -289,7 +363,7 @@ const HomePage = () => {
                 </CardContent>
               </Card>
               
-              <TaskProgressCard title="Business Tasks" tasks={businessTasks} />
+              <TaskProgressCard title="Warrior Tasks" tasks={businessTasks} />
             </div>
             
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -301,10 +375,10 @@ const HomePage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <BookOpen size={18} className="mr-2 text-primary" />
-                      Entrepreneurial Insights
+                      CDC Insights
                     </CardTitle>
                     <CardDescription>
-                      Latest insights to help grow your business
+                      Warrior wisdom to fuel your journey
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -328,7 +402,7 @@ const HomePage = () => {
                     ))}
                     <Button variant="outline" className="w-full mt-2">
                       <span className="flex items-center">
-                        View all insights
+                        View all CDC insights
                         <ArrowUpRight className="h-4 w-4 ml-1" />
                       </span>
                     </Button>
@@ -340,26 +414,26 @@ const HomePage = () => {
           
           <TabsContent value="metrics" className="space-y-4">
             <WorkInProgressBanner 
-              title="Business Metrics Dashboard in Development"
+              title="Warrior Metrics Dashboard in Development"
               description="We're building a comprehensive metrics dashboard with in-depth analytics, customizable charts, and data export capabilities."
             />
             <Card className="backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
               <CardHeader>
-                <CardTitle>Business Metrics</CardTitle>
+                <CardTitle>Warrior Metrics</CardTitle>
                 <CardDescription>
-                  Detailed performance analytics for your business
+                  Detailed performance analytics for your journey
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  The business metrics dashboard will display charts and detailed analytics, helping you track:
+                  The warrior metrics dashboard will display charts and detailed analytics, helping you track:
                 </p>
                 <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                  <li>Revenue growth and projections</li>
-                  <li>Customer acquisition costs and lifetime value</li>
-                  <li>Marketing campaign performance</li>
-                  <li>Sales funnel conversions</li>
-                  <li>Team productivity metrics</li>
+                  <li>Daily CDC practice and adherence</li>
+                  <li>Progress towards key goals and objectives</li>
+                  <li>Performance metrics across all key areas</li>
+                  <li>Habit tracking and consistency scores</li>
+                  <li>Benchmark data against elite performers</li>
                 </ul>
               </CardContent>
             </Card>
@@ -367,26 +441,26 @@ const HomePage = () => {
           
           <TabsContent value="insights" className="space-y-4">
             <WorkInProgressBanner 
-              title="Business Insights Hub in Development"
-              description="Our insights library is being expanded with curated content from industry experts, AI-generated recommendations, and personalized growth strategies."
+              title="CDC Insights Hub in Development"
+              description="Our insights library is being expanded with curated content from elite performers, tactical strategies, and personalized growth insights."
             />
             <Card className="backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-primary/10">
               <CardHeader>
-                <CardTitle>Business Insights</CardTitle>
+                <CardTitle>CDC Insights</CardTitle>
                 <CardDescription>
-                  Strategic insights to help grow your business
+                  Warrior wisdom to help you grow and excel
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  The business insights section will provide articles, guides, and resources for entrepreneurs, including:
+                  The CDC insights section will provide tactical strategies, proven frameworks, and resources for warriors, including:
                 </p>
                 <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                  <li>Industry trend analysis</li>
-                  <li>Growth strategy templates</li>
-                  <li>Expert interviews and case studies</li>
-                  <li>Recommended tools and resources</li>
-                  <li>Personalized AI-driven recommendations</li>
+                  <li>High-performance mindset training</li>
+                  <li>CDC implementation frameworks</li>
+                  <li>Case studies of elite performers</li>
+                  <li>Tactical daily routines and protocols</li>
+                  <li>Advanced accountability systems</li>
                 </ul>
               </CardContent>
             </Card>

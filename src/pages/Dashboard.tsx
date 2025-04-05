@@ -7,6 +7,7 @@ import {
   Users, 
   Video,
   User,
+  Home,
   Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ const Dashboard = () => {
                   size="icon"
                   className="w-12 h-12 rounded-xl hover:bg-primary/10"
                 >
-                  <LayoutGrid className="h-6 w-6 text-muted-foreground" />
+                  <Home className="h-6 w-6 text-muted-foreground" />
                 </Button>
               </Link>
               <Button 

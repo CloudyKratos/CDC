@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,6 +13,7 @@ import { MessageSquare, FileText, Image, Smile, Send, Heart, Share2, Bookmark, M
 import Icons from '@/utils/IconUtils';
 import WorkInProgressBanner from '@/components/WorkInProgressBanner';
 import ComingSoonBanner from '@/components/ComingSoonBanner';
+import { CelestialBackground } from '@/components/home/CelestialBackground';
 
 interface CommunityChannelContentProps {
   channelName: string;
@@ -153,8 +155,16 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
+    <div className="flex flex-col h-full relative">
+      <div className="absolute inset-0 -z-10 opacity-20">
+        <img 
+          src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
+          alt="Celestial whales background"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      <div className="flex items-center justify-between p-4 border-b backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">
         <div className="flex items-center">
           <Avatar className="h-8 w-8 mr-2">
             <AvatarImage src="https://github.com/shadcn.png" alt="Channel Avatar" />
@@ -174,7 +184,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
       </div>
 
       <Tabs defaultValue="posts" className="flex-1 flex flex-col">
-        <div className="px-4 pt-2">
+        <div className="px-4 pt-2 backdrop-blur-sm bg-white/20 dark:bg-gray-900/20">
           <TabsList className="w-full justify-start gap-2 h-9">
             <TabsTrigger value="posts" className="text-xs">Posts</TabsTrigger>
             <TabsTrigger value="media" className="text-xs">Media</TabsTrigger>
@@ -188,7 +198,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
             <ScrollArea className="flex-1 px-4 py-2">
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <Card key={post.id} className="p-4">
+                  <Card key={post.id} className="p-4 backdrop-blur-sm bg-white/60 dark:bg-gray-800/60 border-celestial-gold/20">
                     <div className="flex space-x-3">
                       <Avatar>
                         <AvatarImage src={post.author.avatar} alt={post.author.name} />
@@ -200,7 +210,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
                             <span className="font-medium">{post.author.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">posted {post.timeAgo}</span>
                           </div>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs bg-celestial-gold/10 text-celestial-gold border-celestial-gold/30">
                             {post.category}
                           </Badge>
                         </div>
@@ -265,7 +275,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t bg-background">
+            <div className="p-4 border-t backdrop-blur-sm bg-white/50 dark:bg-gray-900/50">
               <div className="flex space-x-3">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src="https://github.com/shadcn.png" alt="User Avatar" />
@@ -274,7 +284,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
                 <div className="flex-1 space-y-3">
                   <Textarea 
                     placeholder="Share your thoughts with the community..." 
-                    className="resize-none" 
+                    className="resize-none bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" 
                     value={newPostContent} 
                     onChange={(e) => setNewPostContent(e.target.value)}
                   />
@@ -294,13 +304,12 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
                           <EmojiPicker
                             emojis={emojis}
                             onSelectEmoji={handleEmojiSelect}
-                            onEmojiSelect={handleEmojiSelect}
                             onClose={() => setShowEmojiPicker(false)}
                           />
                         </div>
                       )}
                     </div>
-                    <Button size="sm" className="h-8" onClick={handlePostSubmit}>
+                    <Button size="sm" className="h-8 bg-celestial-gold hover:bg-celestial-gold/90 text-celestial-dark" onClick={handlePostSubmit}>
                       <Send className="h-4 w-4 mr-2" />
                       Post
                     </Button>
@@ -346,10 +355,10 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
               />
               
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                <Card className="p-4">
+                <Card className="p-4 backdrop-blur-sm bg-white/60 dark:bg-gray-800/60 border-celestial-gold/20">
                   <div className="flex justify-between items-start">
                     <div>
-                      <Badge className="mb-2">Webinar</Badge>
+                      <Badge className="mb-2 bg-celestial-gold/20 text-celestial-gold border-celestial-gold/30">Webinar</Badge>
                       <h4 className="font-medium">Growth Strategies for SaaS Startups</h4>
                       <p className="text-sm text-muted-foreground mt-1">
                         May 15, 2025 • 2:00 PM - 3:30 PM EST
@@ -359,10 +368,10 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
                   </div>
                 </Card>
                 
-                <Card className="p-4">
+                <Card className="p-4 backdrop-blur-sm bg-white/60 dark:bg-gray-800/60 border-celestial-gold/20">
                   <div className="flex justify-between items-start">
                     <div>
-                      <Badge className="mb-2">Meetup</Badge>
+                      <Badge className="mb-2 bg-celestial-gold/20 text-celestial-gold border-celestial-gold/30">Meetup</Badge>
                       <h4 className="font-medium">NYC Entrepreneur Networking Event</h4>
                       <p className="text-sm text-muted-foreground mt-1">
                         June 3, 2025 • 6:30 PM - 8:30 PM EST
