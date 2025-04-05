@@ -1,5 +1,6 @@
+import React from 'react';
+import CelestialBackground from '@/components/home/CelestialBackground';
 
-import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +14,6 @@ import { MessageSquare, FileText, Image, Smile, Send, Heart, Share2, Bookmark, M
 import Icons from '@/utils/IconUtils';
 import WorkInProgressBanner from '@/components/WorkInProgressBanner';
 import ComingSoonBanner from '@/components/ComingSoonBanner';
-import { CelestialBackground } from '@/components/home/CelestialBackground';
 
 interface CommunityChannelContentProps {
   channelName: string;
@@ -157,11 +157,7 @@ const CommunityChannelContent: React.FC<CommunityChannelContentProps> = ({ chann
   return (
     <div className="flex flex-col h-full relative">
       <div className="absolute inset-0 -z-10 opacity-20">
-        <img 
-          src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
-          alt="Celestial whales background"
-          className="w-full h-full object-cover"
-        />
+        <CelestialBackground />
       </div>
       
       <div className="flex items-center justify-between p-4 border-b backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">

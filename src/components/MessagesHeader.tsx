@@ -7,12 +7,13 @@ import Icons from '@/utils/IconUtils';
 
 export interface MessagesHeaderProps {
   title: string;
+  subtitle?: string; 
   status?: string;
   avatar: string;
   isOnline?: boolean;
 }
 
-const MessagesHeader: React.FC<MessagesHeaderProps> = ({ title, status, avatar, isOnline }) => {
+const MessagesHeader: React.FC<MessagesHeaderProps> = ({ title, subtitle, status, avatar, isOnline }) => {
   return (
     <div className="flex items-center justify-between py-3 px-4 border-b dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
       <div className="flex items-center">
@@ -27,7 +28,8 @@ const MessagesHeader: React.FC<MessagesHeaderProps> = ({ title, status, avatar, 
         </div>
         <div>
           <h2 className="font-semibold">{title}</h2>
-          {status && <p className="text-xs text-muted-foreground">{status}</p>}
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+          {status && !subtitle && <p className="text-xs text-muted-foreground">{status}</p>}
         </div>
       </div>
       

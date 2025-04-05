@@ -54,7 +54,7 @@ const Index = () => {
       <main className="flex-1 relative z-10">
         {/* Hero Section */}
         <section className="py-20 md:py-32 container mx-auto px-4 text-center relative">
-          <FeatureBadge text="Commitment. Discipline. Consistency." />
+          <FeatureBadge icon={Icons.Target} text="Commitment. Discipline. Consistency." />
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mt-4 mb-6 max-w-4xl mx-auto">
             Join the <span className="text-primary">CDC Warriors</span> on their path to extraordinary achievement
           </h1>
@@ -81,7 +81,7 @@ const Index = () => {
         <section id="features" className="py-16 md:py-24 bg-muted/50">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <FeatureBadge text="The CDC Philosophy" />
+              <FeatureBadge icon={Icons.Zap} text="The CDC Philosophy" />
               <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
                 Three Pillars of the Warrior Mindset
               </h2>
@@ -92,17 +92,17 @@ const Index = () => {
             
             <div className="grid md:grid-cols-3 gap-8 mt-12">
               <FeatureCard
-                icon={<Icons.Target className="h-10 w-10" />}
+                icon={Icons.Target}
                 title="Commitment"
                 description="Make the decision before you have all the answers. Commitment precedes clarity. Warriors decide first, then figure out the how."
               />
               <FeatureCard
-                icon={<Icons.Clock className="h-10 w-10" />}
+                icon={Icons.Clock}
                 title="Discipline"
                 description="Do what needs to be done regardless of how you feel. Discipline is the ability to execute on your commitments even when motivation fades."
               />
               <FeatureCard
-                icon={<Icons.RefreshCw className="h-10 w-10" />}
+                icon={Icons.RefreshCw}
                 title="Consistency"
                 description="Small actions, repeated with precision over time, lead to extraordinary outcomes. Consistency compounds into unstoppable momentum."
               />
@@ -114,7 +114,7 @@ const Index = () => {
         <section id="community" className="py-16 md:py-24 container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
-              <FeatureBadge text="The Warrior Community" />
+              <FeatureBadge icon={Icons.Users} text="The Warrior Community" />
               <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
                 Join a tribe of like-minded warriors
               </h2>
@@ -124,19 +124,19 @@ const Index = () => {
               
               <div className="space-y-6">
                 <FeaturePoint
-                  icon={<Icons.Users className="h-5 w-5" />}
                   title="Accountability Partners"
                   description="Connect with warriors who will hold you to your word and push you beyond your limits."
+                  icon={Icons.Users}
                 />
                 <FeaturePoint
-                  icon={<Icons.MessageSquare className="h-5 w-5" />}
                   title="Daily Check-ins"
                   description="Share your victories, challenges, and insights with the community through daily check-ins."
+                  icon={Icons.MessageSquare}
                 />
                 <FeaturePoint
-                  icon={<Icons.Video className="h-5 w-5" />}
                   title="Live Training Sessions"
                   description="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
+                  icon={Icons.Video}
                 />
               </div>
               

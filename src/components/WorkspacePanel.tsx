@@ -1,5 +1,5 @@
-
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Icons from '@/utils/IconUtils';
 import ComingSoonBanner from './ComingSoonBanner';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const DOCUMENT_TYPES = [
   { id: 'doc', name: 'Document', icon: <Icons.FileText size={20} className="text-blue-500" /> },

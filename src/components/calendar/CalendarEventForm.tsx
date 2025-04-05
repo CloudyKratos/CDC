@@ -20,13 +20,10 @@ export interface CalendarEventFormProps {
   onSubmit: (eventData: Partial<CalendarEvent>) => void;
   onCancel: () => void;
   event?: Partial<CalendarEvent>;
+  onDelete?: () => void;
 }
 
-const defaultAttendees: Attendee[] = [
-  { id: "1", name: "You", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=You" },
-];
-
-const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCancel, event }) => {
+const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCancel, event, onDelete }) => {
   const [title, setTitle] = useState(event?.title || "");
   const [date, setDate] = useState<Date | undefined>(
     event?.date ? (typeof event.date === 'string' ? new Date(event.date) : event.date) : new Date()
@@ -40,7 +37,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
   const [url, setUrl] = useState(event?.url || "");
   const [isAllDay, setIsAllDay] = useState(event?.isAllDay || false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>(event?.attendees || defaultAttendees);
+  const [attendees, setAttendees] = useState<Attendee[]>(event?.attendees || [
+    { id: "1", name: "You", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=You" },
+  ]);
   const [reminderType, setReminderType] = useState<"email" | "notification" | "sms">(
     event?.reminder 
       ? (typeof event.reminder === 'string' 
@@ -296,6 +295,11 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCance
       )}
       
       <div className="flex justify-end space-x-2 pt-2">
+        {event?.id && onDelete && (
+          <Button type="button" variant="destructive" onClick={onDelete}>
+            Delete
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>

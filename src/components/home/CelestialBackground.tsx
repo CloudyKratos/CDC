@@ -20,7 +20,7 @@ interface CelestialBackgroundProps {
 const CelestialBackground: React.FC<CelestialBackgroundProps> = ({
   className = "",
   starCount = 80,
-  backgroundImage = "/public/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png",
+  backgroundImage = "/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png",
   overlayColor = "rgba(8, 16, 33, 0.8)",
   showWhales = true
 }) => {
