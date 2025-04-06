@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -26,9 +25,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import SupabaseService, { EventData } from './services/SupabaseService';
+import SupabaseService, { EventData } from '@/services/SupabaseService';
 
-// Define calendar event type
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -55,7 +53,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
   const [viewDate, setViewDate] = useState(new Date());
   const { user } = useAuth();
   
-  // Fetch events from Supabase
   useEffect(() => {
     fetchEvents();
   }, [viewDate, viewMode]);
@@ -69,7 +66,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     
     setIsLoading(true);
     try {
-      // Calculate date range based on view mode
       let startDate, endDate;
       
       if (viewMode === 'day') {
@@ -82,7 +78,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
         startDate = startOfMonth(viewDate);
         endDate = endOfMonth(viewDate);
       } else {
-        // List view - fetch events for the next 30 days
         startDate = viewDate;
         endDate = addDays(viewDate, 30);
       }
@@ -92,7 +87,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
         end_date: endDate.toISOString()
       });
       
-      // Convert to CalendarEvent format
       const formattedEvents: CalendarEvent[] = eventData.map(event => ({
         id: event.id || '',
         title: event.title,
@@ -119,7 +113,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     }
     
     try {
-      // Convert to Supabase format
       const newEvent: EventData = {
         title: eventData.title || "Untitled Event",
         description: eventData.description,
@@ -130,7 +123,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
       
       await SupabaseService.createEvent(newEvent);
       
-      // Refresh events
       await fetchEvents();
       
       toast.success("Event created successfully");
@@ -145,7 +137,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     if (!selectedEvent?.id || !user) return;
     
     try {
-      // Convert to Supabase format
       const updatedEvent: Partial<EventData> = {
         title: eventData.title,
         description: eventData.description,
@@ -155,7 +146,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
       
       await SupabaseService.updateEvent(selectedEvent.id, updatedEvent);
       
-      // Refresh events
       await fetchEvents();
       
       toast.success("Event updated successfully");
@@ -172,7 +162,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     try {
       await SupabaseService.deleteEvent(selectedEvent.id);
       
-      // Refresh events
       await fetchEvents();
       
       toast.success("Event deleted successfully");
@@ -189,9 +178,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
   };
   
   const handleNewEvent = () => {
-    // Create a default event starting at the current selected date
     const defaultStart = selectedDate || new Date();
-    const defaultEnd = new Date(defaultStart.getTime() + 60 * 60 * 1000); // 1 hour later
+    const defaultEnd = new Date(defaultStart.getTime() + 60 * 60 * 1000);
     
     setSelectedEvent({
       id: '',
@@ -233,7 +221,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     setViewDate(new Date());
   };
   
-  // Utility function to generate a random color for events based on title
   const getRandomEventColor = (title: string) => {
     const colors = [
       'bg-blue-500 text-white',
@@ -250,7 +237,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     return colors[index] || colors[0];
   };
   
-  // Get the events for the selected date view
   const filteredEvents = useMemo(() => {
     if (!selectedDate) return [];
     
@@ -263,7 +249,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     return events;
   }, [events, selectedDate, viewMode]);
   
-  // Get view title based on current view mode
   const viewTitle = useMemo(() => {
     if (viewMode === 'day') {
       return format(viewDate, 'MMMM d, yyyy');
@@ -284,12 +269,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     } else if (viewMode === 'month') {
       return format(viewDate, 'MMMM yyyy');
     } else {
-      // List view
       return 'Upcoming Events';
     }
   }, [viewDate, viewMode]);
   
-  // Generate calendar days for the current month
   const calendarDays = useMemo(() => {
     if (viewMode !== 'month') return [];
     
@@ -306,7 +289,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     return days;
   }, [viewDate, viewMode]);
   
-  // Generate calendar hours for day view
   const calendarHours = useMemo(() => {
     const hours = [];
     for (let i = 0; i < 24; i++) {
@@ -315,7 +297,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
     return hours;
   }, []);
   
-  // Generate week days for week view
   const weekDays = useMemo(() => {
     if (viewMode !== 'week') return [];
     
@@ -331,7 +312,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
   
   return (
     <div className="flex flex-col h-full">
-      {/* Calendar Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
@@ -387,7 +367,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
         </div>
       </div>
       
-      {/* Calendar Body */}
       <div className="flex-grow overflow-auto">
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
@@ -395,7 +374,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
           </div>
         ) : (
           <>
-            {/* Day View */}
             {viewMode === 'day' && (
               <div className="grid grid-cols-1 h-full">
                 <div className="h-full overflow-y-auto">
@@ -411,7 +389,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
                       </div>
                     ))}
                     
-                    {/* Day Events */}
                     {events
                       .filter(event => isSameDay(event.start, viewDate))
                       .map((event) => {
@@ -442,12 +419,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
               </div>
             )}
             
-            {/* Week View */}
             {viewMode === 'week' && (
               <div className="grid grid-cols-7 h-full divide-x divide-gray-200 dark:divide-gray-800">
                 {weekDays.map((day, index) => (
                   <div key={index} className="h-full overflow-hidden flex flex-col">
-                    {/* Day Header */}
                     <div className={`p-2 text-center border-b border-gray-200 dark:border-gray-800 ${
                       isSameDay(day, new Date()) ? 'bg-primary/10' : ''
                     }`}>
@@ -461,7 +436,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
                       </div>
                     </div>
                     
-                    {/* Day Events */}
                     <div className="flex-1 overflow-y-auto">
                       <div className="p-1 space-y-1">
                         {events
@@ -487,17 +461,14 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
               </div>
             )}
             
-            {/* Month View */}
             {viewMode === 'month' && (
               <div className="grid grid-cols-7 auto-rows-fr h-full divide-x divide-y divide-gray-200 dark:divide-gray-800">
-                {/* Week day headers */}
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                   <div key={day} className="p-2 text-center font-semibold text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                     {day}
                   </div>
                 ))}
                 
-                {/* Calendar days */}
                 {calendarDays.map((day, i) => {
                   const isCurrentMonth = day.getMonth() === viewDate.getMonth();
                   const isToday = isSameDay(day, new Date());
@@ -519,34 +490,30 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
                         {format(day, 'd')}
                       </div>
                       
-                      {/* Day events - limit to 3 visible */}
-                      <div className="flex-1 overflow-hidden">
-                        {dayEvents.slice(0, 3).map((event) => (
-                          <div 
-                            key={event.id} 
-                            className={`${event.color} rounded text-xs p-1 mb-1 cursor-pointer truncate hover:opacity-90 transition-opacity`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEventClick(event);
-                            }}
-                          >
-                            {event.title}
-                          </div>
-                        ))}
-                        
-                        {dayEvents.length > 3 && (
-                          <div className="text-xs text-center text-gray-500 dark:text-gray-400">
-                            +{dayEvents.length - 3} more
-                          </div>
-                        )}
-                      </div>
+                      {dayEvents.slice(0, 3).map((event) => (
+                        <div 
+                          key={event.id} 
+                          className={`${event.color} rounded text-xs p-1 mb-1 cursor-pointer truncate hover:opacity-90 transition-opacity`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEventClick(event);
+                          }}
+                        >
+                          {event.title}
+                        </div>
+                      ))}
+                      
+                      {dayEvents.length > 3 && (
+                        <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                          +{dayEvents.length - 3} more
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             )}
             
-            {/* List View */}
             {viewMode === 'list' && (
               <ScrollArea className="h-full p-4">
                 {events.length === 0 ? (
@@ -603,7 +570,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView }) => {
         )}
       </div>
       
-      {/* Event Dialog */}
       <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>

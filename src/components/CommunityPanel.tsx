@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
@@ -68,7 +67,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
       CommunityService.joinChannel(channelName, user.id);
       
       // Set up real-time subscription for new messages
-      const unsubscribe = CommunityService.subscribeToMessages(channelName, (newMessage) => {
+      const unsubscribePromise = CommunityService.subscribeToMessages(channelName, (newMessage) => {
         setMessages(prev => {
           // Check if message is already in the list
           const exists = prev.some(m => m.id === newMessage.id);
@@ -78,8 +77,16 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
         });
       });
       
+      // Fix: Store the returned promise and call the unsubscribe function when it resolves
       return () => {
-        unsubscribe();
+        // Properly handle the promise returned from subscribeToMessages
+        unsubscribePromise.then(unsubscribe => {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+        }).catch(err => {
+          console.error('Error unsubscribing from messages:', err);
+        });
       };
     }
   }, [user?.id, channelName]);

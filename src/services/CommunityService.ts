@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -122,34 +121,51 @@ export class CommunityService {
     }
   }
   
-  static async subscribeToMessages(channelName: string, callback: (message: Message) => void) {
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => {
-          // Check if the message is for the current channel (workspace)
-          const message = payload.new as Message & { workspace_id: string };
-          
-          // Get the sender information
-          this.getSenderInfo(message.sender_id).then(sender => {
-            callback({
-              ...message,
-              sender
-            });
-          });
-        }
-      )
-      .subscribe();
+  static async subscribeToMessages(channelName: string, callback: (message: Message) => void): Promise<() => void> {
+    try {
+      // Create a unique channel name with the workspace name to avoid conflicts
+      const channelId = `messages-${channelName}`;
       
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      const channel = supabase
+        .channel(channelId)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          async (payload) => {
+            // Check if the message is for the current channel (workspace)
+            const message = payload.new as Message & { workspace_id: string };
+            
+            try {
+              // Get the workspace ID for the channel
+              if (message.sender_id) {
+                // Get the sender information
+                const sender = await this.getSenderInfo(message.sender_id);
+                
+                callback({
+                  ...message,
+                  sender
+                });
+              }
+            } catch (error) {
+              console.error('Error in message subscription:', error);
+            }
+          }
+        )
+        .subscribe();
+        
+      // Return a function that can be called to unsubscribe
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      console.error('Error subscribing to messages:', error);
+      // Return a no-op function in case of error
+      return () => {};
+    }
   }
   
   static async getSenderInfo(userId: string) {
