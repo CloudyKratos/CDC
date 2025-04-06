@@ -4,6 +4,7 @@ import { User, AuthState } from '@/types/workspace';
 import authService from '@/services/AuthService';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import SupabaseService from '@/services/SupabaseService';
 
 // Default auth state
 const defaultAuthState: AuthState = {
@@ -21,6 +22,9 @@ interface AuthContextType extends AuthState {
   hasPermission: (permission: string) => boolean;
   clearError: () => void;
   signOut: () => Promise<void>; // Add signOut method for Sidebar compatibility
+  resetPassword: (email: string) => Promise<boolean>; // Add reset password function
+  signUp: (email: string, password: string, fullName: string) => Promise<boolean>; // Add signup function
+  updatePassword: (newPassword: string) => Promise<boolean>; // Add update password function
 }
 
 // Create the auth context
@@ -33,6 +37,9 @@ export const AuthContext = createContext<AuthContextType>({
   hasPermission: () => false,
   clearError: () => {},
   signOut: async () => {}, // Default implementation
+  resetPassword: async () => false, // Default implementation
+  signUp: async () => false, // Default implementation
+  updatePassword: async () => false, // Default implementation
 });
 
 interface AuthProviderProps {
@@ -201,6 +208,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     }
   };
+
+  // Sign up handler
+  const signUp = async (email: string, password: string, fullName: string): Promise<boolean> => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const user = await SupabaseService.signUp(email, password, fullName);
+      
+      if (user) {
+        // Don't automatically log in - require email verification first
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false
+        }));
+        return true;
+      } else {
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: "Registration failed"
+        }));
+        return false;
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: "An error occurred during registration"
+      }));
+      return false;
+    }
+  };
+  
+  // Password reset handler
+  const resetPassword = async (email: string): Promise<boolean> => {
+    return await SupabaseService.resetPassword(email);
+  };
+  
+  // Update password handler
+  const updatePassword = async (newPassword: string): Promise<boolean> => {
+    return await SupabaseService.updatePassword(newPassword);
+  };
   
   // Logout handler
   const logout = () => {
@@ -307,7 +357,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshSession,
         hasPermission,
         clearError,
-        signOut
+        signOut,
+        resetPassword,
+        signUp,
+        updatePassword
       }}
     >
       {children}

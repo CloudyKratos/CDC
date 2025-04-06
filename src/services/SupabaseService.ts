@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types/workspace';
 import { toast } from 'sonner';
@@ -230,11 +229,12 @@ export class SupabaseService {
   // Messages
   static async getMessages(workspaceId: string): Promise<MessageData[]> {
     try {
+      // Join with profiles table instead of trying to use the sender relation
       const { data, error } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(username, avatar_url, full_name)
+          profiles:sender_id(username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId)
         .eq('is_deleted', false)
@@ -243,19 +243,19 @@ export class SupabaseService {
       if (error) throw error;
       
       // Format messages with sender info
-      const formattedMessages: MessageData[] = data?.map(message => {
-        // Handle case where sender info might not be available
-        const senderInfo = message.sender || {};
+      const formattedMessages: MessageData[] = (data || []).map(message => {
+        // Handle case where profiles might not be available
+        const profileInfo = message.profiles as { username?: string; avatar_url?: string; full_name?: string; } || {};
         
         return {
           ...message,
           sender: {
-            username: senderInfo.username,
-            avatar_url: senderInfo.avatar_url,
-            full_name: senderInfo.full_name
+            username: profileInfo.username || '',
+            avatar_url: profileInfo.avatar_url || '',
+            full_name: profileInfo.full_name || ''
           }
         };
-      }) || [];
+      });
       
       return formattedMessages;
     } catch (error) {
@@ -272,21 +272,21 @@ export class SupabaseService {
         .insert(message)
         .select(`
           *,
-          sender:profiles!sender_id(username, avatar_url, full_name)
+          profiles:sender_id(username, avatar_url, full_name)
         `)
         .single();
         
       if (error) throw error;
       
       // Format message with sender info
-      const senderInfo = data.sender || {};
+      const profileInfo = data.profiles as { username?: string; avatar_url?: string; full_name?: string; } || {};
       
       return {
         ...data,
         sender: {
-          username: senderInfo.username,
-          avatar_url: senderInfo.avatar_url,
-          full_name: senderInfo.full_name
+          username: profileInfo.username || '',
+          avatar_url: profileInfo.avatar_url || '',
+          full_name: profileInfo.full_name || ''
         }
       };
     } catch (error) {
@@ -377,15 +377,16 @@ export class SupabaseService {
         .from('workspace_members')
         .select(`
           *,
-          member_profile:profiles!user_id(id, username, avatar_url, full_name)
+          member_profile:profiles(id, username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId);
         
       if (error) throw error;
       
       // Format the data to match our interface
-      const formattedMembers: WorkspaceMemberData[] = data?.map(member => {
-        const profileData = member.member_profile || null;
+      const formattedMembers: WorkspaceMemberData[] = (data || []).map(member => {
+        // member_profile will be an object or null
+        const profileData = member.member_profile as ProfileData | null;
         
         return {
           workspace_id: member.workspace_id,
@@ -394,12 +395,15 @@ export class SupabaseService {
           role: member.role,
           profile: profileData ? {
             id: profileData.id,
-            username: profileData.username,
-            avatar_url: profileData.avatar_url,
-            full_name: profileData.full_name
+            username: profileData.username || '',
+            avatar_url: profileData.avatar_url || '',
+            full_name: profileData.full_name || '',
+            bio: profileData.bio || '',
+            location: profileData.location || '',
+            website: profileData.website || ''
           } : undefined
         };
-      }) || [];
+      });
       
       return formattedMembers;
     } catch (error) {
@@ -518,6 +522,49 @@ export class SupabaseService {
         description: error.message
       });
       return null;
+    }
+  }
+
+  // Password reset functionality
+  static async resetPassword(email: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password reset email sent', {
+        description: 'Please check your email for instructions'
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast.error('Failed to send reset email', {
+        description: error.message
+      });
+      return false;
+    }
+  }
+  
+  // Update password with a new one
+  static async updatePassword(newPassword: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password updated successfully');
+      return true;
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast.error('Failed to update password', {
+        description: error.message
+      });
+      return false;
     }
   }
 

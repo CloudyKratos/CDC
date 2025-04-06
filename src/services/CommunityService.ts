@@ -1,310 +1,445 @@
-
+import { BehaviorSubject } from 'rxjs';
+import { 
+  ChatMessage, 
+  ChatChannel, 
+  ChatUser, 
+  ChannelType, 
+  MessageType 
+} from '@/types/chat';
+import { User } from '@/types/workspace';
+import authService from './AuthService';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import SupabaseService from './SupabaseService';
 
-export interface Channel {
-  id: string;
-  name: string;
-  description?: string;
-  icon?: string;
-}
+// Channel and message cache
+const channelsSubject = new BehaviorSubject<ChatChannel[]>([]);
+const activeChannelSubject = new BehaviorSubject<ChatChannel | null>(null);
+const messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
+const usersSubject = new BehaviorSubject<ChatUser[]>([]);
 
-export interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  sender?: {
-    username?: string;
-    avatar_url?: string;
-    full_name?: string;
-  };
-  created_at: string;
-  workspace_id?: string;
-}
+// Default channel data to showcase UI features
+const DEFAULT_CHANNELS: ChatChannel[] = [
+  {
+    id: 'general',
+    name: 'General',
+    type: ChannelType.PUBLIC,
+    members: [],
+    unreadCount: 0,
+    lastMessage: 'Welcome to the general channel!'
+  },
+  {
+    id: 'announcements',
+    name: 'Announcements',
+    type: ChannelType.PUBLIC,
+    members: [],
+    unreadCount: 2,
+    lastMessage: 'Important team updates!'
+  },
+  {
+    id: 'random',
+    name: 'Random',
+    type: ChannelType.PUBLIC,
+    members: [],
+    unreadCount: 0,
+    lastMessage: 'Share anything interesting!'
+  }
+];
 
-export class CommunityService {
-  static channels: Channel[] = [
-    { id: 'general', name: 'general', icon: 'hash' },
-    { id: 'hall-of-fame', name: 'hall-of-fame', icon: 'trophy' },
-    { id: 'daily-talks', name: 'daily-talks', icon: 'message-square' },
-    { id: 'global-connect', name: 'global-connect', icon: 'globe' }
-  ];
+// Default demo messages for showcase
+const DEMO_MESSAGES: ChatMessage[] = [
+  {
+    id: '1',
+    channelId: 'general',
+    content: 'Welcome to the community chat!',
+    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+    type: MessageType.TEXT,
+    sender: {
+      id: 'system',
+      name: 'System',
+      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=System',
+      status: 'active'
+    },
+    reactions: []
+  },
+  {
+    id: '2',
+    channelId: 'general',
+    content: 'Feel free to ask any questions here.',
+    timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+    type: MessageType.TEXT,
+    sender: {
+      id: 'admin',
+      name: 'Admin',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
+      status: 'active'
+    },
+    reactions: []
+  },
+  {
+    id: '3',
+    channelId: 'general',
+    content: 'Hi everyone! Excited to be here!',
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+    type: MessageType.TEXT,
+    sender: {
+      id: 'user1',
+      name: 'Jane Smith',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
+      status: 'active'
+    },
+    reactions: [
+      { emoji: '👋', count: 2, users: ['admin', 'user2'] }
+    ]
+  },
+  {
+    id: '4',
+    channelId: 'general',
+    content: 'Welcome Jane! Great to see you here.',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    type: MessageType.TEXT,
+    sender: {
+      id: 'user2',
+      name: 'Mike Johnson',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+      status: 'active'
+    },
+    reactions: []
+  }
+];
+
+// Default users
+const DEFAULT_USERS: ChatUser[] = [
+  {
+    id: 'system',
+    name: 'System',
+    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=System',
+    status: 'active'
+  },
+  {
+    id: 'admin',
+    name: 'Admin User',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
+    status: 'active'
+  },
+  {
+    id: 'user1',
+    name: 'Jane Smith',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
+    status: 'active'
+  },
+  {
+    id: 'user2',
+    name: 'Mike Johnson',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+    status: 'active'
+  }
+];
+
+// Cleanup channels that might be removed
+const cleanupRemovedChannels = (workspaces: any[], existingChannels: ChatChannel[]): ChatChannel[] => {
+  if (!workspaces || workspaces.length === 0) return existingChannels;
   
-  static async getChannelWorkspace(channelName: string, userId: string): Promise<string> {
+  // Keep only channels that exist in workspaces
+  const workspaceIds = workspaces.map(w => w.id);
+  return existingChannels.filter(channel => 
+    channel.id === 'general' || // Keep default channels
+    channel.id === 'announcements' ||
+    channel.id === 'random' ||
+    workspaceIds.includes(channel.id)
+  );
+};
+
+class CommunityService {
+  // Initialize community channels and data
+  async initialize(): Promise<void> {
     try {
-      // Check if workspace exists
-      const { data: workspace, error } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('name', channelName)
-        .single();
+      // Get current user
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) return;
       
-      if (error) {
-        if (error.code === 'PGRST116') { // No data found
-          // Create workspace
-          const { data: newWorkspace, error: createError } = await supabase
-            .from('workspaces')
-            .insert({ 
-              name: channelName, 
-              owner_id: userId,
-              description: `Channel for ${channelName} discussions`
-            })
-            .select()
-            .single();
-            
-          if (createError) throw createError;
-          
-          // Add current user as member
-          await supabase
-            .from('workspace_members')
-            .insert({ 
-              workspace_id: newWorkspace.id, 
-              user_id: userId, 
-              role: 'owner' 
-            });
-            
-          return newWorkspace.id;
-        }
-        throw error;
+      // Load workspaces as channels
+      const workspaces = await SupabaseService.getWorkspaces(currentUser.id);
+      
+      // Create channels from workspaces
+      const workspaceChannels: ChatChannel[] = workspaces.map(workspace => ({
+        id: workspace.id as string,
+        name: workspace.name,
+        type: ChannelType.WORKSPACE,
+        description: workspace.description || 'A collaborative workspace',
+        members: [],
+        unreadCount: 0,
+        lastMessage: ''
+      }));
+      
+      // Combine with default channels
+      const allChannels = [...DEFAULT_CHANNELS, ...workspaceChannels];
+      
+      // Update channels
+      channelsSubject.next(allChannels);
+      
+      // Set default active channel if none is selected
+      if (!activeChannelSubject.value) {
+        this.setActiveChannel(allChannels[0]);
       }
       
-      return workspace.id;
+      // Set default users
+      usersSubject.next(DEFAULT_USERS);
+      
+      // Set default messages
+      messagesSubject.next(DEMO_MESSAGES);
+      
+      // Subscribe to presence updates
+      this.setupPresence(currentUser);
     } catch (error) {
-      console.error('Error getting channel workspace:', error);
-      toast.error('Error accessing channel workspace');
-      throw error;
+      console.error('Error initializing community service:', error);
     }
   }
   
-  static async getMessages(channelName: string, userId: string): Promise<Message[]> {
-    try {
-      const workspaceId = await this.getChannelWorkspace(channelName, userId);
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id, content, created_at, workspace_id,
-          sender_id, profiles:profiles(username, avatar_url, full_name)
-        `)
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true });
-        
-      if (error) throw error;
-      
-      // Format the messages to match our Message interface
-      const formattedMessages: Message[] = data?.map(message => {
-        // Extract profiles data safely
-        const profileData = message.profiles && Array.isArray(message.profiles) && message.profiles.length > 0
-          ? message.profiles[0]
-          : null;
-        
-        return {
-          id: message.id,
-          content: message.content,
-          sender_id: message.sender_id || '',
-          created_at: message.created_at,
-          workspace_id: message.workspace_id || '',
-          sender: profileData ? {
-            username: profileData.username,
-            avatar_url: profileData.avatar_url,
-            full_name: profileData.full_name
-          } : undefined
-        };
-      }) || [];
-      
-      return formattedMessages;
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast.error('Error loading messages');
-      throw error;
+  // Get all available channels
+  getChannels(): BehaviorSubject<ChatChannel[]> {
+    return channelsSubject;
+  }
+  
+  // Get the currently active channel
+  getActiveChannel(): BehaviorSubject<ChatChannel | null> {
+    return activeChannelSubject;
+  }
+  
+  // Set the active channel
+  async setActiveChannel(channel: ChatChannel): Promise<void> {
+    activeChannelSubject.next(channel);
+    
+    // Clear unread counter
+    const channels = channelsSubject.value;
+    const updatedChannels = channels.map(c => 
+      c.id === channel.id ? { ...c, unreadCount: 0 } : c
+    );
+    channelsSubject.next(updatedChannels);
+    
+    // Load real messages if it's a workspace channel
+    if (channel.type === ChannelType.WORKSPACE) {
+      await this.loadChannelMessages(channel.id);
+    } else {
+      // Use demo messages for default channels
+      const filteredMessages = DEMO_MESSAGES.filter(m => m.channelId === channel.id);
+      messagesSubject.next(filteredMessages);
     }
   }
   
-  static async sendMessage(channelName: string, content: string, userId: string): Promise<Message> {
+  // Get messages for the current channel
+  getMessages(): BehaviorSubject<ChatMessage[]> {
+    return messagesSubject;
+  }
+  
+  // Load messages for a specific channel
+  async loadChannelMessages(channelId: string): Promise<void> {
     try {
-      const workspaceId = await this.getChannelWorkspace(channelName, userId);
+      // Get current user
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) return;
       
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
+      // Load messages from Supabase
+      const messages = await SupabaseService.getMessages(channelId);
+      
+      // Map to chat message format
+      const chatMessages: ChatMessage[] = messages.map(msg => ({
+        id: msg.id as string,
+        channelId,
+        content: msg.content,
+        timestamp: msg.created_at as string,
+        type: MessageType.TEXT,
+        sender: {
+          id: msg.sender_id,
+          name: msg.sender?.full_name || msg.sender?.username || 'Unknown User',
+          avatar: msg.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender_id}`,
+          status: 'active'
+        },
+        reactions: []
+      }));
+      
+      messagesSubject.next(chatMessages);
+      
+      // Subscribe to new messages
+      this.subscribeToChannelMessages(channelId);
+    } catch (error) {
+      console.error('Error loading channel messages:', error);
+    }
+  }
+  
+  // Send a message to the current channel
+  async sendMessage(content: string, type: MessageType = MessageType.TEXT): Promise<boolean> {
+    try {
+      const currentUser = authService.getCurrentUser();
+      const currentChannel = activeChannelSubject.value;
+      
+      if (!currentUser || !currentChannel) return false;
+      
+      // For workspace channels, send to Supabase
+      if (currentChannel.type === ChannelType.WORKSPACE) {
+        await SupabaseService.sendMessage({
           content,
-          sender_id: userId,
-          workspace_id: workspaceId
-        })
-        .select(`
-          id, content, created_at, workspace_id,
-          sender_id, profiles:profiles(username, avatar_url, full_name)
-        `)
-        .single();
+          sender_id: currentUser.id,
+          workspace_id: currentChannel.id
+        });
         
-      if (error) throw error;
+        return true;
+      }
       
-      // Format the message to match our Message interface
-      const profileData = data.profiles && Array.isArray(data.profiles) && data.profiles.length > 0
-        ? data.profiles[0]
-        : null;
-      
-      const formattedMessage: Message = {
-        id: data.id,
-        content: data.content,
-        sender_id: data.sender_id || '',
-        created_at: data.created_at,
-        workspace_id: data.workspace_id || '',
-        sender: profileData ? {
-          username: profileData.username,
-          avatar_url: profileData.avatar_url,
-          full_name: profileData.full_name
-        } : undefined
+      // For demo channels, add locally
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
+        channelId: currentChannel.id,
+        content,
+        timestamp: new Date().toISOString(),
+        type,
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`,
+          status: 'active'
+        },
+        reactions: []
       };
       
-      return formattedMessage;
+      const updatedMessages = [...messagesSubject.value, newMessage];
+      messagesSubject.next(updatedMessages);
+      
+      // Update last message in channel list
+      this.updateChannelLastMessage(currentChannel.id, content);
+      
+      return true;
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-      throw error;
+      return false;
     }
   }
   
-  static async subscribeToMessages(channelName: string, userId: string, callback: (message: Message) => void): Promise<() => void> {
-    try {
-      // First get the workspace ID for this channel
-      const workspaceId = await this.getChannelWorkspace(channelName, userId);
+  // Subscribe to new messages in a channel
+  private subscribeToChannelMessages(channelId: string): () => void {
+    // Current user for reference
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) return () => {};
+    
+    // Subscribe to realtime messages
+    return SupabaseService.subscribeToMessages(channelId, (newMessage) => {
+      // Only process if this is the active channel
+      const activeChannel = activeChannelSubject.value;
+      if (activeChannel?.id !== channelId) {
+        // Update unread count for non-active channels
+        this.incrementChannelUnreadCount(channelId);
+        return;
+      }
       
-      // Create a channel for realtime updates
-      const realtimeChannel = supabase
-        .channel(`messages:${workspaceId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `workspace_id=eq.${workspaceId}`
-          },
-          async (payload) => {
-            // When a new message is inserted
-            const messageData = payload.new as any;
-            
-            try {
-              // Get the sender information from profiles
-              if (messageData.sender_id) {
-                const { data: senderData } = await supabase
-                  .from('profiles')
-                  .select('username, avatar_url, full_name')
-                  .eq('id', messageData.sender_id)
-                  .single();
-                
-                // Call the callback with the formatted message
-                callback({
-                  id: messageData.id,
-                  content: messageData.content,
-                  sender_id: messageData.sender_id || '',
-                  created_at: messageData.created_at,
-                  workspace_id: messageData.workspace_id || '',
-                  sender: senderData || undefined
-                });
-              }
-            } catch (error) {
-              console.error('Error processing realtime message:', error);
-            }
-          }
-        )
-        .subscribe();
-      
-      // Return unsubscribe function
-      return () => {
-        supabase.removeChannel(realtimeChannel);
+      // Convert to ChatMessage format
+      const chatMessage: ChatMessage = {
+        id: newMessage.id as string,
+        channelId,
+        content: newMessage.content,
+        timestamp: newMessage.created_at as string,
+        type: MessageType.TEXT,
+        sender: {
+          id: newMessage.sender_id,
+          name: newMessage.sender?.full_name || newMessage.sender?.username || 'Unknown User',
+          avatar: newMessage.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newMessage.sender_id}`,
+          status: 'active'
+        },
+        reactions: []
       };
-    } catch (error) {
-      console.error('Error subscribing to messages:', error);
-      toast.error('Error connecting to chat service');
-      // Return a no-op function in case of error
-      return () => {};
-    }
+      
+      // Add to messages
+      const updatedMessages = [...messagesSubject.value, chatMessage];
+      messagesSubject.next(updatedMessages);
+      
+      // Update last message in channel
+      this.updateChannelLastMessage(channelId, newMessage.content);
+    });
   }
   
-  static async getSenderInfo(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('username, avatar_url, full_name')
-      .eq('id', userId)
-      .single();
-      
-    return data;
+  // Update a channel's last message
+  private updateChannelLastMessage(channelId: string, lastMessage: string): void {
+    const channels = channelsSubject.value;
+    const updatedChannels = channels.map(channel => 
+      channel.id === channelId ? { ...channel, lastMessage } : channel
+    );
+    channelsSubject.next(updatedChannels);
   }
   
-  static async joinChannel(channelName: string, userId: string): Promise<void> {
-    try {
-      const workspaceId = await this.getChannelWorkspace(channelName, userId);
-      
-      // Check if user is already a member
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId)
-        .maybeSingle(); // Use maybeSingle to avoid error when no record is found
-      
-      // If not a member, add them
-      if (!membership) {
-        await supabase
-          .from('workspace_members')
-          .insert({ 
-            workspace_id: workspaceId, 
-            user_id: userId, 
-            role: 'member' 
-          });
-          
-        toast.success(`You've joined #${channelName}`);
-      }
-    } catch (error) {
-      console.error('Error joining channel:', error);
-      toast.error('Failed to join channel');
-    }
+  // Increment unread count for a channel
+  private incrementChannelUnreadCount(channelId: string): void {
+    const channels = channelsSubject.value;
+    const updatedChannels = channels.map(channel => 
+      channel.id === channelId ? { ...channel, unreadCount: (channel.unreadCount || 0) + 1 } : channel
+    );
+    channelsSubject.next(updatedChannels);
   }
-
-  // Add method to enable realtime for messages table
-  static async enableRealtimeForMessages(): Promise<void> {
+  
+  // Setup presence tracking
+  private setupPresence(currentUser: User): void {
+    const userInfo = {
+      name: currentUser.name,
+      avatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`
+    };
+    
+    // Setup presence tracking for all users
+    SupabaseService.setupPresence(currentUser.id, 'community', userInfo).subscribe();
+  }
+  
+  // Get all online users
+  getUsers(): BehaviorSubject<ChatUser[]> {
+    return usersSubject;
+  }
+  
+  // Create a new channel
+  async createChannel(name: string, type: ChannelType): Promise<boolean> {
     try {
-      // This should be run once when the app initializes
-      const { data, error } = await supabase
-        .rpc('enable_realtime_for_messages');
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) return false;
+      
+      if (type === ChannelType.WORKSPACE) {
+        // Create a new workspace in Supabase
+        const workspace = await SupabaseService.createWorkspace({
+          name,
+          description: `Workspace for ${name}`,
+          owner_id: currentUser.id
+        });
         
-      if (error) {
-        console.error('Error enabling realtime for messages:', error);
+        // Add to channels
+        const newChannel: ChatChannel = {
+          id: workspace.id as string,
+          name: workspace.name,
+          type: ChannelType.WORKSPACE,
+          description: workspace.description || '',
+          members: [],
+          unreadCount: 0,
+          lastMessage: 'New workspace created'
+        };
+        
+        const updatedChannels = [...channelsSubject.value, newChannel];
+        channelsSubject.next(updatedChannels);
+        
+        return true;
       } else {
-        console.log('Realtime enabled for messages');
+        // Create a local channel
+        const newChannel: ChatChannel = {
+          id: `custom-${Date.now()}`,
+          name,
+          type,
+          members: [],
+          unreadCount: 0,
+          lastMessage: 'New channel created'
+        };
+        
+        const updatedChannels = [...channelsSubject.value, newChannel];
+        channelsSubject.next(updatedChannels);
+        
+        return true;
       }
     } catch (error) {
-      console.error('Error calling enable_realtime_for_messages:', error);
-    }
-  }
-
-  // Get online users in a channel
-  static async getChannelOnlineUsers(channelName: string): Promise<any[]> {
-    try {
-      // If userId is empty, just return empty array to avoid errors
-      if (!channelName) return [];
-      
-      const workspaceId = await this.getChannelWorkspace(channelName, '');
-      
-      const { data, error } = await supabase
-        .from('workspace_members')
-        .select(`
-          user_id,
-          profiles:profiles(username, avatar_url, full_name)
-        `)
-        .eq('workspace_id', workspaceId);
-        
-      if (error) throw error;
-      
-      // For now, we're just returning all members as we don't have a presence system yet
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching online users:', error);
-      return [];
+      console.error('Error creating channel:', error);
+      return false;
     }
   }
 }
 
-export default CommunityService;
+export const communityService = new CommunityService();
+export default communityService;

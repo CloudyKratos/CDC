@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,24 +14,30 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, User, Users, Sparkles } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, User, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import SupabaseService from "@/services/SupabaseService";
 
-const Login = () => {
+const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isAuthenticated, error, clearError } = useAuth();
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Redirect if already authenticated
     if (isAuthenticated) {
       navigate("/dashboard");
     }
 
-    // Apply the background effect
+    // Apply background styling
     document.body.style.overflow = "hidden";
     
     // Clean up function
@@ -40,55 +46,35 @@ const Login = () => {
     };
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast.error("Please enter both email and password");
+    // Form validation
+    if (!email || !password || !confirmPassword || !fullName) {
+      toast.error("All fields are required");
       return;
     }
     
-    clearError();
-    setIsLoading(true);
-    
-    try {
-      const success = await login(email, password);
-      
-      if (success) {
-        toast.success("Login successful! Redirecting to dashboard...");
-        navigate("/dashboard");
-      } else {
-        toast.error("Login failed", {
-          description: "Invalid credentials. Please try again or use one of the test accounts below."
-        });
-      }
-    } catch (error) {
-      toast.error("Login failed", {
-        description: "An unexpected error occurred"
-      });
-    } finally {
-      setIsLoading(false);
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
     }
-  };
-
-  const handleQuickLogin = async (testEmail: string) => {
-    setEmail(testEmail);
-    setPassword("password123"); // Using a standard test password
+    
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      const success = await login(testEmail, "password123");
+      const user = await SupabaseService.signUp(email, password, fullName);
       
-      if (success) {
-        toast.success("Test login successful! Redirecting to dashboard...");
-        navigate("/dashboard");
-      } else {
-        toast.error("Test login failed", {
-          description: "Unable to log in with test account."
-        });
+      if (user) {
+        navigate("/login");
       }
     } catch (error) {
-      toast.error("Test login failed", {
+      toast.error("Registration failed", {
         description: "An unexpected error occurred"
       });
     } finally {
@@ -98,7 +84,7 @@ const Login = () => {
 
   return (
     <div className="fixed inset-0 flex flex-col justify-center items-center bg-gradient-to-br from-gray-900 via-indigo-900/70 to-purple-900 text-white">
-      {/* Floating elements for visual interest */}
+      {/* Floating elements for visual interest - same as Login page */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/5 w-64 h-64 bg-purple-500/20 rounded-full filter blur-3xl animate-float"></div>
         <div className="absolute bottom-1/3 right-1/5 w-80 h-80 bg-indigo-500/20 rounded-full filter blur-3xl animate-float animation-delay-200"></div>
@@ -118,7 +104,7 @@ const Login = () => {
             transition={{ delay: 0.2, duration: 0.5 }}
             className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
           >
-            Welcome to Nexus
+            Join Nexus
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -126,19 +112,36 @@ const Login = () => {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="text-gray-300 mt-2"
           >
-            Connect with your community in real-time
+            Create an account to get started
           </motion.p>
         </div>
         
         <Card className="border-0 shadow-2xl bg-black/40 backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="text-xl text-center">Sign In</CardTitle>
+            <CardTitle className="text-xl text-center">Sign Up</CardTitle>
             <CardDescription className="text-center text-gray-400">
-              Enter your credentials to access your account
+              Enter your details to create an account
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSignUp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium">
+                  Full Name
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="pl-10 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
+                  />
+                </div>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email
@@ -157,20 +160,15 @@ const Login = () => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
-                  <Link to="/reset-password" className="text-xs text-blue-400 hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Create password (min. 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
@@ -185,12 +183,29 @@ const Login = () => {
                 </div>
               </div>
               
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-md flex items-start">
-                  <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-              )}
+              </div>
               
               <Button
                 type="submit"
@@ -200,72 +215,29 @@ const Login = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    <span>Signing in...</span>
+                    <span>Creating account...</span>
                   </div>
                 ) : (
-                  <span>Sign In</span>
+                  <span>Sign Up</span>
                 )}
-              </Button>
-              
-              <div className="relative flex items-center justify-center mt-4">
-                <Separator className="w-full bg-gray-700" />
-                <span className="absolute px-2 bg-black/40 text-gray-400 text-xs">TEST ACCOUNTS</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleQuickLogin("user@example.com")}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Standard User</span>
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleQuickLogin("admin@example.com")}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Admin User</span>
-                </Button>
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleQuickLogin("demo@example.com")}
-                className="w-full border-gray-700 border-dashed bg-gradient-to-r from-indigo-500/5 to-purple-500/5 text-gray-300 hover:bg-indigo-900/20 hover:text-white flex items-center justify-center gap-2"
-              >
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <span>Explore Demo Account</span>
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <p className="text-center text-xs text-gray-400">
-              By signing in, you agree to our <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.
+              By signing up, you agree to our <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.
             </p>
             
-            <p className="text-center text-xs text-gray-500">
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Need help? 
-              </span> - Contact support@nexus-app.com
+            <Separator className="bg-gray-700" />
+            
+            <p className="text-center text-sm text-gray-300">
+              Already have an account? <Link to="/login" className="text-blue-400 hover:underline">Sign in here</Link>
             </p>
           </CardFooter>
         </Card>
-        
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-400">
-            Don't have an account? <Link to="/signup" className="text-blue-400 hover:underline">Create one now</Link>
-          </p>
-        </div>
       </motion.div>
     </div>
   );
 };
 
-export default Login;
+export default SignUp;
