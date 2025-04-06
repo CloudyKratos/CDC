@@ -234,7 +234,7 @@ export class SupabaseService {
         .from('messages')
         .select(`
           *,
-          profiles:sender_id (username, avatar_url, full_name)
+          sender:profiles!sender_id(username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId)
         .eq('is_deleted', false)
@@ -243,10 +243,19 @@ export class SupabaseService {
       if (error) throw error;
       
       // Format messages with sender info
-      const formattedMessages: MessageData[] = data?.map(message => ({
-        ...message,
-        sender: message.profiles
-      })) || [];
+      const formattedMessages: MessageData[] = data?.map(message => {
+        // Handle case where sender info might not be available
+        const senderInfo = message.sender || {};
+        
+        return {
+          ...message,
+          sender: {
+            username: senderInfo.username,
+            avatar_url: senderInfo.avatar_url,
+            full_name: senderInfo.full_name
+          }
+        };
+      }) || [];
       
       return formattedMessages;
     } catch (error) {
@@ -263,15 +272,22 @@ export class SupabaseService {
         .insert(message)
         .select(`
           *,
-          profiles:sender_id (username, avatar_url, full_name)
+          sender:profiles!sender_id(username, avatar_url, full_name)
         `)
         .single();
         
       if (error) throw error;
       
+      // Format message with sender info
+      const senderInfo = data.sender || {};
+      
       return {
         ...data,
-        sender: data.profiles
+        sender: {
+          username: senderInfo.username,
+          avatar_url: senderInfo.avatar_url,
+          full_name: senderInfo.full_name
+        }
       };
     } catch (error) {
       console.error('Error sending message:', error);
@@ -294,7 +310,7 @@ export class SupabaseService {
           try {
             // Get the sender information
             const message = payload.new as MessageData;
-            const { data: sender } = await supabase
+            const { data: senderInfo } = await supabase
               .from('profiles')
               .select('username, avatar_url, full_name')
               .eq('id', message.sender_id)
@@ -302,7 +318,7 @@ export class SupabaseService {
               
             callback({
               ...message,
-              sender
+              sender: senderInfo || {}
             });
           } catch (error) {
             console.error('Error in message subscription:', error);
@@ -361,16 +377,31 @@ export class SupabaseService {
         .from('workspace_members')
         .select(`
           *,
-          profiles:user_id (username, avatar_url, full_name)
+          member_profile:profiles!user_id(id, username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId);
         
       if (error) throw error;
       
-      return data?.map(member => ({
-        ...member,
-        profile: member.profiles
-      })) || [];
+      // Format the data to match our interface
+      const formattedMembers: WorkspaceMemberData[] = data?.map(member => {
+        const profileData = member.member_profile || null;
+        
+        return {
+          workspace_id: member.workspace_id,
+          user_id: member.user_id,
+          joined_at: member.joined_at,
+          role: member.role,
+          profile: profileData ? {
+            id: profileData.id,
+            username: profileData.username,
+            avatar_url: profileData.avatar_url,
+            full_name: profileData.full_name
+          } : undefined
+        };
+      }) || [];
+      
+      return formattedMembers;
     } catch (error) {
       console.error('Error fetching workspace members:', error);
       toast.error('Failed to load workspace members');
@@ -511,11 +542,11 @@ export class SupabaseService {
           const state = channel.presenceState();
           console.log('Presence state sync:', state);
         })
-        .on('presence', { event: 'join' }, ({ newPresences }) => {
-          console.log('User(s) joined:', newPresences);
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          console.log('User(s) joined:', key, newPresences);
         })
-        .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-          console.log('User(s) left:', leftPresences);
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          console.log('User(s) left:', key, leftPresences);
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {

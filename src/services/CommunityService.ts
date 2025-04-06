@@ -84,14 +84,35 @@ export class CommunityService {
         .from('messages')
         .select(`
           id, content, created_at, workspace_id,
-          sender_id, profiles:sender_id (username, avatar_url, full_name)
+          sender_id, profiles:profiles(username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: true });
         
       if (error) throw error;
       
-      return data || [];
+      // Format the messages to match our Message interface
+      const formattedMessages: Message[] = data?.map(message => {
+        // Extract profiles data safely
+        const profileData = message.profiles && Array.isArray(message.profiles) && message.profiles.length > 0
+          ? message.profiles[0]
+          : null;
+        
+        return {
+          id: message.id,
+          content: message.content,
+          sender_id: message.sender_id || '',
+          created_at: message.created_at,
+          workspace_id: message.workspace_id || '',
+          sender: profileData ? {
+            username: profileData.username,
+            avatar_url: profileData.avatar_url,
+            full_name: profileData.full_name
+          } : undefined
+        };
+      }) || [];
+      
+      return formattedMessages;
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Error loading messages');
@@ -112,13 +133,31 @@ export class CommunityService {
         })
         .select(`
           id, content, created_at, workspace_id,
-          sender_id, profiles:sender_id (username, avatar_url, full_name)
+          sender_id, profiles:profiles(username, avatar_url, full_name)
         `)
         .single();
         
       if (error) throw error;
       
-      return data;
+      // Format the message to match our Message interface
+      const profileData = data.profiles && Array.isArray(data.profiles) && data.profiles.length > 0
+        ? data.profiles[0]
+        : null;
+      
+      const formattedMessage: Message = {
+        id: data.id,
+        content: data.content,
+        sender_id: data.sender_id || '',
+        created_at: data.created_at,
+        workspace_id: data.workspace_id || '',
+        sender: profileData ? {
+          username: profileData.username,
+          avatar_url: profileData.avatar_url,
+          full_name: profileData.full_name
+        } : undefined
+      };
+      
+      return formattedMessage;
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -144,17 +183,25 @@ export class CommunityService {
           },
           async (payload) => {
             // When a new message is inserted
-            const message = payload.new as Message;
+            const messageData = payload.new as any;
             
             try {
               // Get the sender information from profiles
-              if (message.sender_id) {
-                const sender = await this.getSenderInfo(message.sender_id);
+              if (messageData.sender_id) {
+                const { data: senderData } = await supabase
+                  .from('profiles')
+                  .select('username, avatar_url, full_name')
+                  .eq('id', messageData.sender_id)
+                  .single();
                 
                 // Call the callback with the formatted message
                 callback({
-                  ...message,
-                  sender
+                  id: messageData.id,
+                  content: messageData.content,
+                  sender_id: messageData.sender_id || '',
+                  created_at: messageData.created_at,
+                  workspace_id: messageData.workspace_id || '',
+                  sender: senderData || undefined
                 });
               }
             } catch (error) {
@@ -221,8 +268,7 @@ export class CommunityService {
     try {
       // This should be run once when the app initializes
       const { data, error } = await supabase
-        .rpc('enable_realtime_for_messages')
-        .single();
+        .rpc('enable_realtime_for_messages');
         
       if (error) {
         console.error('Error enabling realtime for messages:', error);
@@ -237,13 +283,16 @@ export class CommunityService {
   // Get online users in a channel
   static async getChannelOnlineUsers(channelName: string): Promise<any[]> {
     try {
+      // If userId is empty, just return empty array to avoid errors
+      if (!channelName) return [];
+      
       const workspaceId = await this.getChannelWorkspace(channelName, '');
       
       const { data, error } = await supabase
         .from('workspace_members')
         .select(`
           user_id,
-          profiles:user_id (username, avatar_url, full_name)
+          profiles:profiles(username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId);
         
