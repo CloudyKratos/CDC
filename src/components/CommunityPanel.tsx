@@ -35,7 +35,7 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [onlineUsers] = useState([
+  const [onlineUsers, setOnlineUsers] = useState([
     { id: 1, name: 'Alex Johnson', status: 'online', role: 'Admin', avatar: 'Alex' },
     { id: 2, name: 'Sarah Miller', status: 'online', role: 'Moderator', avatar: 'Sarah' },
     { id: 3, name: 'James Wilson', status: 'online', role: 'Member', avatar: 'James' },
@@ -59,49 +59,62 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
   }, [messages]);
   
   useEffect(() => {
-    if (user?.id) {
-      setIsLoading(true);
-      fetchMessages();
-      
-      // Join the channel if needed
-      CommunityService.joinChannel(channelName, user.id);
-      
-      // Set up real-time subscription for new messages
-      const unsubscribePromise = CommunityService.subscribeToMessages(channelName, (newMessage) => {
-        setMessages(prev => {
-          // Check if message is already in the list
-          const exists = prev.some(m => m.id === newMessage.id);
-          if (exists) return prev;
+    let unsubscribe: (() => void) | null = null;
+    
+    const initializeChat = async () => {
+      if (user?.id) {
+        setIsLoading(true);
+        
+        try {
+          // Join the channel
+          await CommunityService.joinChannel(channelName, user.id);
           
-          return [...prev, newMessage];
-        });
-      });
-      
-      // Fix: Store the returned promise and call the unsubscribe function when it resolves
-      return () => {
-        // Properly handle the promise returned from subscribeToMessages
-        unsubscribePromise.then(unsubscribe => {
-          if (typeof unsubscribe === 'function') {
-            unsubscribe();
-          }
-        }).catch(err => {
-          console.error('Error unsubscribing from messages:', err);
-        });
-      };
-    }
+          // Load existing messages
+          const messagesData = await CommunityService.getMessages(channelName, user.id);
+          setMessages(messagesData);
+          
+          // Set up realtime subscription for new messages
+          unsubscribe = await CommunityService.subscribeToMessages(
+            channelName, 
+            user.id,
+            (newMessage) => {
+              setMessages(prev => {
+                // Check if message is already in the list
+                const exists = prev.some(m => m.id === newMessage.id);
+                if (exists) return prev;
+                
+                return [...prev, newMessage];
+              });
+            }
+          );
+          
+          // Get channel members
+          loadChannelMembers();
+        } catch (error) {
+          console.error('Error initializing chat:', error);
+          toast.error('Failed to load chat');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    initializeChat();
+    
+    // Cleanup subscription when component unmounts or channel changes
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user?.id, channelName]);
   
-  const fetchMessages = async () => {
-    if (!user?.id) return;
-    
+  const loadChannelMembers = async () => {
     try {
-      const messagesData = await CommunityService.getMessages(channelName, user.id);
-      setMessages(messagesData);
+      const members = await CommunityService.getChannelOnlineUsers(channelName);
+      // We would update the online users state here, but for now we'll keep the demo data
     } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
-    } finally {
-      setIsLoading(false);
+      console.error('Error loading channel members:', error);
     }
   };
   
@@ -115,6 +128,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
     
     if (message.trim()) {
       try {
+        // Send the message
         await CommunityService.sendMessage(channelName, message, user.id);
         
         // Clear message input (real-time subscription will add the message)

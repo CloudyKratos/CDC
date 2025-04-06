@@ -33,6 +33,11 @@ export interface MessageData {
   created_at?: string;
   updated_at?: string;
   is_deleted?: boolean;
+  sender?: {
+    username?: string;
+    avatar_url?: string;
+    full_name?: string;
+  };
 }
 
 export interface ProfileData {
@@ -52,6 +57,7 @@ export interface WorkspaceMemberData {
   user_id: string;
   joined_at?: string;
   role: string;
+  profile?: ProfileData;
 }
 
 // Utility functions for common operations
@@ -59,15 +65,47 @@ export class SupabaseService {
   // Workspaces
   static async getWorkspaces(userId: string): Promise<WorkspaceData[]> {
     try {
-      const { data, error } = await supabase
+      // Get workspaces where user is owner OR member
+      const { data: ownedWorkspaces, error: ownedError } = await supabase
         .from('workspaces')
         .select('*')
         .eq('owner_id', userId);
         
-      if (error) throw error;
-      return data || [];
+      if (ownedError) throw ownedError;
+      
+      const { data: memberWorkspaces, error: memberError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', userId);
+        
+      if (memberError) throw memberError;
+      
+      // If user is member of any workspaces, get those details too
+      let memberWorkspacesDetails: WorkspaceData[] = [];
+      
+      if (memberWorkspaces && memberWorkspaces.length > 0) {
+        const workspaceIds = memberWorkspaces.map(w => w.workspace_id);
+        
+        const { data, error } = await supabase
+          .from('workspaces')
+          .select('*')
+          .in('id', workspaceIds);
+          
+        if (error) throw error;
+        
+        memberWorkspacesDetails = data || [];
+      }
+      
+      // Combine owned and member workspaces, removing duplicates
+      const allWorkspaces = [...(ownedWorkspaces || []), ...memberWorkspacesDetails];
+      const uniqueWorkspaces = Array.from(
+        new Map(allWorkspaces.map(item => [item.id, item])).values()
+      );
+      
+      return uniqueWorkspaces;
     } catch (error) {
       console.error('Error fetching workspaces:', error);
+      toast.error('Failed to load workspaces');
       throw error;
     }
   }
@@ -92,6 +130,7 @@ export class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error creating workspace:', error);
+      toast.error('Failed to create workspace');
       throw error;
     }
   }
@@ -119,6 +158,7 @@ export class SupabaseService {
       return data || [];
     } catch (error) {
       console.error('Error fetching events:', error);
+      toast.error('Failed to load events');
       throw error;
     }
   }
@@ -142,6 +182,7 @@ export class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error creating event:', error);
+      toast.error('Failed to create event');
       throw error;
     }
   }
@@ -166,6 +207,7 @@ export class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error updating event:', error);
+      toast.error('Failed to update event');
       throw error;
     }
   }
@@ -180,6 +222,7 @@ export class SupabaseService {
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting event:', error);
+      toast.error('Failed to delete event');
       throw error;
     }
   }
@@ -198,9 +241,17 @@ export class SupabaseService {
         .order('created_at', { ascending: true });
         
       if (error) throw error;
-      return data || [];
+      
+      // Format messages with sender info
+      const formattedMessages: MessageData[] = data?.map(message => ({
+        ...message,
+        sender: message.profiles
+      })) || [];
+      
+      return formattedMessages;
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
       throw error;
     }
   }
@@ -210,15 +261,59 @@ export class SupabaseService {
       const { data, error } = await supabase
         .from('messages')
         .insert(message)
-        .select()
+        .select(`
+          *,
+          profiles:sender_id (username, avatar_url, full_name)
+        `)
         .single();
         
       if (error) throw error;
-      return data;
+      
+      return {
+        ...data,
+        sender: data.profiles
+      };
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
       throw error;
     }
+  }
+  
+  static subscribeToMessages(workspaceId: string, callback: (message: MessageData) => void): () => void {
+    const channel = supabase
+      .channel(`messages:${workspaceId}`)
+      .on('postgres_changes', 
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `workspace_id=eq.${workspaceId}`
+        },
+        async (payload) => {
+          try {
+            // Get the sender information
+            const message = payload.new as MessageData;
+            const { data: sender } = await supabase
+              .from('profiles')
+              .select('username, avatar_url, full_name')
+              .eq('id', message.sender_id)
+              .single();
+              
+            callback({
+              ...message,
+              sender
+            });
+          } catch (error) {
+            console.error('Error in message subscription:', error);
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
   
   // Profiles
@@ -228,14 +323,9 @@ export class SupabaseService {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();  // Use maybeSingle to avoid error when no profile is found
         
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // No profile found
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       return data;
     } catch (error) {
@@ -259,6 +349,7 @@ export class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
       throw error;
     }
   }
@@ -275,15 +366,33 @@ export class SupabaseService {
         .eq('workspace_id', workspaceId);
         
       if (error) throw error;
-      return data || [];
+      
+      return data?.map(member => ({
+        ...member,
+        profile: member.profiles
+      })) || [];
     } catch (error) {
       console.error('Error fetching workspace members:', error);
+      toast.error('Failed to load workspace members');
       throw error;
     }
   }
   
   static async addWorkspaceMember(member: WorkspaceMemberData): Promise<WorkspaceMemberData> {
     try {
+      // Check if member already exists
+      const { data: existingMember } = await supabase
+        .from('workspace_members')
+        .select('*')
+        .eq('workspace_id', member.workspace_id)
+        .eq('user_id', member.user_id)
+        .maybeSingle();
+        
+      if (existingMember) {
+        return existingMember;
+      }
+      
+      // Add new member
       const { data, error } = await supabase
         .from('workspace_members')
         .insert(member)
@@ -294,6 +403,7 @@ export class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error adding workspace member:', error);
+      toast.error('Failed to add workspace member');
       throw error;
     }
   }
@@ -378,6 +488,51 @@ export class SupabaseService {
       });
       return null;
     }
+  }
+
+  // Setup realtime for messages
+  static async enableRealtimeForMessages(): Promise<void> {
+    try {
+      await supabase.rpc('enable_realtime', {
+        table_name: 'messages'
+      });
+    } catch (error) {
+      console.error('Error enabling realtime for messages:', error);
+    }
+  }
+
+  // Enable presence for tracking online users
+  static setupPresence(userId: string, channelName: string, userInfo: any): { subscribe: () => void, unsubscribe: () => void } {
+    const channel = supabase.channel(`presence:${channelName}`);
+    
+    const subscribe = () => {
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          console.log('Presence state sync:', state);
+        })
+        .on('presence', { event: 'join' }, ({ newPresences }) => {
+          console.log('User(s) joined:', newPresences);
+        })
+        .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+          console.log('User(s) left:', leftPresences);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              user_id: userId,
+              ...userInfo,
+              online_at: new Date().toISOString()
+            });
+          }
+        });
+    };
+    
+    const unsubscribe = () => {
+      supabase.removeChannel(channel);
+    };
+    
+    return { subscribe, unsubscribe };
   }
 }
 

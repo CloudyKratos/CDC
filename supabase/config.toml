@@ -1,1 +1,4 @@
+
 project_id = "sfnklrjfusaufkogogli"
+[functions.enable_realtime]
+verify_jwt = true

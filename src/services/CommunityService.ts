@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ export interface Message {
     full_name?: string;
   };
   created_at: string;
+  workspace_id?: string;
 }
 
 export class CommunityService {
@@ -69,6 +71,7 @@ export class CommunityService {
       return workspace.id;
     } catch (error) {
       console.error('Error getting channel workspace:', error);
+      toast.error('Error accessing channel workspace');
       throw error;
     }
   }
@@ -80,7 +83,7 @@ export class CommunityService {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          id, content, created_at,
+          id, content, created_at, workspace_id,
           sender_id, profiles:sender_id (username, avatar_url, full_name)
         `)
         .eq('workspace_id', workspaceId)
@@ -91,6 +94,7 @@ export class CommunityService {
       return data || [];
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast.error('Error loading messages');
       throw error;
     }
   }
@@ -107,7 +111,7 @@ export class CommunityService {
           workspace_id: workspaceId
         })
         .select(`
-          id, content, created_at,
+          id, content, created_at, workspace_id,
           sender_id, profiles:sender_id (username, avatar_url, full_name)
         `)
         .single();
@@ -117,52 +121,56 @@ export class CommunityService {
       return data;
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
       throw error;
     }
   }
   
-  static async subscribeToMessages(channelName: string, callback: (message: Message) => void): Promise<() => void> {
+  static async subscribeToMessages(channelName: string, userId: string, callback: (message: Message) => void): Promise<() => void> {
     try {
-      // Create a unique channel name with the workspace name to avoid conflicts
-      const channelId = `messages-${channelName}`;
+      // First get the workspace ID for this channel
+      const workspaceId = await this.getChannelWorkspace(channelName, userId);
       
-      const channel = supabase
-        .channel(channelId)
+      // Create a channel for realtime updates
+      const realtimeChannel = supabase
+        .channel(`messages:${workspaceId}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'messages'
+            table: 'messages',
+            filter: `workspace_id=eq.${workspaceId}`
           },
           async (payload) => {
-            // Check if the message is for the current channel (workspace)
-            const message = payload.new as Message & { workspace_id: string };
+            // When a new message is inserted
+            const message = payload.new as Message;
             
             try {
-              // Get the workspace ID for the channel
+              // Get the sender information from profiles
               if (message.sender_id) {
-                // Get the sender information
                 const sender = await this.getSenderInfo(message.sender_id);
                 
+                // Call the callback with the formatted message
                 callback({
                   ...message,
                   sender
                 });
               }
             } catch (error) {
-              console.error('Error in message subscription:', error);
+              console.error('Error processing realtime message:', error);
             }
           }
         )
         .subscribe();
-        
-      // Return a function that can be called to unsubscribe
+      
+      // Return unsubscribe function
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(realtimeChannel);
       };
     } catch (error) {
       console.error('Error subscribing to messages:', error);
+      toast.error('Error connecting to chat service');
       // Return a no-op function in case of error
       return () => {};
     }
@@ -188,10 +196,10 @@ export class CommunityService {
         .select('*')
         .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid error when no record is found
       
       // If not a member, add them
-      if (membershipError && membershipError.code === 'PGRST116') {
+      if (!membership) {
         await supabase
           .from('workspace_members')
           .insert({ 
@@ -205,6 +213,47 @@ export class CommunityService {
     } catch (error) {
       console.error('Error joining channel:', error);
       toast.error('Failed to join channel');
+    }
+  }
+
+  // Add method to enable realtime for messages table
+  static async enableRealtimeForMessages(): Promise<void> {
+    try {
+      // This should be run once when the app initializes
+      const { data, error } = await supabase
+        .rpc('enable_realtime_for_messages')
+        .single();
+        
+      if (error) {
+        console.error('Error enabling realtime for messages:', error);
+      } else {
+        console.log('Realtime enabled for messages');
+      }
+    } catch (error) {
+      console.error('Error calling enable_realtime_for_messages:', error);
+    }
+  }
+
+  // Get online users in a channel
+  static async getChannelOnlineUsers(channelName: string): Promise<any[]> {
+    try {
+      const workspaceId = await this.getChannelWorkspace(channelName, '');
+      
+      const { data, error } = await supabase
+        .from('workspace_members')
+        .select(`
+          user_id,
+          profiles:user_id (username, avatar_url, full_name)
+        `)
+        .eq('workspace_id', workspaceId);
+        
+      if (error) throw error;
+      
+      // For now, we're just returning all members as we don't have a presence system yet
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+      return [];
     }
   }
 }
