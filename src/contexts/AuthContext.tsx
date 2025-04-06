@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, AuthState } from '@/types/workspace';
 import authService from '@/services/AuthService';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Default auth state
 const defaultAuthState: AuthState = {
@@ -19,6 +20,7 @@ interface AuthContextType extends AuthState {
   refreshSession: () => void;
   hasPermission: (permission: string) => boolean;
   clearError: () => void;
+  signOut: () => Promise<void>; // Add signOut method for Sidebar compatibility
 }
 
 // Create the auth context
@@ -30,6 +32,7 @@ export const AuthContext = createContext<AuthContextType>({
   refreshSession: () => {},
   hasPermission: () => false,
   clearError: () => {},
+  signOut: async () => {}, // Default implementation
 });
 
 interface AuthProviderProps {
@@ -59,7 +62,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }, 60000); // Check every minute
     
-    return () => clearInterval(refreshInterval);
+    // Subscribe to Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setAuthState({
+          user: {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata.full_name || 'User',
+            role: session.user.user_metadata.role || 'user',
+            avatar: session.user.user_metadata.avatar_url,
+            permissions: ['read', 'comment'],
+            lastLogin: new Date().toISOString(),
+          },
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+      } else if (event === 'SIGNED_OUT') {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null
+        });
+      }
+    });
+    
+    return () => {
+      clearInterval(refreshInterval);
+      subscription.unsubscribe();
+    };
   }, []);
   
   // Initialize authentication state
@@ -67,15 +100,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const user = authService.getCurrentUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      setAuthState({
-        user,
-        isAuthenticated: !!user,
-        isLoading: false,
-        error: null
-      });
+      if (session) {
+        setAuthState({
+          user: {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata.full_name || 'User',
+            role: session.user.user_metadata.role || 'user',
+            avatar: session.user.user_metadata.avatar_url,
+            permissions: ['read', 'comment'],
+            lastLogin: new Date().toISOString(),
+          },
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+      } else {
+        const localUser = authService.getCurrentUser();
+        
+        setAuthState({
+          user: localUser,
+          isAuthenticated: !!localUser,
+          isLoading: false,
+          error: null
+        });
+      }
     } catch (error) {
+      console.error("Auth initialization error:", error);
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -90,25 +143,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const user = await authService.login(email, password);
+      // Try Supabase authentication first
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (user) {
+      if (error) {
+        // Fall back to demo auth if Supabase fails
+        const user = await authService.login(email, password);
+        
+        if (user) {
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          });
+          return true;
+        } else {
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: "Invalid email or password"
+          }));
+          return false;
+        }
+      }
+      
+      if (data?.user) {
+        // Supabase login successful
         setAuthState({
-          user,
+          user: {
+            id: data.user.id,
+            email: data.user.email || '',
+            name: data.user.user_metadata.full_name || 'User',
+            role: data.user.user_metadata.role || 'user',
+            avatar: data.user.user_metadata.avatar_url,
+            permissions: ['read', 'comment'],
+            lastLogin: new Date().toISOString(),
+          },
           isAuthenticated: true,
           isLoading: false,
           error: null
         });
         return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: "Invalid email or password"
-        }));
-        return false;
       }
+      
+      return false;
     } catch (error) {
+      console.error("Login error:", error);
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
@@ -120,7 +204,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Logout handler
   const logout = () => {
+    // Log out from Supabase
+    supabase.auth.signOut();
+    
+    // Also clear local auth
     authService.logout();
+    
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -128,22 +217,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       error: null
     });
   };
+
+  // Additional signOut method for compatibility with existing code
+  const signOut = async () => {
+    logout();
+  };
   
   // Update user data
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (!authState.user) return;
     
     const updatedUser = { ...authState.user, ...userData };
     
-    // Update in state
-    setAuthState(prev => ({
-      ...prev,
-      user: updatedUser
-    }));
-    
-    // Update in localStorage
-    authService.logout(); // Clear first
-    authService.login(updatedUser.email, "password"); // Re-save with updated data
+    try {
+      // Update Supabase user metadata if we're using Supabase auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        await supabase.auth.updateUser({
+          data: {
+            full_name: updatedUser.name,
+            avatar_url: updatedUser.avatar,
+            role: updatedUser.role
+          }
+        });
+        
+        // Update profile in database if available
+        const { error } = await supabase.from('profiles').upsert({
+          id: updatedUser.id,
+          full_name: updatedUser.name,
+          avatar_url: updatedUser.avatar,
+          updated_at: new Date().toISOString()
+        });
+        
+        if (error) {
+          console.error("Error updating profile:", error);
+        }
+      }
+      
+      // Update in state
+      setAuthState(prev => ({
+        ...prev,
+        user: updatedUser
+      }));
+      
+      // Update in localStorage for backup
+      authService.logout(); // Clear first
+      authService.login(updatedUser.email, "password"); // Re-save with updated data
+      
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Failed to update profile");
+    }
   };
   
   // Refresh user session
@@ -181,7 +306,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateUser,
         refreshSession,
         hasPermission,
-        clearError
+        clearError,
+        signOut
       }}
     >
       {children}

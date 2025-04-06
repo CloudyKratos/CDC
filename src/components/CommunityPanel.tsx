@@ -5,32 +5,29 @@ import {
   Smile, 
   PlusCircle, 
   Image, 
-  File, 
-  AtSign, 
-  Users, 
-  Pin, 
-  Mic, 
-  Video, 
-  Gift,
   Hash,
   BookOpen,
   Trophy,
   Bell,
   Globe,
-  MessageSquare
+  MessageSquare,
+  Pin,
+  Users,
+  Mic,
+  Video,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import EmojiPicker from './EmojiPicker';
 import CommunityChannelContent from './CommunityChannelContent';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import CommunityService, { Message } from '@/services/CommunityService';
 
 interface CommunityPanelProps {
   channelName: string;
@@ -39,7 +36,7 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState([
+  const [onlineUsers] = useState([
     { id: 1, name: 'Alex Johnson', status: 'online', role: 'Admin', avatar: 'Alex' },
     { id: 2, name: 'Sarah Miller', status: 'online', role: 'Moderator', avatar: 'Sarah' },
     { id: 3, name: 'James Wilson', status: 'online', role: 'Member', avatar: 'James' },
@@ -49,7 +46,8 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
     { id: 7, name: 'William Clark', status: 'offline', role: 'Member', avatar: 'William' },
     { id: 8, name: 'Sophia Lee', status: 'online', role: 'Member', avatar: 'Sophia' },
   ]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,131 +60,58 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
   }, [messages]);
   
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      setIsLoading(true);
       fetchMessages();
       
+      // Join the channel if needed
+      CommunityService.joinChannel(channelName, user.id);
+      
       // Set up real-time subscription for new messages
-      const channel = supabase
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages'
-          },
-          (payload) => {
-            console.log('New message:', payload);
-            fetchMessages(); // Refresh messages when a new one is added
-          }
-        )
-        .subscribe();
-        
+      const unsubscribe = CommunityService.subscribeToMessages(channelName, (newMessage) => {
+        setMessages(prev => {
+          // Check if message is already in the list
+          const exists = prev.some(m => m.id === newMessage.id);
+          if (exists) return prev;
+          
+          return [...prev, newMessage];
+        });
+      });
+      
       return () => {
-        supabase.removeChannel(channel);
+        unsubscribe();
       };
     }
-  }, [user, channelName]);
+  }, [user?.id, channelName]);
   
   const fetchMessages = async () => {
+    if (!user?.id) return;
+    
     try {
-      const { data: workspaces, error: workspaceError } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('name', channelName)
-        .single();
-        
-      if (workspaceError) {
-        // If workspace doesn't exist, create it
-        const { data: newWorkspace, error: createError } = await supabase
-          .from('workspaces')
-          .insert({ name: channelName, owner_id: user?.id })
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-        
-        // Add current user as member
-        await supabase
-          .from('workspace_members')
-          .insert({ workspace_id: newWorkspace.id, user_id: user?.id, role: 'owner' });
-          
-        return;
-      }
-      
-      // Fetch messages for the workspace
-      if (workspaces) {
-        const { data: messagesData, error: messagesError } = await supabase
-          .from('messages')
-          .select(`
-            id, content, created_at,
-            sender_id, profiles:sender_id (username, avatar_url, full_name)
-          `)
-          .eq('workspace_id', workspaces.id)
-          .order('created_at', { ascending: true });
-          
-        if (messagesError) throw messagesError;
-        
-        if (messagesData) {
-          setMessages(messagesData);
-        }
-      }
+      const messagesData = await CommunityService.getMessages(channelName, user.id);
+      setMessages(messagesData);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user?.id) {
+      toast.error('You must be logged in to send messages');
+      return;
+    }
+    
     if (message.trim()) {
       try {
-        // Get workspace id
-        const { data: workspace, error: workspaceError } = await supabase
-          .from('workspaces')
-          .select('id')
-          .eq('name', channelName)
-          .single();
-          
-        if (workspaceError) {
-          // Create workspace if it doesn't exist
-          const { data: newWorkspace, error: createError } = await supabase
-            .from('workspaces')
-            .insert({ name: channelName, owner_id: user?.id })
-            .select()
-            .single();
-            
-          if (createError) throw createError;
-          
-          // Add message to the new workspace
-          const { error: messageError } = await supabase
-            .from('messages')
-            .insert({
-              content: message,
-              sender_id: user?.id,
-              workspace_id: newWorkspace.id
-            });
-            
-          if (messageError) throw messageError;
-          
-          // Add current user as member
-          await supabase
-            .from('workspace_members')
-            .insert({ workspace_id: newWorkspace.id, user_id: user?.id, role: 'owner' });
-        } else {
-          // Add message to existing workspace
-          const { error: messageError } = await supabase
-            .from('messages')
-            .insert({
-              content: message,
-              sender_id: user?.id,
-              workspace_id: workspace.id
-            });
-            
-          if (messageError) throw messageError;
-        }
+        await CommunityService.sendMessage(channelName, message, user.id);
         
+        // Clear message input (real-time subscription will add the message)
         setMessage('');
-        // Message will be added via real-time subscription
       } catch (error) {
         console.error('Error sending message:', error);
         toast.error('Failed to send message');
@@ -211,12 +136,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
         return <BookOpen className="mr-2" size={20} />;
       case 'hall-of-fame':
         return <Trophy className="mr-2" size={20} />;
-      case 'round-table':
-        return <Mic className="mr-2" size={20} />;
-      case 'daily-talks':
-        return <MessageSquare className="mr-2" size={20} />;
       case 'global-connect':
         return <Globe className="mr-2" size={20} />;
+      case 'daily-talks':
+        return <MessageSquare className="mr-2" size={20} />;
       default:
         return <Hash className="mr-2" size={20} />;
     }
@@ -236,11 +159,6 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
             <h2 className="text-lg font-semibold">
               {channelName.replace(/-/g, ' ')}
             </h2>
-            {channelName === 'round-table' && (
-              <Badge variant="outline" className="ml-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800">
-                Live
-              </Badge>
-            )}
             {channelName === 'global-connect' && (
               <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
                 Global
@@ -249,19 +167,6 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
           </div>
           
           <div className="flex items-center space-x-2">
-            {channelName === 'round-table' && (
-              <>
-                <Button variant="outline" size="sm" className="hidden md:flex items-center">
-                  <Mic size={16} className="mr-1 text-primary" />
-                  <span>Join Voice</span>
-                </Button>
-                <Button variant="outline" size="sm" className="hidden md:flex items-center">
-                  <Video size={16} className="mr-1 text-green-500" />
-                  <span>Start Video</span>
-                </Button>
-              </>
-            )}
-            
             <Button variant="ghost" size="icon" className="hidden md:flex">
               <Pin size={18} />
             </Button>
@@ -278,54 +183,64 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
         
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {/* Welcome Message */}
-            <div className="text-center my-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                {getChannelIcon()}
-              </div>
-              <h3 className="text-lg font-medium">Welcome to #{channelName}</h3>
-              <p className="text-muted-foreground text-sm mt-1">
-                {channelName === 'general' && "This is the start of the general channel. All community discussions start here."}
-                {channelName === 'introduction' && "Introduce yourself to the community! Tell us who you are and what brings you here."}
-                {channelName === 'hall-of-fame' && "Celebrate achievements and recognize community members for their contributions."}
-                {channelName === 'round-table' && "Join voice and video discussions on the latest topics in the community."}
-                {channelName === 'daily-talks' && "Chat about your day, share thoughts, and engage in casual conversations."}
-                {channelName === 'global-connect' && "Connect with members from around the world and discuss global trends and opportunities."}
-              </p>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            
-            {/* Messages */}
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex items-start group">
-                <Avatar className="h-9 w-9 mr-3 mt-0.5">
-                  <AvatarImage src={msg.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.profiles?.username || 'User'}`} />
-                  <AvatarFallback>
-                    {(msg.profiles?.username?.[0] || 'U').toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <span className="font-medium">{msg.profiles?.full_name || msg.profiles?.username || 'Unknown User'}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <div className="opacity-0 group-hover:opacity-100 ml-2 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Smile size={14} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <MessageSquare size={14} />
-                      </Button>
+          ) : (
+            <div className="space-y-4">
+              {/* Welcome Message */}
+              <div className="text-center my-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                  {getChannelIcon()}
+                </div>
+                <h3 className="text-lg font-medium">Welcome to #{channelName}</h3>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {channelName === 'general' && "This is the start of the general channel. All community discussions start here."}
+                  {channelName === 'hall-of-fame' && "Celebrate achievements and recognize community members for their contributions."}
+                  {channelName === 'daily-talks' && "Chat about your day, share thoughts, and engage in casual conversations."}
+                  {channelName === 'global-connect' && "Connect with members from around the world and discuss global trends and opportunities."}
+                </p>
+              </div>
+              
+              {/* Messages */}
+              {messages.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  No messages yet. Start the conversation!
+                </p>
+              ) : (
+                messages.map((msg) => (
+                  <div key={msg.id} className="flex items-start group">
+                    <Avatar className="h-9 w-9 mr-3 mt-0.5">
+                      <AvatarImage src={msg.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender?.username || 'User'}`} />
+                      <AvatarFallback>
+                        {(msg.sender?.username?.[0] || 'U').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <span className="font-medium">{msg.sender?.full_name || msg.sender?.username || 'Unknown User'}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="opacity-0 group-hover:opacity-100 ml-2 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Smile size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <MessageSquare size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-1 text-sm">{msg.content}</div>
                     </div>
                   </div>
-                  <div className="mt-1 text-sm">{msg.content}</div>
-                </div>
-              </div>
-            ))}
-            
-            <div ref={messagesEndRef} />
-          </div>
+                ))
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          )}
           <CommunityChannelContent channelName={channelName} />
         </ScrollArea>
         
@@ -356,6 +271,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={`Message #${channelName}`}
                 className="bg-gray-100 dark:bg-gray-800 border-0 focus-visible:ring-1 focus-visible:ring-primary pl-3 pr-10 py-5"
+                disabled={isLoading || !user?.id}
               />
               <Button
                 type="button"
@@ -381,10 +297,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
             <Button 
               type="submit" 
               size="icon"
-              disabled={!message.trim()}
-              className={`rounded-full ${!message.trim() ? 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400' : 'bg-primary text-white'}`}
+              disabled={!message.trim() || isLoading || !user?.id}
+              className={`rounded-full ${!message.trim() || isLoading || !user?.id ? 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400' : 'bg-primary text-white'}`}
             >
-              <Send size={18} />
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
             </Button>
           </form>
         </div>

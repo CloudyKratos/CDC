@@ -51,17 +51,17 @@ const TEST_USERS: User[] = [
   { 
     id: '3', 
     email: 'demo@example.com', 
-    name: 'Demo Account', 
+    name: "Creator's Hub", 
     role: 'demo',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
     permissions: ['read', 'comment', 'limited_write'],
     isDemo: true,
     lastLogin: new Date().toISOString(),
     profile: {
-      bio: "This is a demo account with limited permissions.",
-      location: "Remote",
+      bio: "A hub for creators to connect, collaborate and grow together.",
+      location: "Global",
       timeZone: "UTC",
-      website: "nexus-demo.app"
+      website: "creatorshub.app"
     },
     preferences: {
       darkMode: false,

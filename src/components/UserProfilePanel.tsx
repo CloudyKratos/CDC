@@ -1,6 +1,5 @@
 
-import React, { useState } from "react";
-import ProfilePanel from "./ProfilePanel";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,32 +11,100 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Camera, User, Settings, Bell, LogOut, Shield, Key,
-  Mail, Globe, Phone, MapPin, Edit, Save, Calendar, Briefcase
+  Mail, Globe, Phone, MapPin, Edit, Save, Calendar, Briefcase,
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import ProfilePanel from "./ProfilePanel";
 
 const UserProfilePanel: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user?.name || 'Warrior',
-    bio: user?.profile?.bio || 'No bio available',
-    location: user?.profile?.location || 'San Francisco, CA',
-    website: user?.profile?.website || 'cdcwarriors.com',
-    timeZone: user?.profile?.timeZone || 'Pacific Time (UTC-8)',
-    phoneNumber: user?.profile?.phoneNumber || '(555) 123-4567',
-    role: user?.role || 'Warrior',
-    company: 'CDC Warriors'
+    name: user?.name || 'User',
+    bio: '',
+    location: '',
+    website: '',
+    timeZone: 'Pacific Time (UTC-8)',
+    phoneNumber: '',
+    role: user?.role || 'user',
+    company: "Creator's Hub"
   });
+  const [profileLoading, setProfileLoading] = useState(true);
 
-  const handleProfileUpdate = () => {
-    setIsEditingProfile(false);
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully."
-    });
+  // Fetch profile data from Supabase
+  useEffect(() => {
+    async function fetchProfileData() {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setProfileData(prev => ({
+            ...prev,
+            name: data.full_name || user?.name || 'User',
+            bio: data.bio || prev.bio,
+            location: data.location || prev.location,
+            website: data.website || prev.website,
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+      } finally {
+        setProfileLoading(false);
+      }
+    }
+    
+    fetchProfileData();
+  }, [user?.id]);
+
+  const handleProfileUpdate = async () => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    try {
+      // Update user in auth context
+      await updateUser({
+        ...user,
+        name: profileData.name,
+      });
+      
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: profileData.name,
+          bio: profileData.bio,
+          location: profileData.location,
+          website: profileData.website,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) throw error;
+      
+      setIsEditingProfile(false);
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -47,6 +114,14 @@ const UserProfilePanel: React.FC = () => {
       [name]: value
     }));
   };
+  
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in p-4 space-y-6 h-full overflow-y-auto">
@@ -84,9 +159,9 @@ const UserProfilePanel: React.FC = () => {
             <div className="absolute -bottom-10 left-4">
               <div className="relative">
                 <Avatar className="h-20 w-20 border-4 border-background">
-                  <AvatarImage src={user?.avatar || undefined} />
+                  <AvatarImage src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
                   <AvatarFallback className="text-xl">
-                    {user?.name?.charAt(0) || 'W'}
+                    {user?.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <Button 
@@ -138,9 +213,10 @@ const UserProfilePanel: React.FC = () => {
                     size="sm" 
                     onClick={handleProfileUpdate}
                     className="gap-1"
+                    disabled={isSaving}
                   >
-                    <Save size={14} />
-                    Save Changes
+                    {isSaving ? <Loader2 size={14} className="animate-spin mr-1" /> : <Save size={14} />}
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </Button>
                 )}
               </div>
@@ -150,19 +226,19 @@ const UserProfilePanel: React.FC = () => {
                   <div className="grid gap-4">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user?.email || 'warrior@cdcwarriors.com'}</span>
+                      <span className="text-sm">{user?.email || 'user@example.com'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profileData.phoneNumber}</span>
+                      <span className="text-sm">{profileData.phoneNumber || 'Not provided'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profileData.location}</span>
+                      <span className="text-sm">{profileData.location || 'Not provided'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profileData.website}</span>
+                      <span className="text-sm">{profileData.website || 'Not provided'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -172,7 +248,7 @@ const UserProfilePanel: React.FC = () => {
                   <div className="pt-4 border-t">
                     <h4 className="text-sm font-medium mb-2">Bio</h4>
                     <p className="text-sm text-muted-foreground">
-                      {profileData.bio}
+                      {profileData.bio || 'No bio available. Edit your profile to add one.'}
                     </p>
                   </div>
                 </>
@@ -192,7 +268,7 @@ const UserProfilePanel: React.FC = () => {
                     <Label htmlFor="email">Email</Label>
                     <Input 
                       id="email" 
-                      value={user?.email || 'warrior@cdcwarriors.com'} 
+                      value={user?.email || 'user@example.com'} 
                       disabled
                     />
                     <p className="text-xs text-muted-foreground">Contact support to change your email</p>
@@ -293,7 +369,19 @@ const UserProfilePanel: React.FC = () => {
               <h3 className="text-lg font-medium">Security Settings</h3>
               
               <div className="space-y-4">
-                <Button variant="outline" className="w-full justify-start gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2" 
+                  onClick={async () => {
+                    try {
+                      await supabase.auth.updateUser({ password: prompt('Enter new password:') || '' });
+                      toast.success('Password updated successfully');
+                    } catch (error) {
+                      console.error('Error updating password:', error);
+                      toast.error('Failed to update password');
+                    }
+                  }}
+                >
                   <Key size={16} />
                   Change Password
                 </Button>
@@ -312,7 +400,19 @@ const UserProfilePanel: React.FC = () => {
                 </div>
                 
                 <div className="pt-4">
-                  <Button variant="destructive" className="w-full justify-start gap-2">
+                  <Button 
+                    variant="destructive" 
+                    className="w-full justify-start gap-2"
+                    onClick={async () => {
+                      try {
+                        await supabase.auth.signOut({ scope: 'global' });
+                        toast.success('Signed out from all devices');
+                      } catch (error) {
+                        console.error('Error signing out:', error);
+                        toast.error('Failed to sign out from all devices');
+                      }
+                    }}
+                  >
                     <LogOut size={16} />
                     Sign Out from All Devices
                   </Button>

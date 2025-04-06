@@ -1,311 +1,259 @@
-import React, { useState } from "react";
-import { CalendarEvent, Attendee, Reminder } from "@/types/workspace";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Clock, AlertTriangle, MapPin, Link2 } from "lucide-react";
 
-export interface CalendarEventFormProps {
-  onSubmit: (eventData: Partial<CalendarEvent>) => void;
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { CalendarEvent } from '../CalendarPanel';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon, Clock, MapPin, Trash2 } from 'lucide-react';
+import { TimePickerDemo } from '@/components/ui/time-picker-demo';
+
+interface CalendarEventFormProps {
+  event: CalendarEvent;
+  onSubmit: (eventData: Partial<CalendarEvent>) => Promise<void>;
   onCancel: () => void;
-  event?: Partial<CalendarEvent>;
-  onDelete?: () => void;
+  onDelete: () => Promise<void>;
+  isReadOnly?: boolean;
 }
 
-const CalendarEventForm: React.FC<CalendarEventFormProps> = ({ onSubmit, onCancel, event, onDelete }) => {
-  const [title, setTitle] = useState(event?.title || "");
-  const [date, setDate] = useState<Date | undefined>(
-    event?.date ? (typeof event.date === 'string' ? new Date(event.date) : event.date) : new Date()
-  );
-  const [startTime, setStartTime] = useState(event?.startTime || "09:00");
-  const [endTime, setEndTime] = useState(event?.endTime || "10:00");
-  const [eventType, setEventType] = useState<CalendarEvent["type"]>(event?.type || "meeting");
-  const [description, setDescription] = useState(event?.description || "");
-  const [priority, setPriority] = useState<CalendarEvent["priority"]>(event?.priority || "medium");
-  const [location, setLocation] = useState(event?.location || "");
-  const [url, setUrl] = useState(event?.url || "");
-  const [isAllDay, setIsAllDay] = useState(event?.isAllDay || false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>(event?.attendees || [
-    { id: "1", name: "You", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=You" },
-  ]);
-  const [reminderType, setReminderType] = useState<"email" | "notification" | "sms">(
-    event?.reminder 
-      ? (typeof event.reminder === 'string' 
-          ? "notification"
-          : event.reminder.type) 
-      : "notification"
-  );
-  const [reminderTime, setReminderTime] = useState<string>(
-    event?.reminder 
-      ? (typeof event.reminder === 'string' 
-          ? "15 minutes before" 
-          : event.reminder.time) 
-      : "15 minutes before"
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
+const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
+  event,
+  onSubmit,
+  onCancel,
+  onDelete,
+  isReadOnly = false
+}) => {
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description || '');
+  const [startDate, setStartDate] = useState<Date | undefined>(event.start);
+  const [endDate, setEndDate] = useState<Date | undefined>(event.end);
+  const [location, setLocation] = useState(event.location || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !date || !eventType || !priority) {
-      return; // Form validation
+    if (!startDate || !endDate) {
+      return;
     }
     
-    const eventData: Partial<CalendarEvent> = {
-      title,
-      date,
-      type: eventType,
-      description: description || "No description provided",
-      priority,
-      attendees,
-      isAllDay,
-      reminder: {
-        time: reminderTime,
-        type: reminderType
-      }
-    };
+    setIsSubmitting(true);
     
-    if (!isAllDay) {
-      eventData.startTime = startTime;
-      eventData.endTime = endTime;
+    try {
+      await onSubmit({
+        ...event,
+        title,
+        description,
+        start: startDate,
+        end: endDate,
+        location
+      });
+    } catch (error) {
+      console.error("Error submitting event:", error);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+  
+  const handleDelete = async () => {
+    if (!event.id) return;
     
-    if (location) eventData.location = location;
-    if (url) eventData.url = url;
+    const confirmed = window.confirm("Are you sure you want to delete this event?");
+    if (!confirmed) return;
     
-    onSubmit(eventData);
+    setIsDeleting(true);
+    
+    try {
+      await onDelete();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  // Convert date objects to time strings for input
+  const getTimeString = (date: Date) => {
+    return format(date, 'HH:mm');
+  };
+  
+  // Update the time part of a date
+  const updateTimeOfDate = (date: Date, timeString: string) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const newDate = new Date(date);
+    newDate.setHours(hours);
+    newDate.setMinutes(minutes);
+    return newDate;
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Title</label>
-        <Input 
-          value={title} 
-          onChange={(e) => setTitle(e.target.value)} 
-          placeholder="Event title" 
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Event title"
           required
+          className="mt-1"
+          disabled={isSubmitting || isReadOnly}
         />
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Date</label>
-          <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : "Select date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(date) => {
-                  setDate(date);
-                  setShowDatePicker(false);
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
-          <Select 
-            value={eventType} 
-            onValueChange={(value: CalendarEvent["type"]) => setEventType(value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="meeting">Meeting</SelectItem>
-              <SelectItem value="task">Task</SelectItem>
-              <SelectItem value="reminder">Reminder</SelectItem>
-              <SelectItem value="event">Event</SelectItem>
-              <SelectItem value="webinar">Webinar</SelectItem>
-              <SelectItem value="deadline">Deadline</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="allDay" 
-          checked={isAllDay} 
-          onCheckedChange={(checked) => setIsAllDay(checked as boolean)} 
-        />
-        <label htmlFor="allDay" className="text-sm font-medium">
-          All day event
-        </label>
-      </div>
-      
-      {!isAllDay && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Start Time</label>
-            <div className="flex items-center">
-              <Clock className="mr-2 h-4 w-4 text-gray-400" />
-              <Input 
-                type="time" 
-                value={startTime} 
-                onChange={(e) => setStartTime(e.target.value)} 
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">End Time</label>
-            <div className="flex items-center">
-              <Clock className="mr-2 h-4 w-4 text-gray-400" />
-              <Input 
-                type="time" 
-                value={endTime} 
-                onChange={(e) => setEndTime(e.target.value)} 
-              />
-            </div>
-          </div>
-        </div>
-      )}
       
       <div>
-        <label className="block text-sm font-medium mb-1">Description</label>
-        <Textarea 
-          value={description} 
-          onChange={(e) => setDescription(e.target.value)} 
-          placeholder="Add a description..." 
-          className="min-h-[100px]"
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Event description"
+          className="mt-1"
+          rows={3}
+          disabled={isSubmitting || isReadOnly}
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Priority</label>
-          <Select 
-            value={priority} 
-            onValueChange={(value: CalendarEvent["priority"]) => setPriority(value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">
-                <div className="flex items-center">
-                  Low
-                  <span className="ml-2 h-2 w-2 rounded-full bg-gray-400"></span>
-                </div>
-              </SelectItem>
-              <SelectItem value="medium">
-                <div className="flex items-center">
-                  Medium
-                  <span className="ml-2 h-2 w-2 rounded-full bg-yellow-400"></span>
-                </div>
-              </SelectItem>
-              <SelectItem value="high">
-                <div className="flex items-center">
-                  High
-                  <span className="ml-2 h-2 w-2 rounded-full bg-red-500"></span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <Label>Start Date</Label>
+          <div className="flex mt-1 gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                  disabled={isSubmitting || isReadOnly}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, 'PPP') : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  disabled={isSubmitting || isReadOnly}
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Input 
+              type="time"
+              value={startDate ? getTimeString(startDate) : '00:00'}
+              onChange={(e) => {
+                if (startDate) {
+                  setStartDate(updateTimeOfDate(startDate, e.target.value));
+                }
+              }}
+              className="w-20"
+              disabled={isSubmitting || isReadOnly}
+            />
+          </div>
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1">Reminder</label>
-          <Select 
-            value={reminderType}
-            onValueChange={(value: "email" | "notification" | "sms") => setReminderType(value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Reminder type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="notification">Notification</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="sms">SMS</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label>End Date</Label>
+          <div className="flex mt-1 gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                  disabled={isSubmitting || isReadOnly}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, 'PPP') : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  disabled={isSubmitting || isReadOnly}
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Input 
+              type="time"
+              value={endDate ? getTimeString(endDate) : '00:00'}
+              onChange={(e) => {
+                if (endDate) {
+                  setEndDate(updateTimeOfDate(endDate, e.target.value));
+                }
+              }}
+              className="w-20"
+              disabled={isSubmitting || isReadOnly}
+            />
+          </div>
         </div>
       </div>
       
       <div>
-        <label className="block text-sm font-medium mb-1">Reminder time</label>
-        <Select 
-          value={reminderTime} 
-          onValueChange={setReminderTime}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="When to remind" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="5 minutes before">5 minutes before</SelectItem>
-            <SelectItem value="15 minutes before">15 minutes before</SelectItem>
-            <SelectItem value="30 minutes before">30 minutes before</SelectItem>
-            <SelectItem value="1 hour before">1 hour before</SelectItem>
-            <SelectItem value="1 day before">1 day before</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="location">Location</Label>
+        <div className="relative mt-1">
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Location"
+            className="pl-10"
+            disabled={isSubmitting || isReadOnly}
+          />
+        </div>
       </div>
       
-      {(eventType === "meeting" || eventType === "event" || eventType === "webinar") && (
-        <div>
-          <label className="block text-sm font-medium mb-1">Location</label>
-          <div className="flex items-center">
-            <MapPin className="mr-2 h-4 w-4 text-gray-400" />
-            <Input 
-              value={location} 
-              onChange={(e) => setLocation(e.target.value)} 
-              placeholder="Add location..." 
-            />
-          </div>
-        </div>
-      )}
-      
-      {eventType === "webinar" && (
-        <div>
-          <label className="block text-sm font-medium mb-1">URL</label>
-          <div className="flex items-center">
-            <Link2 className="mr-2 h-4 w-4 text-gray-400" />
-            <Input 
-              value={url} 
-              onChange={(e) => setUrl(e.target.value)} 
-              placeholder="https://..." 
-            />
-          </div>
-        </div>
-      )}
-      
-      <div className="flex justify-end space-x-2 pt-2">
-        {event?.id && onDelete && (
-          <Button type="button" variant="destructive" onClick={onDelete}>
+      <div className="flex justify-between pt-4">
+        {event.id && !isReadOnly && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isSubmitting || isDeleting}
+            className="gap-1"
+          >
+            <Trash2 size={16} />
             Delete
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          {event?.id ? "Update" : "Create"} Event
-        </Button>
+        
+        <div className="flex gap-2 ml-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting || isDeleting}
+          >
+            {isReadOnly ? 'Close' : 'Cancel'}
+          </Button>
+          
+          {!isReadOnly && (
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || isDeleting || !title || !startDate || !endDate}
+              className="bg-primary text-white"
+            >
+              {isSubmitting ? 'Saving...' : event.id ? 'Update Event' : 'Create Event'}
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );
