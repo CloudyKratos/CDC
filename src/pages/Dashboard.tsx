@@ -8,35 +8,62 @@ import {
   Video,
   User,
   Home,
-  Menu
+  Menu,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import MobileMenu, { ActivePanel } from "@/components/dashboard/MobileMenu";
 import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
+import AdminCalendarPanel from "@/components/calendar/AdminCalendarPanel";
+import UserCalendarPanel from "@/components/calendar/UserCalendarPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import CommunityPanel from "@/components/CommunityPanel";
 import VideoCallPanel from "@/components/VideoCallPanel";
 import UserProfilePanel from "@/components/UserProfilePanel";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useMobile } from "@/hooks/use-mobile";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const [activePanel, setActivePanel] = useState<ActivePanel>("workspace");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeChannel, setActiveChannel] = useState("general");
+  const [viewMode, setViewMode] = useState("user"); // "user" or "admin"
   const isMobile = useMobile();
+  const { user } = useAuth();
+  
+  // Check if user is admin (for demo purposes)
+  const isAdmin = user?.email?.includes("admin") || false;
+  
+  useEffect(() => {
+    // Default to user view unless explicitly set to admin
+    if (!isAdmin && viewMode === "admin") {
+      setViewMode("user");
+    }
+  }, [isAdmin, viewMode]);
+  
+  const handleCommunitySelect = (channelName: string) => {
+    setActivePanel("community");
+    setActiveChannel(channelName);
+  };
   
   const renderActivePanel = () => {
     switch (activePanel) {
       case "workspace":
         return <WorkspacePanel />;
       case "calendar":
-        return <CalendarPanel />;
+        if (viewMode === "admin" && isAdmin) {
+          return <AdminCalendarPanel />;
+        } else {
+          return <UserCalendarPanel />;
+        }
       case "chat":
         return <ChatPanel />;
       case "community":
-        return <CommunityPanel channelName="general" />;
+        return <CommunityPanel channelName={activeChannel} />;
       case "video":
         return <VideoCallPanel isOpen={true} onClose={() => setActivePanel("workspace")} />;
       case "profile":
@@ -75,14 +102,43 @@ const Dashboard = () => {
               >
                 <LayoutGrid className="h-6 w-6 text-muted-foreground" />
               </Button>
-              <Button 
-                variant={activePanel === "calendar" ? "secondary" : "ghost"}
-                size="icon"
-                className="w-12 h-12 rounded-xl hover:bg-primary/10"
-                onClick={() => setActivePanel("calendar")}
-              >
-                <Calendar className="h-6 w-6 text-muted-foreground" />
-              </Button>
+              
+              {activePanel === "calendar" && isAdmin ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="secondary"
+                      size="icon"
+                      className="w-12 h-12 rounded-xl relative"
+                    >
+                      <Calendar className="h-6 w-6 text-muted-foreground" />
+                      {viewMode === "admin" && (
+                        <div className="absolute -top-1 -right-1 bg-purple-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                          <Shield size={10} />
+                        </div>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="center" className="w-40">
+                    <DropdownMenuItem onClick={() => setViewMode("user")}>
+                      User View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setViewMode("admin")}>
+                      Admin View
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant={activePanel === "calendar" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="w-12 h-12 rounded-xl hover:bg-primary/10"
+                  onClick={() => setActivePanel("calendar")}
+                >
+                  <Calendar className="h-6 w-6 text-muted-foreground" />
+                </Button>
+              )}
+              
               <Button 
                 variant={activePanel === "chat" ? "secondary" : "ghost"}
                 size="icon"
@@ -91,14 +147,39 @@ const Dashboard = () => {
               >
                 <MessageSquare className="h-6 w-6 text-muted-foreground" />
               </Button>
-              <Button 
-                variant={activePanel === "community" ? "secondary" : "ghost"}
-                size="icon"
-                className="w-12 h-12 rounded-xl hover:bg-primary/10"
-                onClick={() => setActivePanel("community")}
-              >
-                <Users className="h-6 w-6 text-muted-foreground" />
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant={activePanel === "community" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="w-12 h-12 rounded-xl hover:bg-primary/10"
+                  >
+                    <Users className="h-6 w-6 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="center" className="w-40">
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("general")}>
+                    #general
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("introduction")}>
+                    #introduction
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("hall-of-fame")}>
+                    #hall-of-fame
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("round-table")}>
+                    #round-table
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("daily-talks")}>
+                    #daily-talks
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleCommunitySelect("global-connect")}>
+                    #global-connect
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Button 
                 variant={activePanel === "video" ? "secondary" : "ghost"}
                 size="icon"

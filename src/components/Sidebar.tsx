@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Home, 
@@ -26,7 +27,8 @@ import {
   Trophy,
   Mic,
   BookOpen,
-  Megaphone
+  Megaphone,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarProps {
   viewMode: string;
@@ -69,12 +72,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   
   const communityChannels = [
     { id: "community-general", label: "general", icon: Hash, hasNotification: true, notificationCount: 2 },
     { id: "community-introduction", label: "introduction", icon: BookOpen, hasNotification: false, notificationCount: 0 },
     { id: "community-hall-of-fame", label: "hall-of-fame", icon: Trophy, hasNotification: false, notificationCount: 0 },
     { id: "community-round-table", label: "round-table", icon: Mic, hasNotification: true, notificationCount: 1 },
+    { id: "community-daily-talks", label: "daily-talks", icon: MessageSquare, hasNotification: true, notificationCount: 3 },
+    { id: "community-global-connect", label: "global-connect", icon: Globe, hasNotification: false, notificationCount: 0 },
   ];
   
   const announcements = [
@@ -133,13 +139,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setViewMode("workspace");
     } else if (itemId === "profile") {
       setViewMode("profile");
+    } else if (itemId === "calendar") {
+      setViewMode("calendar");
     }
   };
   
-  const handleLogout = () => {
-    toast.success("Successfully logged out");
-    localStorage.removeItem('user');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Successfully logged out");
+      navigate('/login');
+    } catch (error) {
+      console.error("Logout error", error);
+      toast.error("Failed to log out");
+    }
   };
 
   return (
@@ -380,6 +393,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
+        {!collapsed && (viewMode === "community" && activeChannel === "global-connect") && (
+          <div className="mt-4 px-3 py-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-lg border border-blue-200/50 dark:border-blue-900/30 backdrop-blur-sm animate-fade-in">
+            <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
+              <Globe size={14} className="mr-1.5 text-blue-500" /> Global Event
+            </h4>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              International Business Development Forum starting soon
+            </p>
+            <div className="flex items-center space-x-2">
+              <Button size="sm" className="text-xs h-7 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0">
+                Join Event
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs h-7">More Info</Button>
+            </div>
+          </div>
+        )}
+        
         {!collapsed && (viewMode === "community" && activeChannel === "hall-of-fame") && (
           <div className="mt-4 px-3 py-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-lg border border-yellow-200/50 dark:border-yellow-900/30 backdrop-blur-sm animate-fade-in">
             <h4 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-gray-100">
@@ -412,11 +442,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelectItem("profile")}
                 >
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-                  <AvatarFallback>FX</AvatarFallback>
+                  <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase() || "FX"}</AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-black/90 text-white border-0 text-xs py-1 px-2">
-                Felix Chen
+                {user?.email || "Felix Chen"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -429,10 +459,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelectItem("profile")}
                 >
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-                  <AvatarFallback>FX</AvatarFallback>
+                  <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase() || "FX"}</AvatarFallback>
                 </Avatar>
                 <div className="ml-2 flex-1">
-                  <p className="text-sm font-medium leading-none dark:text-white">Felix Chen</p>
+                  <p className="text-sm font-medium leading-none dark:text-white">{user?.email || "Felix Chen"}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block mr-1"></span>
                     Online
@@ -454,7 +484,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <DropdownMenuContent align="end" className="w-56 glass-morphism animate-scale-in">
               <div className="p-2 border-b border-gray-100 dark:border-gray-800 mb-1">
                 <p className="text-xs text-gray-500">Signed in as</p>
-                <p className="font-medium">felix@example.com</p>
+                <p className="font-medium">{user?.email || "felix@example.com"}</p>
               </div>
               <DropdownMenuItem className="flex items-center cursor-pointer focus:bg-primary/10" onClick={() => handleItemSelect("profile")}>
                 <UserCircle className="mr-2 h-4 w-4" />
