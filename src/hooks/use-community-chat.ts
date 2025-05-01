@@ -66,7 +66,7 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     if (!user?.id || !content.trim()) return;
     
     try {
-      await CommunityService.sendMessage(channelName, content, user.id);
+      await CommunityService.sendMessage(content);
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;

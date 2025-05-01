@@ -7,7 +7,22 @@ export interface ChatUser {
   lastSeen?: string;
 }
 
-export type ChannelType = 'direct' | 'group' | 'community';
+export enum ChannelType {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  DIRECT = 'direct',
+  GROUP = 'group',
+  COMMUNITY = 'community',
+  WORKSPACE = 'workspace'
+}
+
+export enum MessageType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  FILE = 'file',
+  SYSTEM = 'system',
+  ACTION = 'action'
+}
 
 export interface ChatMessage {
   id: string;
@@ -20,6 +35,7 @@ export interface ChatMessage {
   reactions?: ChatReaction[];
   isEdited?: boolean;
   replyTo?: string; // ID of the message this is replying to
+  content?: string; // Additional property for compatibility
 }
 
 export interface ChatAttachment {
@@ -43,10 +59,11 @@ export interface ChatChannel {
   type: ChannelType;
   avatar?: string;
   members: ChatUser[];
-  lastMessage?: ChatMessage;
+  lastMessage?: ChatMessage | string;
   unreadCount?: number;
   isArchived?: boolean;
   isPinned?: boolean;
+  description?: string;
 }
 
 export interface ChatGroup {
@@ -58,4 +75,18 @@ export interface ChatGroup {
   members: ChatUser[];
   createdAt: string;
   createdBy: string;
+}
+
+// Define the Message interface for compatibility with existing code
+export interface Message {
+  id: string;
+  content: string;
+  created_at: string;
+  sender?: {
+    id: string;
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+  sender_id: string;
 }

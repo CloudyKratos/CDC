@@ -3,8 +3,9 @@ import {
   ChatMessage, 
   ChatChannel, 
   ChatUser, 
-  ChannelType, 
-  MessageType 
+  ChannelType,
+  MessageType,
+  Message
 } from '@/types/chat';
 import { User } from '@/types/workspace';
 import authService from './AuthService';
@@ -50,42 +51,45 @@ const DEMO_MESSAGES: ChatMessage[] = [
   {
     id: '1',
     channelId: 'general',
+    text: 'Welcome to the community chat!',
     content: 'Welcome to the community chat!',
     timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-    type: MessageType.TEXT,
+    channelType: ChannelType.PUBLIC,
     sender: {
       id: 'system',
       name: 'System',
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=System',
-      status: 'active'
+      status: 'online'
     },
     reactions: []
   },
   {
     id: '2',
     channelId: 'general',
+    text: 'Feel free to ask any questions here.',
     content: 'Feel free to ask any questions here.',
     timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
-    type: MessageType.TEXT,
+    channelType: ChannelType.PUBLIC,
     sender: {
       id: 'admin',
       name: 'Admin',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
-      status: 'active'
+      status: 'online'
     },
     reactions: []
   },
   {
     id: '3',
     channelId: 'general',
+    text: 'Hi everyone! Excited to be here!',
     content: 'Hi everyone! Excited to be here!',
     timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-    type: MessageType.TEXT,
+    channelType: ChannelType.PUBLIC,
     sender: {
       id: 'user1',
       name: 'Jane Smith',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
-      status: 'active'
+      status: 'online'
     },
     reactions: [
       { emoji: '👋', count: 2, users: ['admin', 'user2'] }
@@ -94,14 +98,15 @@ const DEMO_MESSAGES: ChatMessage[] = [
   {
     id: '4',
     channelId: 'general',
+    text: 'Welcome Jane! Great to see you here.',
     content: 'Welcome Jane! Great to see you here.',
     timestamp: new Date(Date.now() - 3600000).toISOString(),
-    type: MessageType.TEXT,
+    channelType: ChannelType.PUBLIC,
     sender: {
       id: 'user2',
       name: 'Mike Johnson',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-      status: 'active'
+      status: 'online'
     },
     reactions: []
   }
@@ -113,25 +118,25 @@ const DEFAULT_USERS: ChatUser[] = [
     id: 'system',
     name: 'System',
     avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=System',
-    status: 'active'
+    status: 'online'
   },
   {
     id: 'admin',
     name: 'Admin User',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
-    status: 'active'
+    status: 'online'
   },
   {
     id: 'user1',
     name: 'Jane Smith',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
-    status: 'active'
+    status: 'online'
   },
   {
     id: 'user2',
     name: 'Mike Johnson',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-    status: 'active'
+    status: 'online'
   }
 ];
 
@@ -168,7 +173,7 @@ class CommunityService {
         description: workspace.description || 'A collaborative workspace',
         members: [],
         unreadCount: 0,
-        lastMessage: ''
+        lastMessage: 'New workspace created' as unknown as ChatMessage
       }));
       
       // Combine with default channels
@@ -245,14 +250,15 @@ class CommunityService {
       const chatMessages: ChatMessage[] = messages.map(msg => ({
         id: msg.id as string,
         channelId,
+        text: msg.content,
         content: msg.content,
         timestamp: msg.created_at as string,
-        type: MessageType.TEXT,
+        channelType: ChannelType.WORKSPACE,
         sender: {
           id: msg.sender_id,
           name: msg.sender?.full_name || msg.sender?.username || 'Unknown User',
           avatar: msg.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender_id}`,
-          status: 'active'
+          status: 'online'
         },
         reactions: []
       }));
@@ -289,14 +295,15 @@ class CommunityService {
       const newMessage: ChatMessage = {
         id: Date.now().toString(),
         channelId: currentChannel.id,
+        text: content,
         content,
         timestamp: new Date().toISOString(),
-        type,
+        channelType: currentChannel.type,
         sender: {
           id: currentUser.id,
           name: currentUser.name,
           avatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`,
-          status: 'active'
+          status: 'online'
         },
         reactions: []
       };
@@ -305,7 +312,7 @@ class CommunityService {
       messagesSubject.next(updatedMessages);
       
       // Update last message in channel list
-      this.updateChannelLastMessage(currentChannel.id, content);
+      this.updateChannelLastMessage(currentChannel.id, newMessage);
       
       return true;
     } catch (error) {
@@ -321,7 +328,7 @@ class CommunityService {
     if (!currentUser) return () => {};
     
     // Subscribe to realtime messages
-    return SupabaseService.subscribeToMessages(channelId, (newMessage) => {
+    return SupabaseService.subscribeToMessages(channelId, (newMessage: Message) => {
       // Only process if this is the active channel
       const activeChannel = activeChannelSubject.value;
       if (activeChannel?.id !== channelId) {
@@ -334,14 +341,15 @@ class CommunityService {
       const chatMessage: ChatMessage = {
         id: newMessage.id as string,
         channelId,
+        text: newMessage.content,
         content: newMessage.content,
         timestamp: newMessage.created_at as string,
-        type: MessageType.TEXT,
+        channelType: ChannelType.WORKSPACE,
         sender: {
           id: newMessage.sender_id,
           name: newMessage.sender?.full_name || newMessage.sender?.username || 'Unknown User',
           avatar: newMessage.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newMessage.sender_id}`,
-          status: 'active'
+          status: 'online'
         },
         reactions: []
       };
@@ -351,12 +359,12 @@ class CommunityService {
       messagesSubject.next(updatedMessages);
       
       // Update last message in channel
-      this.updateChannelLastMessage(channelId, newMessage.content);
+      this.updateChannelLastMessage(channelId, chatMessage);
     });
   }
   
   // Update a channel's last message
-  private updateChannelLastMessage(channelId: string, lastMessage: string): void {
+  private updateChannelLastMessage(channelId: string, lastMessage: ChatMessage): void {
     const channels = channelsSubject.value;
     const updatedChannels = channels.map(channel => 
       channel.id === channelId ? { ...channel, lastMessage } : channel
@@ -411,7 +419,7 @@ class CommunityService {
           description: workspace.description || '',
           members: [],
           unreadCount: 0,
-          lastMessage: 'New workspace created'
+          lastMessage: 'New workspace created' as unknown as ChatMessage
         };
         
         const updatedChannels = [...channelsSubject.value, newChannel];
@@ -426,7 +434,7 @@ class CommunityService {
           type,
           members: [],
           unreadCount: 0,
-          lastMessage: 'New channel created'
+          lastMessage: 'New channel created' as unknown as ChatMessage
         };
         
         const updatedChannels = [...channelsSubject.value, newChannel];
@@ -439,7 +447,39 @@ class CommunityService {
       return false;
     }
   }
+
+  // Methods to support the CommunityPanel component
+  async joinChannel(channelName: string, userId: string): Promise<void> {
+    // For now, we'll just simulate joining a channel
+    console.log(`User ${userId} joined channel ${channelName}`);
+  }
+
+  async getMessages(channelName: string, userId: string): Promise<Message[]> {
+    // For demo purposes, return mock messages
+    return DEMO_MESSAGES.filter(m => m.channelId === channelName).map(m => ({
+      id: m.id,
+      content: m.content || m.text,
+      created_at: m.timestamp,
+      sender_id: m.sender.id,
+      sender: {
+        id: m.sender.id,
+        full_name: m.sender.name,
+        avatar_url: m.sender.avatar,
+      }
+    }));
+  }
+
+  async subscribeToMessages(channelName: string, userId: string, callback: (msg: Message) => void): Promise<() => void> {
+    // For now, we'll just return an empty unsubscribe function
+    return () => {};
+  }
+
+  async getChannelOnlineUsers(channelName: string): Promise<ChatUser[]> {
+    // Return mock online users
+    return DEFAULT_USERS;
+  }
 }
 
 export const communityService = new CommunityService();
 export default communityService;
+export type { Message };

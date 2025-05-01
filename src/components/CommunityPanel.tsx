@@ -89,7 +89,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
           );
           
           // Get channel members
-          loadChannelMembers();
+          await loadChannelMembers();
         } catch (error) {
           console.error('Error initializing chat:', error);
           toast.error('Failed to load chat');
@@ -129,7 +129,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
     if (message.trim()) {
       try {
         // Send the message
-        await CommunityService.sendMessage(channelName, message, user.id);
+        await CommunityService.sendMessage(message);
         
         // Clear message input (real-time subscription will add the message)
         setMessage('');
