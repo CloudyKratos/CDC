@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarEvent } from '@/types/calendar'; // Updated import
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarEvent } from '@/types/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarIcon, Clock, MapPin, Trash2 } from 'lucide-react';
-import { TimePickerDemo } from '@/components/ui/time-picker-demo';
 
 interface CalendarEventFormProps {
   event: CalendarEvent;
@@ -27,8 +28,8 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
 }) => {
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description || '');
-  const [startDate, setStartDate] = useState<Date | undefined>(event.start);
-  const [endDate, setEndDate] = useState<Date | undefined>(event.end);
+  const [startDate, setStartDate] = useState<Date | undefined>(event.start || event.date);
+  const [endDate, setEndDate] = useState<Date | undefined>(event.end || event.date);
   const [location, setLocation] = useState(event.location || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -47,6 +48,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         ...event,
         title,
         description,
+        date: startDate, // Use date for backward compatibility
         start: startDate,
         end: endDate,
         location

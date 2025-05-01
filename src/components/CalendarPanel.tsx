@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay, parseISO } from 'date-fns';
-import { Calendar } from "@/components/ui/calendar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { CalendarEvent } from '@/types/calendar';
 import { getEventTypeColor, getCalendarCells, addEventsToCalendar, filterEvents, groupEventsByDate } from '@/utils/calendarUtils';
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import * as SupabaseService from '@/services/SupabaseService';
@@ -68,8 +69,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
         title: event.title,
         description: event.description || '',
         date: new Date(event.start_time),
+        start: new Date(event.start_time),
+        end: new Date(event.end_time),
         type: 'meeting', // Assuming default type
-        priority: 'medium',
+        priority: 'medium', // Required field with default value
         attendees: []
       }));
       
@@ -130,11 +133,13 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
         end_time: formData.end_date.toISOString()
       };
       
-      await SupabaseService.updateEvent(selectedEvent!.id, updatedEvent);
-      toast.success("Event updated successfully");
-      loadEvents();
-      setShowEditEventForm(false);
-      setSelectedEvent(null);
+      if (selectedEvent) {
+        await SupabaseService.updateEvent(selectedEvent.id, updatedEvent);
+        toast.success("Event updated successfully");
+        loadEvents();
+        setShowEditEventForm(false);
+        setSelectedEvent(null);
+      }
     } catch (error) {
       console.error('Error updating event:', error);
       toast.error("Failed to update event");
@@ -352,21 +357,15 @@ interface EditEventFormProps {
 const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel }) => {
   const [title, setTitle] = useState(event?.title || '');
   const [description, setDescription] = useState(event?.description || '');
-  const [startDate, setStartDate] = useState<Date | undefined>(event?.date || new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(event?.date || new Date());
+  const [startDate, setStartDate] = useState<Date | undefined>(event?.start || event?.date || new Date());
+  const [endDate, setEndDate] = useState<Date | undefined>(event?.end || event?.date || new Date());
   
   useEffect(() => {
     if (event) {
       setTitle(event.title);
       setDescription(event.description);
-      if (event.date instanceof Date) {
-        setStartDate(event.date);
-        setEndDate(event.date);
-      } else {
-        const parsedDate = new Date(event.date);
-        setStartDate(parsedDate);
-        setEndDate(parsedDate);
-      }
+      setStartDate(event.start || event.date);
+      setEndDate(event.end || event.date);
     }
   }, [event]);
   
@@ -430,5 +429,4 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel
   );
 };
 
-export { CalendarEvent };
 export default CalendarPanel;

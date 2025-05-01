@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -98,9 +99,9 @@ async function getWorkspaceMembers(workspaceId: string) {
     role: item.role,
     joinedAt: item.joined_at,
     profile: {
-      id: item.profiles ? item.profiles.id || item.user_id : item.user_id,
-      full_name: item.profiles ? item.profiles.full_name || '' : '',
-      avatar_url: item.profiles ? item.profiles.avatar_url || '' : ''
+      id: item.profiles?.id || item.user_id,
+      full_name: item.profiles?.full_name || '',
+      avatar_url: item.profiles?.avatar_url || ''
     } as ProfileData
   }));
 }
@@ -239,7 +240,7 @@ async function updatePassword(newPassword: string): Promise<boolean> {
   }
 }
 
-// Export these functions
+// Export these functions with proper type handling
 export {
   signUp,
   signIn,
@@ -250,7 +251,8 @@ export {
   getEvents,
   deleteEvent,
   resetPassword,
-  updatePassword,
-  ProfileData,
-  EventData
+  updatePassword
 };
+
+// Export types with the proper syntax for "isolatedModules" mode
+export type { ProfileData, EventData };

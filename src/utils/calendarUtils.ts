@@ -1,5 +1,5 @@
 
-import { CalendarEvent } from '@/types/workspace';
+import { CalendarEvent } from '@/types/calendar';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay, parseISO } from 'date-fns';
 
 // Helper function to determine event type color
@@ -105,6 +105,3 @@ export const groupEventsByDate = (events: CalendarEvent[]) => {
   
   return grouped;
 };
-
-// Export the CalendarEvent type
-export type { CalendarEvent };
