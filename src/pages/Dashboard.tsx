@@ -19,7 +19,7 @@ import CalendarPanel from "@/components/CalendarPanel";
 import AdminCalendarPanel from "@/components/calendar/AdminCalendarPanel";
 import UserCalendarPanel from "@/components/calendar/UserCalendarPanel";
 import { ChatPanel } from "@/components/ChatPanel";
-import CommunityPanel from "@/components/CommunityPanel";
+import DiscordCommunityPanel from "@/components/community/DiscordCommunityPanel";
 import VideoCallPanel from "@/components/VideoCallPanel";
 import UserProfilePanel from "@/components/UserProfilePanel";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -63,7 +63,7 @@ const Dashboard = () => {
       case "chat":
         return <ChatPanel />;
       case "community":
-        return <CommunityPanel channelName={activeChannel} />;
+        return <DiscordCommunityPanel defaultChannel={activeChannel} />;
       case "video":
         return <VideoCallPanel isOpen={true} onClose={() => setActivePanel("workspace")} />;
       case "profile":
@@ -148,37 +148,14 @@ const Dashboard = () => {
                 <MessageSquare className="h-6 w-6 text-muted-foreground" />
               </Button>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant={activePanel === "community" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="w-12 h-12 rounded-xl hover:bg-primary/10"
-                  >
-                    <Users className="h-6 w-6 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="center" className="w-40">
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("general")}>
-                    #general
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("introduction")}>
-                    #introduction
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("hall-of-fame")}>
-                    #hall-of-fame
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("round-table")}>
-                    #round-table
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("daily-talks")}>
-                    #daily-talks
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCommunitySelect("global-connect")}>
-                    #global-connect
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                variant={activePanel === "community" ? "secondary" : "ghost"}
+                size="icon"
+                className="w-12 h-12 rounded-xl hover:bg-primary/10"
+                onClick={() => handleCommunitySelect("general")}
+              >
+                <Users className="h-6 w-6 text-muted-foreground" />
+              </Button>
               
               <Button 
                 variant={activePanel === "video" ? "secondary" : "ghost"}
