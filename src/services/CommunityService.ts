@@ -1,4 +1,5 @@
 
+import { Observable } from 'rxjs';
 import { 
   ChatChannel, 
   ChatMessage, 
@@ -163,9 +164,9 @@ class CommunityService {
           sender_id: msg.sender.id,
           sender: {
             id: msg.sender.id,
-            username: msg.sender.name,
-            full_name: msg.sender.name,
-            avatar_url: msg.sender.avatar
+            username: msg.sender.name || '',
+            full_name: msg.sender.name || '',
+            avatar_url: msg.sender.avatar || ''
           }
         }));
         
@@ -257,4 +258,3 @@ class CommunityService {
 
 // Export singleton instance
 export default new CommunityService();
-export type { Message };
