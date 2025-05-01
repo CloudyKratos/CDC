@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -94,16 +93,27 @@ async function getWorkspaceMembers(workspaceId: string) {
     return [];
   }
 
-  return data.map(item => ({
-    id: item.user_id,
-    role: item.role,
-    joinedAt: item.joined_at,
-    profile: {
-      id: item.profiles ? item.profiles.id : item.user_id,
-      full_name: item.profiles ? item.profiles.full_name : '',
-      avatar_url: item.profiles ? item.profiles.avatar_url : ''
-    } as ProfileData
-  }));
+  // Make sure to handle the case where data is null or not the expected type
+  if (!data || !Array.isArray(data)) {
+    console.error('Unexpected data format from workspace_members query');
+    return [];
+  }
+
+  return data.map(item => {
+    // Handle profiles safely with optional chaining and nullish coalescing
+    const profile = item.profiles || {};
+    
+    return {
+      id: item.user_id,
+      role: item.role,
+      joinedAt: item.joined_at,
+      profile: {
+        id: profile.id || item.user_id,
+        full_name: profile.full_name || '',
+        avatar_url: profile.avatar_url || ''
+      } as ProfileData
+    };
+  });
 }
 
 // Helper function to ensure dates are always strings
@@ -255,4 +265,4 @@ export {
 };
 
 // Fix the export type syntax for TypeScript isolatedModules mode
-export type { ProfileData as ProfileDataType, EventData as EventDataType };
+export type { ProfileData, EventData };
