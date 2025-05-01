@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -99,9 +98,9 @@ async function getWorkspaceMembers(workspaceId: string) {
     role: item.role,
     joinedAt: item.joined_at,
     profile: {
-      id: item.profiles?.id || item.user_id,
-      full_name: item.profiles?.full_name || '',
-      avatar_url: item.profiles?.avatar_url || ''
+      id: item.profiles ? item.profiles.id || item.user_id : item.user_id,
+      full_name: item.profiles ? item.profiles.full_name || '' : '',
+      avatar_url: item.profiles ? item.profiles.avatar_url || '' : ''
     } as ProfileData
   }));
 }
@@ -116,7 +115,7 @@ function ensureDateString(date: Date | string): string {
 
 // Event management functions
 async function createEvent(eventData: EventData) {
-  // Format dates to strings if they are Date objects
+  // Format dates to ensure they are strings
   const formattedData = {
     ...eventData,
     start_time: ensureDateString(eventData.start_time),
@@ -203,6 +202,43 @@ async function deleteEvent(eventId: string) {
   return true;
 }
 
+// Add resetPassword and updatePassword functions that are referenced but missing
+async function resetPassword(email: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    });
+    
+    if (error) {
+      console.error("Error sending reset password email:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    return false;
+  }
+}
+
+async function updatePassword(newPassword: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (error) {
+      console.error("Error updating password:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in updatePassword:", error);
+    return false;
+  }
+}
+
 // Export these functions
 export {
   signUp,
@@ -212,5 +248,9 @@ export {
   createEvent,
   updateEvent,
   getEvents,
-  deleteEvent
+  deleteEvent,
+  resetPassword,
+  updatePassword,
+  ProfileData,
+  EventData
 };

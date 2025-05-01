@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import SupabaseService from "@/services/SupabaseService";
+import * as SupabaseService from '@/services/SupabaseService';
 
 const ResetPassword = () => {
   const [step, setStep] = useState<'request' | 'reset'>('request');

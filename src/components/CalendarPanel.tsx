@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay, parseISO } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarEvent } from '@/types/workspace';
+import { CalendarEvent } from '@/types/calendar';
 import { getEventTypeColor, getCalendarCells, addEventsToCalendar, filterEvents, groupEventsByDate } from '@/utils/calendarUtils';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -65,11 +64,13 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       
       // Convert start_time and end_time strings to Date objects
       const parsedEvents: CalendarEvent[] = eventsData.map(event => ({
-        id: event.id,
+        id: event.id || '',
         title: event.title,
         description: event.description || '',
         date: new Date(event.start_time),
         type: 'meeting', // Assuming default type
+        priority: 'medium',
+        attendees: []
       }));
       
       setEvents(parsedEvents);
@@ -351,15 +352,21 @@ interface EditEventFormProps {
 const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel }) => {
   const [title, setTitle] = useState(event?.title || '');
   const [description, setDescription] = useState(event?.description || '');
-  const [startDate, setStartDate] = useState<Date>(event?.date || new Date());
-  const [endDate, setEndDate] = useState<Date>(event?.date || new Date());
+  const [startDate, setStartDate] = useState<Date | undefined>(event?.date || new Date());
+  const [endDate, setEndDate] = useState<Date | undefined>(event?.date || new Date());
   
   useEffect(() => {
     if (event) {
       setTitle(event.title);
       setDescription(event.description);
-      setStartDate(event.date instanceof Date ? event.date : new Date(event.date));
-      setEndDate(event.date instanceof Date ? event.date : new Date(event.date));
+      if (event.date instanceof Date) {
+        setStartDate(event.date);
+        setEndDate(event.date);
+      } else {
+        const parsedDate = new Date(event.date);
+        setStartDate(parsedDate);
+        setEndDate(parsedDate);
+      }
     }
   }, [event]);
   
@@ -423,4 +430,5 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel
   );
 };
 
+export { CalendarEvent };
 export default CalendarPanel;

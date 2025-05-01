@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, AuthState } from '@/types/workspace';
 import authService from '@/services/AuthService';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import SupabaseService from '@/services/SupabaseService';
+import * as SupabaseService from '@/services/SupabaseService';
 
 // Default auth state
 const defaultAuthState: AuthState = {

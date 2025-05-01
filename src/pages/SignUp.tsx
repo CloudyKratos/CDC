@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ import { Lock, Mail, Eye, EyeOff, User, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import SupabaseService from "@/services/SupabaseService";
+import * as SupabaseService from '@/services/SupabaseService';
 
 const SignUp = () => {
   const [email, setEmail] = useState("");

@@ -1,12 +1,10 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { CalendarEvent } from '../CalendarPanel';
-import { Calendar } from '@/components/ui/calendar';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarEvent } from '@/types/calendar'; // Updated import
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarIcon, Clock, MapPin, Trash2 } from 'lucide-react';
