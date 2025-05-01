@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar"
@@ -13,9 +14,14 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from 'sonner';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import SupabaseService, { EventData } from '@/services/SupabaseService';
+import * as SupabaseService from '@/services/SupabaseService';
+import type { EventData } from '@/services/SupabaseService';
 
-const CalendarPanel: React.FC = () => {
+interface CalendarPanelProps {
+  isAdminView?: boolean;
+}
+
+const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [cells, setCells] = useState(getCalendarCells(currentDate));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -274,8 +280,8 @@ interface AddEventFormProps {
 const AddEventForm: React.FC<AddEventFormProps> = ({ onSubmit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,8 +294,8 @@ const AddEventForm: React.FC<AddEventFormProps> = ({ onSubmit }) => {
     onSubmit({ title, description, start_date: startDate, end_date: endDate });
     setTitle('');
     setDescription('');
-    setStartDate(undefined);
-    setEndDate(undefined);
+    setStartDate(new Date());
+    setEndDate(new Date());
   };
   
   return (
@@ -317,7 +323,7 @@ const AddEventForm: React.FC<AddEventFormProps> = ({ onSubmit }) => {
           <Calendar
             mode="single"
             selected={startDate}
-            onSelect={setStartDate}
+            onSelect={(date) => date && setStartDate(date)}
             className="rounded-md border"
           />
         </div>
@@ -326,7 +332,7 @@ const AddEventForm: React.FC<AddEventFormProps> = ({ onSubmit }) => {
           <Calendar
             mode="single"
             selected={endDate}
-            onSelect={setEndDate}
+            onSelect={(date) => date && setEndDate(date)}
             className="rounded-md border"
           />
         </div>
@@ -345,15 +351,15 @@ interface EditEventFormProps {
 const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel }) => {
   const [title, setTitle] = useState(event?.title || '');
   const [description, setDescription] = useState(event?.description || '');
-  const [startDate, setStartDate] = useState<Date | undefined>(event?.date || new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(event?.date || new Date());
+  const [startDate, setStartDate] = useState<Date>(event?.date || new Date());
+  const [endDate, setEndDate] = useState<Date>(event?.date || new Date());
   
   useEffect(() => {
     if (event) {
       setTitle(event.title);
       setDescription(event.description);
-      setStartDate(event.date);
-      setEndDate(event.date);
+      setStartDate(event.date instanceof Date ? event.date : new Date(event.date));
+      setEndDate(event.date instanceof Date ? event.date : new Date(event.date));
     }
   }, [event]);
   
@@ -393,7 +399,7 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel
           <Calendar
             mode="single"
             selected={startDate}
-            onSelect={setStartDate}
+            onSelect={(date) => date && setStartDate(date)}
             className="rounded-md border"
           />
         </div>
@@ -402,7 +408,7 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel
           <Calendar
             mode="single"
             selected={endDate}
-            onSelect={setEndDate}
+            onSelect={(date) => date && setEndDate(date)}
             className="rounded-md border"
           />
         </div>

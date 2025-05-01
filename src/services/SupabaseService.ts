@@ -1,4 +1,78 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+
+// Define ProfileData type
+export interface ProfileData {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+}
+
+// Define EventData type - make sure start_time and end_time are strings
+export interface EventData {
+  id?: string;
+  title: string;
+  description?: string | null;
+  start_time: string;  // Changed from Date | string to just string
+  end_time: string;    // Changed from Date | string to just string
+  created_by?: string | null;
+  workspace_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Authentication functions
+async function signUp(email: string, password: string, fullName: string): Promise<User> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName
+      }
+    }
+  });
+
+  if (error) {
+    console.error('Error signing up:', error);
+    throw error;
+  }
+
+  if (!data.user) {
+    throw new Error('No user returned from signup');
+  }
+
+  return data.user;
+}
+
+async function signIn(email: string, password: string): Promise<User> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    console.error('Error signing in:', error);
+    throw error;
+  }
+
+  if (!data.user) {
+    throw new Error('No user returned from sign in');
+  }
+
+  return data.user;
+}
+
+async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    console.error('Error signing out:', error);
+    throw error;
+  }
+}
+
 // Fix the getWorkspaceMembers function to handle profiles properly
 async function getWorkspaceMembers(workspaceId: string) {
   const { data, error } = await supabase
@@ -25,23 +99,28 @@ async function getWorkspaceMembers(workspaceId: string) {
     role: item.role,
     joinedAt: item.joined_at,
     profile: {
-      id: item.user_id,
+      id: item.profiles?.id || item.user_id,
       full_name: item.profiles?.full_name || '',
       avatar_url: item.profiles?.avatar_url || ''
     } as ProfileData
   }));
 }
 
-// Fix the createEvent function to handle string dates
+// Helper function to ensure dates are always strings
+function ensureDateString(date: Date | string): string {
+  if (typeof date === 'string') {
+    return date;
+  }
+  return date.toISOString();
+}
+
+// Event management functions
 async function createEvent(eventData: EventData) {
-  // Make sure we're sending string values for dates to the API
+  // Format dates to strings if they are Date objects
   const formattedData = {
-    title: eventData.title,
-    description: eventData.description,
-    start_time: eventData.start_time,
-    end_time: eventData.end_time,
-    created_by: eventData.created_by,
-    workspace_id: eventData.workspace_id
+    ...eventData,
+    start_time: ensureDateString(eventData.start_time),
+    end_time: ensureDateString(eventData.end_time)
   };
 
   const { data, error } = await supabase
@@ -58,34 +137,6 @@ async function createEvent(eventData: EventData) {
   return data;
 }
 
-// Fix the updateEvent function to handle string dates
-async function updateEvent(eventId: string, eventData: Partial<EventData>) {
-  // Make sure we're sending string values for dates to the API
-  const formattedData: Record<string, any> = {};
-  
-  if (eventData.title) formattedData.title = eventData.title;
-  if (eventData.description !== undefined) formattedData.description = eventData.description;
-  if (eventData.start_time) formattedData.start_time = eventData.start_time;
-  if (eventData.end_time) formattedData.end_time = eventData.end_time;
-  if (eventData.created_by) formattedData.created_by = eventData.created_by;
-  if (eventData.workspace_id) formattedData.workspace_id = eventData.workspace_id;
-
-  const { data, error } = await supabase
-    .from("events")
-    .update(formattedData)
-    .eq("id", eventId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating event:", error);
-    throw error;
-  }
-
-  return data;
-}
-
-// Fix the getEvents function by removing errors accessing nonexistent tables
 async function getEvents(params: { start_date?: string, end_date?: string } = {}) {
   let query = supabase
     .from("events")
@@ -109,10 +160,57 @@ async function getEvents(params: { start_date?: string, end_date?: string } = {}
   return data;
 }
 
+async function updateEvent(eventId: string, eventData: Partial<EventData>) {
+  // Format dates to strings if they are Date objects
+  const formattedData = {
+    ...eventData
+  };
+  
+  if (eventData.start_time) {
+    formattedData.start_time = ensureDateString(eventData.start_time);
+  }
+  
+  if (eventData.end_time) {
+    formattedData.end_time = ensureDateString(eventData.end_time);
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .update(formattedData)
+    .eq("id", eventId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating event:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+async function deleteEvent(eventId: string) {
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+
+  if (error) {
+    console.error("Error deleting event:", error);
+    throw error;
+  }
+
+  return true;
+}
+
 // Export these functions
 export {
+  signUp,
+  signIn,
+  signOut,
   getWorkspaceMembers,
   createEvent,
   updateEvent,
-  getEvents
+  getEvents,
+  deleteEvent
 };
