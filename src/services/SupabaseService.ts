@@ -99,9 +99,9 @@ async function getWorkspaceMembers(workspaceId: string) {
     role: item.role,
     joinedAt: item.joined_at,
     profile: {
-      id: item.profiles?.id || item.user_id,
-      full_name: item.profiles?.full_name || '',
-      avatar_url: item.profiles?.avatar_url || ''
+      id: item.profiles ? item.profiles.id : item.user_id,
+      full_name: item.profiles ? item.profiles.full_name : '',
+      avatar_url: item.profiles ? item.profiles.avatar_url : ''
     } as ProfileData
   }));
 }
@@ -254,5 +254,5 @@ export {
   updatePassword
 };
 
-// Export types with the proper syntax for "isolatedModules" mode
-export type { ProfileData, EventData };
+// Fix the export type syntax for TypeScript isolatedModules mode
+export type { ProfileData as ProfileDataType, EventData as EventDataType };
