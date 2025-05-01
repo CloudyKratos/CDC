@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import CommunityService, { Message } from '@/services/CommunityService';
+import CommunityService from '@/services/CommunityService';
+import { Message } from '@/types/chat';
 
 interface UseCommunityChat {
   messages: Message[];
@@ -27,13 +28,12 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
           await CommunityService.joinChannel(channelName, user.id);
           
           // Load existing messages
-          const messagesData = await CommunityService.getMessages(channelName, user.id);
+          const messagesData = await CommunityService.getMessages(channelName);
           setMessages(messagesData);
           
           // Set up realtime subscription for new messages
-          unsubscribe = await CommunityService.subscribeToMessages(
+          unsubscribe = CommunityService.subscribeToMessages(
             channelName, 
-            user.id,
             (newMessage) => {
               setMessages(prev => {
                 // Check if message is already in the list

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/workspace";
 import { Observable } from "rxjs";
@@ -7,6 +8,19 @@ interface ProfileData {
   id: string;
   full_name?: string;
   avatar_url?: string;
+}
+
+// Define EventData type
+export interface EventData {
+  id?: string;
+  title: string;
+  description?: string | null;
+  start_time: Date | string;
+  end_time: Date | string;
+  created_by?: string | null;
+  workspace_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // User authentication functions
@@ -272,7 +286,11 @@ async function getWorkspaceMembers(workspaceId: string) {
     id: item.user_id,
     role: item.role,
     joinedAt: item.joined_at,
-    profile: item.profiles as unknown as ProfileData
+    profile: {
+      id: item.profiles?.id || item.user_id,
+      full_name: item.profiles?.full_name,
+      avatar_url: item.profiles?.avatar_url
+    } as ProfileData
   }));
 }
 
@@ -381,200 +399,84 @@ function subscribeToMessages(workspaceId: string, callback: (message: any) => vo
   };
 }
 
-// Task functions
-async function createTask(taskData: any) {
+// Event management functions
+async function createEvent(eventData: EventData) {
   const { data, error } = await supabase
-    .from("tasks")
-    .insert(taskData)
+    .from("events")
+    .insert(eventData)
     .select()
     .single();
 
   if (error) {
-    console.error("Error creating task:", error);
+    console.error("Error creating event:", error);
     throw error;
   }
 
   return data;
 }
 
-async function getTasks(workspaceId: string) {
-  const { data, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: false });
+async function getEvents(params: { start_date?: string, end_date?: string } = {}) {
+  let query = supabase
+    .from("events")
+    .select("*");
+
+  if (params.start_date) {
+    query = query.gte("start_time", params.start_date);
+  }
+
+  if (params.end_date) {
+    query = query.lte("end_time", params.end_date);
+  }
+
+  const { data, error } = await query.order("start_time", { ascending: true });
 
   if (error) {
-    console.error("Error fetching tasks:", error);
+    console.error("Error fetching events:", error);
     return [];
   }
 
   return data;
 }
 
-async function updateTask(taskId: string, taskData: any) {
+async function getEvent(eventId: string) {
   const { data, error } = await supabase
-    .from("tasks")
-    .update(taskData)
-    .eq("id", taskId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating task:", error);
-    throw error;
-  }
-
-  return data;
-}
-
-async function deleteTask(taskId: string) {
-  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
-
-  if (error) {
-    console.error("Error deleting task:", error);
-    throw error;
-  }
-
-  return true;
-}
-
-// Document functions
-async function createDocument(documentData: any) {
-  const { data, error } = await supabase
-    .from("documents")
-    .insert(documentData)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error creating document:", error);
-    throw error;
-  }
-
-  return data;
-}
-
-async function getDocuments(workspaceId: string) {
-  const { data, error } = await supabase
-    .from("documents")
+    .from("events")
     .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching documents:", error);
-    return [];
-  }
-
-  return data;
-}
-
-async function getDocument(documentId: string) {
-  const { data, error } = await supabase
-    .from("documents")
-    .select("*")
-    .eq("id", documentId)
+    .eq("id", eventId)
     .single();
 
   if (error) {
-    console.error("Error fetching document:", error);
+    console.error("Error fetching event:", error);
     return null;
   }
 
   return data;
 }
 
-async function updateDocument(documentId: string, documentData: any) {
+async function updateEvent(eventId: string, eventData: Partial<EventData>) {
   const { data, error } = await supabase
-    .from("documents")
-    .update(documentData)
-    .eq("id", documentId)
+    .from("events")
+    .update(eventData)
+    .eq("id", eventId)
     .select()
     .single();
 
   if (error) {
-    console.error("Error updating document:", error);
+    console.error("Error updating event:", error);
     throw error;
   }
 
   return data;
 }
 
-async function deleteDocument(documentId: string) {
+async function deleteEvent(eventId: string) {
   const { error } = await supabase
-    .from("documents")
+    .from("events")
     .delete()
-    .eq("id", documentId);
+    .eq("id", eventId);
 
   if (error) {
-    console.error("Error deleting document:", error);
-    throw error;
-  }
-
-  return true;
-}
-
-// File storage functions
-async function uploadFile(
-  workspaceId: string,
-  file: File,
-  path: string = "uploads"
-) {
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-  const filePath = `${workspaceId}/${path}/${fileName}`;
-
-  const { data, error } = await supabase.storage
-    .from("workspace-files")
-    .upload(filePath, file);
-
-  if (error) {
-    console.error("Error uploading file:", error);
-    throw error;
-  }
-
-  const { data: urlData } = supabase.storage
-    .from("workspace-files")
-    .getPublicUrl(filePath);
-
-  return {
-    path: filePath,
-    url: urlData.publicUrl,
-    name: file.name,
-    size: file.size,
-    type: file.type,
-  };
-}
-
-async function getFiles(workspaceId: string, path: string = "uploads") {
-  const { data, error } = await supabase.storage
-    .from("workspace-files")
-    .list(`${workspaceId}/${path}`);
-
-  if (error) {
-    console.error("Error listing files:", error);
-    return [];
-  }
-
-  return data.map((file) => ({
-    name: file.name,
-    path: `${workspaceId}/${path}/${file.name}`,
-    url: supabase.storage
-      .from("workspace-files")
-      .getPublicUrl(`${workspaceId}/${path}/${file.name}`).data.publicUrl,
-    size: file.metadata?.size,
-    type: file.metadata?.mimetype,
-  }));
-}
-
-async function deleteFile(filePath: string) {
-  const { error } = await supabase.storage
-    .from("workspace-files")
-    .remove([filePath]);
-
-  if (error) {
-    console.error("Error deleting file:", error);
+    console.error("Error deleting event:", error);
     throw error;
   }
 
@@ -640,24 +542,13 @@ export default {
   getMessages,
   subscribeToMessages,
 
-  // Tasks
-  createTask,
-  getTasks,
-  updateTask,
-  deleteTask,
+  // Events
+  createEvent,
+  getEvents,
+  getEvent,
+  updateEvent,
+  deleteEvent,
 
-  // Documents
-  createDocument,
-  getDocuments,
-  getDocument,
-  updateDocument,
-  deleteDocument,
-
-  // Files
-  uploadFile,
-  getFiles,
-  deleteFile,
-  
   // Presence
   setupPresence,
 };
