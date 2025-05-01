@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -9,24 +9,41 @@ import {
   Image,
   AtSign,
   Gift,
-  Mic
+  Mic,
+  Paperclip
 } from "lucide-react";
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from 'sonner';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
   isLoading?: boolean;
   channelName?: string;
+  onAttachmentUpload?: (files: FileList) => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({ 
   onSendMessage,
   isLoading = false,
-  channelName = "general"
+  channelName = "general",
+  onAttachmentUpload
 }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Focus textarea on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [channelName]);
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +55,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+      toast.error("Failed to send message");
     }
   };
   
@@ -49,15 +67,44 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
   
   const handleEmojiSelect = (emoji: string) => {
-    setMessage(prev => prev + emoji);
-    setShowEmojiPicker(false);
+    // Insert emoji at current cursor position
+    if (textareaRef.current) {
+      const start = textareaRef.current.selectionStart || 0;
+      const end = textareaRef.current.selectionEnd || 0;
+      const newMessage = message.substring(0, start) + emoji + message.substring(end);
+      setMessage(newMessage);
+      
+      // Focus back on textarea and place cursor after inserted emoji
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.selectionStart = start + emoji.length;
+          textareaRef.current.selectionEnd = start + emoji.length;
+        }
+      }, 10);
+    } else {
+      setMessage(prev => prev + emoji);
+    }
   };
   
   const handleFileUpload = () => {
     fileInputRef.current?.click();
   };
   
-  const emojis = ['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋', '✅', '⭐', '💡', '📈', '🙌', '💪', '🌟', '🎯', '💯', '🏆', '🎊', '🙏', '👌', '💬'];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      if (onAttachmentUpload) {
+        onAttachmentUpload(files);
+      } else {
+        // Fallback if no attachment handler provided
+        const fileNames = Array.from(files).map(file => file.name).join(', ');
+        toast.info(`Selected files: ${fileNames}`);
+      }
+    }
+    // Reset the file input
+    if (e.target) e.target.value = '';
+  };
   
   return (
     <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -70,7 +117,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             onClick={handleFileUpload}
           >
-            <PlusCircle size={20} />
+            <Paperclip size={20} />
           </Button>
           
           <input
@@ -78,11 +125,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
             ref={fileInputRef}
             className="hidden"
             multiple
-            onChange={(e) => console.log('Files selected:', e.target.files)}
+            onChange={handleFileChange}
           />
           
           <div className="relative flex-1 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <Textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyPress}
@@ -92,15 +140,25 @@ const MessageInput: React.FC<MessageInputProps> = ({
             />
             
             <div className="absolute bottom-2 right-2 flex items-center space-x-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              >
-                <Smile size={18} className="text-gray-500 dark:text-gray-400" />
-              </Button>
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                  >
+                    <Smile size={18} className="text-gray-500 dark:text-gray-400" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="end" alignOffset={-40}>
+                  <EmojiPicker
+                    emojis={['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋']}
+                    onSelectEmoji={handleEmojiSelect}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                </PopoverContent>
+              </Popover>
               
               <Button
                 type="button"
@@ -129,16 +187,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 <Image size={18} className="text-gray-500 dark:text-gray-400" />
               </Button>
             </div>
-            
-            {showEmojiPicker && (
-              <div className="absolute bottom-full right-0 mb-2">
-                <EmojiPicker
-                  emojis={emojis}
-                  onSelectEmoji={handleEmojiSelect}
-                  onClose={() => setShowEmojiPicker(false)}
-                />
-              </div>
-            )}
           </div>
           
           <Button

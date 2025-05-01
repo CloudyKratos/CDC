@@ -1,4 +1,3 @@
-
 import { Observable } from 'rxjs';
 import { 
   ChatChannel, 
@@ -119,7 +118,7 @@ class CommunityService {
     }
   ];
 
-  // Add current user to online users
+  // Join a channel and mark user as online
   public joinChannel(channelId: string, userId: string): Promise<void> {
     return new Promise((resolve) => {
       // Add user to online users if not already there
@@ -222,6 +221,28 @@ class CommunityService {
       setTimeout(() => {
         resolve(newMessage);
       }, 500);
+    });
+  }
+
+  // Delete a message
+  public deleteMessage(messageId: string): Promise<void> {
+    return new Promise((resolve) => {
+      // In a real app, we would make an API call to delete the message
+      // For now, just resolve after a short delay to simulate success
+      setTimeout(() => {
+        resolve();
+      }, 300);
+    });
+  }
+
+  // Add a reaction to a message
+  public addReaction(messageId: string, reaction: string): Promise<void> {
+    return new Promise((resolve) => {
+      // In a real app, we would make an API call to add the reaction
+      // For now, just resolve after a short delay to simulate success
+      setTimeout(() => {
+        resolve();
+      }, 300);
     });
   }
 

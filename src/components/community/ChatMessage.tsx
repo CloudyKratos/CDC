@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { format } from 'date-fns';
-import { MoreHorizontal, MessageSquare, Heart, Reply } from 'lucide-react';
+import { MoreHorizontal, Heart, Reply, ThumbsUp, Smile } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import type { Message } from "@/types/chat";
 
 interface ChatMessageProps {
@@ -29,13 +35,29 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   isLast = false
 }) => {
   const [showActions, setShowActions] = useState(false);
+  const [reactions, setReactions] = useState<Record<string, number>>({
+    '👍': 0,
+    '❤️': 0,
+    '😂': 0
+  });
   
   // Format message timestamp
   const timestamp = message.created_at ? new Date(message.created_at) : new Date();
   const formattedTime = format(timestamp, 'h:mm a');
   
-  // Default reactions
-  const reactions = ['👍', '❤️', '😂', '😲', '😢', '🙏'];
+  // Default reactions list
+  const availableReactions = ['👍', '❤️', '😂', '😲', '😢', '🙏'];
+  
+  const handleReaction = (reaction: string) => {
+    if (onReaction) {
+      onReaction(message.id, reaction);
+      // Update local state for immediate feedback
+      setReactions(prev => ({
+        ...prev,
+        [reaction]: (prev[reaction] || 0) + 1
+      }));
+    }
+  };
   
   return (
     <div 
@@ -67,20 +89,57 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <div className="mt-1">
             <p className="text-sm whitespace-pre-line break-words">{message.content}</p>
           </div>
+          
+          {/* Reactions display */}
+          {Object.entries(reactions).filter(([_, count]) => count > 0).length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {Object.entries(reactions)
+                .filter(([_, count]) => count > 0)
+                .map(([emoji, count]) => (
+                  <Badge 
+                    key={emoji} 
+                    variant="outline" 
+                    className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleReaction(emoji)}
+                  >
+                    {emoji} {count}
+                  </Badge>
+                ))
+              }
+            </div>
+          )}
         </div>
       </div>
       
       {showActions && (
         <div className="absolute -top-3 right-4 bg-white dark:bg-gray-900 shadow-md rounded-md flex items-center border dark:border-gray-700">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-gray-500 hover:text-gray-900"
-            onClick={() => onReaction?.(message.id, '❤️')}
-          >
-            <Heart size={14} className="mr-1" />
-            <span className="text-xs">React</span>
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-gray-500 hover:text-gray-900"
+              >
+                <Smile size={14} className="mr-1" />
+                <span className="text-xs">React</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="center">
+              <div className="flex gap-1">
+                {availableReactions.map(emoji => (
+                  <Button
+                    key={emoji}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleReaction(emoji)}
+                  >
+                    <span className="text-lg">{emoji}</span>
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           
           <Button
             variant="ghost" 

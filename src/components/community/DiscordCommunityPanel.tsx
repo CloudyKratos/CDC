@@ -11,6 +11,7 @@ import MessageInput from './MessageInput';
 import MembersList from './MembersList';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCommunityChat } from '@/hooks/use-community-chat';
 
 interface DiscordCommunityPanelProps {
   defaultChannel?: string;
@@ -21,12 +22,11 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
 }) => {
   const [activeServer, setActiveServer] = useState('main');
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showMembersList, setShowMembersList] = useState(true);
   const isMobile = useIsMobile();
   
   const { user } = useAuth();
+  const { messages, isLoading, sendMessage } = useCommunityChat(activeChannel);
   
   const members = [
     { id: '1', name: 'Alex Johnson', avatar: 'Alex', status: 'online' as const, role: 'Admin' as const },
@@ -39,51 +39,6 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
     { id: '8', name: 'Sophia Lee', avatar: 'Sophia', status: 'online' as const, game: 'Visual Studio Code' }
   ];
   
-  useEffect(() => {
-    const loadMessages = async () => {
-      setIsLoading(true);
-      
-      try {
-        // Join channel if user is authenticated
-        if (user?.id) {
-          await CommunityService.joinChannel(activeChannel, user.id);
-        }
-        
-        // Get messages for the channel
-        const messagesData = await CommunityService.getMessages(activeChannel);
-        setMessages(messagesData);
-        
-        // Subscribe to new messages
-        const unsubscribe = CommunityService.subscribeToMessages(
-          activeChannel,
-          (newMessage) => {
-            setMessages(prev => {
-              // Check if message already exists
-              if (prev.some(msg => msg.id === newMessage.id)) return prev;
-              return [...prev, newMessage];
-            });
-          }
-        );
-        
-        return unsubscribe;
-      } catch (error) {
-        console.error("Error loading messages:", error);
-        toast.error("Failed to load messages");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    const unsubscribe = loadMessages();
-    
-    // Cleanup subscription
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
-  }, [activeChannel, user?.id]);
-  
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
@@ -91,7 +46,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
     }
     
     try {
-      await CommunityService.sendMessage(content);
+      await sendMessage(content);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
