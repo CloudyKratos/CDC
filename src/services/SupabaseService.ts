@@ -10,13 +10,13 @@ interface ProfileData {
   avatar_url?: string;
 }
 
-// Define EventData type
+// Define EventData type - make sure start_time and end_time are strings
 export interface EventData {
   id?: string;
   title: string;
   description?: string | null;
-  start_time: Date | string;
-  end_time: Date | string;
+  start_time: string;  // Changed from Date | string to just string
+  end_time: string;    // Changed from Date | string to just string
   created_by?: string | null;
   workspace_id?: string | null;
   created_at?: string;
@@ -288,8 +288,8 @@ async function getWorkspaceMembers(workspaceId: string) {
     joinedAt: item.joined_at,
     profile: {
       id: item.profiles?.id || item.user_id,
-      full_name: item.profiles?.full_name,
-      avatar_url: item.profiles?.avatar_url
+      full_name: item.profiles?.full_name || '',
+      avatar_url: item.profiles?.avatar_url || ''
     } as ProfileData
   }));
 }
@@ -401,9 +401,16 @@ function subscribeToMessages(workspaceId: string, callback: (message: any) => vo
 
 // Event management functions
 async function createEvent(eventData: EventData) {
+  // Format dates to strings if they are Date objects
+  const formattedData = {
+    ...eventData,
+    start_time: eventData.start_time.toString(),
+    end_time: eventData.end_time.toString()
+  };
+
   const { data, error } = await supabase
     .from("events")
-    .insert(eventData)
+    .insert(formattedData)
     .select()
     .single();
 
@@ -454,9 +461,22 @@ async function getEvent(eventId: string) {
 }
 
 async function updateEvent(eventId: string, eventData: Partial<EventData>) {
+  // Format dates to strings if they are Date objects
+  const formattedData = {
+    ...eventData
+  };
+  
+  if (eventData.start_time) {
+    formattedData.start_time = eventData.start_time.toString();
+  }
+  
+  if (eventData.end_time) {
+    formattedData.end_time = eventData.end_time.toString();
+  }
+
   const { data, error } = await supabase
     .from("events")
-    .update(eventData)
+    .update(formattedData)
     .eq("id", eventId)
     .select()
     .single();

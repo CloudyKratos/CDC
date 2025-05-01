@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import CommunityService from '@/services/CommunityService';
-import { Message } from '@/types/chat';
+import CommunityService, { Message } from '@/services/CommunityService';
 
 interface UseCommunityChat {
   messages: Message[];

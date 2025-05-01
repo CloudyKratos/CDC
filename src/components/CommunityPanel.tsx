@@ -26,7 +26,8 @@ import EmojiPicker from './EmojiPicker';
 import CommunityChannelContent from './CommunityChannelContent';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import CommunityService, { Message } from '@/services/CommunityService';
+import CommunityService from '@/services/CommunityService';
+import { Message } from '@/types/chat';
 
 interface CommunityPanelProps {
   channelName: string;
@@ -70,13 +71,12 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName }) => {
           await CommunityService.joinChannel(channelName, user.id);
           
           // Load existing messages
-          const messagesData = await CommunityService.getMessages(channelName, user.id);
+          const messagesData = await CommunityService.getMessages(channelName);
           setMessages(messagesData);
           
           // Set up realtime subscription for new messages
-          unsubscribe = await CommunityService.subscribeToMessages(
+          unsubscribe = CommunityService.subscribeToMessages(
             channelName, 
-            user.id,
             (newMessage) => {
               setMessages(prev => {
                 // Check if message is already in the list

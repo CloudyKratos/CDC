@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+
 import { 
   ChatChannel, 
   ChatMessage, 
@@ -257,3 +257,4 @@ class CommunityService {
 
 // Export singleton instance
 export default new CommunityService();
+export type { Message };
