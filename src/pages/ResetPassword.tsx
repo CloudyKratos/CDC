@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/ui/Logo';
 
@@ -64,8 +65,10 @@ const ResetPassword: React.FC = () => {
       if (success) {
         setEmailSent(true);
       }
-    } catch (error) {
-      toast.error("Failed to send reset email. Please try again.");
+    } catch (error: any) {
+      toast.error("Failed to send reset email", {
+        description: error.message || "Please try again later"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -78,10 +81,14 @@ const ResetPassword: React.FC = () => {
       const success = await updatePassword(values.password);
       if (success) {
         toast.success("Password updated successfully!");
-        navigate('/login');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       }
-    } catch (error) {
-      toast.error("Failed to update password. Please try again.");
+    } catch (error: any) {
+      toast.error("Failed to update password", {
+        description: error.message || "Please try again later"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -148,14 +155,18 @@ const ResetPassword: React.FC = () => {
               </form>
             </Form>
           ) : emailSent ? (
-            <div className="text-center py-4">
-              <p className="mb-4">We've sent you an email with a link to reset your password.</p>
-              <p className="text-sm text-muted-foreground">
-                Didn't receive the email? Check your spam folder or{' '}
-                <Button variant="link" className="p-0 h-auto" onClick={() => setEmailSent(false)} disabled={isSubmitting}>
-                  try again
-                </Button>
-              </p>
+            <div className="text-center py-4 space-y-6">
+              <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+              <div>
+                <p className="mb-4">We've sent you an email with instructions to reset your password.</p>
+                <p className="text-sm text-muted-foreground">
+                  If you don't see the email, check your spam folder.
+                </p>
+              </div>
+              <Button variant="outline" className="mt-4" onClick={() => setEmailSent(false)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Send to a different email
+              </Button>
             </div>
           ) : (
             <Form {...emailForm}>
@@ -167,7 +178,16 @@ const ResetPassword: React.FC = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Enter your email" {...field} disabled={isSubmitting} />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input 
+                            type="email" 
+                            placeholder="Enter your email" 
+                            className="pl-10" 
+                            {...field} 
+                            disabled={isSubmitting} 
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -62,7 +62,9 @@ class AuthenticationService {
 
   async resetPassword(email: string): Promise<boolean> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password?token=true'
+      });
       
       if (error) {
         console.error('Error sending password reset email:', error);

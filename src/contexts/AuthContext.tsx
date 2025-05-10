@@ -36,10 +36,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        console.log("Auth state change event:", event);
         setSession(newSession);
         // Enhance the user object with our custom properties
         setUser(enhanceUser(newSession?.user ?? null));
         setIsAuthenticated(!!newSession);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success("Successfully signed in!");
+        } else if (event === 'SIGNED_OUT') {
+          toast.success("Signed out successfully");
+        }
       }
     );
 
@@ -76,14 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await AuthenticationService.signIn(email, password);
       if (user) {
-        toast.success("Successfully signed in!");
         return true;
       }
       return false;
     } catch (error: any) {
       console.error("Error signing in:", error);
       setError(error.message || "Failed to sign in");
-      toast.error("Failed to sign in");
+      toast.error("Failed to sign in: " + (error.message || "Invalid credentials"));
       return false;
     } finally {
       setIsLoading(false);
@@ -93,14 +99,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Existing signIn method kept for API consistency
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
+    clearError();
     try {
       const user = await AuthenticationService.signIn(email, password);
       if (user) {
-        toast.success("Successfully signed in!");
+        // Toast is moved to onAuthStateChange to prevent duplicate notifications
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in:", error);
-      toast.error("Failed to sign in");
+      setError(error.message || "Failed to sign in");
+      toast.error("Failed to sign in: " + (error.message || "Invalid credentials"));
       throw error;
     } finally {
       setIsLoading(false);
@@ -109,12 +117,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     setIsLoading(true);
+    clearError();
     try {
       await AuthenticationService.signUp(email, password, fullName);
       toast.success("Account created successfully! Please check your email to confirm your account.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing up:", error);
-      toast.error("Failed to create account");
+      setError(error.message || "Failed to create account");
+      toast.error("Failed to create account: " + (error.message || "An error occurred"));
       throw error;
     } finally {
       setIsLoading(false);
@@ -123,32 +133,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Logout method (alias for signOut for backward compatibility)
   const logout = async (): Promise<void> => {
+    setIsLoading(true);
+    clearError();
     try {
       await AuthenticationService.signOut();
-      setUser(null);
-      setSession(null);
-      setIsAuthenticated(false);
-      toast.success("Signed out successfully");
-    } catch (error) {
+      // State will be updated by onAuthStateChange
+    } catch (error: any) {
       console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
+      setError(error.message || "Failed to sign out");
+      toast.error("Failed to sign out: " + (error.message || "An error occurred"));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
+    setIsLoading(true);
+    clearError();
     try {
       await AuthenticationService.signOut();
-      setUser(null);
-      setSession(null);
-      setIsAuthenticated(false);
-      toast.success("Signed out successfully");
-    } catch (error) {
+      // State will be updated by onAuthStateChange
+    } catch (error: any) {
       console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
+      setError(error.message || "Failed to sign out");
+      toast.error("Failed to sign out: " + (error.message || "An error occurred"));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetPassword = async (email: string) => {
+    clearError();
     try {
       const result = await AuthenticationService.resetPassword(email);
       if (result) {
@@ -157,14 +172,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error("Failed to send reset instructions");
       }
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error resetting password:", error);
-      toast.error("Failed to send reset instructions");
+      setError(error.message || "Failed to send reset instructions");
+      toast.error("Failed to send reset instructions: " + (error.message || "An error occurred"));
       return false;
     }
   };
 
   const updatePassword = async (newPassword: string) => {
+    clearError();
     try {
       const result = await AuthenticationService.updatePassword(newPassword);
       if (result) {
@@ -173,23 +190,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error("Failed to update password");
       }
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating password:", error);
-      toast.error("Failed to update password");
+      setError(error.message || "Failed to update password");
+      toast.error("Failed to update password: " + (error.message || "An error occurred"));
       return false;
     }
   };
 
   // Add user profile update function
   const updateUser = async (userData: any): Promise<boolean> => {
+    clearError();
     try {
-      // Call to update user profile data - implement in AuthenticationService if needed
-      // For now this is a placeholder that just returns true
-      toast.success("Profile updated successfully");
-      return true;
-    } catch (error) {
+      const result = await AuthenticationService.updateUserProfile(userData);
+      if (result) {
+        toast.success("Profile updated successfully");
+      } else {
+        toast.error("Failed to update profile");
+      }
+      return result;
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
-      toast.error("Failed to update profile");
+      setError(error.message || "Failed to update profile");
+      toast.error("Failed to update profile: " + (error.message || "An error occurred"));
       return false;
     }
   };

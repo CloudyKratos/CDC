@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -25,6 +25,7 @@ type SignUpValues = z.infer<typeof SignUpSchema>;
 const SignUp: React.FC = () => {
   const { signUp, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [formSubmitted, setFormSubmitted] = useState(false);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -47,12 +48,54 @@ const SignUp: React.FC = () => {
   const onSubmit = async (values: SignUpValues) => {
     try {
       await signUp(values.email, values.password, values.fullName);
-      // Note: Auth state change will auto-redirect if email verification is not required
-    } catch (error) {
-      const err = error as Error;
-      toast.error(`Sign up failed: ${err.message}`);
+      setFormSubmitted(true);
+    } catch (error: any) {
+      const errorMessage = error.message || "Sign up failed";
+      
+      if (errorMessage.includes("already registered")) {
+        toast.error("Email already registered", {
+          description: "This email is already in use. Try logging in instead."
+        });
+      } else {
+        toast.error(`Sign up failed: ${errorMessage}`);
+      }
     }
   };
+
+  // If the form was submitted successfully, show confirmation message
+  if (formSubmitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1 flex flex-col items-center">
+            <div className="mb-2">
+              <Logo size="lg" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">Check Your Email</CardTitle>
+            <CardDescription className="text-center">
+              We've sent you a confirmation email. Please check your inbox and confirm your email address to complete the sign-up process.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center space-y-4">
+            <div className="bg-primary/10 text-primary rounded-full p-3">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+            <p className="text-center text-muted-foreground">
+              Once confirmed, you'll be able to log in to your account.
+            </p>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Already have an account?{' '}
+              <Link to="/login" className="text-primary hover:underline font-medium">
+                Sign in
+              </Link>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">

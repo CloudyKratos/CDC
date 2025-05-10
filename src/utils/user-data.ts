@@ -11,7 +11,7 @@ export function getUserName(user: User | null): string {
                    '';
   
   // If no name found, use email or fallback
-  return fullName || user.email || 'User';
+  return fullName || (user.email ? user.email.split('@')[0] : 'User');
 }
 
 export function getUserAvatar(user: User | null): string {
@@ -21,6 +21,10 @@ export function getUserAvatar(user: User | null): string {
   return user.user_metadata?.avatar_url || 
          user.user_metadata?.avatar ||
          '';
+}
+
+export function getUserEmail(user: User | null): string {
+  return user?.email || '';
 }
 
 export function getUserPreferences(user: User | null): Record<string, any> {

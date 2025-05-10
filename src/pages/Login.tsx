@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -59,13 +58,19 @@ const Login = () => {
         navigate("/dashboard");
       } else {
         toast.error("Login failed", {
-          description: "Invalid credentials. Please try again or use one of the test accounts below."
+          description: "Please check your email and password and try again."
         });
       }
-    } catch (error) {
-      toast.error("Login failed", {
-        description: "An unexpected error occurred"
-      });
+    } catch (error: any) {
+      if (error.message?.includes("not confirmed")) {
+        toast.error("Email not confirmed", {
+          description: "Please check your inbox and confirm your email address before logging in."
+        });
+      } else {
+        toast.error("Login failed", {
+          description: error.message || "An unexpected error occurred"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +92,9 @@ const Login = () => {
           description: "Unable to log in with test account."
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Test login failed", {
-        description: "An unexpected error occurred"
+        description: error.message || "An unexpected error occurred"
       });
     } finally {
       setIsLoading(false);
