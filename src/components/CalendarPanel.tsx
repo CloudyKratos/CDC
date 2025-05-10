@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay, parseISO } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar";
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import * as SupabaseService from '@/services/SupabaseService';
+import SupabaseService from '@/services/SupabaseService';
 import type { EventData } from '@/services/SupabaseService';
 
 interface CalendarPanelProps {

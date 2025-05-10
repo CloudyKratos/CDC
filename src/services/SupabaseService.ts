@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface MemberData {
@@ -7,7 +8,7 @@ interface MemberData {
 }
 
 export interface EventData {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   start_time: string;
@@ -37,6 +38,7 @@ class SupabaseService {
       }
 
       return members.map(member => {
+        // Safely access profile data with nullish coalescing
         const profile = member.profiles || {};
         return {
           id: profile.id || member.user_id || '',
@@ -53,7 +55,7 @@ class SupabaseService {
   async getEventsByWorkspaceId(workspaceId: string): Promise<EventData[]> {
     try {
       const { data, error } = await supabase
-        .from('calendar_events')
+        .from('events')
         .select('*')
         .eq('workspace_id', workspaceId);
 
@@ -72,7 +74,7 @@ class SupabaseService {
   async createCalendarEvent(eventData: EventData): Promise<EventData | null> {
     try {
       const { data, error } = await supabase
-        .from('calendar_events')
+        .from('events')
         .insert([eventData])
         .select()
         .single();
@@ -92,7 +94,7 @@ class SupabaseService {
   async updateCalendarEvent(id: string, updates: Partial<EventData>): Promise<EventData | null> {
     try {
       const { data, error } = await supabase
-        .from('calendar_events')
+        .from('events')
         .update(updates)
         .eq('id', id)
         .select()
@@ -113,7 +115,7 @@ class SupabaseService {
   async deleteCalendarEvent(id: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('calendar_events')
+        .from('events')
         .delete()
         .eq('id', id);
 
@@ -127,6 +129,96 @@ class SupabaseService {
       console.error('Error deleting calendar event:', error);
       return false;
     }
+  }
+
+  // Authentication methods
+  async signUp(email: string, password: string, fullName: string): Promise<any> {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error during signup:', error);
+        throw error;
+      }
+      
+      return data.user;
+    } catch (error) {
+      console.error('Error in signUp:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(email: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      
+      if (error) {
+        console.error('Error sending password reset email:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in resetPassword:', error);
+      return false;
+    }
+  }
+
+  async updatePassword(newPassword: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        console.error('Error updating password:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in updatePassword:', error);
+      return false;
+    }
+  }
+
+  // Aliases for CalendarPanel compatibility
+  async getEvents(): Promise<EventData[]> {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+  }
+
+  async createEvent(eventData: EventData): Promise<EventData | null> {
+    return this.createCalendarEvent(eventData);
+  }
+
+  async updateEvent(id: string, updates: Partial<EventData>): Promise<EventData | null> {
+    return this.updateCalendarEvent(id, updates);
+  }
+
+  async deleteEvent(id: string): Promise<boolean> {
+    return this.deleteCalendarEvent(id);
   }
 }
 

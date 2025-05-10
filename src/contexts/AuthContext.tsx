@@ -3,7 +3,7 @@ import { User, AuthState } from '@/types/workspace';
 import authService from '@/services/AuthService';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import * as SupabaseService from '@/services/SupabaseService';
+import SupabaseService from '@/services/SupabaseService';
 
 // Default auth state
 const defaultAuthState: AuthState = {
@@ -208,7 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Sign up handler
+  // Sign up handler - now using our SupabaseService
   const signUp = async (email: string, password: string, fullName: string): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
@@ -241,12 +241,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
   
-  // Password reset handler
+  // Password reset handler - now using our SupabaseService
   const resetPassword = async (email: string): Promise<boolean> => {
     return await SupabaseService.resetPassword(email);
   };
   
-  // Update password handler
+  // Update password handler - now using our SupabaseService
   const updatePassword = async (newPassword: string): Promise<boolean> => {
     return await SupabaseService.updatePassword(newPassword);
   };

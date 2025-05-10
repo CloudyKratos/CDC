@@ -15,7 +15,7 @@ import { Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import * as SupabaseService from '@/services/SupabaseService';
+import SupabaseService from '@/services/SupabaseService';
 
 const ResetPassword = () => {
   const [step, setStep] = useState<'request' | 'reset'>('request');

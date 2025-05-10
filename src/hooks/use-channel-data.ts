@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ChatChannel } from '@/types/chat';
+import { ChatChannel, ChannelType } from '@/types/chat';
 import CommunityService from '@/services/CommunityService';
 
 interface UseChannelDataResult {
@@ -23,7 +23,8 @@ export function useChannelData(serverId: string, initialChannel: string = 'gener
       
       try {
         const channelsData = await CommunityService.getChannels();
-        setChannels(channelsData.filter(channel => channel.type === 'PUBLIC'));
+        // Filter channels where type is public (use the ChannelType.PUBLIC enum)
+        setChannels(channelsData.filter(channel => channel.type === ChannelType.PUBLIC));
         setError(null);
       } catch (err) {
         console.error('Error fetching channels:', err);

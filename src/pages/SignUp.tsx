@@ -17,7 +17,7 @@ import { Lock, Mail, Eye, EyeOff, User, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import * as SupabaseService from '@/services/SupabaseService';
+import SupabaseService from '@/services/SupabaseService';
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -70,6 +70,7 @@ const SignUp = () => {
       const user = await SupabaseService.signUp(email, password, fullName);
       
       if (user) {
+        toast.success("Registration successful! Check your email to confirm your account.");
         navigate("/login");
       }
     } catch (error) {
