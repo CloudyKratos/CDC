@@ -8,9 +8,9 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -23,10 +23,30 @@ const SignUpSchema = z.object({
 type SignUpValues = z.infer<typeof SignUpSchema>;
 
 const SignUp: React.FC = () => {
-  const { signUp, isAuthenticated, isLoading } = useAuth();
+  const { signUp, isAuthenticated, isLoading, verifyEmail } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  
+  // Handle email verification if token is present in the URL
+  useEffect(() => {
+    const handleVerification = async () => {
+      if (token) {
+        const verified = await verifyEmail(token);
+        if (verified) {
+          navigate('/login?verified=true');
+        } else {
+          toast.error("Email verification failed. The link may have expired.");
+        }
+      }
+    };
+    
+    if (token) {
+      handleVerification();
+    }
+  }, [token, verifyEmail, navigate]);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -89,11 +109,16 @@ const SignUp: React.FC = () => {
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
             <div className="bg-primary/10 text-primary rounded-full p-3">
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <CheckCircle className="h-6 w-6" />
             </div>
-            <p className="text-center text-muted-foreground">
-              Once confirmed, you'll be able to log in to your account.
-            </p>
+            <div className="text-center space-y-2">
+              <p className="text-muted-foreground">
+                Once confirmed, you'll be able to log in to your account.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Note:</strong> If you don't see the email, please check your spam folder. The email will come from no-reply@supabase.co
+              </p>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">

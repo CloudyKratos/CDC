@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -47,6 +46,26 @@ class AuthenticationService {
     } catch (error) {
       console.error('Error in signIn:', error);
       throw error;
+    }
+  }
+
+  async verifyEmail(token: string): Promise<boolean> {
+    try {
+      // This method will automatically verify the user's email if the token is valid
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email'
+      });
+      
+      if (error) {
+        console.error('Error verifying email:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in verifyEmail:', error);
+      return false;
     }
   }
 

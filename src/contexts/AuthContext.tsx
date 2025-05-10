@@ -20,6 +20,7 @@ interface AuthContextType {
   error: string | null;
   clearError: () => void;
   updateUser: (userData: any) => Promise<boolean>;
+  verifyEmail: (token: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +46,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           toast.success("Successfully signed in!");
         } else if (event === 'SIGNED_OUT') {
           toast.success("Signed out successfully");
+        } else if (event === 'USER_UPDATED') {
+          toast.success("User profile updated");
+        } else if (event === 'PASSWORD_RECOVERY') {
+          toast.info("Password recovery initiated");
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log("Auth token refreshed");
+        } else if (event === 'USER_DELETED') {
+          toast.info("User account deleted");
         }
       }
     );
@@ -209,6 +218,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Add email verification method
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    clearError();
+    try {
+      const result = await AuthenticationService.verifyEmail(token);
+      if (result) {
+        toast.success("Email verified successfully! You can now log in.");
+      } else {
+        toast.error("Failed to verify email. Please try again or request a new verification email.");
+      }
+      return result;
+    } catch (error: any) {
+      console.error("Error verifying email:", error);
+      setError(error.message || "Failed to verify email");
+      return false;
+    }
+  };
+
   const value = {
     isAuthenticated,
     isLoading,
@@ -219,12 +246,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updatePassword,
-    // Add the new methods to the context value
     login,
     logout,
     error,
     clearError,
-    updateUser
+    updateUser,
+    verifyEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
