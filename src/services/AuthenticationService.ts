@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -23,6 +24,13 @@ class AuthenticationService {
       }
       
       console.log("Sign up response:", data);
+      
+      // If we have a user but no session, it likely means email confirmation is required
+      if (data.user && !data.session) {
+        console.log("Email confirmation required for:", email);
+        return data.user;
+      }
+      
       return data.user;
     } catch (error) {
       console.error('Error in signUp:', error);
@@ -32,6 +40,8 @@ class AuthenticationService {
 
   async signIn(email: string, password: string): Promise<User | null> {
     try {
+      console.log("Attempting to sign in user:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -42,6 +52,7 @@ class AuthenticationService {
         throw error;
       }
       
+      console.log("Sign in successful for:", email);
       return data.user;
     } catch (error) {
       console.error('Error in signIn:', error);
@@ -51,6 +62,8 @@ class AuthenticationService {
 
   async verifyEmail(token: string): Promise<boolean> {
     try {
+      console.log("Attempting to verify email with token");
+      
       // This method will automatically verify the user's email if the token is valid
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
@@ -62,6 +75,7 @@ class AuthenticationService {
         return false;
       }
       
+      console.log("Email verification successful");
       return true;
     } catch (error) {
       console.error('Error in verifyEmail:', error);
@@ -71,12 +85,16 @@ class AuthenticationService {
 
   async signOut(): Promise<void> {
     try {
+      console.log("Attempting to sign out user");
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Error during signout:', error);
         throw error;
       }
+      
+      console.log("Sign out successful");
     } catch (error) {
       console.error('Error in signOut:', error);
       throw error;
@@ -85,8 +103,10 @@ class AuthenticationService {
 
   async resetPassword(email: string): Promise<boolean> {
     try {
+      console.log("Attempting password reset for:", email);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password?token=true'
+        redirectTo: `${window.location.origin}/reset-password?token=true`
       });
       
       if (error) {
@@ -94,6 +114,7 @@ class AuthenticationService {
         return false;
       }
       
+      console.log("Password reset email sent to:", email);
       return true;
     } catch (error) {
       console.error('Error in resetPassword:', error);
@@ -103,6 +124,8 @@ class AuthenticationService {
 
   async updatePassword(newPassword: string): Promise<boolean> {
     try {
+      console.log("Attempting to update password");
+      
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -112,6 +135,7 @@ class AuthenticationService {
         return false;
       }
       
+      console.log("Password update successful");
       return true;
     } catch (error) {
       console.error('Error in updatePassword:', error);
@@ -131,9 +155,10 @@ class AuthenticationService {
     return supabase.auth.onAuthStateChange(callback);
   }
 
-  // Add method to update user metadata
   async updateUserProfile(userData: { name?: string, avatar_url?: string }): Promise<boolean> {
     try {
+      console.log("Attempting to update user profile:", userData);
+      
       const { error } = await supabase.auth.updateUser({
         data: userData
       });
@@ -143,9 +168,35 @@ class AuthenticationService {
         return false;
       }
       
+      console.log("User profile update successful");
       return true;
     } catch (error) {
       console.error('Error in updateUserProfile:', error);
+      return false;
+    }
+  }
+
+  async resendVerificationEmail(email: string): Promise<boolean> {
+    try {
+      console.log("Attempting to resend verification email to:", email);
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true`
+        }
+      });
+      
+      if (error) {
+        console.error('Error resending verification email:', error);
+        return false;
+      }
+      
+      console.log("Verification email resent to:", email);
+      return true;
+    } catch (error) {
+      console.error('Error in resendVerificationEmail:', error);
       return false;
     }
   }

@@ -12,7 +12,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
-import { useEffect } from 'react';
 
 // Form validation schema
 const loginSchema = z.object({
