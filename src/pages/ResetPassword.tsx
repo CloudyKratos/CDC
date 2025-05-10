@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import Logo from '@/components/ui/Logo';
+import { Logo } from '@/components/ui/Logo';
 
 // Email form schema
 const EmailSchema = z.object({
@@ -93,7 +92,7 @@ const ResetPassword: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="mb-2">
-            <Logo size="large" />
+            <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-center">
             {isUpdateMode ? 'Set New Password' : 'Reset Password'}

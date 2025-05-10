@@ -105,6 +105,25 @@ class AuthenticationService {
   subscribeToAuthChanges(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   }
+
+  // Add method to update user metadata
+  async updateUserProfile(userData: { name?: string, avatar_url?: string }): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: userData
+      });
+      
+      if (error) {
+        console.error('Error updating user profile:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in updateUserProfile:', error);
+      return false;
+    }
+  }
 }
 
 export default new AuthenticationService();

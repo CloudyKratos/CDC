@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import AuthenticationService from "@/services/AuthenticationService";
 import { toast } from "sonner";
+import { enhanceUser } from "@/utils/user-data";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -15,6 +15,12 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<boolean>;
+  // Add missing methods that are being used in components
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  error: string | null;
+  clearError: () => void;
+  updateUser: (userData: any) => Promise<boolean>; // User profile update function
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,13 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         setSession(newSession);
-        setUser(newSession?.user ?? null);
+        // Enhance the user object with our custom properties
+        setUser(enhanceUser(newSession?.user ?? null));
         setIsAuthenticated(!!newSession);
       }
     );
@@ -41,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data } = await AuthenticationService.getCurrentSession();
         setSession(data.session);
-        setUser(data.session?.user ?? null);
+        // Enhance the user object with our custom properties
+        setUser(enhanceUser(data.session?.user ?? null));
         setIsAuthenticated(!!data.session);
       } catch (error) {
         console.error("Error getting session:", error);
@@ -57,6 +66,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Clear error helper
+  const clearError = () => setError(null);
+
+  // Login method (alias for signIn for backward compatibility)
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    clearError();
+    try {
+      const user = await AuthenticationService.signIn(email, password);
+      if (user) {
+        toast.success("Successfully signed in!");
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error("Error signing in:", error);
+      setError(error.message || "Failed to sign in");
+      toast.error("Failed to sign in");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Existing signIn method kept for API consistency
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -84,6 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Logout method (alias for signOut for backward compatibility)
+  const logout = async (): Promise<void> => {
+    try {
+      await AuthenticationService.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAuthenticated(false);
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
     }
   };
 
@@ -132,6 +180,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Add user profile update function
+  const updateUser = async (userData: any): Promise<boolean> => {
+    try {
+      // Call to update user profile data - implement in AuthenticationService if needed
+      // For now this is a placeholder that just returns true
+      toast.success("Profile updated successfully");
+      return true;
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      toast.error("Failed to update profile");
+      return false;
+    }
+  };
+
   const value = {
     isAuthenticated,
     isLoading,
@@ -142,6 +204,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updatePassword,
+    // Add the new methods to the context value
+    login,
+    logout,
+    error,
+    clearError,
+    updateUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

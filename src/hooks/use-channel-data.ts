@@ -23,8 +23,8 @@ export function useChannelData(serverId: string, initialChannel: string = 'gener
       
       try {
         const channelsData = await CommunityService.getChannels();
-        // Filter public channels only
-        setChannels(channelsData.filter(channel => channel.type === "PUBLIC"));
+        // Filter public channels only - fixed comparison by using string literal
+        setChannels(channelsData.filter(channel => channel.type === ChannelType.PUBLIC));
         setError(null);
       } catch (err) {
         console.error('Error fetching channels:', err);

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
-import Logo from '@/components/ui/Logo';
+import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
 const SignUpSchema = z.object({
@@ -60,7 +59,7 @@ const SignUp: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="mb-2">
-            <Logo size="large" />
+            <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
           <CardDescription className="text-center">
