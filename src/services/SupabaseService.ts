@@ -38,8 +38,8 @@ class SupabaseService {
       }
 
       return members.map(member => {
-        // Safely access profile data with nullish coalescing
-        const profile = member.profiles || {};
+        // Safely access profile data with proper typing
+        const profile = member.profiles as { id?: string; full_name?: string; avatar_url?: string } || {};
         return {
           id: profile.id || member.user_id || '',
           name: profile.full_name || 'Unknown User',

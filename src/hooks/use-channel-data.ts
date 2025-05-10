@@ -23,7 +23,7 @@ export function useChannelData(serverId: string, initialChannel: string = 'gener
       
       try {
         const channelsData = await CommunityService.getChannels();
-        // Filter channels where type is public (use the ChannelType.PUBLIC enum)
+        // Fix the enum comparison
         setChannels(channelsData.filter(channel => channel.type === ChannelType.PUBLIC));
         setError(null);
       } catch (err) {
