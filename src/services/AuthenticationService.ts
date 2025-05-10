@@ -5,13 +5,16 @@ import { User } from "@supabase/supabase-js";
 class AuthenticationService {
   async signUp(email: string, password: string, fullName: string): Promise<User | null> {
     try {
+      console.log("Attempting to sign up user:", { email, fullName });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/login?verified=true`
         }
       });
 
@@ -20,6 +23,7 @@ class AuthenticationService {
         throw error;
       }
       
+      console.log("Sign up response:", data);
       return data.user;
     } catch (error) {
       console.error('Error in signUp:', error);

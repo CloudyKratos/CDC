@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -26,6 +26,7 @@ const SignUp: React.FC = () => {
   const { signUp, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -46,11 +47,21 @@ const SignUp: React.FC = () => {
 
   // Form submission handler
   const onSubmit = async (values: SignUpValues) => {
+    setErrorMessage(null);
+    
     try {
-      await signUp(values.email, values.password, values.fullName);
+      console.log("Form values:", values);
+      const user = await signUp(values.email, values.password, values.fullName);
+      console.log("Sign-up response:", user);
+      
+      // Even if user is null but no error was thrown, we consider it successful
+      // as Supabase might require email verification
       setFormSubmitted(true);
+      toast.success("Account creation started! Check your email to complete sign-up.");
     } catch (error: any) {
+      console.error("Sign-up error:", error);
       const errorMessage = error.message || "Sign up failed";
+      setErrorMessage(errorMessage);
       
       if (errorMessage.includes("already registered")) {
         toast.error("Email already registered", {
@@ -110,6 +121,13 @@ const SignUp: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+              <p className="text-sm text-destructive">{errorMessage}</p>
+            </div>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField

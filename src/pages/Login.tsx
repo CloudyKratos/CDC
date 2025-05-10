@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { 
   Card, 
   CardContent, 
@@ -13,7 +13,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, User, Users, Sparkles } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, AlertCircle, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -24,6 +24,16 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, isAuthenticated, error, clearError } = useAuth();
   const navigate = useNavigate();
+
+  // Check if the user is coming from email verification
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verified = params.get('verified');
+    
+    if (verified === 'true') {
+      toast.success("Email verified successfully! You can now log in.");
+    }
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,6 +61,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login with:", email);
       const success = await login(email, password);
       
       if (success) {
@@ -62,6 +73,8 @@ const Login = () => {
         });
       }
     } catch (error: any) {
+      console.error("Login error:", error);
+      
       if (error.message?.includes("not confirmed")) {
         toast.error("Email not confirmed", {
           description: "Please check your inbox and confirm your email address before logging in."
@@ -76,29 +89,8 @@ const Login = () => {
     }
   };
 
-  const handleQuickLogin = async (testEmail: string) => {
-    setEmail(testEmail);
-    setPassword("password123"); // Using a standard test password
-    setIsLoading(true);
-    
-    try {
-      const success = await login(testEmail, "password123");
-      
-      if (success) {
-        toast.success("Test login successful! Redirecting to dashboard...");
-        navigate("/dashboard");
-      } else {
-        toast.error("Test login failed", {
-          description: "Unable to log in with test account."
-        });
-      }
-    } catch (error: any) {
-      toast.error("Test login failed", {
-        description: error.message || "An unexpected error occurred"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCreateAccount = () => {
+    navigate("/signup");
   };
 
   return (
@@ -213,40 +205,18 @@ const Login = () => {
               </Button>
               
               <div className="relative flex items-center justify-center mt-4">
-                <Separator className="w-full bg-gray-700" />
-                <span className="absolute px-2 bg-black/40 text-gray-400 text-xs">TEST ACCOUNTS</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleQuickLogin("user@example.com")}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Standard User</span>
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleQuickLogin("admin@example.com")}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Admin User</span>
-                </Button>
+                <div className="w-full border-t border-gray-700"></div>
+                <div className="absolute bg-black/40 px-3 text-gray-400 text-xs">OR</div>
               </div>
               
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleQuickLogin("demo@example.com")}
-                className="w-full border-gray-700 border-dashed bg-gradient-to-r from-indigo-500/5 to-purple-500/5 text-gray-300 hover:bg-indigo-900/20 hover:text-white flex items-center justify-center gap-2"
+                onClick={handleCreateAccount}
+                className="w-full border-gray-700 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-gray-300 hover:bg-indigo-900/20 hover:text-white flex items-center justify-center gap-2"
               >
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <span>Explore Demo Account</span>
+                <UserPlus className="h-4 w-4 text-blue-400" />
+                <span>Create an Account</span>
               </Button>
             </form>
           </CardContent>
@@ -254,20 +224,8 @@ const Login = () => {
             <p className="text-center text-xs text-gray-400">
               By signing in, you agree to our <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.
             </p>
-            
-            <p className="text-center text-xs text-gray-500">
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Need help? 
-              </span> - Contact support@nexus-app.com
-            </p>
           </CardFooter>
         </Card>
-        
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-400">
-            Don't have an account? <Link to="/signup" className="text-blue-400 hover:underline">Create one now</Link>
-          </p>
-        </div>
       </motion.div>
     </div>
   );

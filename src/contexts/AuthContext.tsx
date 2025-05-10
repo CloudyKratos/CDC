@@ -11,16 +11,15 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<User | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<boolean>;
-  // Add missing methods that are being used in components
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   error: string | null;
   clearError: () => void;
-  updateUser: (userData: any) => Promise<boolean>; // User profile update function
+  updateUser: (userData: any) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,15 +80,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     clearError();
     try {
+      console.log("Attempting login with:", email);
       const user = await AuthenticationService.signIn(email, password);
-      if (user) {
-        return true;
-      }
-      return false;
+      console.log("Login response:", user);
+      return !!user;
     } catch (error: any) {
       console.error("Error signing in:", error);
       setError(error.message || "Failed to sign in");
-      toast.error("Failed to sign in: " + (error.message || "Invalid credentials"));
       return false;
     } finally {
       setIsLoading(false);
@@ -102,29 +99,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearError();
     try {
       const user = await AuthenticationService.signIn(email, password);
-      if (user) {
-        // Toast is moved to onAuthStateChange to prevent duplicate notifications
+      if (!user) {
+        throw new Error("Invalid credentials");
       }
     } catch (error: any) {
       console.error("Error signing in:", error);
       setError(error.message || "Failed to sign in");
-      toast.error("Failed to sign in: " + (error.message || "Invalid credentials"));
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string): Promise<User | null> => {
     setIsLoading(true);
     clearError();
     try {
-      await AuthenticationService.signUp(email, password, fullName);
-      toast.success("Account created successfully! Please check your email to confirm your account.");
+      console.log("Sign up params:", { email, fullName });
+      const user = await AuthenticationService.signUp(email, password, fullName);
+      console.log("Sign up response:", user);
+      return user;
     } catch (error: any) {
       console.error("Error signing up:", error);
       setError(error.message || "Failed to create account");
-      toast.error("Failed to create account: " + (error.message || "An error occurred"));
       throw error;
     } finally {
       setIsLoading(false);
@@ -141,7 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error signing out:", error);
       setError(error.message || "Failed to sign out");
-      toast.error("Failed to sign out: " + (error.message || "An error occurred"));
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error signing out:", error);
       setError(error.message || "Failed to sign out");
-      toast.error("Failed to sign out: " + (error.message || "An error occurred"));
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +170,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error resetting password:", error);
       setError(error.message || "Failed to send reset instructions");
-      toast.error("Failed to send reset instructions: " + (error.message || "An error occurred"));
       return false;
     }
   };
@@ -193,7 +187,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error updating password:", error);
       setError(error.message || "Failed to update password");
-      toast.error("Failed to update password: " + (error.message || "An error occurred"));
       return false;
     }
   };
@@ -212,7 +205,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error updating user profile:", error);
       setError(error.message || "Failed to update profile");
-      toast.error("Failed to update profile: " + (error.message || "An error occurred"));
       return false;
     }
   };
