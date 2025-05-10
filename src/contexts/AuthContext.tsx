@@ -1,371 +1,156 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, AuthState } from '@/types/workspace';
-import authService from '@/services/AuthService';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import SupabaseService from '@/services/SupabaseService';
 
-// Default auth state
-const defaultAuthState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  error: null
-};
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import AuthenticationService from "@/services/AuthenticationService";
+import { toast } from "sonner";
 
-interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
-  refreshSession: () => void;
-  hasPermission: (permission: string) => boolean;
-  clearError: () => void;
-  signOut: () => Promise<void>; // Add signOut method for Sidebar compatibility
-  resetPassword: (email: string) => Promise<boolean>; // Add reset password function
-  signUp: (email: string, password: string, fullName: string) => Promise<boolean>; // Add signup function
-  updatePassword: (newPassword: string) => Promise<boolean>; // Add update password function
+interface AuthContextType {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: User | null;
+  session: Session | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
 }
 
-// Create the auth context
-export const AuthContext = createContext<AuthContextType>({
-  ...defaultAuthState,
-  login: async () => false,
-  logout: () => {},
-  updateUser: () => {},
-  refreshSession: () => {},
-  hasPermission: () => false,
-  clearError: () => {},
-  signOut: async () => {}, // Default implementation
-  resetPassword: async () => false, // Default implementation
-  signUp: async () => false, // Default implementation
-  updatePassword: async () => false, // Default implementation
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>(defaultAuthState);
-  
-  // Initialize auth state on mount
   useEffect(() => {
-    initializeAuth();
-    
-    // Set up session refresh interval
-    const refreshInterval = setInterval(() => {
-      const sessionTimeRemaining = authService.getSessionTimeRemaining();
-      
-      // If less than 5 minutes left, show warning
-      if (sessionTimeRemaining > 0 && sessionTimeRemaining <= 5) {
-        toast.warning("Your session will expire soon", {
-          description: "You'll be logged out in a few minutes",
-          action: {
-            label: "Extend",
-            onClick: () => refreshSession(),
-          },
-        });
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsAuthenticated(!!newSession);
       }
-    }, 60000); // Check every minute
-    
-    // Subscribe to Supabase auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setAuthState({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata.full_name || 'User',
-            role: session.user.user_metadata.role || 'user',
-            avatar: session.user.user_metadata.avatar_url,
-            permissions: ['read', 'comment'],
-            lastLogin: new Date().toISOString(),
-          },
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-      } else if (event === 'SIGNED_OUT') {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null
-        });
+    );
+
+    // THEN check for existing session
+    const initialSession = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await AuthenticationService.getCurrentSession();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setIsAuthenticated(!!data.session);
+      } catch (error) {
+        console.error("Error getting session:", error);
+      } finally {
+        setIsLoading(false);
       }
-    });
-    
+    };
+
+    initialSession();
+
     return () => {
-      clearInterval(refreshInterval);
       subscription.unsubscribe();
     };
   }, []);
-  
-  // Initialize authentication state
-  const initializeAuth = async () => {
-    setAuthState(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setAuthState({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata.full_name || 'User',
-            role: session.user.user_metadata.role || 'user',
-            avatar: session.user.user_metadata.avatar_url,
-            permissions: ['read', 'comment'],
-            lastLogin: new Date().toISOString(),
-          },
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-      } else {
-        const localUser = authService.getCurrentUser();
-        
-        setAuthState({
-          user: localUser,
-          isAuthenticated: !!localUser,
-          isLoading: false,
-          error: null
-        });
-      }
-    } catch (error) {
-      console.error("Auth initialization error:", error);
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: "Failed to restore authentication state"
-      });
-    }
-  };
-  
-  // Login handler
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      // Try Supabase authentication first
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        // Fall back to demo auth if Supabase fails
-        const user = await authService.login(email, password);
-        
-        if (user) {
-          setAuthState({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          return true;
-        } else {
-          setAuthState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: "Invalid email or password"
-          }));
-          return false;
-        }
-      }
-      
-      if (data?.user) {
-        // Supabase login successful
-        setAuthState({
-          user: {
-            id: data.user.id,
-            email: data.user.email || '',
-            name: data.user.user_metadata.full_name || 'User',
-            role: data.user.user_metadata.role || 'user',
-            avatar: data.user.user_metadata.avatar_url,
-            permissions: ['read', 'comment'],
-            lastLogin: new Date().toISOString(),
-          },
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Login error:", error);
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: "An error occurred during login"
-      }));
-      return false;
-    }
-  };
 
-  // Sign up handler - now using our SupabaseService
-  const signUp = async (email: string, password: string, fullName: string): Promise<boolean> => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      const user = await SupabaseService.signUp(email, password, fullName);
-      
+      const user = await AuthenticationService.signIn(email, password);
       if (user) {
-        // Don't automatically log in - require email verification first
-        setAuthState(prev => ({
-          ...prev,
-          isLoading: false
-        }));
-        return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: "Registration failed"
-        }));
-        return false;
+        toast.success("Successfully signed in!");
       }
     } catch (error) {
-      console.error("Registration error:", error);
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: "An error occurred during registration"
-      }));
+      console.error("Error signing in:", error);
+      toast.error("Failed to sign in");
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, fullName: string) => {
+    setIsLoading(true);
+    try {
+      await AuthenticationService.signUp(email, password, fullName);
+      toast.success("Account created successfully! Please check your email to confirm your account.");
+    } catch (error) {
+      console.error("Error signing up:", error);
+      toast.error("Failed to create account");
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await AuthenticationService.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAuthenticated(false);
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const result = await AuthenticationService.resetPassword(email);
+      if (result) {
+        toast.success("Password reset instructions sent to your email");
+      } else {
+        toast.error("Failed to send reset instructions");
+      }
+      return result;
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Failed to send reset instructions");
       return false;
     }
   };
-  
-  // Password reset handler - now using our SupabaseService
-  const resetPassword = async (email: string): Promise<boolean> => {
-    return await SupabaseService.resetPassword(email);
-  };
-  
-  // Update password handler - now using our SupabaseService
-  const updatePassword = async (newPassword: string): Promise<boolean> => {
-    return await SupabaseService.updatePassword(newPassword);
-  };
-  
-  // Logout handler
-  const logout = () => {
-    // Log out from Supabase
-    supabase.auth.signOut();
-    
-    // Also clear local auth
-    authService.logout();
-    
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null
-    });
-  };
 
-  // Additional signOut method for compatibility with existing code
-  const signOut = async () => {
-    logout();
-  };
-  
-  // Update user data
-  const updateUser = async (userData: Partial<User>) => {
-    if (!authState.user) return;
-    
-    const updatedUser = { ...authState.user, ...userData };
-    
+  const updatePassword = async (newPassword: string) => {
     try {
-      // Update Supabase user metadata if we're using Supabase auth
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session) {
-        await supabase.auth.updateUser({
-          data: {
-            full_name: updatedUser.name,
-            avatar_url: updatedUser.avatar,
-            role: updatedUser.role
-          }
-        });
-        
-        // Update profile in database if available
-        const { error } = await supabase.from('profiles').upsert({
-          id: updatedUser.id,
-          full_name: updatedUser.name,
-          avatar_url: updatedUser.avatar,
-          updated_at: new Date().toISOString()
-        });
-        
-        if (error) {
-          console.error("Error updating profile:", error);
-        }
+      const result = await AuthenticationService.updatePassword(newPassword);
+      if (result) {
+        toast.success("Password updated successfully");
+      } else {
+        toast.error("Failed to update password");
       }
-      
-      // Update in state
-      setAuthState(prev => ({
-        ...prev,
-        user: updatedUser
-      }));
-      
-      // Update in localStorage for backup
-      authService.logout(); // Clear first
-      authService.login(updatedUser.email, "password"); // Re-save with updated data
-      
-      toast.success("Profile updated successfully");
+      return result;
     } catch (error) {
-      console.error("Error updating user:", error);
-      toast.error("Failed to update profile");
+      console.error("Error updating password:", error);
+      toast.error("Failed to update password");
+      return false;
     }
   };
-  
-  // Refresh user session
-  const refreshSession = () => {
-    const refreshedUser = authService.refreshSession();
-    
-    if (refreshedUser) {
-      setAuthState(prev => ({
-        ...prev,
-        user: refreshedUser
-      }));
-      
-      toast.success("Session extended", {
-        description: "Your session has been extended"
-      });
-    }
-  };
-  
-  // Check if user has permission
-  const hasPermission = (permission: string): boolean => {
-    return authService.hasPermission(permission);
-  };
-  
-  // Clear any authentication errors
-  const clearError = () => {
-    setAuthState(prev => ({ ...prev, error: null }));
-  };
-  
-  return (
-    <AuthContext.Provider
-      value={{
-        ...authState,
-        login,
-        logout,
-        updateUser,
-        refreshSession,
-        hasPermission,
-        clearError,
-        signOut,
-        resetPassword,
-        signUp,
-        updatePassword
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
-// Custom hook for using auth
-export const useAuth = () => useContext(AuthContext);
+  const value = {
+    isAuthenticated,
+    isLoading,
+    user,
+    session,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    updatePassword,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}

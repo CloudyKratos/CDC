@@ -23,8 +23,8 @@ export function useChannelData(serverId: string, initialChannel: string = 'gener
       
       try {
         const channelsData = await CommunityService.getChannels();
-        // Fix the enum comparison
-        setChannels(channelsData.filter(channel => channel.type === ChannelType.PUBLIC));
+        // Filter public channels only
+        setChannels(channelsData.filter(channel => channel.type === "PUBLIC"));
         setError(null);
       } catch (err) {
         console.error('Error fetching channels:', err);

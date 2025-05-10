@@ -1,7 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-interface MemberData {
+// Interface definitions
+export interface MemberProfileData {
   id: string;
   name: string;
   avatar: string;
@@ -18,7 +19,7 @@ export interface EventData {
 }
 
 class SupabaseService {
-  async getWorkspaceMembers(workspaceId: string): Promise<MemberData[]> {
+  async getWorkspaceMembers(workspaceId: string): Promise<MemberProfileData[]> {
     try {
       const { data: members, error } = await supabase
         .from('workspace_members')
@@ -52,6 +53,7 @@ class SupabaseService {
     }
   }
 
+  // Event-related methods
   async getEventsByWorkspaceId(workspaceId: string): Promise<EventData[]> {
     try {
       const { data, error } = await supabase
@@ -221,21 +223,5 @@ class SupabaseService {
     return this.deleteCalendarEvent(id);
   }
 }
-
-export type MemberProfileData = {
-  id: string;
-  name: string;
-  avatar: string;
-};
-
-export type CalendarEventData = {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  created_by?: string;
-  workspace_id?: string;
-};
 
 export default new SupabaseService();

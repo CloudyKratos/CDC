@@ -1,258 +1,202 @@
-import React, { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import SupabaseService from '@/services/SupabaseService';
 
-const ResetPassword = () => {
-  const [step, setStep] = useState<'request' | 'reset'>('request');
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [searchParams] = useSearchParams();
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/ui/Logo';
+
+// Email form schema
+const EmailSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+});
+
+// Password reset form schema
+const PasswordSchema = z.object({
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type EmailFormValues = z.infer<typeof EmailSchema>;
+type PasswordFormValues = z.infer<typeof PasswordSchema>;
+
+const ResetPassword: React.FC = () => {
+  const { resetPassword, updatePassword } = useAuth();
   const navigate = useNavigate();
-
-  // Check if we have a token in the URL for password reset
-  React.useEffect(() => {
-    const token = searchParams.get('token');
-    if (token) {
-      setStep('reset');
+  const location = useLocation();
+  
+  // Check if we're in password update mode (with token)
+  const [isUpdateMode] = useState(() => new URLSearchParams(location.search).has('token'));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  
+  // Email request form
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(EmailSchema),
+    defaultValues: {
+      email: '',
     }
-  }, [searchParams]);
-
-  const handleResetRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error("Email is required");
-      return;
+  });
+  
+  // Password update form
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(PasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
     }
-    
-    setIsLoading(true);
-    
+  });
+  
+  // Handle email reset request
+  const handleEmailSubmit = async (values: EmailFormValues) => {
+    setIsSubmitting(true);
     try {
-      const success = await SupabaseService.resetPassword(email);
-      
+      const success = await resetPassword(values.email);
       if (success) {
-        toast.success("Password reset email sent", {
-          description: "Please check your inbox for instructions"
-        });
-        navigate("/login");
+        setEmailSent(true);
       }
     } catch (error) {
-      toast.error("Failed to send reset email", {
-        description: "Please try again later"
-      });
+      toast.error("Failed to send reset email. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!password || !confirmPassword) {
-      toast.error("Password fields are required");
-      return;
-    }
-    
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    setIsLoading(true);
-    
+  
+  // Handle password update
+  const handlePasswordSubmit = async (values: PasswordFormValues) => {
+    setIsSubmitting(true);
     try {
-      const success = await SupabaseService.updatePassword(password);
-      
+      const success = await updatePassword(values.password);
       if (success) {
-        toast.success("Password updated successfully", {
-          description: "You can now login with your new password"
-        });
-        navigate("/login");
+        toast.success("Password updated successfully!");
+        navigate('/login');
       }
     } catch (error) {
-      toast.error("Failed to update password", {
-        description: "Please try again later"
-      });
+      toast.error("Failed to update password. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <div className="fixed inset-0 flex flex-col justify-center items-center bg-gradient-to-br from-gray-900 via-indigo-900/70 to-purple-900 text-white">
-      {/* Background elements - same as Login/SignUp */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/5 w-64 h-64 bg-purple-500/20 rounded-full filter blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/3 right-1/5 w-80 h-80 bg-indigo-500/20 rounded-full filter blur-3xl animate-float animation-delay-200"></div>
-      </div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10 px-4"
-      >
-        <div className="text-center mb-8">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
-          >
-            Reset Password
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="text-gray-300 mt-2"
-          >
-            {step === 'request' ? 'Enter your email to receive reset instructions' : 'Create a new secure password'}
-          </motion.p>
-        </div>
-        
-        <Card className="border-0 shadow-2xl bg-black/40 backdrop-blur-xl">
-          <CardHeader>
-            <CardTitle className="text-xl text-center">
-              {step === 'request' ? 'Forgot Password' : 'Create New Password'}
-            </CardTitle>
-            <CardDescription className="text-center text-gray-400">
-              {step === 'request' 
-                ? "We'll send you instructions to reset your password" 
-                : "Your password must be at least 6 characters"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {step === 'request' ? (
-              <form onSubmit={handleResetRequest} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your account email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
-                  />
-                </div>
-                
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      <span>Sending instructions...</span>
-                    </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 flex flex-col items-center">
+          <div className="mb-2">
+            <Logo size="large" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-center">
+            {isUpdateMode ? 'Set New Password' : 'Reset Password'}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {isUpdateMode 
+              ? 'Enter your new password below' 
+              : emailSent 
+                ? 'Check your email for a reset link' 
+                : 'Enter your email to receive a reset link'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isUpdateMode ? (
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Enter new password" {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Confirm new password" {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating Password...
+                    </>
                   ) : (
-                    <span>Send Reset Instructions</span>
+                    'Reset Password'
                   )}
                 </Button>
               </form>
-            ) : (
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    New Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter new password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm new password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10 pr-10 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      <span>Updating password...</span>
-                    </div>
+            </Form>
+          ) : emailSent ? (
+            <div className="text-center py-4">
+              <p className="mb-4">We've sent you an email with a link to reset your password.</p>
+              <p className="text-sm text-muted-foreground">
+                Didn't receive the email? Check your spam folder or{' '}
+                <Button variant="link" className="p-0 h-auto" onClick={() => setEmailSent(false)} disabled={isSubmitting}>
+                  try again
+                </Button>
+              </p>
+            </div>
+          ) : (
+            <Form {...emailForm}>
+              <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter your email" {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending email...
+                    </>
                   ) : (
-                    <span>Update Password</span>
+                    'Send Reset Link'
                   )}
                 </Button>
               </form>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Link to="/login" className="text-gray-300 hover:text-white flex items-center">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to login
+            </Form>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Remember your password?{' '}
+            <Link to="/login" className="text-primary hover:underline font-medium">
+              Sign in
             </Link>
-          </CardFooter>
-        </Card>
-      </motion.div>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
