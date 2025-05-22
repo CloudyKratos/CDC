@@ -16,6 +16,10 @@ interface AuthContextType extends AuthState {
   clearError: () => void;
   resendVerificationEmail: (email: string) => Promise<boolean>;
   verifyEmail: (token: string) => Promise<boolean>;
+  // Add aliases for consistent naming across the app
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<User | null>;
+  updateUser: (user: Partial<AppUser>) => Promise<boolean>;
 }
 
 // Create the auth context with default values
@@ -33,6 +37,10 @@ const AuthContext = createContext<AuthContextType>({
   clearError: () => {},
   resendVerificationEmail: async () => false,
   verifyEmail: async () => false,
+  // Aliases
+  signOut: async () => {},
+  signUp: async () => null,
+  updateUser: async () => false,
 });
 
 // Provider component that wraps app and provides auth context
@@ -286,9 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyEmail = async (token: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      // This is a placeholder since we don't have this method yet
-      // We'll need to implement it in AuthenticationService
-      return true;
+      return await AuthenticationService.verifyEmail(token);
     } catch (error) {
       console.error('Email verification error:', error);
       setAuthState(prev => ({
@@ -302,10 +308,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Add a updateUser function to match what's used in the components
+  const updateUser = async (userData: Partial<AppUser>): Promise<boolean> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Update the auth profile if name or avatar is changing
+      if (userData.name || userData.avatar) {
+        const result = await AuthenticationService.updateUserProfile({
+          name: userData.name,
+          avatar_url: userData.avatar
+        });
+        
+        if (!result) return false;
+      }
+      
+      // Update local user state
+      setAuthState(prev => ({
+        ...prev,
+        user: prev.user ? { ...prev.user, ...userData } : null,
+        isLoading: false
+      }));
+      
+      return true;
+    } catch (error) {
+      console.error('User update error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to update user',
+      }));
+      return false;
+    }
+  };
+
   // Clear error state
   const clearError = () => {
     setAuthState(prev => ({ ...prev, error: null }));
   };
+
+  // Provide aliases for consistent naming
+  const signUp = signup;
+  const signOut = logout;
 
   // Context provider value
   const value = {
@@ -318,7 +362,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updatePassword,
     clearError,
     resendVerificationEmail,
-    verifyEmail
+    verifyEmail,
+    // Aliases
+    signUp,
+    signOut,
+    updateUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

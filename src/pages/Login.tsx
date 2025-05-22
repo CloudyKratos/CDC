@@ -3,59 +3,59 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
-const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password cannot be empty." }),
+const LoginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
-type LoginValues = z.infer<typeof loginSchema>;
+type LoginValues = z.infer<typeof LoginSchema>;
 
-const Login: React.FC = () => {
-  const { login, isAuthenticated, isLoading, error, clearError, resendVerificationEmail } = useAuth();
+const Login = () => {
+  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
-  const [localError, setLocalError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
-  const isVerified = searchParams.get('verified') === 'true';
-  const [isResendingEmail, setIsResendingEmail] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Check if user was redirected after email verification
+  const verified = searchParams.get('verified') === 'true';
+  
   // Initialize form
   const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(LoginSchema),
     defaultValues: {
       email: '',
       password: '',
     },
   });
-
-  // Clear errors when component unmounts
+  
+  // Clear auth context error when unmounting
   useEffect(() => {
     return () => {
       clearError();
     };
   }, [clearError]);
 
-  // Show success message if user just verified their email
+  // Show toast when email is verified
   useEffect(() => {
-    if (isVerified) {
-      toast.success("Email verified successfully! You can now log in.", {
-        duration: 5000
+    if (verified) {
+      toast.success("Email verification successful!", {
+        description: "Your email has been verified. You can now log in.",
       });
     }
-  }, [isVerified]);
-
+  }, [verified]);
+  
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -65,47 +65,31 @@ const Login: React.FC = () => {
 
   // Form submission handler
   const onSubmit = async (values: LoginValues) => {
-    setLocalError(null);
-    setShowVerification(false);
+    setErrorMessage(null);
     
     try {
-      const result = await login(values.email, values.password);
-      if (result) {
-        // The auth state listener will handle redirect after login
-      } else {
-        setLocalError("Login failed. Please check your credentials.");
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
+      await login(values.email, values.password);
+      toast.success("Login successful!");
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error("Login error:", error);
+      const errorMsg = error?.message || "Invalid credentials";
+      setErrorMessage(errorMsg);
       
-      // Handle email not confirmed error specially
-      if (err.message?.toLowerCase().includes("email not confirmed")) {
-        setLocalError("Your email address has not been verified.");
-        setShowVerification(true);
-        setVerificationEmail(values.email);
+      // Show specific toast based on error message
+      if (errorMsg.toLowerCase().includes("invalid login")) {
+        toast.error("Login failed", {
+          description: "Invalid email or password. Please try again.",
+        });
+      } else if (errorMsg.toLowerCase().includes("email not confirmed")) {
+        toast.error("Email not verified", {
+          description: "Please check your inbox and verify your email before logging in.",
+        });
       } else {
-        setLocalError(err.message || "An error occurred during login.");
-      }
-    }
-  };
-
-  // Handle resend verification email
-  const handleResendVerification = async () => {
-    if (!verificationEmail) return;
-    
-    setIsResendingEmail(true);
-    try {
-      const result = await resendVerificationEmail(verificationEmail);
-      if (result) {
-        toast.success("Verification email sent!", {
-          description: "Please check your inbox and spam folder."
+        toast.error("Login failed", {
+          description: errorMsg,
         });
       }
-    } catch (error) {
-      console.error("Failed to resend verification email:", error);
-      toast.error("Failed to resend verification email");
-    } finally {
-      setIsResendingEmail(false);
     }
   };
 
@@ -116,50 +100,25 @@ const Login: React.FC = () => {
           <div className="mb-2">
             <Logo size="lg" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access your account
+            Enter your credentials to sign in to your account
           </CardDescription>
+          
+          {verified && (
+            <div className="mt-2 w-full p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+              <p className="text-sm text-green-800 dark:text-green-300">
+                Your email has been verified successfully. You can now log in.
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          {isVerified && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-900/30 dark:text-green-400 rounded-md flex items-start gap-2">
-              <CheckCircle className="h-5 w-5 mt-0.5" />
-              <p className="text-sm">Email verified successfully! You can now log in.</p>
-            </div>
-          )}
-
-          {(localError || error) && (
+          {errorMessage && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-              <p className="text-sm text-destructive">{localError || error}</p>
-            </div>
-          )}
-          
-          {showVerification && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900/30 dark:text-yellow-400 rounded-md">
-              <div className="flex flex-col space-y-2">
-                <p className="text-sm">Your email address hasn't been verified yet.</p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center justify-center gap-2 w-full"
-                  onClick={handleResendVerification}
-                  disabled={isResendingEmail}
-                >
-                  {isResendingEmail ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4" />
-                      Resend Verification Email
-                    </>
-                  )}
-                </Button>
-              </div>
+              <p className="text-sm text-destructive">{errorMessage}</p>
             </div>
           )}
           
@@ -172,30 +131,52 @@ const Login: React.FC = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter your email" {...field} disabled={isLoading} />
+                      <Input placeholder="Enter your email" type="email" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                    <div className="text-right text-sm">
-                      <Link to="/reset-password" className="text-primary hover:underline">
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Password</FormLabel>
+                      <Link to="/reset-password" className="text-xs text-primary hover:underline">
                         Forgot password?
                       </Link>
                     </div>
+                    <FormControl>
+                      <div className="relative">
+                        <Input 
+                          placeholder="Enter your password" 
+                          type={showPassword ? 'text' : 'password'} 
+                          {...field} 
+                          disabled={isLoading} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-gray-400" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
+              
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -203,7 +184,7 @@ const Login: React.FC = () => {
                     Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  'Sign in'
                 )}
               </Button>
             </form>
@@ -211,9 +192,9 @@ const Login: React.FC = () => {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Don't have an account?{' '}
+            Don't have an account yet?{' '}
             <Link to="/signup" className="text-primary hover:underline font-medium">
-              Create Account
+              Sign up
             </Link>
           </div>
         </CardFooter>
