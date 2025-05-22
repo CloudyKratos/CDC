@@ -1,295 +1,311 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import AuthenticationService from "@/services/AuthenticationService";
-import { toast } from "sonner";
-import { enhanceUser } from "@/utils/user-data";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session, AuthChangeEvent, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
+import { AuthState, User as AppUser } from '@/types/workspace';
+import AuthenticationService from '@/services/AuthenticationService';
 
-interface AuthContextType {
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  user: User | null;
-  session: Session | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<User | null>;
-  signOut: () => Promise<void>;
+// Define the shape of our context
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<User | null>;
+  logout: () => Promise<void>;
+  signup: (email: string, password: string, fullName: string) => Promise<User | null>;
+  updateProfile: (data: { name?: string; avatar_url?: string }) => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  error: string | null;
   clearError: () => void;
-  updateUser: (userData: any) => Promise<boolean>;
-  verifyEmail: (token: string) => Promise<boolean>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create the auth context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+  login: async () => null,
+  logout: async () => {},
+  signup: async () => null,
+  updateProfile: async () => false,
+  resetPassword: async () => false,
+  updatePassword: async () => false,
+  clearError: () => {},
+  resendVerificationEmail: async () => false,
+});
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [error, setError] = useState<string | null>(null);
+// Provider component that wraps app and provides auth context
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    error: null,
+  });
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, newSession) => {
-        console.log("Auth state change event:", event);
-        setSession(newSession);
-        // Enhance the user object with our custom properties
-        setUser(enhanceUser(newSession?.user ?? null));
-        setIsAuthenticated(!!newSession);
+    // Set up auth state listener first
+    const { data: { subscription } } = AuthenticationService.subscribeToAuthChanges(
+      (event, session) => {
+        console.log('Auth state changed:', event);
         
-        // Handle various authentication events with toast notifications
+        // Handle different auth events
         switch (event) {
           case 'SIGNED_IN':
-            toast.success("Successfully signed in!");
+            if (session?.user) {
+              handleUserSession(session);
+            }
             break;
+          
           case 'SIGNED_OUT':
-            toast.success("Signed out successfully");
+            setAuthState({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null,
+            });
             break;
-          case 'USER_UPDATED':
-            toast.success("User profile updated");
-            break;
-          case 'PASSWORD_RECOVERY':
-            toast.info("Password recovery initiated");
-            break;
+          
           case 'TOKEN_REFRESHED':
-            console.log("Auth token refreshed");
+          case 'USER_UPDATED':
+            if (session?.user) {
+              handleUserSession(session);
+            }
             break;
-          case 'USER_DELETED':
-            toast.info("User account deleted");
-            break;
+        }
+        
+        // Handle user deletion separately since it's not in the AuthChangeEvent type
+        if (event === 'USER_DELETED') {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
         }
       }
     );
 
-    // THEN check for existing session
-    const initialSession = async () => {
-      setIsLoading(true);
+    // Then check for existing session
+    const initializeAuth = async () => {
       try {
-        const { data } = await AuthenticationService.getCurrentSession();
-        setSession(data.session);
-        // Enhance the user object with our custom properties
-        setUser(enhanceUser(data.session?.user ?? null));
-        setIsAuthenticated(!!data.session);
+        const { data: { session } } = await AuthenticationService.getCurrentSession();
+        
+        if (session) {
+          handleUserSession(session);
+        } else {
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: false,
+          }));
+        }
       } catch (error) {
-        console.error("Error getting session:", error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error initializing auth:', error);
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to initialize authentication',
+        });
       }
     };
 
-    initialSession();
+    initializeAuth();
 
+    // Clean up subscription
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Clear error helper
-  const clearError = () => setError(null);
+  // Helper function to handle user session
+  const handleUserSession = (session: Session) => {
+    const userProfile: AppUser = {
+      id: session.user.id,
+      email: session.user.email || '',
+      name: session.user.user_metadata.full_name || '',
+      role: 'user',
+      permissions: [],
+      avatar: session.user.user_metadata.avatar_url,
+    };
 
-  // Login method (alias for signIn for backward compatibility)
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    clearError();
-    try {
-      console.log("Attempting login with:", email);
-      const user = await AuthenticationService.signIn(email, password);
-      console.log("Login response:", user);
-      return !!user;
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-      setError(error.message || "Failed to sign in");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
+    setAuthState({
+      user: userProfile,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
   };
 
-  // Existing signIn method kept for API consistency
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
-    clearError();
+  // Login function
+  const login = async (email: string, password: string): Promise<User | null> => {
     try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       const user = await AuthenticationService.signIn(email, password);
-      if (!user) {
-        throw new Error("Invalid credentials");
-      }
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-      setError(error.message || "Failed to sign in");
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, fullName: string): Promise<User | null> => {
-    setIsLoading(true);
-    clearError();
-    try {
-      console.log("Sign up params:", { email, fullName });
-      const user = await AuthenticationService.signUp(email, password, fullName);
-      console.log("Sign up response:", user);
       return user;
-    } catch (error: any) {
-      console.error("Error signing up:", error);
-      setError(error.message || "Failed to create account");
+    } catch (error) {
+      console.error('Login error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to login',
+      }));
+      throw error;
+    }
+  };
+
+  // Logout function
+  const logout = async (): Promise<void> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+      await AuthenticationService.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to logout',
+      }));
+    }
+  };
+
+  // Signup function
+  const signup = async (email: string, password: string, fullName: string): Promise<User | null> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      const user = await AuthenticationService.signUp(email, password, fullName);
+      
+      if (user && !user.email_confirmed_at) {
+        toast.success('Signup successful!', {
+          description: 'Please check your email to verify your account.',
+        });
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Signup error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to signup',
+      }));
       throw error;
     } finally {
-      setIsLoading(false);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Logout method (alias for signOut for backward compatibility)
-  const logout = async (): Promise<void> => {
-    setIsLoading(true);
-    clearError();
+  // Update user profile
+  const updateProfile = async (userData: { name?: string; avatar_url?: string }): Promise<boolean> => {
     try {
-      await AuthenticationService.signOut();
-      // State will be updated by onAuthStateChange
-    } catch (error: any) {
-      console.error("Error signing out:", error);
-      setError(error.message || "Failed to sign out");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    setIsLoading(true);
-    clearError();
-    try {
-      await AuthenticationService.signOut();
-      // State will be updated by onAuthStateChange
-    } catch (error: any) {
-      console.error("Error signing out:", error);
-      setError(error.message || "Failed to sign out");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    clearError();
-    try {
-      const result = await AuthenticationService.resetPassword(email);
-      if (result) {
-        toast.success("Password reset instructions sent to your email");
-      } else {
-        toast.error("Failed to send reset instructions");
-      }
-      return result;
-    } catch (error: any) {
-      console.error("Error resetting password:", error);
-      setError(error.message || "Failed to send reset instructions");
-      return false;
-    }
-  };
-
-  const updatePassword = async (newPassword: string) => {
-    clearError();
-    try {
-      const result = await AuthenticationService.updatePassword(newPassword);
-      if (result) {
-        toast.success("Password updated successfully");
-      } else {
-        toast.error("Failed to update password");
-      }
-      return result;
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      setError(error.message || "Failed to update password");
-      return false;
-    }
-  };
-
-  // Add user profile update function
-  const updateUser = async (userData: any): Promise<boolean> => {
-    clearError();
-    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       const result = await AuthenticationService.updateUserProfile(userData);
+      
       if (result) {
-        toast.success("Profile updated successfully");
-      } else {
-        toast.error("Failed to update profile");
+        // Update local user state with new profile data
+        setAuthState(prev => ({
+          ...prev,
+          user: prev.user ? {
+            ...prev.user,
+            name: userData.name || prev.user.name,
+            avatar: userData.avatar_url || prev.user.avatar,
+          } : null,
+        }));
       }
+      
       return result;
-    } catch (error: any) {
-      console.error("Error updating user profile:", error);
-      setError(error.message || "Failed to update profile");
+    } catch (error) {
+      console.error('Profile update error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to update profile',
+      }));
       return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Add email verification method
-  const verifyEmail = async (token: string): Promise<boolean> => {
-    clearError();
+  // Reset password (send reset email)
+  const resetPassword = async (email: string): Promise<boolean> => {
     try {
-      const result = await AuthenticationService.verifyEmail(token);
-      if (result) {
-        toast.success("Email verified successfully! You can now log in.");
-      } else {
-        toast.error("Failed to verify email. Please try again or request a new verification email.");
-      }
-      return result;
-    } catch (error: any) {
-      console.error("Error verifying email:", error);
-      setError(error.message || "Failed to verify email");
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      return await AuthenticationService.resetPassword(email);
+    } catch (error) {
+      console.error('Password reset error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to reset password',
+      }));
       return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Add resend verification email method
+  // Update password (after reset)
+  const updatePassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      return await AuthenticationService.updatePassword(newPassword);
+    } catch (error) {
+      console.error('Password update error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to update password',
+      }));
+      return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+  
+  // Resend verification email
   const resendVerificationEmail = async (email: string): Promise<boolean> => {
-    clearError();
     try {
-      const result = await AuthenticationService.resendVerificationEmail(email);
-      if (result) {
-        toast.success("Verification email has been resent. Please check your inbox.");
-      } else {
-        toast.error("Failed to resend verification email. Please try again later.");
-      }
-      return result;
-    } catch (error: any) {
-      console.error("Error resending verification email:", error);
-      setError(error.message || "Failed to resend verification email");
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      return await AuthenticationService.resendVerificationEmail(email);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to resend verification email',
+      }));
       return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Clear error state
+  const clearError = () => {
+    setAuthState(prev => ({ ...prev, error: null }));
+  };
+
+  // Context provider value
   const value = {
-    isAuthenticated,
-    isLoading,
-    user,
-    session,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-    updatePassword,
+    ...authState,
     login,
     logout,
-    error,
+    signup,
+    updateProfile,
+    resetPassword,
+    updatePassword,
     clearError,
-    updateUser,
-    verifyEmail,
     resendVerificationEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
 
-export function useAuth() {
+// Custom hook to use the auth context
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

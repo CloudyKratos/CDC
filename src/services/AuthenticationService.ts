@@ -15,7 +15,7 @@ class AuthenticationService {
             full_name: fullName
           },
           // Make sure the redirect URL is absolute and includes the origin
-          emailRedirectTo: `${window.location.origin}/signup`
+          emailRedirectTo: `${window.location.origin}/login?verified=true`
         }
       });
 
@@ -57,29 +57,6 @@ class AuthenticationService {
     } catch (error) {
       console.error('Error in signIn:', error);
       throw error;
-    }
-  }
-
-  async verifyEmail(token: string): Promise<boolean> {
-    try {
-      console.log("Attempting to verify email with token");
-      
-      // This method will automatically verify the user's email if the token is valid
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'email'
-      });
-      
-      if (error) {
-        console.error('Error verifying email:', error);
-        return false;
-      }
-      
-      console.log("Email verification successful", data);
-      return true;
-    } catch (error) {
-      console.error('Error in verifyEmail:', error);
-      return false;
     }
   }
 
@@ -184,7 +161,7 @@ class AuthenticationService {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/signup`
+          emailRedirectTo: `${window.location.origin}/login?verified=true`
         }
       });
       

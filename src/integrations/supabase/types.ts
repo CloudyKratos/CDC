@@ -188,7 +188,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_auth_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_workspace_member: {
+        Args: { workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_owner: {
+        Args: { workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

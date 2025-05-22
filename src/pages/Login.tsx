@@ -50,7 +50,9 @@ const Login: React.FC = () => {
   // Show success message if user just verified their email
   useEffect(() => {
     if (isVerified) {
-      toast.success("Email verified successfully! You can now log in.");
+      toast.success("Email verified successfully! You can now log in.", {
+        duration: 5000
+      });
     }
   }, [isVerified]);
 
