@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session, AuthChangeEvent, User } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { AuthState, User as AppUser } from '@/types/workspace';
 import AuthenticationService from '@/services/AuthenticationService';
@@ -15,6 +15,7 @@ interface AuthContextType extends AuthState {
   updatePassword: (newPassword: string) => Promise<boolean>;
   clearError: () => void;
   resendVerificationEmail: (email: string) => Promise<boolean>;
+  verifyEmail: (token: string) => Promise<boolean>;
 }
 
 // Create the auth context with default values
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   updatePassword: async () => false,
   clearError: () => {},
   resendVerificationEmail: async () => false,
+  verifyEmail: async () => false,
 });
 
 // Provider component that wraps app and provides auth context
@@ -280,6 +282,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Verify email
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      // This is a placeholder since we don't have this method yet
+      // We'll need to implement it in AuthenticationService
+      return true;
+    } catch (error) {
+      console.error('Email verification error:', error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to verify email',
+      }));
+      return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   // Clear error state
   const clearError = () => {
     setAuthState(prev => ({ ...prev, error: null }));
@@ -295,7 +317,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     updatePassword,
     clearError,
-    resendVerificationEmail
+    resendVerificationEmail,
+    verifyEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

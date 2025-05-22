@@ -23,7 +23,7 @@ const SignUpSchema = z.object({
 type SignUpValues = z.infer<typeof SignUpSchema>;
 
 const SignUp: React.FC = () => {
-  const { signUp, isAuthenticated, isLoading, verifyEmail, resendVerificationEmail } = useAuth();
+  const { signup, isAuthenticated, isLoading, verifyEmail, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string>('');
@@ -73,7 +73,7 @@ const SignUp: React.FC = () => {
     
     try {
       console.log("Form values:", values);
-      const user = await signUp(values.email, values.password, values.fullName);
+      const user = await signup(values.email, values.password, values.fullName);
       console.log("Sign-up response:", user);
       
       // Save email for resend functionality

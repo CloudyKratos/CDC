@@ -177,6 +177,30 @@ class AuthenticationService {
       return false;
     }
   }
+
+  async verifyEmail(token: string): Promise<boolean> {
+    try {
+      console.log("Attempting to verify email with token");
+      
+      // Note: For Supabase, email verification is typically handled automatically
+      // via the redirect URL, but we can check if the token is valid
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email',
+      });
+      
+      if (error) {
+        console.error('Error verifying email:', error);
+        return false;
+      }
+      
+      console.log("Email verification successful");
+      return true;
+    } catch (error) {
+      console.error('Error in verifyEmail:', error);
+      return false;
+    }
+  }
 }
 
 export default new AuthenticationService();
