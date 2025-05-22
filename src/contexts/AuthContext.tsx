@@ -42,17 +42,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(enhanceUser(newSession?.user ?? null));
         setIsAuthenticated(!!newSession);
         
-        if (event === 'SIGNED_IN') {
-          toast.success("Successfully signed in!");
-        } else if (event === 'SIGNED_OUT') {
-          toast.success("Signed out successfully");
-        } else if (event === 'USER_UPDATED') {
-          toast.success("User profile updated");
-        } else if (event === 'PASSWORD_RECOVERY') {
-          toast.info("Password recovery initiated");
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log("Auth token refreshed");
-        } else if (event === 'USER_DELETED') {
+        // Handle various authentication events with toast notifications
+        switch (event) {
+          case 'SIGNED_IN':
+            toast.success("Successfully signed in!");
+            break;
+          case 'SIGNED_OUT':
+            toast.success("Signed out successfully");
+            break;
+          case 'USER_UPDATED':
+            toast.success("User profile updated");
+            break;
+          case 'PASSWORD_RECOVERY':
+            toast.info("Password recovery initiated");
+            break;
+          case 'TOKEN_REFRESHED':
+            console.log("Auth token refreshed");
+            break;
+        }
+        
+        // Handle additional cases if needed but don't use equality comparison
+        if (event === 'USER_DELETED') {
           toast.info("User account deleted");
         }
       }
