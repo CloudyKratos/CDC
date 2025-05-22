@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import AuthenticationService from "@/services/AuthenticationService";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface AuthContextType {
   clearError: () => void;
   updateUser: (userData: any) => Promise<boolean>;
   verifyEmail: (token: string) => Promise<boolean>;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      (event: AuthChangeEvent, newSession) => {
         console.log("Auth state change event:", event);
         setSession(newSession);
         // Enhance the user object with our custom properties
@@ -59,11 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           case 'TOKEN_REFRESHED':
             console.log("Auth token refreshed");
             break;
-        }
-        
-        // Handle additional cases if needed but don't use equality comparison
-        if (event === 'USER_DELETED') {
-          toast.info("User account deleted");
+          case 'USER_DELETED':
+            toast.info("User account deleted");
+            break;
         }
       }
     );
@@ -246,6 +246,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Add resend verification email method
+  const resendVerificationEmail = async (email: string): Promise<boolean> => {
+    clearError();
+    try {
+      const result = await AuthenticationService.resendVerificationEmail(email);
+      if (result) {
+        toast.success("Verification email has been resent. Please check your inbox.");
+      } else {
+        toast.error("Failed to resend verification email. Please try again later.");
+      }
+      return result;
+    } catch (error: any) {
+      console.error("Error resending verification email:", error);
+      setError(error.message || "Failed to resend verification email");
+      return false;
+    }
+  };
+
   const value = {
     isAuthenticated,
     isLoading,
@@ -261,7 +279,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     clearError,
     updateUser,
-    verifyEmail
+    verifyEmail,
+    resendVerificationEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

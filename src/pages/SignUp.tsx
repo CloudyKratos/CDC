@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -23,12 +23,14 @@ const SignUpSchema = z.object({
 type SignUpValues = z.infer<typeof SignUpSchema>;
 
 const SignUp: React.FC = () => {
-  const { signUp, isAuthenticated, isLoading, verifyEmail } = useAuth();
+  const { signUp, isAuthenticated, isLoading, verifyEmail, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
   
   // Handle email verification if token is present in the URL
   useEffect(() => {
@@ -38,7 +40,7 @@ const SignUp: React.FC = () => {
         if (verified) {
           navigate('/login?verified=true');
         } else {
-          toast.error("Email verification failed. The link may have expired.");
+          toast.error("Email verification failed. The link may have expired or is invalid.");
         }
       }
     };
@@ -74,6 +76,9 @@ const SignUp: React.FC = () => {
       const user = await signUp(values.email, values.password, values.fullName);
       console.log("Sign-up response:", user);
       
+      // Save email for resend functionality
+      setSubmittedEmail(values.email);
+      
       // Even if user is null but no error was thrown, we consider it successful
       // as Supabase might require email verification
       setFormSubmitted(true);
@@ -83,13 +88,33 @@ const SignUp: React.FC = () => {
       const errorMessage = error.message || "Sign up failed";
       setErrorMessage(errorMessage);
       
-      if (errorMessage.includes("already registered")) {
+      if (errorMessage.toLowerCase().includes("already registered")) {
         toast.error("Email already registered", {
           description: "This email is already in use. Try logging in instead."
         });
       } else {
         toast.error(`Sign up failed: ${errorMessage}`);
       }
+    }
+  };
+
+  // Handle resend verification email
+  const handleResendEmail = async () => {
+    if (!submittedEmail) return;
+    
+    setIsResendingEmail(true);
+    try {
+      const result = await resendVerificationEmail(submittedEmail);
+      if (result) {
+        toast.success("Verification email has been resent!", {
+          description: "Please check your inbox and spam folder."
+        });
+      }
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      toast.error("Failed to resend verification email");
+    } finally {
+      setIsResendingEmail(false);
     }
   };
 
@@ -116,9 +141,27 @@ const SignUp: React.FC = () => {
                 Once confirmed, you'll be able to log in to your account.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> If you don't see the email, please check your spam folder. The email will come from no-reply@supabase.co
+                <strong>Note:</strong> If you don't see the email, please check your spam folder.
               </p>
             </div>
+            <Button 
+              variant="outline" 
+              className="mt-4 w-full flex items-center justify-center gap-2"
+              onClick={handleResendEmail}
+              disabled={isResendingEmail}
+            >
+              {isResendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Resending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Resend Verification Email
+                </>
+              )}
+            </Button>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -135,7 +178,7 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="mb-2">
             <Logo size="lg" />
@@ -191,6 +234,9 @@ const SignUp: React.FC = () => {
                       <Input type="password" placeholder="Create a password" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Password must be at least 6 characters long
+                    </p>
                   </FormItem>
                 )}
               />

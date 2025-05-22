@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -22,11 +22,14 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { login, isAuthenticated, isLoading, error, clearError, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [localError, setLocalError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const isVerified = searchParams.get('verified') === 'true';
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
   // Initialize form
   const form = useForm<LoginValues>({
@@ -61,6 +64,7 @@ const Login: React.FC = () => {
   // Form submission handler
   const onSubmit = async (values: LoginValues) => {
     setLocalError(null);
+    setShowVerification(false);
     
     try {
       const result = await login(values.email, values.password);
@@ -71,13 +75,41 @@ const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      setLocalError(err.message || "An error occurred during login.");
+      
+      // Handle email not confirmed error specially
+      if (err.message?.toLowerCase().includes("email not confirmed")) {
+        setLocalError("Your email address has not been verified.");
+        setShowVerification(true);
+        setVerificationEmail(values.email);
+      } else {
+        setLocalError(err.message || "An error occurred during login.");
+      }
+    }
+  };
+
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return;
+    
+    setIsResendingEmail(true);
+    try {
+      const result = await resendVerificationEmail(verificationEmail);
+      if (result) {
+        toast.success("Verification email sent!", {
+          description: "Please check your inbox and spam folder."
+        });
+      }
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      toast.error("Failed to resend verification email");
+    } finally {
+      setIsResendingEmail(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="mb-2">
             <Logo size="lg" />
@@ -99,6 +131,33 @@ const Login: React.FC = () => {
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
               <p className="text-sm text-destructive">{localError || error}</p>
+            </div>
+          )}
+          
+          {showVerification && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900/30 dark:text-yellow-400 rounded-md">
+              <div className="flex flex-col space-y-2">
+                <p className="text-sm">Your email address hasn't been verified yet.</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center justify-center gap-2 w-full"
+                  onClick={handleResendVerification}
+                  disabled={isResendingEmail}
+                >
+                  {isResendingEmail ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" />
+                      Resend Verification Email
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
           

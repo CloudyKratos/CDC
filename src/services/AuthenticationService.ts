@@ -14,7 +14,8 @@ class AuthenticationService {
           data: {
             full_name: fullName
           },
-          emailRedirectTo: `${window.location.origin}/login?verified=true`
+          // Make sure the redirect URL is absolute and includes the origin
+          emailRedirectTo: `${window.location.origin}/signup`
         }
       });
 
@@ -28,7 +29,6 @@ class AuthenticationService {
       // If we have a user but no session, it likely means email confirmation is required
       if (data.user && !data.session) {
         console.log("Email confirmation required for:", email);
-        return data.user;
       }
       
       return data.user;
@@ -65,7 +65,7 @@ class AuthenticationService {
       console.log("Attempting to verify email with token");
       
       // This method will automatically verify the user's email if the token is valid
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'email'
       });
@@ -75,7 +75,7 @@ class AuthenticationService {
         return false;
       }
       
-      console.log("Email verification successful");
+      console.log("Email verification successful", data);
       return true;
     } catch (error) {
       console.error('Error in verifyEmail:', error);
@@ -184,7 +184,7 @@ class AuthenticationService {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?verified=true`
+          emailRedirectTo: `${window.location.origin}/signup`
         }
       });
       
