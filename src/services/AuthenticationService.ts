@@ -14,8 +14,7 @@ class AuthenticationService {
           data: {
             full_name: fullName
           },
-          // Make sure the redirect URL is absolute and includes the origin
-          emailRedirectTo: `${window.location.origin}/login?verified=true`
+          emailRedirectTo: `${window.location.origin}/verify`
         }
       });
 
@@ -161,7 +160,7 @@ class AuthenticationService {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?verified=true`
+          emailRedirectTo: `${window.location.origin}/verify`
         }
       });
       
@@ -182,8 +181,7 @@ class AuthenticationService {
     try {
       console.log("Attempting to verify email with token");
       
-      // Note: For Supabase, email verification is typically handled automatically
-      // via the redirect URL, but we can check if the token is valid
+      // For Supabase email verification via OTP
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'email',

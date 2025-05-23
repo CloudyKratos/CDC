@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
@@ -23,32 +23,12 @@ const SignUpSchema = z.object({
 type SignUpValues = z.infer<typeof SignUpSchema>;
 
 const SignUp: React.FC = () => {
-  const { signup, isAuthenticated, isLoading, verifyEmail, resendVerificationEmail } = useAuth();
+  const { signup, isAuthenticated, isLoading, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
   const [isResendingEmail, setIsResendingEmail] = useState(false);
-  
-  // Handle email verification if token is present in the URL
-  useEffect(() => {
-    const handleVerification = async () => {
-      if (token) {
-        const verified = await verifyEmail(token);
-        if (verified) {
-          navigate('/login?verified=true');
-        } else {
-          toast.error("Email verification failed. The link may have expired or is invalid.");
-        }
-      }
-    };
-    
-    if (token) {
-      handleVerification();
-    }
-  }, [token, verifyEmail, navigate]);
   
   // Redirect if already authenticated
   useEffect(() => {
