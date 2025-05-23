@@ -127,6 +127,153 @@ export type Database = {
         }
         Relationships: []
       }
+      speaker_requests: {
+        Row: {
+          id: string
+          requested_at: string
+          responded_at: string | null
+          responded_by: string | null
+          stage_id: string
+          status: Database["public"]["Enums"]["speaker_request_status"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          requested_at?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          stage_id: string
+          status?: Database["public"]["Enums"]["speaker_request_status"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          requested_at?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          stage_id?: string
+          status?: Database["public"]["Enums"]["speaker_request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_requests_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_participants: {
+        Row: {
+          id: string
+          is_hand_raised: boolean | null
+          is_muted: boolean | null
+          is_video_enabled: boolean | null
+          joined_at: string
+          left_at: string | null
+          role: Database["public"]["Enums"]["stage_role"]
+          stage_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_hand_raised?: boolean | null
+          is_muted?: boolean | null
+          is_video_enabled?: boolean | null
+          joined_at?: string
+          left_at?: string | null
+          role?: Database["public"]["Enums"]["stage_role"]
+          stage_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_hand_raised?: boolean | null
+          is_muted?: boolean | null
+          is_video_enabled?: boolean | null
+          joined_at?: string
+          left_at?: string | null
+          role?: Database["public"]["Enums"]["stage_role"]
+          stage_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_participants_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stages: {
+        Row: {
+          actual_start_time: string | null
+          allow_hand_raising: boolean | null
+          created_at: string
+          creator_id: string
+          description: string | null
+          end_time: string | null
+          id: string
+          max_audience: number | null
+          max_speakers: number | null
+          recording_enabled: boolean | null
+          scheduled_start_time: string | null
+          status: Database["public"]["Enums"]["stage_status"]
+          title: string
+          topic: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          actual_start_time?: string | null
+          allow_hand_raising?: boolean | null
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          max_audience?: number | null
+          max_speakers?: number | null
+          recording_enabled?: boolean | null
+          scheduled_start_time?: string | null
+          status?: Database["public"]["Enums"]["stage_status"]
+          title: string
+          topic?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          actual_start_time?: string | null
+          allow_hand_raising?: boolean | null
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          max_audience?: number | null
+          max_speakers?: number | null
+          recording_enabled?: boolean | null
+          scheduled_start_time?: string | null
+          status?: Database["public"]["Enums"]["stage_status"]
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           joined_at: string
@@ -192,6 +339,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_stage_with_counts: {
+        Args: { stage_id_param: string }
+        Returns: {
+          id: string
+          workspace_id: string
+          creator_id: string
+          title: string
+          description: string
+          topic: string
+          status: Database["public"]["Enums"]["stage_status"]
+          scheduled_start_time: string
+          actual_start_time: string
+          end_time: string
+          max_speakers: number
+          max_audience: number
+          allow_hand_raising: boolean
+          recording_enabled: boolean
+          created_at: string
+          updated_at: string
+          speaker_count: number
+          audience_count: number
+          pending_requests_count: number
+        }[]
+      }
       is_workspace_member: {
         Args: { workspace_id: string }
         Returns: boolean
@@ -202,7 +373,9 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      speaker_request_status: "pending" | "approved" | "rejected"
+      stage_role: "moderator" | "speaker" | "audience"
+      stage_status: "scheduled" | "live" | "ended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -317,6 +490,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      speaker_request_status: ["pending", "approved", "rejected"],
+      stage_role: ["moderator", "speaker", "audience"],
+      stage_status: ["scheduled", "live", "ended"],
+    },
   },
 } as const
