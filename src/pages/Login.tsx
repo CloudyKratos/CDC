@@ -10,23 +10,26 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
 const LoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z.string().min(1, { message: "Password is required" }),
 });
 
 type LoginValues = z.infer<typeof LoginSchema>;
 
 const Login = () => {
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { login, isAuthenticated, isLoading, clearError, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [lastAttemptedEmail, setLastAttemptedEmail] = useState('');
   
   // Check if user was redirected after email verification
   const verified = searchParams.get('verified') === 'true';
@@ -63,27 +66,60 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    if (!lastAttemptedEmail) return;
+    
+    setIsResendingVerification(true);
+    try {
+      const result = await resendVerificationEmail(lastAttemptedEmail);
+      if (result) {
+        toast.success('Verification email sent!', {
+          description: 'Please check your inbox for the new verification link.',
+        });
+        setShowResendOption(false);
+      } else {
+        toast.error('Failed to send verification email');
+      }
+    } catch (error) {
+      console.error('Resend error:', error);
+      toast.error('Failed to send verification email');
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
   // Form submission handler
   const onSubmit = async (values: LoginValues) => {
     setErrorMessage(null);
+    setShowResendOption(false);
+    setLastAttemptedEmail(values.email);
     
     try {
       await login(values.email, values.password);
-      toast.success("Login successful!");
+      toast.success("Welcome back!");
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
-      const errorMsg = error?.message || "Invalid credentials";
+      const errorMsg = error?.message || "Login failed";
       setErrorMessage(errorMsg);
       
-      // Show specific toast based on error message
-      if (errorMsg.toLowerCase().includes("invalid login")) {
+      // Show specific toast and options based on error message
+      if (errorMsg.toLowerCase().includes("invalid login") || 
+          errorMsg.toLowerCase().includes("invalid credentials")) {
         toast.error("Login failed", {
-          description: "Invalid email or password. Please try again.",
+          description: "Invalid email or password. Please check your credentials and try again.",
         });
-      } else if (errorMsg.toLowerCase().includes("email not confirmed")) {
+      } else if (errorMsg.toLowerCase().includes("email not confirmed") || 
+                 errorMsg.toLowerCase().includes("email not verified") ||
+                 errorMsg.toLowerCase().includes("confirm your email")) {
         toast.error("Email not verified", {
-          description: "Please check your inbox and verify your email before logging in.",
+          description: "Please verify your email before logging in.",
+        });
+        setShowResendOption(true);
+      } else if (errorMsg.toLowerCase().includes("too many requests")) {
+        toast.error("Too many attempts", {
+          description: "Please wait a moment before trying again.",
         });
       } else {
         toast.error("Login failed", {
@@ -100,25 +136,52 @@ const Login = () => {
           <div className="mb-2">
             <Logo size="lg" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to sign in to your account
+            Sign in to your account to continue
           </CardDescription>
           
           {verified && (
             <div className="mt-2 w-full p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md flex items-start gap-2">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
               <p className="text-sm text-green-800 dark:text-green-300">
-                Your email has been verified successfully. You can now log in.
+                Email verified successfully! You can now sign in.
               </p>
             </div>
           )}
         </CardHeader>
         <CardContent>
           {errorMessage && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-              <p className="text-sm text-destructive">{errorMessage}</p>
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-destructive">{errorMessage}</p>
+                  {showResendOption && (
+                    <div className="mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResendVerification}
+                        disabled={isResendingVerification}
+                        className="w-full"
+                      >
+                        {isResendingVerification ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending verification email...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Resend verification email
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           
@@ -129,9 +192,9 @@ const Login = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your email" type="email" {...field} disabled={isLoading} />
+                      <Input placeholder="Enter your email address" type="email" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -184,17 +247,17 @@ const Login = () => {
                     Signing in...
                   </>
                 ) : (
-                  'Sign in'
+                  'Sign In'
                 )}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Don't have an account yet?{' '}
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Don't have an account?{' '}
             <Link to="/signup" className="text-primary hover:underline font-medium">
-              Sign up
+              Create one here
             </Link>
           </div>
         </CardFooter>

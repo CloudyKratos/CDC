@@ -25,7 +25,7 @@ class AuthenticationService {
       
       console.log("Sign up response:", data);
       
-      // If we have a user but no session, it likely means email confirmation is required
+      // If we have a user but no session, it means email confirmation is required
       if (data.user && !data.session) {
         console.log("Email confirmation required for:", email);
       }
@@ -82,7 +82,7 @@ class AuthenticationService {
       console.log("Attempting password reset for:", email);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password?token=true`
+        redirectTo: `${window.location.origin}/reset-password`
       });
       
       if (error) {
@@ -196,6 +196,17 @@ class AuthenticationService {
       return true;
     } catch (error) {
       console.error('Error in verifyEmail:', error);
+      return false;
+    }
+  }
+
+  // New method to check if email is confirmed
+  async checkEmailConfirmation(email: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.email_confirmed_at !== null;
+    } catch (error) {
+      console.error('Error checking email confirmation:', error);
       return false;
     }
   }
