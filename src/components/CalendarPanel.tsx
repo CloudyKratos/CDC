@@ -34,7 +34,11 @@ interface CalendarEvent {
   type?: 'ama' | 'workshop' | 'fireside' | 'general';
 }
 
-const CalendarPanel = () => {
+interface CalendarPanelProps {
+  isAdminView?: boolean;
+}
+
+const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) => {
   const { canManageCalendar, currentRole } = useRole();
   const [events, setEvents] = useState<CalendarEvent[]>([
     {
@@ -99,8 +103,12 @@ const CalendarPanel = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Community Calendar</h2>
-          <p className="text-gray-600">Discover and manage upcoming events</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {isAdminView ? 'Admin Calendar Management' : 'Community Calendar'}
+          </h2>
+          <p className="text-gray-600">
+            {isAdminView ? 'Manage and organize community events' : 'Discover and view upcoming events'}
+          </p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -137,9 +145,11 @@ const CalendarPanel = () => {
               <CalendarIcon className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="font-medium text-blue-900">
-                  {canManageCalendar 
-                    ? 'You have full calendar management access' 
-                    : 'You can view calendar events'}
+                  {isAdminView 
+                    ? 'Admin calendar management interface' 
+                    : canManageCalendar 
+                      ? 'You have full calendar management access' 
+                      : 'You can view calendar events'}
                 </p>
                 <p className="text-sm text-blue-600">
                   Current role: <Badge className="ml-1 capitalize">{currentRole}</Badge>
@@ -147,7 +157,7 @@ const CalendarPanel = () => {
               </div>
             </div>
             
-            {canManageCalendar && (
+            {(canManageCalendar || isAdminView) && (
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   Import Events
