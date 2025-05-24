@@ -181,8 +181,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
           <Calendar
             localizer={localizer}
             events={events}
-            startAccessor="start"
-            endAccessor="end"
+            startAccessor={(event: CalendarEvent) => event.start}
+            endAccessor={(event: CalendarEvent) => event.end}
             style={{ height: 600 }}
             view={view}
             onView={handleViewChange}
