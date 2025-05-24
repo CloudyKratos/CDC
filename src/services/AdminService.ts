@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -26,66 +25,121 @@ interface PlatformMetrics {
 class AdminService {
   async createCDCOfficialAccount(): Promise<boolean> {
     try {
-      console.log("Creating CDC Official Team account...");
+      console.log("Setting up CDC Official Team account...");
       
-      // Create the CDC Official Team account using Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: 'cdc@lovable.io',
-        password: 'CDC2024!SecurePassword',
-        options: {
-          data: {
-            full_name: 'CDC Official Team',
-            is_admin: true,
-            is_hidden: true,
-            account_type: 'system'
-          }
-        }
-      });
+      // Check if the CDC account already exists
+      const { data: existingUser, error: userError } = await supabase.auth.admin.getUserByEmail(
+        'cdcofficialeg@gmail.com'
+      );
 
-      if (error) {
-        console.error('Error creating CDC account:', error);
-        toast.error('Failed to create CDC Official Team account');
+      if (userError && userError.message !== 'User not found') {
+        console.error('Error checking for existing user:', userError);
+        toast.error('Failed to check for existing CDC account');
         return false;
       }
 
-      if (data.user) {
-        // Assign admin role to the CDC account
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: 'admin'
-          });
+      let userId: string;
 
-        if (roleError) {
-          console.error('Error assigning admin role:', roleError);
-          toast.error('Failed to assign admin role');
+      if (existingUser?.user) {
+        // User already exists, use their ID
+        userId = existingUser.user.id;
+        console.log('Found existing CDC user:', userId);
+      } else {
+        // Create new user if it doesn't exist
+        const { data, error } = await supabase.auth.signUp({
+          email: 'cdcofficialeg@gmail.com',
+          password: 'CDC2024!SecurePassword',
+          options: {
+            data: {
+              full_name: 'CDC Official Team',
+              is_admin: true,
+              is_hidden: true,
+              account_type: 'system'
+            }
+          }
+        });
+
+        if (error) {
+          console.error('Error creating CDC account:', error);
+          toast.error('Failed to create CDC Official Team account');
           return false;
         }
 
-        // Create profile entry
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            full_name: 'CDC Official Team',
-            bio: 'Official CDC Support Team - System Administrator',
-            username: 'cdc_official_team'
-          });
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
+        if (!data.user) {
+          console.error('No user returned from signup');
+          return false;
         }
 
-        console.log('CDC Official Team account created successfully');
-        toast.success('CDC Official Team account created successfully');
-        return true;
+        userId = data.user.id;
+        console.log('Created new CDC user:', userId);
       }
 
-      return false;
+      // Assign admin role to the CDC account
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role: 'admin'
+        });
+
+      if (roleError) {
+        console.error('Error assigning admin role:', roleError);
+        toast.error('Failed to assign admin role');
+        return false;
+      }
+
+      // Create or update profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          full_name: 'CDC Official Team',
+          bio: 'Official CDC Support Team - System Administrator',
+          username: 'cdc_official_team'
+        });
+
+      if (profileError) {
+        console.error('Error creating/updating profile:', profileError);
+      }
+
+      console.log('CDC Official Team account setup successfully');
+      toast.success('CDC Official Team account setup successfully');
+      return true;
     } catch (error) {
       console.error('Error in createCDCOfficialAccount:', error);
-      toast.error('Failed to create CDC Official Team account');
+      toast.error('Failed to setup CDC Official Team account');
+      return false;
+    }
+  }
+
+  async checkCDCAccountExists(): Promise<boolean> {
+    try {
+      // Check if CDC account exists and has admin role
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            full_name
+          )
+        `)
+        .eq('role', 'admin');
+
+      if (error) {
+        console.error('Error checking CDC account:', error);
+        return false;
+      }
+
+      // Look for CDC Official Team in the admin accounts
+      const cdcAccount = roles.find(role => 
+        role.profiles?.full_name === 'CDC Official Team' ||
+        role.profiles?.full_name?.includes('CDC')
+      );
+
+      return !!cdcAccount;
+    } catch (error) {
+      console.error('Error in checkCDCAccountExists:', error);
       return false;
     }
   }
