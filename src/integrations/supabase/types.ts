@@ -274,6 +274,41 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           joined_at: string
@@ -363,6 +398,18 @@ export type Database = {
           pending_requests_count: number
         }[]
       }
+      get_user_role: {
+        Args: { _user_id: string; _workspace_id?: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _workspace_id?: string
+        }
+        Returns: boolean
+      }
       is_workspace_member: {
         Args: { workspace_id: string }
         Returns: boolean
@@ -373,6 +420,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "member"
       speaker_request_status: "pending" | "approved" | "rejected"
       stage_role: "moderator" | "speaker" | "audience"
       stage_status: "scheduled" | "live" | "ended"
@@ -491,6 +539,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "member"],
       speaker_request_status: ["pending", "approved", "rejected"],
       stage_role: ["moderator", "speaker", "audience"],
       stage_status: ["scheduled", "live", "ended"],

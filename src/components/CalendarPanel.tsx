@@ -1,430 +1,243 @@
-import React, { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay, parseISO } from 'date-fns';
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { CalendarEvent } from '@/types/calendar';
-import { getEventTypeColor, getCalendarCells, addEventsToCalendar, filterEvents, groupEventsByDate } from '@/utils/calendarUtils';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from 'sonner';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import SupabaseService from '@/services/SupabaseService';
-import type { EventData } from '@/services/SupabaseService';
 
-interface CalendarPanelProps {
-  isAdminView?: boolean;
+import React, { useState, useEffect } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useRole } from '@/contexts/RoleContext';
+import RoleBasedComponent from '@/components/auth/RoleBasedComponent';
+import { Plus, Calendar as CalendarIcon, Clock, Users, Tag } from 'lucide-react';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+const locales = {
+  'en-US': enUS,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  description?: string;
+  tags?: string[];
+  attendees?: number;
+  type?: 'ama' | 'workshop' | 'fireside' | 'general';
 }
 
-const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [cells, setCells] = useState(getCalendarCells(currentDate));
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
-  const [groupedEvents, setGroupedEvents] = useState<Record<string, CalendarEvent[]>>({});
-  const [filters, setFilters] = useState({
-    meeting: true,
-    task: true,
-    reminder: true,
-    event: true,
-    webinar: true,
-    deadline: true,
-  });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showAddEventForm, setShowAddEventForm] = useState(false);
-  const [showEditEventForm, setShowEditEventForm] = useState(false);
+const CalendarPanel = () => {
+  const { canManageCalendar, currentRole } = useRole();
+  const [events, setEvents] = useState<CalendarEvent[]>([
+    {
+      id: '1',
+      title: 'Community AMA Session',
+      start: new Date(2024, 1, 15, 10, 0),
+      end: new Date(2024, 1, 15, 11, 0),
+      description: 'Ask me anything session with the community leaders',
+      tags: ['AMA', 'Community'],
+      attendees: 45,
+      type: 'ama'
+    },
+    {
+      id: '2',
+      title: 'Web Development Workshop',
+      start: new Date(2024, 1, 18, 14, 0),
+      end: new Date(2024, 1, 18, 16, 0),
+      description: 'Hands-on workshop covering React and modern web development',
+      tags: ['Workshop', 'Development'],
+      attendees: 25,
+      type: 'workshop'
+    },
+    {
+      id: '3',
+      title: 'Fireside Chat with CEO',
+      start: new Date(2024, 1, 22, 17, 0),
+      end: new Date(2024, 1, 22, 18, 0),
+      description: 'Casual conversation with our CEO about company vision',
+      tags: ['Fireside', 'Leadership'],
+      attendees: 80,
+      type: 'fireside'
+    }
+  ]);
+
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const { currentWorkspace } = useWorkspace();
-  
-  useEffect(() => {
-    loadEvents();
-  }, [currentDate, currentWorkspace]);
-  
-  useEffect(() => {
-    const filtered = filterEvents(events, currentDate, filters, searchTerm);
-    setFilteredEvents(filtered);
-    setGroupedEvents(groupEventsByDate(filtered));
-  }, [events, currentDate, filters, searchTerm]);
-  
-  useEffect(() => {
-    const newCells = getCalendarCells(currentDate);
-    const updatedCells = addEventsToCalendar(newCells, filteredEvents);
-    setCells(updatedCells);
-  }, [currentDate, filteredEvents]);
-  
-  const loadEvents = async () => {
-    if (!currentWorkspace?.id) return;
-    
-    try {
-      const eventsData = await SupabaseService.getEvents();
-      
-      // Convert start_time and end_time strings to Date objects
-      const parsedEvents: CalendarEvent[] = eventsData.map(event => ({
-        id: event.id || '',
-        title: event.title,
-        description: event.description || '',
-        date: new Date(event.start_time),
-        start: new Date(event.start_time),
-        end: new Date(event.end_time),
-        type: 'meeting', // Assuming default type
-        priority: 'medium', // Required field with default value
-        attendees: []
-      }));
-      
-      setEvents(parsedEvents);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast.error("Failed to load events");
-    }
-  };
-  
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setCurrentDate(date);
-    }
-  };
-  
-  const handleFilterChange = (type: string, checked: boolean) => {
-    setFilters({ ...filters, [type]: checked });
-  };
-  
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+
+  const eventStyleGetter = (event: CalendarEvent) => {
+    const colors = {
+      ama: { backgroundColor: '#3B82F6', color: 'white' },
+      workshop: { backgroundColor: '#10B981', color: 'white' },
+      fireside: { backgroundColor: '#F59E0B', color: 'white' },
+      general: { backgroundColor: '#6B7280', color: 'white' }
+    };
+
+    return {
+      style: colors[event.type || 'general']
+    };
   };
 
-  const handleAddEvent = async (formData: any) => {
-    try {
-      const newEvent: EventData = {
-        title: formData.title,
-        description: formData.description || null,
-        // Convert dates to string format as required by our API
-        start_time: formData.start_date.toISOString(),
-        end_time: formData.end_date.toISOString(),
-        workspace_id: currentWorkspace?.id || null
-      };
-      
-      await SupabaseService.createEvent(newEvent);
-      toast.success("Event added successfully");
-      loadEvents();
-      setShowAddEventForm(false);
-    } catch (error) {
-      console.error('Error adding event:', error);
-      toast.error("Failed to add event");
+  const getTypeIcon = (type?: string) => {
+    switch (type) {
+      case 'ama': return '❓';
+      case 'workshop': return '🔧';
+      case 'fireside': return '🔥';
+      default: return '📅';
     }
   };
-  
-  const handleEditEvent = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setShowEditEventForm(true);
-  };
-  
-  const handleUpdateEvent = async (formData: any) => {
-    try {
-      const updatedEvent: Partial<EventData> = {
-        title: formData.title,
-        description: formData.description || null,
-        // Convert dates to string format as required by our API
-        start_time: formData.start_date.toISOString(),
-        end_time: formData.end_date.toISOString()
-      };
-      
-      if (selectedEvent) {
-        await SupabaseService.updateEvent(selectedEvent.id, updatedEvent);
-        toast.success("Event updated successfully");
-        loadEvents();
-        setShowEditEventForm(false);
-        setSelectedEvent(null);
-      }
-    } catch (error) {
-      console.error('Error updating event:', error);
-      toast.error("Failed to update event");
-    }
-  };
-  
-  const handleDeleteEvent = async (eventId: string) => {
-    try {
-      await SupabaseService.deleteEvent(eventId);
-      toast.success("Event deleted successfully");
-      loadEvents();
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      toast.error("Failed to delete event");
-    }
-  };
-  
+
   return (
-    <div className="flex h-full">
-      {/* Calendar Section */}
-      <div className="w-80 border-r p-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Calendar</CardTitle>
-            <CardDescription>Select a date to view events</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Calendar
-              mode="single"
-              selected={currentDate}
-              onSelect={handleDateChange}
-              className="rounded-md border"
-            />
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Filters</div>
-              <div className="flex flex-col space-y-1">
-                {Object.entries(filters).map(([type, checked]) => (
-                  <label key={type} className="inline-flex items-center space-x-2">
-                    <Input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => handleFilterChange(type, e.target.checked)}
-                      className="h-4 w-4 rounded"
-                    />
-                    <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                  </label>
-                ))}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Community Calendar</h2>
+          <p className="text-gray-600">Discover and manage upcoming events</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* View Controls */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            {(['month', 'week', 'day'] as const).map((viewType) => (
+              <Button
+                key={viewType}
+                variant={view === viewType ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setView(viewType)}
+                className="capitalize"
+              >
+                {viewType}
+              </Button>
+            ))}
+          </div>
+
+          {/* Add Event Button - Only for Admins */}
+          <RoleBasedComponent allowedRoles={['admin']}>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Event
+            </Button>
+          </RoleBasedComponent>
+        </div>
+      </div>
+
+      {/* Role Information */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CalendarIcon className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-900">
+                  {canManageCalendar 
+                    ? 'You have full calendar management access' 
+                    : 'You can view calendar events'}
+                </p>
+                <p className="text-sm text-blue-600">
+                  Current role: <Badge className="ml-1 capitalize">{currentRole}</Badge>
+                </p>
               </div>
             </div>
-            <div>
-              <Label htmlFor="search">Search</Label>
-              <Input
-                type="search"
-                id="search"
-                placeholder="Search events..."
-                onChange={handleSearchChange}
-                className="mt-1"
-              />
+            
+            {canManageCalendar && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  Import Events
+                </Button>
+                <Button variant="outline" size="sm">
+                  Export Calendar
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Calendar */}
+      <Card>
+        <CardContent className="p-0">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 600 }}
+            view={view}
+            onView={setView}
+            onSelectEvent={setSelectedEvent}
+            eventPropGetter={eventStyleGetter}
+            className="p-4"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <Card className="fixed inset-0 z-50 m-4 md:relative md:m-0">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{getTypeIcon(selectedEvent.type)}</span>
+              <div>
+                <CardTitle>{selectedEvent.title}</CardTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  {format(selectedEvent.start, 'PPP')} • {format(selectedEvent.start, 'p')} - {format(selectedEvent.end, 'p')}
+                </p>
+              </div>
             </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>Add Event</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add Event</DialogTitle>
-                  <DialogDescription>
-                    Create a new event to add to the calendar.
-                  </DialogDescription>
-                </DialogHeader>
-                <AddEventForm onSubmit={handleAddEvent} />
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Events Section */}
-      <div className="flex-1 p-4">
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Events for {format(currentDate, 'MMMM dd, yyyy')}</CardTitle>
-            <CardDescription>
-              Here are the events for the selected date.
-            </CardDescription>
+            <Button variant="ghost" onClick={() => setSelectedEvent(null)}>
+              ✕
+            </Button>
           </CardHeader>
-          <CardContent className="h-[400px]">
-            <ScrollArea className="h-full">
-              {Object.keys(groupedEvents).length === 0 ? (
-                <p className="text-center text-gray-500">No events for this date.</p>
-              ) : (
-                Object.entries(groupedEvents).map(([date, events]) => (
-                  <div key={date} className="mb-4">
-                    <h3 className="text-lg font-semibold mb-2">{format(new Date(date), 'EEEE, MMMM dd, yyyy')}</h3>
-                    <div className="space-y-2">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Badge className={getEventTypeColor(event.type)}>{event.type}</Badge>
-                            <span className="ml-2">{event.title}</span>
-                          </div>
-                          <div>
-                            <Button size="sm" onClick={() => handleEditEvent(event)}>Edit</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteEvent(event.id)}>Delete</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+          <CardContent className="space-y-4">
+            {selectedEvent.description && (
+              <p className="text-gray-700">{selectedEvent.description}</p>
+            )}
+            
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                {Math.round((selectedEvent.end.getTime() - selectedEvent.start.getTime()) / (1000 * 60))} minutes
+              </div>
+              
+              {selectedEvent.attendees && (
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  {selectedEvent.attendees} attendees
+                </div>
               )}
-            </ScrollArea>
+            </div>
+
+            {selectedEvent.tags && (
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-gray-500" />
+                <div className="flex gap-1">
+                  {selectedEvent.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary">{tag}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-4">
+              <Button className="flex-1">Join Event</Button>
+              
+              <RoleBasedComponent allowedRoles={['admin']}>
+                <Button variant="outline">Edit</Button>
+                <Button variant="outline">Delete</Button>
+              </RoleBasedComponent>
+            </div>
           </CardContent>
         </Card>
-      </div>
-      
-      {/* Edit Event Dialog */}
-      <Dialog open={showEditEventForm} onOpenChange={setShowEditEventForm}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
-            <DialogDescription>
-              Edit the selected event details.
-            </DialogDescription>
-          </DialogHeader>
-          <EditEventForm
-            event={selectedEvent}
-            onSubmit={handleUpdateEvent}
-            onCancel={() => {
-              setShowEditEventForm(false);
-              setSelectedEvent(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      )}
     </div>
-  );
-};
-
-interface AddEventFormProps {
-  onSubmit: (data: any) => void;
-}
-
-const AddEventForm: React.FC<AddEventFormProps> = ({ onSubmit }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title || !startDate || !endDate) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-    
-    onSubmit({ title, description, start_date: startDate, end_date: endDate });
-    setTitle('');
-    setDescription('');
-    setStartDate(new Date());
-    setEndDate(new Date());
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="start_date">Start Date</Label>
-          <Calendar
-            mode="single"
-            selected={startDate}
-            onSelect={(date) => date && setStartDate(date)}
-            className="rounded-md border"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="end_date">End Date</Label>
-          <Calendar
-            mode="single"
-            selected={endDate}
-            onSelect={(date) => date && setEndDate(date)}
-            className="rounded-md border"
-          />
-        </div>
-      </div>
-      <Button type="submit">Add Event</Button>
-    </form>
-  );
-};
-
-interface EditEventFormProps {
-  event: CalendarEvent | null;
-  onSubmit: (data: any) => void;
-  onCancel: () => void;
-}
-
-const EditEventForm: React.FC<EditEventFormProps> = ({ event, onSubmit, onCancel }) => {
-  const [title, setTitle] = useState(event?.title || '');
-  const [description, setDescription] = useState(event?.description || '');
-  const [startDate, setStartDate] = useState<Date | undefined>(event?.start || event?.date || new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(event?.end || event?.date || new Date());
-  
-  useEffect(() => {
-    if (event) {
-      setTitle(event.title);
-      setDescription(event.description);
-      setStartDate(event.start || event.date);
-      setEndDate(event.end || event.date);
-    }
-  }, [event]);
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title || !startDate || !endDate) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-    
-    onSubmit({ title, description, start_date: startDate, end_date: endDate });
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="start_date">Start Date</Label>
-          <Calendar
-            mode="single"
-            selected={startDate}
-            onSelect={(date) => date && setStartDate(date)}
-            className="rounded-md border"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="end_date">End Date</Label>
-          <Calendar
-            mode="single"
-            selected={endDate}
-            onSelect={(date) => date && setEndDate(date)}
-            className="rounded-md border"
-          />
-        </div>
-      </div>
-      <div className="flex justify-between">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">Update Event</Button>
-      </div>
-    </form>
   );
 };
 
