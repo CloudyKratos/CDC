@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,7 +74,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   ]);
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+  const [view, setView] = useState<View>('month');
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const colors = {
@@ -96,6 +96,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       case 'fireside': return '🔥';
       default: return '📅';
     }
+  };
+
+  const handleViewChange = (newView: View) => {
+    setView(newView);
   };
 
   return (
@@ -181,7 +185,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
             endAccessor="end"
             style={{ height: 600 }}
             view={view}
-            onView={setView}
+            onView={handleViewChange}
             onSelectEvent={setSelectedEvent}
             eventPropGetter={eventStyleGetter}
             className="p-4"
