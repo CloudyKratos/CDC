@@ -370,6 +370,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_admin_account: {
+        Args: {
+          admin_email: string
+          admin_name: string
+          admin_password: string
+        }
+        Returns: string
+      }
       get_auth_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
