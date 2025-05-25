@@ -27,17 +27,45 @@ class AdminService {
     try {
       console.log("Setting up CDC Official Team account...");
       
-      // Check if the CDC account already exists using auth.getUser()
-      const { data: currentUser, error: currentUserError } = await supabase.auth.getUser();
+      const cdcEmail = 'cdcofficialeg@gmail.com';
+      const cdcPassword = 'CDC2024!SecurePassword';
       
-      if (currentUserError) {
-        console.error('Error getting current user:', currentUserError);
+      // First, check if the CDC account already exists by trying to sign in
+      const { data: existingSession, error: signInError } = await supabase.auth.signInWithPassword({
+        email: cdcEmail,
+        password: cdcPassword
+      });
+
+      let userId: string;
+
+      if (existingSession?.user) {
+        // Account already exists and password is correct
+        userId = existingSession.user.id;
+        console.log('CDC account already exists with correct credentials:', userId);
+        
+        // Sign out immediately after verification
+        await supabase.auth.signOut();
+        
+        // Set up the profile and role using our database function
+        const { data, error: setupError } = await supabase.rpc('setup_cdc_account', {
+          cdc_user_id: userId
+        });
+
+        if (setupError) {
+          console.error('Error setting up CDC account profile:', setupError);
+        }
+
+        toast.success('CDC Official Team account verified and updated');
+        return true;
       }
 
-      // Try to sign up the CDC account
-      const { data, error } = await supabase.auth.signUp({
-        email: 'cdcofficialeg@gmail.com',
-        password: 'CDC2024!SecurePassword',
+      // Account doesn't exist or has wrong credentials, create it
+      console.log('Creating new CDC Official Team account...');
+      
+      // Create the user account
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: cdcEmail,
+        password: cdcPassword,
         options: {
           data: {
             full_name: 'CDC Official Team',
@@ -48,77 +76,43 @@ class AdminService {
         }
       });
 
-      let userId: string;
-
-      if (error && error.message.includes('User already registered')) {
-        // User already exists, try to sign in to get the user ID
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: 'cdcofficialeg@gmail.com',
-          password: 'CDC2024!SecurePassword'
-        });
-
-        if (signInError) {
-          console.log('Sign in failed, account might exist with different password');
-          // We'll handle this case by assuming the account exists
-          // and try to assign the role anyway
-          userId = 'existing-user';
-        } else {
-          userId = signInData.user.id;
-          console.log('Found existing CDC user:', userId);
-          // Sign out immediately after getting the ID
-          await supabase.auth.signOut();
+      if (signUpError) {
+        console.error('Error creating CDC account:', signUpError);
+        
+        // If user already exists but with different password, we can't fix it easily
+        if (signUpError.message.includes('User already registered')) {
+          toast.error('CDC account exists but password is incorrect. Please contact system administrator.');
+          return false;
         }
-      } else if (error) {
-        console.error('Error creating CDC account:', error);
+        
         toast.error('Failed to create CDC Official Team account');
         return false;
-      } else if (data.user) {
-        userId = data.user.id;
-        console.log('Created new CDC user:', userId);
-      } else {
+      }
+
+      if (!signUpData.user) {
         console.error('No user returned from signup');
+        toast.error('Failed to create CDC account - no user data');
         return false;
       }
 
-      // For existing users where we can't get the ID, we'll skip the role assignment
-      // and just report success since the account exists
-      if (userId === 'existing-user') {
-        console.log('CDC account exists, skipping role assignment');
-        toast.success('CDC Official Team account verified');
-        return true;
-      }
+      userId = signUpData.user.id;
+      console.log('Created new CDC user:', userId);
 
-      // Assign admin role to the CDC account
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role: 'admin'
-        });
+      // Set up the profile and role using our database function
+      const { data, error: setupError } = await supabase.rpc('setup_cdc_account', {
+        cdc_user_id: userId
+      });
 
-      if (roleError) {
-        console.error('Error assigning admin role:', roleError);
-        toast.error('Failed to assign admin role');
+      if (setupError) {
+        console.error('Error setting up CDC account profile:', setupError);
+        toast.error('CDC account created but failed to set up profile');
         return false;
-      }
-
-      // Create or update profile entry
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          full_name: 'CDC Official Team',
-          bio: 'Official CDC Support Team - System Administrator',
-          username: 'cdc_official_team'
-        });
-
-      if (profileError) {
-        console.error('Error creating/updating profile:', profileError);
       }
 
       console.log('CDC Official Team account setup successfully');
-      toast.success('CDC Official Team account setup successfully');
+      toast.success('CDC Official Team account created successfully');
       return true;
+
     } catch (error) {
       console.error('Error in createCDCOfficialAccount:', error);
       toast.error('Failed to setup CDC Official Team account');
@@ -128,37 +122,33 @@ class AdminService {
 
   async checkCDCAccountExists(): Promise<boolean> {
     try {
-      // Check if CDC account exists by looking for admin roles with CDC profile
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .or('full_name.eq.CDC Official Team,username.eq.cdc_official_team');
+      // First check if we can authenticate with the CDC credentials
+      const { data: session, error } = await supabase.auth.signInWithPassword({
+        email: 'cdcofficialeg@gmail.com',
+        password: 'CDC2024!SecurePassword'
+      });
 
-      if (error) {
-        console.error('Error checking CDC account:', error);
-        return false;
-      }
+      if (session?.user) {
+        console.log('CDC account exists and password is correct');
+        
+        // Sign out immediately after verification
+        await supabase.auth.signOut();
+        
+        // Double-check that the profile and role exist
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', session.user.id)
+          .single();
 
-      // Look for CDC Official Team in the profiles
-      const cdcProfile = profiles?.find(profile => 
-        profile.full_name === 'CDC Official Team' ||
-        profile.full_name?.includes('CDC')
-      );
-
-      if (cdcProfile) {
-        // Check if this profile has admin role
-        const { data: roles, error: roleError } = await supabase
+        const { data: role } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', cdcProfile.id)
-          .eq('role', 'admin');
+          .eq('user_id', session.user.id)
+          .eq('role', 'admin')
+          .single();
 
-        if (roleError) {
-          console.error('Error checking roles:', roleError);
-          return false;
-        }
-
-        return roles && roles.length > 0;
+        return !!(profile && role);
       }
 
       return false;

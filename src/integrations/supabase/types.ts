@@ -426,6 +426,10 @@ export type Database = {
         Args: { workspace_id: string }
         Returns: boolean
       }
+      setup_cdc_account: {
+        Args: { cdc_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "member"
