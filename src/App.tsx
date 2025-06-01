@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import WarriorSpace from "./pages/WarriorSpace";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/warrior-space" element={<WarriorSpace />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify" element={<VerifyEmail />} />
                 <Route path="*" element={<NotFound />} />

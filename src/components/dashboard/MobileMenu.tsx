@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   LayoutGrid, 
@@ -35,7 +34,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   const isAdmin = currentRole === 'admin';
 
   const handleHomeClick = () => {
-    navigate("/");
+    navigate("/warrior-space");
     onClose();
   };
 
@@ -70,7 +69,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             onClick={handleHomeClick}
           >
             <Home className="h-5 w-5" />
-            <span>Home</span>
+            <span>Warrior's Space</span>
           </Button>
           
           <Button

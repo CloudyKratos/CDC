@@ -49,7 +49,7 @@ const Dashboard = () => {
   }, [isAdmin, viewMode]);
 
   const handleHomeClick = () => {
-    navigate("/");
+    navigate("/warrior-space");
   };
 
   const handleAdminClick = () => {
@@ -103,7 +103,7 @@ const Dashboard = () => {
                 size="icon"
                 className="w-12 h-12 rounded-xl hover:bg-primary/10"
                 onClick={handleHomeClick}
-                title="Go to Home"
+                title="Warrior's Space"
               >
                 <Home className="h-6 w-6 text-muted-foreground" />
               </Button>
