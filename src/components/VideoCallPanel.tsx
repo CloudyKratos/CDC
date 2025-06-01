@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Maximize, Minimize, Settings, Share, Monitor } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Maximize, Minimize, Settings, Share, Monitor, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CallService, CallParticipant } from "../services/CallService";
+import StageRoomPanel from "./stage/StageRoomPanel";
 import ComingSoonBanner from "./ComingSoonBanner";
 
 interface CallType {
@@ -29,6 +31,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
+  const [activeTab, setActiveTab] = useState("stage");
   const callContainerRef = useRef<HTMLDivElement>(null);
   const durationIntervalRef = useRef<number | null>(null);
   
@@ -195,7 +198,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
           <div className="absolute top-0 left-0 right-0 z-50">
             <ComingSoonBanner 
               title="Video Call Feature in Development" 
-              description="This is a preview of our upcoming video conferencing feature. Full functionality coming soon!"
+              description="Stage Rooms are now integrated! Traditional video calls coming soon."
               className="rounded-none"
               showNotifyButton={false}
             />
@@ -216,9 +219,9 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
               <Users size={18} className="text-celestial-gold mr-2" />
               <div>
                 <h3 className="font-medium text-white">
-                  {activeCall?.type === 'video' ? 'Video Call' : 'Audio Call'} ({activeCall?.participants.length || 0})
+                  Video & Audio Communication
                 </h3>
-                <p className="text-xs text-white/60">{callDuration}</p>
+                <p className="text-xs text-white/60">Choose your communication mode</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -240,103 +243,132 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
           
-          <div className="flex-1 bg-[url('/public/lovable-uploads/f61a938f-4bf8-44f0-8e79-84bbe1a177b0.png')] bg-cover bg-center p-4 overflow-hidden">
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg h-full p-4">
-              {activeCall?.participants && activeCall.participants.length <= 2 ? (
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 relative">
-                    {renderParticipant(
-                      activeCall.participants.length > 1
-                        ? activeCall.participants.find(p => p.id !== '1')!
-                        : activeCall.participants[0],
-                      true
-                    )}
-                    
-                    {activeCall.participants.length > 1 && (
-                      <div className="absolute bottom-4 right-4 w-48 rounded-lg overflow-hidden shadow-lg border border-celestial-gold/30">
-                        {renderParticipant(activeCall.participants.find(p => p.id === '1')!)}
+          <div className="flex-1 bg-[url('/public/lovable-uploads/f61a938f-4bf8-44f0-8e79-84bbe1a177b0.png')] bg-cover bg-center overflow-hidden">
+            <div className="bg-black/30 backdrop-blur-sm h-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                <div className="px-4 pt-4">
+                  <TabsList className="grid w-full grid-cols-2 bg-celestial-dark/80">
+                    <TabsTrigger value="stage" className="flex items-center gap-2">
+                      <Headphones size={16} />
+                      Stage Rooms
+                    </TabsTrigger>
+                    <TabsTrigger value="video" className="flex items-center gap-2">
+                      <Video size={16} />
+                      Video Call
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="stage" className="flex-1 p-4 m-0">
+                  <div className="h-full bg-background rounded-lg overflow-hidden">
+                    <StageRoomPanel />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="video" className="flex-1 p-4 m-0">
+                  <div className="h-full">
+                    {activeCall?.participants && activeCall.participants.length <= 2 ? (
+                      <div className="h-full flex flex-col">
+                        <div className="flex-1 relative">
+                          {renderParticipant(
+                            activeCall.participants.length > 1
+                              ? activeCall.participants.find(p => p.id !== '1')!
+                              : activeCall.participants[0],
+                            true
+                          )}
+                          
+                          {activeCall.participants.length > 1 && (
+                            <div className="absolute bottom-4 right-4 w-48 rounded-lg overflow-hidden shadow-lg border border-celestial-gold/30">
+                              {renderParticipant(activeCall.participants.find(p => p.id === '1')!)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full grid grid-cols-2 gap-4 overflow-auto">
+                        {activeCall?.participants.map(participant => (
+                          <div key={participant.id} className="aspect-video">
+                            {renderParticipant(participant)}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                </div>
-              ) : (
-                <div className="h-full grid grid-cols-2 gap-4 overflow-auto">
-                  {activeCall?.participants.map(participant => (
-                    <div key={participant.id} className="aspect-video">
-                      {renderParticipant(participant)}
-                    </div>
-                  ))}
-                </div>
-              )}
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
           
           <div className="bg-celestial-dark p-4 border-t border-celestial-gold/20 flex items-center justify-center space-x-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-12 w-12 rounded-full ${
-                      localAudioEnabled
-                        ? 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
-                        : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                    }`}
-                    onClick={handleToggleAudio}
-                  >
-                    {localAudioEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{localAudioEnabled ? 'Mute microphone' : 'Unmute microphone'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-12 w-12 rounded-full ${
-                      localVideoEnabled
-                        ? 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
-                        : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                    }`}
-                    onClick={handleToggleVideo}
-                  >
-                    {localVideoEnabled ? <Video size={20} /> : <VideoOff size={20} />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{localVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-12 w-12 rounded-full ${
-                      isScreenSharing
-                        ? 'bg-celestial-gold/20 text-celestial-gold hover:bg-celestial-gold/30'
-                        : 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
-                    }`}
-                    onClick={handleToggleScreenShare}
-                  >
-                    <Share size={20} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{isScreenSharing ? 'Stop sharing screen' : 'Share screen'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {activeTab === 'video' && (
+              <>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-12 w-12 rounded-full ${
+                          localAudioEnabled
+                            ? 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
+                            : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
+                        }`}
+                        onClick={handleToggleAudio}
+                      >
+                        {localAudioEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{localAudioEnabled ? 'Mute microphone' : 'Unmute microphone'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-12 w-12 rounded-full ${
+                          localVideoEnabled
+                            ? 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
+                            : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
+                        }`}
+                        onClick={handleToggleVideo}
+                      >
+                        {localVideoEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{localVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-12 w-12 rounded-full ${
+                          isScreenSharing
+                            ? 'bg-celestial-gold/20 text-celestial-gold hover:bg-celestial-gold/30'
+                            : 'bg-celestial-light/80 hover:bg-celestial-light/60 text-white'
+                        }`}
+                        onClick={handleToggleScreenShare}
+                      >
+                        <Share size={20} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{isScreenSharing ? 'Stop sharing screen' : 'Share screen'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )}
             
             <TooltipProvider>
               <Tooltip>
@@ -351,7 +383,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>End call</p>
+                  <p>Close communication panel</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

@@ -106,7 +106,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
           {/* Members List - Hide on mobile or when in stage mode */}
           <MembersList 
             members={members} 
-            collapsed={isMobile || !showMembersList || viewMode === 'stage'} 
+            collapsed={isMobile || !showMembersList} 
           />
         </div>
       </div>
