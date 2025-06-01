@@ -20,12 +20,12 @@ interface MemberLocation {
   longitude: number;
   timezone?: string;
   is_location_visible: boolean;
-  profiles?: {
+  profile?: {
     full_name?: string;
     username?: string;
     avatar_url?: string;
   };
-  member_online_status?: {
+  online_status?: {
     is_online: boolean;
     last_seen: string;
   };
@@ -141,24 +141,48 @@ const WorldMap: React.FC = () => {
 
   const fetchMemberLocations = async () => {
     try {
-      const { data, error } = await supabase
+      // First get locations
+      const { data: locationData, error: locationError } = await supabase
         .from('member_locations')
-        .select(`
-          *,
-          profiles!member_locations_user_id_fkey (
-            full_name,
-            username,
-            avatar_url
-          ),
-          member_online_status!member_online_status_user_id_fkey (
-            is_online,
-            last_seen
-          )
-        `)
+        .select('*')
         .eq('is_location_visible', true);
 
-      if (error) throw error;
-      setLocations(data || []);
+      if (locationError) throw locationError;
+
+      if (!locationData || locationData.length === 0) {
+        setLocations([]);
+        return;
+      }
+
+      // Get user profiles
+      const userIds = locationData.map(loc => loc.user_id);
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', userIds);
+
+      if (profileError) {
+        console.error('Error fetching profiles:', profileError);
+      }
+
+      // Get online status
+      const { data: statusData, error: statusError } = await supabase
+        .from('member_online_status')
+        .select('user_id, is_online, last_seen')
+        .in('user_id', userIds);
+
+      if (statusError) {
+        console.error('Error fetching status:', statusError);
+      }
+
+      // Combine the data
+      const combinedData: MemberLocation[] = locationData.map(location => ({
+        ...location,
+        profile: profiles?.find(p => p.id === location.user_id),
+        online_status: statusData?.find(s => s.user_id === location.user_id),
+      }));
+
+      setLocations(combinedData);
     } catch (error) {
       console.error('Error fetching member locations:', error);
     }
@@ -188,7 +212,7 @@ const WorldMap: React.FC = () => {
     // Add new markers
     locations.forEach(location => {
       if (location.latitude && location.longitude) {
-        const isOnline = location.member_online_status?.is_online || false;
+        const isOnline = location.online_status?.is_online || false;
         
         // Create marker element
         const markerEl = document.createElement('div');
@@ -321,21 +345,21 @@ const WorldMap: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
                       <span className="text-white font-semibold text-sm">
-                        {selectedMember.profiles?.full_name?.charAt(0) || 
-                         selectedMember.profiles?.username?.charAt(0) || 'U'}
+                        {selectedMember.profile?.full_name?.charAt(0) || 
+                         selectedMember.profile?.username?.charAt(0) || 'U'}
                       </span>
                     </div>
                     <div>
                       <h3 className="font-medium">
-                        {selectedMember.profiles?.full_name || 
-                         selectedMember.profiles?.username || 'Member'}
+                        {selectedMember.profile?.full_name || 
+                         selectedMember.profile?.username || 'Member'}
                       </h3>
                       <div className="flex items-center gap-2">
                         <Badge 
-                          variant={selectedMember.member_online_status?.is_online ? "default" : "secondary"}
+                          variant={selectedMember.online_status?.is_online ? "default" : "secondary"}
                           className="text-xs"
                         >
-                          {selectedMember.member_online_status?.is_online ? 'Online' : 'Offline'}
+                          {selectedMember.online_status?.is_online ? 'Online' : 'Offline'}
                         </Badge>
                       </div>
                     </div>

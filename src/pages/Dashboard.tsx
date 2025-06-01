@@ -14,19 +14,36 @@ const Dashboard = () => {
   const activeTab = searchParams.get("tab") || "home";
   const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  const handleToggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const handleRaiseHand = () => {
+    console.log('Hand raised');
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case "calendar":
         return <CalendarPanel />;
       case "community":
-        return <CommunityPanel />;
+        return <CommunityPanel channelName="general" />;
       case "stage":
-        return <StageCallPanel />;
+        return (
+          <StageCallPanel 
+            userName={user.email || 'User'}
+            avatarUrl=""
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+            onRaiseHand={handleRaiseHand}
+          />
+        );
       case "worldmap":
         return <WorldMapPanel />;
       case "workspace":
