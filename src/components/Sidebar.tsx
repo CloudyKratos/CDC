@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -20,6 +19,7 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  Globe
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -44,6 +44,7 @@ const Sidebar = () => {
     { name: "Calendar", href: "/dashboard?tab=calendar", icon: Calendar, show: true },
     { name: "Community", href: "/dashboard?tab=community", icon: MessageSquare, show: true },
     { name: "Stage Events", href: "/dashboard?tab=stage", icon: VideoIcon, show: true },
+    { name: "World Map", href: "/dashboard?tab=worldmap", icon: Globe, show: true },
     { name: "Members", href: "/dashboard?tab=workspace", icon: Users, show: true },
   ];
 

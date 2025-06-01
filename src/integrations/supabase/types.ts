@@ -53,6 +53,69 @@ export type Database = {
           },
         ]
       }
+      member_locations: {
+        Row: {
+          city: string | null
+          country: string
+          country_code: string
+          created_at: string
+          id: string
+          is_location_visible: boolean | null
+          latitude: number | null
+          longitude: number | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country: string
+          country_code: string
+          created_at?: string
+          id?: string
+          is_location_visible?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_location_visible?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      member_online_status: {
+        Row: {
+          is_online: boolean | null
+          last_seen: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -429,6 +492,10 @@ export type Database = {
       setup_cdc_account: {
         Args: { cdc_user_id: string }
         Returns: boolean
+      }
+      update_user_online_status: {
+        Args: { is_online_param: boolean }
+        Returns: undefined
       }
     }
     Enums: {
