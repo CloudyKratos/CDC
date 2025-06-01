@@ -91,7 +91,7 @@ const CDCMorningStrategyCard = () => {
       
       if (allCompleted && !tasks.every(task => task.completed)) {
         setXpEarned(prev => prev + 100);
-        toast.success("All tasks completed! +100 XP", {
+        toast.success("All missions complete! +100 XP", {
           description: "You're crushing your daily objectives!",
           icon: <Target className="h-4 w-4" />,
         });
@@ -221,7 +221,7 @@ const CDCMorningStrategyCard = () => {
               
               return (
                 <div key={task.id} className="space-y-2">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-200 hover:shadow-md">
                     <Checkbox
                       checked={task.completed}
                       onCheckedChange={() => toggleTaskCompletion(task.id)}
@@ -242,7 +242,7 @@ const CDCMorningStrategyCard = () => {
                   </div>
                   
                   {showDiary && task.text.trim() && (
-                    <div className="ml-12">
+                    <div className="ml-12 animate-fade-in">
                       <Textarea
                         placeholder={`Describe your ${category.label.toLowerCase()} task details...`}
                         value={task.description}

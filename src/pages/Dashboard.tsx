@@ -6,7 +6,7 @@ import HomePage from '@/components/HomePage';
 import CalendarPanel from '@/components/CalendarPanel';
 import CommunityPanel from '@/components/CommunityPanel';
 import StageCallPanel from '@/components/StageCallPanel';
-import WorkspacePanel from '@/components/WorkspacePanel';
+import CommandRoomPanel from '@/components/CommandRoomPanel';
 import WorldMapPanel from '@/components/WorldMapPanel';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import MobileMenu from '@/components/dashboard/MobileMenu';
@@ -25,11 +25,11 @@ import {
 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 
-export type ActivePanel = "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
+export type ActivePanel = "command-room" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activePanel = (searchParams.get("tab") || "workspace") as ActivePanel;
+  const activePanel = (searchParams.get("tab") || "command-room") as ActivePanel;
   const { user } = useAuth();
   const { currentRole } = useRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -54,8 +54,8 @@ const Dashboard = () => {
 
   const renderContent = () => {
     switch (activePanel) {
-      case "workspace":
-        return <WorkspacePanel />;
+      case "command-room":
+        return <CommandRoomPanel />;
       case "calendar":
         return <CalendarPanel />;
       case "community":
@@ -75,14 +75,14 @@ const Dashboard = () => {
       case "profile":
         return <div className="p-6">Profile Panel Coming Soon</div>;
       default:
-        return <WorkspacePanel />;
+        return <CommandRoomPanel />;
     }
   };
 
   const isAdmin = currentRole === 'admin';
 
   const navigationItems = [
-    { id: "workspace", label: "Workspace", icon: LayoutGrid },
+    { id: "command-room", label: "Command Room", icon: LayoutGrid },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "community", label: "Community", icon: Users },
     { id: "stage", label: "Stage Call", icon: Video },
