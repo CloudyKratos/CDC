@@ -17,23 +17,24 @@ import {
   Users, 
   Video, 
   User, 
-  Home,
   Shield,
-  Map
+  Map,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useRole } from '@/contexts/RoleContext';
 
 export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activePanel = (searchParams.get("tab") || "home") as ActivePanel;
+  const activePanel = (searchParams.get("tab") || "workspace") as ActivePanel;
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -74,109 +75,117 @@ const Dashboard = () => {
       case "profile":
         return <div className="p-6">Profile Panel Coming Soon</div>;
       default:
-        return <HomePage />;
+        return <WorkspacePanel />;
     }
   };
 
   const isAdmin = currentRole === 'admin';
 
+  const navigationItems = [
+    { id: "workspace", label: "Workspace", icon: LayoutGrid },
+    { id: "calendar", label: "Calendar", icon: Calendar },
+    { id: "community", label: "Community", icon: Users },
+    { id: "stage", label: "Stage Call", icon: Video },
+    { id: "worldmap", label: "World Map", icon: Map },
+    { id: "profile", label: "Profile", icon: User },
+  ];
+
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-col">
-        <div className="flex flex-col flex-grow pt-5 bg-white dark:bg-gray-800 overflow-y-auto border-r">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Modern Sidebar */}
+      <div className={`hidden md:flex md:flex-col transition-all duration-300 ease-in-out ${
+        sidebarCollapsed ? 'md:w-16' : 'md:w-64'
+      }`}>
+        <div className="flex flex-col flex-grow bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+            {!sidebarCollapsed && (
+              <div className="flex items-center gap-3 animate-fade-in">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-sm">D</span>
+                </div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="transition-all duration-200 hover:scale-110"
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
           </div>
           
-          <div className="mt-8 flex-grow flex flex-col">
-            <nav className="flex-1 px-2 space-y-1">
-              <Link to="/warrior-space">
+          {/* Navigation */}
+          <div className="flex-grow p-4">
+            <nav className="space-y-2">
+              {navigationItems.map((item) => (
                 <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-3 h-12"
+                  key={item.id}
+                  variant={activePanel === item.id ? "default" : "ghost"}
+                  className={`w-full transition-all duration-200 hover:scale-105 group ${
+                    sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
+                  } h-12 ${
+                    activePanel === item.id 
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                  }`}
+                  onClick={() => handlePanelChange(item.id as ActivePanel)}
                 >
-                  <Home className="h-5 w-5" />
-                  <span>Warrior's Space</span>
+                  <item.icon className={`h-5 w-5 ${
+                    activePanel === item.id ? 'text-white' : ''
+                  } group-hover:scale-110 transition-transform duration-200`} />
+                  {!sidebarCollapsed && (
+                    <span className="animate-fade-in">{item.label}</span>
+                  )}
                 </Button>
-              </Link>
-              
-              <Button
-                variant={activePanel === "home" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("home")}
-              >
-                <Home className="h-5 w-5" />
-                <span>Home</span>
-              </Button>
-              
-              <Button
-                variant={activePanel === "workspace" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("workspace")}
-              >
-                <LayoutGrid className="h-5 w-5" />
-                <span>Workspace</span>
-              </Button>
-              
-              <Button
-                variant={activePanel === "calendar" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("calendar")}
-              >
-                <Calendar className="h-5 w-5" />
-                <span>Calendar</span>
-              </Button>
-              
-              <Button
-                variant={activePanel === "community" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("community")}
-              >
-                <Users className="h-5 w-5" />
-                <span>Community</span>
-              </Button>
-              
-              <Button
-                variant={activePanel === "stage" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("stage")}
-              >
-                <Video className="h-5 w-5" />
-                <span>Stage Call</span>
-              </Button>
-
-              <Button
-                variant={activePanel === "worldmap" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("worldmap")}
-              >
-                <Map className="h-5 w-5" />
-                <span>World Map</span>
-              </Button>
+              ))}
 
               {isAdmin && (
                 <Link to="/admin">
                   <Button
                     variant="ghost"
-                    className="w-full justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className={`w-full transition-all duration-200 hover:scale-105 group ${
+                      sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
+                    } h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20`}
                   >
-                    <Shield className="h-5 w-5" />
-                    <span>Admin Panel</span>
+                    <Shield className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    {!sidebarCollapsed && (
+                      <span className="animate-fade-in">Admin Panel</span>
+                    )}
                   </Button>
                 </Link>
               )}
-              
-              <Button
-                variant={activePanel === "profile" ? "secondary" : "ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => handlePanelChange("profile")}
-              >
-                <User className="h-5 w-5" />
-                <span>Profile</span>
-              </Button>
             </nav>
           </div>
+
+          {/* User Info */}
+          {!sidebarCollapsed && (
+            <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 animate-fade-in">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-semibold text-sm">
+                    {user.email?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user.name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -198,8 +207,10 @@ const Dashboard = () => {
         />
 
         {/* Main Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
-          {renderContent()}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
+          <div className="animate-fade-in">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>

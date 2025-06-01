@@ -7,9 +7,9 @@ import {
   Calendar, 
   Users, 
   Video, 
-  ChevronDown, 
   Search,
-  User
+  User,
+  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type ActivePanel = "workspace" | "calendar" | "community" | "video" | "profile";
+export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 export interface DashboardHeaderProps {
   activePanel: ActivePanel;
@@ -44,9 +44,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       case "calendar":
         return "Calendar";
       case "community":
-        return "Community Chat";
-      case "video":
-        return "Video Call";
+        return "Community";
+      case "stage":
+        return "Stage Call";
+      case "worldmap":
+        return "World Map";
       case "profile":
         return "Profile";
       default:
@@ -55,7 +57,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <header className="border-b">
+    <header className="border-b bg-gradient-to-r from-background to-muted/30 backdrop-blur-sm">
       <div className="flex h-16 items-center px-4">
         <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onOpenMobileMenu}>
           <Menu className="h-6 w-6" />
@@ -66,7 +68,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "workspace" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("workspace")}
-            className="gap-1"
+            className="gap-1 transition-all duration-200 hover:scale-105"
           >
             <LayoutGrid className="h-4 w-4" />
             <span>Workspace</span>
@@ -76,7 +78,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "calendar" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("calendar")}
-            className="gap-1"
+            className="gap-1 transition-all duration-200 hover:scale-105"
           >
             <Calendar className="h-4 w-4" />
             <span>Calendar</span>
@@ -86,20 +88,30 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "community" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("community")}
-            className="gap-1"
+            className="gap-1 transition-all duration-200 hover:scale-105"
           >
             <Users className="h-4 w-4" />
             <span>Community</span>
           </Button>
           
           <Button 
-            variant={activePanel === "video" ? "default" : "ghost"} 
+            variant={activePanel === "stage" ? "default" : "ghost"} 
             size="sm"
-            onClick={() => onPanelChange("video")}
-            className="gap-1"
+            onClick={() => onPanelChange("stage")}
+            className="gap-1 transition-all duration-200 hover:scale-105"
           >
             <Video className="h-4 w-4" />
-            <span>Video</span>
+            <span>Stage</span>
+          </Button>
+
+          <Button 
+            variant={activePanel === "worldmap" ? "default" : "ghost"} 
+            size="sm"
+            onClick={() => onPanelChange("worldmap")}
+            className="gap-1 transition-all duration-200 hover:scale-105"
+          >
+            <Map className="h-4 w-4" />
+            <span>World Map</span>
           </Button>
         </div>
         
@@ -108,24 +120,24 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="ml-auto flex items-center gap-2">
           <div className="relative md:w-64 hidden md:block">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-8" />
+            <Input placeholder="Search..." className="pl-8 transition-all duration-200 focus:ring-2" />
           </div>
           
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative transition-all duration-200 hover:scale-110">
             <Bell className="h-5 w-5" />
-            <span className="absolute h-2 w-2 top-1 right-1 rounded-full bg-red-500"></span>
+            <span className="absolute h-2 w-2 top-1 right-1 rounded-full bg-red-500 animate-pulse"></span>
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full transition-all duration-200 hover:scale-110">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
                   <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="animate-in slide-in-from-top-2">
               <DropdownMenuItem onClick={() => onPanelChange("profile")}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>

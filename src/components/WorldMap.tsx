@@ -1,23 +1,17 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Settings } from 'lucide-react';
+import { MapPin, Clock, Settings, Globe, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MemberLocation {
   id: string;
   user_id: string;
-  city?: string;
-  country: string;
-  country_code: string;
-  latitude: number;
-  longitude: number;
+  region?: string;
   timezone?: string;
   is_location_visible: boolean;
   profile?: {
@@ -32,54 +26,20 @@ interface MemberLocation {
 }
 
 const WorldMap: React.FC = () => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const { user } = useAuth();
-  
   const [locations, setLocations] = useState<MemberLocation[]>([]);
   const [selectedMember, setSelectedMember] = useState<MemberLocation | null>(null);
   const [showLocationSettings, setShowLocationSettings] = useState(false);
-  const [mapboxToken, setMapboxToken] = useState('');
 
-  useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) return;
-
-    // Initialize map
-    mapboxgl.accessToken = mapboxToken;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      projection: 'globe',
-      zoom: 1.5,
-      center: [30, 15],
-      pitch: 0,
-    });
-
-    // Add navigation controls
-    map.current.addControl(
-      new mapboxgl.NavigationControl({
-        visualizePitch: true,
-      }),
-      'top-right'
-    );
-
-    // Add atmosphere and fog effects
-    map.current.on('style.load', () => {
-      map.current?.setFog({
-        color: 'rgb(255, 255, 255)',
-        'high-color': 'rgb(200, 200, 225)',
-        'horizon-blend': 0.2,
-      });
-    });
-
-    // Cleanup
-    return () => {
-      Object.values(markersRef.current).forEach(marker => marker.remove());
-      map.current?.remove();
-    };
-  }, [mapboxToken]);
+  // Sample regions for visual representation
+  const regions = [
+    { name: 'North America', coords: { x: 20, y: 30 }, members: [] as MemberLocation[] },
+    { name: 'South America', coords: { x: 30, y: 60 }, members: [] as MemberLocation[] },
+    { name: 'Europe', coords: { x: 50, y: 25 }, members: [] as MemberLocation[] },
+    { name: 'Africa', coords: { x: 52, y: 50 }, members: [] as MemberLocation[] },
+    { name: 'Asia', coords: { x: 70, y: 30 }, members: [] as MemberLocation[] },
+    { name: 'Oceania', coords: { x: 80, y: 70 }, members: [] as MemberLocation[] },
+  ];
 
   useEffect(() => {
     fetchMemberLocations();
@@ -115,7 +75,7 @@ const WorldMap: React.FC = () => {
     // Update online status periodically
     const statusInterval = setInterval(() => {
       updateUserOnlineStatus(true);
-    }, 30000); // Every 30 seconds
+    }, 30000);
 
     // Handle page unload
     const handleUnload = () => {
@@ -133,18 +93,22 @@ const WorldMap: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (map.current && locations.length > 0) {
-      updateMapMarkers();
-    }
-  }, [locations]);
-
   const fetchMemberLocations = async () => {
     try {
-      // First get locations
       const { data: locationData, error: locationError } = await supabase
         .from('member_locations')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          region,
+          timezone,
+          is_location_visible,
+          profiles!member_locations_user_id_fkey (
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
         .eq('is_location_visible', true);
 
       if (locationError) throw locationError;
@@ -154,18 +118,8 @@ const WorldMap: React.FC = () => {
         return;
       }
 
-      // Get user profiles
-      const userIds = locationData.map(loc => loc.user_id);
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url')
-        .in('id', userIds);
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-      }
-
       // Get online status
+      const userIds = locationData.map(loc => loc.user_id);
       const { data: statusData, error: statusError } = await supabase
         .from('member_online_status')
         .select('user_id, is_online, last_seen')
@@ -178,13 +132,14 @@ const WorldMap: React.FC = () => {
       // Combine the data
       const combinedData: MemberLocation[] = locationData.map(location => ({
         ...location,
-        profile: profiles?.find(p => p.id === location.user_id),
+        profile: location.profiles,
         online_status: statusData?.find(s => s.user_id === location.user_id),
       }));
 
       setLocations(combinedData);
     } catch (error) {
       console.error('Error fetching member locations:', error);
+      toast.error('Failed to load member locations');
     }
   };
 
@@ -200,48 +155,6 @@ const WorldMap: React.FC = () => {
     } catch (error) {
       console.error('Error updating online status:', error);
     }
-  };
-
-  const updateMapMarkers = () => {
-    if (!map.current) return;
-
-    // Remove existing markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
-
-    // Add new markers
-    locations.forEach(location => {
-      if (location.latitude && location.longitude) {
-        const isOnline = location.online_status?.is_online || false;
-        
-        // Create marker element
-        const markerEl = document.createElement('div');
-        markerEl.className = 'member-location-marker';
-        markerEl.style.width = '20px';
-        markerEl.style.height = '20px';
-        markerEl.style.borderRadius = '50%';
-        markerEl.style.border = '3px solid white';
-        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        markerEl.style.cursor = 'pointer';
-        markerEl.style.backgroundColor = isOnline ? '#10b981' : '#6b7280';
-        
-        if (isOnline) {
-          markerEl.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.6), 0 2px 4px rgba(0,0,0,0.3)';
-        }
-
-        // Create marker
-        const marker = new mapboxgl.Marker(markerEl)
-          .setLngLat([location.longitude, location.latitude])
-          .addTo(map.current!);
-
-        // Add click handler
-        markerEl.addEventListener('click', () => {
-          setSelectedMember(location);
-        });
-
-        markersRef.current[location.id] = marker;
-      }
-    });
   };
 
   const formatLocalTime = (timezone?: string) => {
@@ -278,133 +191,189 @@ const WorldMap: React.FC = () => {
     }
   };
 
-  if (!mapboxToken) {
-    return (
-      <div className="h-full flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Mapbox Token Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please enter your Mapbox public token to display the world map.
-            </p>
-            <input
-              type="text"
-              placeholder="pk.eyJ1IjoieW91cnVzZXIi..."
-              className="w-full px-3 py-2 border rounded-md"
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Get your token from{' '}
-              <a 
-                href="https://mapbox.com/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                mapbox.com
-              </a>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Group members by region
+  const groupedRegions = regions.map(region => ({
+    ...region,
+    members: locations.filter(loc => loc.region === region.name)
+  }));
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-blue-500" />
-          <h2 className="font-semibold">Member World Map</h2>
-          <Badge variant="secondary">{locations.length} members</Badge>
+    <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex items-center justify-between p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+            <Globe className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Member World Map
+            </h2>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              {locations.length} members worldwide
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowLocationSettings(true)}
+          className="transition-all duration-200 hover:scale-105"
         >
           <Settings className="h-4 w-4 mr-2" />
           Location Settings
         </Button>
       </div>
 
-      <div className="flex-1 relative">
-        <div ref={mapContainer} className="absolute inset-0" />
-        
-        {selectedMember && (
-          <div className="absolute top-4 left-4 w-80 z-10">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {selectedMember.profile?.full_name?.charAt(0) || 
-                         selectedMember.profile?.username?.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">
-                        {selectedMember.profile?.full_name || 
-                         selectedMember.profile?.username || 'Member'}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={selectedMember.online_status?.is_online ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {selectedMember.online_status?.is_online ? 'Online' : 'Offline'}
-                        </Badge>
-                      </div>
-                    </div>
+      <div className="flex-1 p-6">
+        {/* World Map Visualization */}
+        <div className="relative w-full h-96 bg-gradient-to-b from-sky-200 to-blue-300 dark:from-gray-700 dark:to-gray-800 rounded-2xl overflow-hidden shadow-xl mb-6">
+          {/* Simplified world map background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-green-200 via-yellow-100 to-green-200 dark:from-gray-600 dark:via-gray-700 dark:to-gray-600 opacity-60">
+            {/* Continent shapes (simplified) */}
+            <div className="absolute top-8 left-8 w-32 h-24 bg-green-400 dark:bg-gray-500 rounded-tl-3xl rounded-br-3xl opacity-70"></div>
+            <div className="absolute top-16 left-40 w-28 h-20 bg-green-400 dark:bg-gray-500 rounded-2xl opacity-70"></div>
+            <div className="absolute top-6 left-96 w-40 h-32 bg-green-400 dark:bg-gray-500 rounded-3xl opacity-70"></div>
+            <div className="absolute top-32 left-96 w-24 h-40 bg-green-400 dark:bg-gray-500 rounded-2xl opacity-70"></div>
+            <div className="absolute top-12 right-32 w-48 h-28 bg-green-400 dark:bg-gray-500 rounded-3xl opacity-70"></div>
+            <div className="absolute bottom-16 right-16 w-20 h-16 bg-green-400 dark:bg-gray-500 rounded-full opacity-70"></div>
+          </div>
+
+          {/* Region markers */}
+          {groupedRegions.map(region => (
+            <div
+              key={region.name}
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-125 ${
+                region.members.length > 0 ? 'animate-pulse' : ''
+              }`}
+              style={{ left: `${region.coords.x}%`, top: `${region.coords.y}%` }}
+              onClick={() => region.members.length > 0 && setSelectedMember(region.members[0])}
+            >
+              <div className={`w-6 h-6 rounded-full border-3 border-white shadow-lg ${
+                region.members.some(m => m.online_status?.is_online) 
+                  ? 'bg-green-500 shadow-green-400' 
+                  : region.members.length > 0 
+                    ? 'bg-blue-500 shadow-blue-400' 
+                    : 'bg-gray-400'
+              }`}>
+                {region.members.length > 0 && (
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {region.members.length}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedMember(null)}
-                  >
-                    ×
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {selectedMember.city && `${selectedMember.city}, `}
-                      {selectedMember.country}
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Member Details */}
+        {selectedMember && (
+          <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800 shadow-xl animate-fade-in">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold">
+                      {selectedMember.profile?.full_name?.charAt(0) || 
+                       selectedMember.profile?.username?.charAt(0) || 'U'}
                     </span>
                   </div>
-                  {selectedMember.timezone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {formatLocalTime(selectedMember.timezone)}
-                        <span className="text-muted-foreground ml-1">
-                          ({getTimeDifference(selectedMember.timezone)})
-                        </span>
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <h3 className="font-bold text-lg">
+                      {selectedMember.profile?.full_name || 
+                       selectedMember.profile?.username || 'Member'}
+                    </h3>
+                    <Badge 
+                      variant={selectedMember.online_status?.is_online ? "default" : "secondary"}
+                      className="mt-1"
+                    >
+                      {selectedMember.online_status?.is_online ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedMember(null)}
+                  className="hover:bg-red-100 hover:text-red-600"
+                >
+                  ×
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  <span>{selectedMember.region || 'Unknown region'}</span>
+                </div>
+                {selectedMember.timezone && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-green-500" />
+                    <span>
+                      {formatLocalTime(selectedMember.timezone)}
+                      <span className="text-muted-foreground ml-1">
+                        ({getTimeDifference(selectedMember.timezone)})
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Regions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {groupedRegions.map(region => (
+            <Card 
+              key={region.name} 
+              className={`transition-all duration-200 hover:scale-105 cursor-pointer ${
+                region.members.length > 0 
+                  ? 'border-blue-200 dark:border-blue-800 hover:shadow-lg' 
+                  : 'opacity-60'
+              }`}
+              onClick={() => region.members.length > 0 && setSelectedMember(region.members[0])}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  {region.name}
+                  <Badge variant="outline">{region.members.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {region.members.length > 0 ? (
+                  <div className="space-y-2">
+                    {region.members.slice(0, 3).map(member => (
+                      <div key={member.id} className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          member.online_status?.is_online ? 'bg-green-500' : 'bg-gray-400'
+                        }`}></div>
+                        <span className="text-sm">
+                          {member.profile?.full_name || member.profile?.username || 'Member'}
+                        </span>
+                      </div>
+                    ))}
+                    {region.members.length > 3 && (
+                      <p className="text-xs text-muted-foreground">
+                        +{region.members.length - 3} more
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No members in this region</p>
+                )}
               </CardContent>
             </Card>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
-      <div className="p-4 bg-muted/50 border-t">
+      <div className="p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg animate-pulse"></div>
               <span>Online</span>
             </div>
             <div className="flex items-center gap-2">
@@ -412,7 +381,7 @@ const WorldMap: React.FC = () => {
               <span>Offline</span>
             </div>
           </div>
-          <span>Click pins to view member details</span>
+          <span>Click region cards or map markers to view member details</span>
         </div>
       </div>
     </div>

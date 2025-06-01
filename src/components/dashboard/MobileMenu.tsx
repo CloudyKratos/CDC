@@ -7,14 +7,14 @@ import {
   Video, 
   User, 
   X, 
-  Home,
-  Shield
+  Shield,
+  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 
-export type ActivePanel = "workspace" | "calendar" | "community" | "video" | "profile";
+export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -32,11 +32,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   const { currentRole } = useRole();
   const navigate = useNavigate();
   const isAdmin = currentRole === 'admin';
-
-  const handleHomeClick = () => {
-    navigate("/warrior-space");
-    onClose();
-  };
 
   const handleAdminClick = () => {
     if (isAdmin) {
@@ -64,15 +59,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         
         <div className="p-4 space-y-2">
           <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 h-12"
-            onClick={handleHomeClick}
-          >
-            <Home className="h-5 w-5" />
-            <span>Warrior's Space</span>
-          </Button>
-          
-          <Button
             variant={activePanel === "workspace" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 h-12"
             onClick={() => handlePanelClick("workspace")}
@@ -96,16 +82,25 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             onClick={() => handlePanelClick("community")}
           >
             <Users className="h-5 w-5" />
-            <span>Community Chat</span>
+            <span>Community</span>
           </Button>
           
           <Button
-            variant={activePanel === "video" ? "secondary" : "ghost"}
+            variant={activePanel === "stage" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 h-12"
-            onClick={() => handlePanelClick("video")}
+            onClick={() => handlePanelClick("stage")}
           >
             <Video className="h-5 w-5" />
-            <span>Video Call</span>
+            <span>Stage Call</span>
+          </Button>
+
+          <Button
+            variant={activePanel === "worldmap" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("worldmap")}
+          >
+            <Map className="h-5 w-5" />
+            <span>World Map</span>
           </Button>
 
           {isAdmin && (
