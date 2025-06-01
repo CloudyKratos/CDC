@@ -8,13 +8,14 @@ import {
   User, 
   X, 
   Shield,
-  Map
+  Map,
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 
-export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
+export type ActivePanel = "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -40,6 +41,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     }
   };
 
+  const handleWarriorSpaceClick = () => {
+    navigate("/warrior-space");
+    onClose();
+  };
+
   const handlePanelClick = (panel: ActivePanel) => {
     onPanelChange(panel);
     onClose();
@@ -58,6 +64,15 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         </div>
         
         <div className="p-4 space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-12 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+            onClick={handleWarriorSpaceClick}
+          >
+            <Home className="h-5 w-5" />
+            <span>Warrior's Space</span>
+          </Button>
+
           <Button
             variant={activePanel === "workspace" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 h-12"

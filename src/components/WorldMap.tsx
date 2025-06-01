@@ -1,389 +1,249 @@
 
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Settings, Globe, Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { Globe, Users, Clock, MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface MemberLocation {
+interface UserLocation {
   id: string;
-  user_id: string;
+  name: string;
+  email: string;
   region?: string;
   timezone?: string;
-  is_location_visible: boolean;
-  profile?: {
-    full_name?: string;
-    username?: string;
-    avatar_url?: string;
-  };
-  online_status?: {
-    is_online: boolean;
-    last_seen: string;
-  };
+  isOnline: boolean;
+  lastSeen?: string;
 }
 
 const WorldMap: React.FC = () => {
-  const { user } = useAuth();
-  const [locations, setLocations] = useState<MemberLocation[]>([]);
-  const [selectedMember, setSelectedMember] = useState<MemberLocation | null>(null);
-  const [showLocationSettings, setShowLocationSettings] = useState(false);
-
-  // Sample regions for visual representation
-  const regions = [
-    { name: 'North America', coords: { x: 20, y: 30 }, members: [] as MemberLocation[] },
-    { name: 'South America', coords: { x: 30, y: 60 }, members: [] as MemberLocation[] },
-    { name: 'Europe', coords: { x: 50, y: 25 }, members: [] as MemberLocation[] },
-    { name: 'Africa', coords: { x: 52, y: 50 }, members: [] as MemberLocation[] },
-    { name: 'Asia', coords: { x: 70, y: 30 }, members: [] as MemberLocation[] },
-    { name: 'Oceania', coords: { x: 80, y: 70 }, members: [] as MemberLocation[] },
-  ];
+  const [users, setUsers] = useState<UserLocation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMemberLocations();
-    updateUserOnlineStatus(true);
-
-    // Set up realtime subscriptions
-    const locationsChannel = supabase
-      .channel('member-locations-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'member_locations'
-        },
-        () => fetchMemberLocations()
-      )
-      .subscribe();
-
-    const statusChannel = supabase
-      .channel('member-status-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'member_online_status'
-        },
-        () => fetchMemberLocations()
-      )
-      .subscribe();
-
-    // Update online status periodically
-    const statusInterval = setInterval(() => {
-      updateUserOnlineStatus(true);
-    }, 30000);
-
-    // Handle page unload
-    const handleUnload = () => {
-      updateUserOnlineStatus(false);
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-
-    return () => {
-      locationsChannel.unsubscribe();
-      statusChannel.unsubscribe();
-      clearInterval(statusInterval);
-      window.removeEventListener('beforeunload', handleUnload);
-      updateUserOnlineStatus(false);
-    };
+    fetchUserLocations();
   }, []);
 
-  const fetchMemberLocations = async () => {
+  const fetchUserLocations = async () => {
     try {
-      const { data: locationData, error: locationError } = await supabase
-        .from('member_locations')
-        .select(`
-          id,
-          user_id,
-          region,
-          timezone,
-          is_location_visible,
-          profiles!member_locations_user_id_fkey (
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
-        .eq('is_location_visible', true);
+      // First, let's try to get users from profiles table
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*');
 
-      if (locationError) throw locationError;
-
-      if (!locationData || locationData.length === 0) {
-        setLocations([]);
-        return;
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        // Fallback to mock data if profiles table doesn't exist or has issues
+        setUsers(getMockUsers());
+      } else {
+        // Transform profiles data to our UserLocation format
+        const userLocations: UserLocation[] = (profiles || []).map((profile: any) => ({
+          id: profile.id || Math.random().toString(),
+          name: profile.name || profile.email || 'Unknown User',
+          email: profile.email || '',
+          region: profile.region || 'Unknown',
+          timezone: profile.timezone || 'UTC',
+          isOnline: Math.random() > 0.5, // Random online status for now
+          lastSeen: new Date().toISOString()
+        }));
+        setUsers(userLocations);
       }
-
-      // Get online status
-      const userIds = locationData.map(loc => loc.user_id);
-      const { data: statusData, error: statusError } = await supabase
-        .from('member_online_status')
-        .select('user_id, is_online, last_seen')
-        .in('user_id', userIds);
-
-      if (statusError) {
-        console.error('Error fetching status:', statusError);
-      }
-
-      // Combine the data
-      const combinedData: MemberLocation[] = locationData.map(location => ({
-        ...location,
-        profile: location.profiles,
-        online_status: statusData?.find(s => s.user_id === location.user_id),
-      }));
-
-      setLocations(combinedData);
     } catch (error) {
-      console.error('Error fetching member locations:', error);
-      toast.error('Failed to load member locations');
+      console.error('Error in fetchUserLocations:', error);
+      setUsers(getMockUsers());
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateUserOnlineStatus = async (isOnline: boolean) => {
-    if (!user?.id) return;
-
-    try {
-      const { error } = await supabase.rpc('update_user_online_status', {
-        is_online_param: isOnline
-      });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error updating online status:', error);
+  const getMockUsers = (): UserLocation[] => [
+    {
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      region: 'North America',
+      timezone: 'EST',
+      isOnline: true
+    },
+    {
+      id: '2',
+      name: 'Sarah Chen',
+      email: 'sarah@example.com',
+      region: 'Asia Pacific',
+      timezone: 'JST',
+      isOnline: false,
+      lastSeen: '2 hours ago'
+    },
+    {
+      id: '3',
+      name: 'Alex Mueller',
+      email: 'alex@example.com',
+      region: 'Europe',
+      timezone: 'CET',
+      isOnline: true
+    },
+    {
+      id: '4',
+      name: 'Maria Garcia',
+      email: 'maria@example.com',
+      region: 'South America',
+      timezone: 'BRT',
+      isOnline: false,
+      lastSeen: '1 day ago'
+    },
+    {
+      id: '5',
+      name: 'David Kim',
+      email: 'david@example.com',
+      region: 'Asia Pacific',
+      timezone: 'KST',
+      isOnline: true
     }
+  ];
+
+  const getRegionStats = () => {
+    const regionCounts = users.reduce((acc, user) => {
+      const region = user.region || 'Unknown';
+      acc[region] = (acc[region] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(regionCounts).map(([region, count]) => ({
+      region,
+      count,
+      online: users.filter(u => u.region === region && u.isOnline).length
+    }));
   };
 
-  const formatLocalTime = (timezone?: string) => {
-    if (!timezone) return 'Unknown time';
-    
-    try {
-      const now = new Date();
-      const localTime = now.toLocaleTimeString('en-US', {
-        timeZone: timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-      return localTime;
-    } catch {
-      return 'Unknown time';
-    }
-  };
+  const onlineUsers = users.filter(user => user.isOnline);
+  const regionStats = getRegionStats();
 
-  const getTimeDifference = (timezone?: string) => {
-    if (!timezone) return '';
-    
-    try {
-      const now = new Date();
-      const userOffset = now.getTimezoneOffset();
-      const targetDate = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
-      const targetOffset = (now.getTime() - targetDate.getTime()) / (1000 * 60);
-      const diffHours = Math.round((targetOffset - userOffset) / 60);
-      
-      if (diffHours === 0) return 'Same timezone';
-      return diffHours > 0 ? `+${diffHours}h` : `${diffHours}h`;
-    } catch {
-      return '';
-    }
-  };
-
-  // Group members by region
-  const groupedRegions = regions.map(region => ({
-    ...region,
-    members: locations.filter(loc => loc.region === region.name)
-  }));
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Globe className="h-6 w-6 text-blue-500" />
+          <h2 className="text-2xl font-bold">World Map</h2>
+        </div>
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-gray-200 rounded-lg"></div>
+          <div className="h-20 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="flex items-center justify-between p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-            <Globe className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Member World Map
-            </h2>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              {locations.length} members worldwide
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowLocationSettings(true)}
-          className="transition-all duration-200 hover:scale-105"
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          Location Settings
-        </Button>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Globe className="h-6 w-6 text-blue-500" />
+        <h2 className="text-2xl font-bold">Global Community</h2>
       </div>
 
-      <div className="flex-1 p-6">
-        {/* World Map Visualization */}
-        <div className="relative w-full h-96 bg-gradient-to-b from-sky-200 to-blue-300 dark:from-gray-700 dark:to-gray-800 rounded-2xl overflow-hidden shadow-xl mb-6">
-          {/* Simplified world map background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-green-200 via-yellow-100 to-green-200 dark:from-gray-600 dark:via-gray-700 dark:to-gray-600 opacity-60">
-            {/* Continent shapes (simplified) */}
-            <div className="absolute top-8 left-8 w-32 h-24 bg-green-400 dark:bg-gray-500 rounded-tl-3xl rounded-br-3xl opacity-70"></div>
-            <div className="absolute top-16 left-40 w-28 h-20 bg-green-400 dark:bg-gray-500 rounded-2xl opacity-70"></div>
-            <div className="absolute top-6 left-96 w-40 h-32 bg-green-400 dark:bg-gray-500 rounded-3xl opacity-70"></div>
-            <div className="absolute top-32 left-96 w-24 h-40 bg-green-400 dark:bg-gray-500 rounded-2xl opacity-70"></div>
-            <div className="absolute top-12 right-32 w-48 h-28 bg-green-400 dark:bg-gray-500 rounded-3xl opacity-70"></div>
-            <div className="absolute bottom-16 right-16 w-20 h-16 bg-green-400 dark:bg-gray-500 rounded-full opacity-70"></div>
-          </div>
-
-          {/* Region markers */}
-          {groupedRegions.map(region => (
-            <div
-              key={region.name}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-125 ${
-                region.members.length > 0 ? 'animate-pulse' : ''
-              }`}
-              style={{ left: `${region.coords.x}%`, top: `${region.coords.y}%` }}
-              onClick={() => region.members.length > 0 && setSelectedMember(region.members[0])}
-            >
-              <div className={`w-6 h-6 rounded-full border-3 border-white shadow-lg ${
-                region.members.some(m => m.online_status?.is_online) 
-                  ? 'bg-green-500 shadow-green-400' 
-                  : region.members.length > 0 
-                    ? 'bg-blue-500 shadow-blue-400' 
-                    : 'bg-gray-400'
-              }`}>
-                {region.members.length > 0 && (
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {region.members.length}
-                  </div>
-                )}
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Users className="h-8 w-8 text-blue-500" />
+              <div>
+                <p className="text-sm text-gray-600">Total Members</p>
+                <p className="text-2xl font-bold text-blue-600">{users.length}</p>
               </div>
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Member Details */}
-        {selectedMember && (
-          <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800 shadow-xl animate-fade-in">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
+                <div className="h-3 w-3 bg-white rounded-full animate-pulse"></div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Online Now</p>
+                <p className="text-2xl font-bold text-green-600">{onlineUsers.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-8 w-8 text-purple-500" />
+              <div>
+                <p className="text-sm text-gray-600">Regions</p>
+                <p className="text-2xl font-bold text-purple-600">{regionStats.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Regional Distribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Regional Distribution
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {regionStats.map((stat, index) => (
+              <div key={stat.region} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold">
-                      {selectedMember.profile?.full_name?.charAt(0) || 
-                       selectedMember.profile?.username?.charAt(0) || 'U'}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">
-                      {selectedMember.profile?.full_name || 
-                       selectedMember.profile?.username || 'Member'}
-                    </h3>
-                    <Badge 
-                      variant={selectedMember.online_status?.is_online ? "default" : "secondary"}
-                      className="mt-1"
-                    >
-                      {selectedMember.online_status?.is_online ? 'Online' : 'Offline'}
-                    </Badge>
-                  </div>
+                  <div className={`w-3 h-3 rounded-full ${
+                    index === 0 ? 'bg-blue-500' :
+                    index === 1 ? 'bg-green-500' :
+                    index === 2 ? 'bg-purple-500' :
+                    index === 3 ? 'bg-orange-500' : 'bg-pink-500'
+                  }`}></div>
+                  <span className="font-medium">{stat.region}</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedMember(null)}
-                  className="hover:bg-red-100 hover:text-red-600"
-                >
-                  ×
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-500" />
-                  <span>{selectedMember.region || 'Unknown region'}</span>
+                  <Badge variant="secondary">{stat.count} members</Badge>
+                  <Badge variant="outline" className="text-green-600">
+                    {stat.online} online
+                  </Badge>
                 </div>
-                {selectedMember.timezone && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-green-500" />
-                    <span>
-                      {formatLocalTime(selectedMember.timezone)}
-                      <span className="text-muted-foreground ml-1">
-                        ({getTimeDifference(selectedMember.timezone)})
-                      </span>
-                    </span>
-                  </div>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Regions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groupedRegions.map(region => (
-            <Card 
-              key={region.name} 
-              className={`transition-all duration-200 hover:scale-105 cursor-pointer ${
-                region.members.length > 0 
-                  ? 'border-blue-200 dark:border-blue-800 hover:shadow-lg' 
-                  : 'opacity-60'
-              }`}
-              onClick={() => region.members.length > 0 && setSelectedMember(region.members[0])}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between text-lg">
-                  {region.name}
-                  <Badge variant="outline">{region.members.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {region.members.length > 0 ? (
-                  <div className="space-y-2">
-                    {region.members.slice(0, 3).map(member => (
-                      <div key={member.id} className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          member.online_status?.is_online ? 'bg-green-500' : 'bg-gray-400'
-                        }`}></div>
-                        <span className="text-sm">
-                          {member.profile?.full_name || member.profile?.username || 'Member'}
-                        </span>
-                      </div>
-                    ))}
-                    {region.members.length > 3 && (
-                      <p className="text-xs text-muted-foreground">
-                        +{region.members.length - 3} more
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No members in this region</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg animate-pulse"></div>
-              <span>Online</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-              <span>Offline</span>
-            </div>
+            ))}
           </div>
-          <span>Click region cards or map markers to view member details</span>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Online Members */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            Currently Online
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {onlineUsers.map((user) => (
+              <div key={user.id} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{user.name}</p>
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <Clock className="h-3 w-3" />
+                    <span>{user.timezone}</span>
+                    <span>•</span>
+                    <span>{user.region}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

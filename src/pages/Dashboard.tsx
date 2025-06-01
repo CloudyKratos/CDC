@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSearchParams, Navigate } from 'react-router-dom';
+import { useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import HomePage from '@/components/HomePage';
 import CalendarPanel from '@/components/CalendarPanel';
@@ -20,12 +20,12 @@ import {
   Shield,
   Map,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useRole } from '@/contexts/RoleContext';
 
-export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
+export type ActivePanel = "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -126,6 +126,21 @@ const Dashboard = () => {
           {/* Navigation */}
           <div className="flex-grow p-4">
             <nav className="space-y-2">
+              {/* Home Button - Link to Warrior's Space */}
+              <Link to="/warrior-space">
+                <Button
+                  variant="ghost"
+                  className={`w-full transition-all duration-200 hover:scale-105 group ${
+                    sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
+                  } h-12 hover:bg-gradient-to-r hover:from-orange-100 hover:to-red-100 hover:text-orange-600 dark:hover:from-orange-900/20 dark:hover:to-red-900/20`}
+                >
+                  <Home className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                  {!sidebarCollapsed && (
+                    <span className="animate-fade-in">Warrior's Space</span>
+                  )}
+                </Button>
+              </Link>
+
               {navigationItems.map((item) => (
                 <Button
                   key={item.id}
