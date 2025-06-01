@@ -139,8 +139,6 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'host':
-        return <Crown className="h-4 w-4 text-yellow-500" />;
       case 'moderator':
         return <Shield className="h-4 w-4 text-blue-500" />;
       case 'speaker':
@@ -150,7 +148,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
     }
   };
 
-  const speakers = participants.filter(p => ['host', 'moderator', 'speaker'].includes(p.role));
+  const speakers = participants.filter(p => ['moderator', 'speaker'].includes(p.role));
   const audience = participants.filter(p => p.role === 'audience');
 
   if (!stage) {
@@ -257,7 +255,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
                     {canManageStage && participant.role === 'speaker' && (
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         onClick={() => demoteToAudience(participant.user_id)}
                         className="text-xs"
                       >
@@ -300,7 +298,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
                     {canManageStage && (
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         onClick={() => promoteToSpeaker(participant.user_id)}
                         className="text-xs"
                       >

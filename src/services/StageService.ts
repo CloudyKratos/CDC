@@ -8,8 +8,8 @@ type StageParticipant = Database['public']['Tables']['stage_participants']['Row'
 type SpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'];
 
 export type StageStatus = 'scheduled' | 'live' | 'ended';
-export type StageRole = 'host' | 'moderator' | 'speaker' | 'audience';
-export type SpeakerRequestStatus = 'pending' | 'approved' | 'denied';
+export type StageRole = 'moderator' | 'speaker' | 'audience';
+export type SpeakerRequestStatus = 'pending' | 'approved' | 'rejected';
 
 class StageService {
   // Stage management
@@ -95,12 +95,12 @@ class StageService {
 
       const { error } = await supabase
         .from('stage_participants')
-        .insert([{
+        .insert({
           stage_id: stageId,
           user_id: user.id,
-          role,
+          role: role as Database['public']['Enums']['stage_role'],
           is_muted: role === 'audience'
-        }]);
+        });
 
       if (error) throw error;
       return true;
@@ -160,7 +160,7 @@ class StageService {
       const { error } = await supabase
         .from('stage_participants')
         .update({ 
-          role,
+          role: role as Database['public']['Enums']['stage_role'],
           is_muted: role === 'audience'
         })
         .eq('stage_id', stageId)
@@ -220,11 +220,11 @@ class StageService {
 
       const { error } = await supabase
         .from('speaker_requests')
-        .insert([{
+        .insert({
           stage_id: stageId,
           user_id: user.id,
-          status: 'pending'
-        }]);
+          status: 'pending' as Database['public']['Enums']['speaker_request_status']
+        });
 
       if (error) throw error;
       return true;
@@ -239,10 +239,11 @@ class StageService {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) return false;
 
+      const status = approved ? 'approved' : 'rejected';
       const { error } = await supabase
         .from('speaker_requests')
         .update({
-          status: approved ? 'approved' : 'denied',
+          status: status as Database['public']['Enums']['speaker_request_status'],
           responded_at: new Date().toISOString(),
           responded_by: user.id
         })
