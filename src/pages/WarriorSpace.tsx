@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
+import OptionalAddOns from "@/components/home/OptionalAddOns";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
@@ -90,10 +91,10 @@ const WarriorSpace = () => {
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Stats & Progress */}
+          {/* Left Column - Stats & Optional Add-ons */}
           <div className="space-y-6">
             {/* Warrior Stats */}
-            <Card className="bg-black/40 border-purple-800/30 text-white">
+            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-purple-400" />
@@ -129,8 +130,11 @@ const WarriorSpace = () => {
               </CardContent>
             </Card>
 
+            {/* Optional Add-ons */}
+            <OptionalAddOns />
+
             {/* Quick Actions */}
-            <Card className="bg-black/40 border-purple-800/30 text-white">
+            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="h-5 w-5 text-yellow-400" />
@@ -139,7 +143,7 @@ const WarriorSpace = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Link to="/dashboard?tab=calendar">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
+                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
                     <Calendar className="h-4 w-4 mr-2" />
                     View Calendar
                     <ChevronRight className="h-4 w-4 ml-auto" />
@@ -147,7 +151,7 @@ const WarriorSpace = () => {
                 </Link>
                 
                 <Link to="/dashboard?tab=community">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
+                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
                     <Users className="h-4 w-4 mr-2" />
                     Join Community
                     <ChevronRight className="h-4 w-4 ml-auto" />
@@ -155,7 +159,7 @@ const WarriorSpace = () => {
                 </Link>
                 
                 <Link to="/dashboard?tab=worldmap">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
+                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
                     <MessageSquare className="h-4 w-4 mr-2" />
                     World Map
                     <ChevronRight className="h-4 w-4 ml-auto" />
@@ -184,7 +188,7 @@ const WarriorSpace = () => {
               </TabsList>
 
               <TabsContent value="daily-challenge" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white">
+                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5 text-green-400" />
@@ -198,7 +202,7 @@ const WarriorSpace = () => {
                     {dailyQuests.map((quest) => (
                       <div
                         key={quest.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
                           quest.completed
                             ? "bg-green-900/20 border-green-700/30"
                             : "bg-purple-900/20 border-purple-700/30"
@@ -206,9 +210,9 @@ const WarriorSpace = () => {
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-4 h-4 rounded-full border-2 ${
+                            className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
                               quest.completed
-                                ? "bg-green-500 border-green-500"
+                                ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
                                 : "border-purple-400"
                             }`}
                           />
@@ -226,7 +230,7 @@ const WarriorSpace = () => {
               </TabsContent>
 
               <TabsContent value="achievements" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white">
+                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-yellow-400" />
@@ -241,7 +245,7 @@ const WarriorSpace = () => {
                       {achievements.map((achievement, index) => (
                         <div
                           key={index}
-                          className={`p-4 rounded-lg border ${
+                          className={`p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
                             achievement.earned
                               ? "bg-yellow-900/20 border-yellow-700/30"
                               : "bg-gray-900/20 border-gray-700/30"
@@ -249,7 +253,7 @@ const WarriorSpace = () => {
                         >
                           <div className="flex items-center gap-3">
                             <achievement.icon
-                              className={`h-8 w-8 ${
+                              className={`h-8 w-8 transition-all duration-200 ${
                                 achievement.earned ? "text-yellow-400" : "text-gray-500"
                               }`}
                             />
@@ -268,7 +272,7 @@ const WarriorSpace = () => {
               </TabsContent>
 
               <TabsContent value="progress" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white">
+                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Star className="h-5 w-5 text-purple-400" />
