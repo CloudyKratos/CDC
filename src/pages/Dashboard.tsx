@@ -1,11 +1,12 @@
+
 import React, { useState } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import HomePage from '@/components/HomePage';
-import CalendarPanel from '@/components/calendar/CalendarPanel';
-import CommunityPanel from '@/components/community/CommunityPanel';
-import StageCallPanel from '@/components/stage/StageCallPanel';
-import WorkspacePanel from '@/components/workspace/WorkspacePanel';
+import CalendarPanel from '@/components/CalendarPanel';
+import CommunityPanel from '@/components/CommunityPanel';
+import StageCallPanel from '@/components/StageCallPanel';
+import WorkspacePanel from '@/components/WorkspacePanel';
 import WorldMapPanel from '@/components/WorldMapPanel';
 
 const Dashboard = () => {

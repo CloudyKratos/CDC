@@ -145,12 +145,12 @@ const WorldMap: React.FC = () => {
         .from('member_locations')
         .select(`
           *,
-          profiles:user_id (
+          profiles!member_locations_user_id_fkey (
             full_name,
             username,
             avatar_url
           ),
-          member_online_status:user_id (
+          member_online_status!member_online_status_user_id_fkey (
             is_online,
             last_seen
           )
