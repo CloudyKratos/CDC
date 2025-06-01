@@ -1,8 +1,8 @@
+
 import React from "react";
 import { 
   LayoutGrid, 
   Calendar, 
-  MessageSquare, 
   Users, 
   Video, 
   User, 
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 
-export type ActivePanel = "workspace" | "calendar" | "chat" | "community" | "video" | "profile";
+export type ActivePanel = "workspace" | "calendar" | "community" | "video" | "profile";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -91,21 +91,12 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           </Button>
           
           <Button
-            variant={activePanel === "chat" ? "secondary" : "ghost"}
-            className="w-full justify-start gap-3 h-12"
-            onClick={() => handlePanelClick("chat")}
-          >
-            <MessageSquare className="h-5 w-5" />
-            <span>Chat</span>
-          </Button>
-          
-          <Button
             variant={activePanel === "community" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 h-12"
             onClick={() => handlePanelClick("community")}
           >
             <Users className="h-5 w-5" />
-            <span>Community</span>
+            <span>Community Chat</span>
           </Button>
           
           <Button

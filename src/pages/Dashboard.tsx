@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { 
   LayoutGrid, 
   Calendar, 
-  MessageSquare, 
   Users, 
   Video,
   User,
@@ -18,7 +17,6 @@ import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
 import AdminCalendarPanel from "@/components/calendar/AdminCalendarPanel";
 import UserCalendarPanel from "@/components/calendar/UserCalendarPanel";
-import { ChatPanel } from "@/components/ChatPanel";
 import DiscordCommunityPanel from "@/components/community/DiscordCommunityPanel";
 import VideoCallPanel from "@/components/VideoCallPanel";
 import UserProfilePanel from "@/components/UserProfilePanel";
@@ -73,8 +71,6 @@ const Dashboard = () => {
         } else {
           return <UserCalendarPanel />;
         }
-      case "chat":
-        return <ChatPanel />;
       case "community":
         return <DiscordCommunityPanel defaultChannel={activeChannel} />;
       case "video":
@@ -154,19 +150,11 @@ const Dashboard = () => {
               )}
               
               <Button 
-                variant={activePanel === "chat" ? "secondary" : "ghost"}
-                size="icon"
-                className="w-12 h-12 rounded-xl hover:bg-primary/10"
-                onClick={() => setActivePanel("chat")}
-              >
-                <MessageSquare className="h-6 w-6 text-muted-foreground" />
-              </Button>
-              
-              <Button 
                 variant={activePanel === "community" ? "secondary" : "ghost"}
                 size="icon"
                 className="w-12 h-12 rounded-xl hover:bg-primary/10"
                 onClick={() => handleCommunitySelect("general")}
+                title="Community Chat"
               >
                 <Users className="h-6 w-6 text-muted-foreground" />
               </Button>

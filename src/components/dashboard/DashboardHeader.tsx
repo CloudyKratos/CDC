@@ -5,7 +5,6 @@ import {
   Menu, 
   LayoutGrid, 
   Calendar, 
-  MessageSquare, 
   Users, 
   Video, 
   ChevronDown, 
@@ -23,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type ActivePanel = "workspace" | "calendar" | "chat" | "community" | "video" | "profile";
+export type ActivePanel = "workspace" | "calendar" | "community" | "video" | "profile";
 
 export interface DashboardHeaderProps {
   activePanel: ActivePanel;
@@ -44,10 +43,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         return "Workspace";
       case "calendar":
         return "Calendar";
-      case "chat":
-        return "Chat";
       case "community":
-        return "Community";
+        return "Community Chat";
       case "video":
         return "Video Call";
       case "profile":
@@ -83,16 +80,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           >
             <Calendar className="h-4 w-4" />
             <span>Calendar</span>
-          </Button>
-          
-          <Button 
-            variant={activePanel === "chat" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("chat")}
-            className="gap-1"
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span>Chat</span>
           </Button>
           
           <Button 
