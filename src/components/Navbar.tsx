@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { Menu, X, Bell, Search, User, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, LogOut, Settings } from "lucide-react";
+import { Menu, X, Bell, Search, User, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, LogOut, Settings, Shield } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 
 interface NavbarProps {
@@ -38,7 +38,11 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   ]);
   const navbarRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout } = useAuth();
+  const { currentRole } = useRole();
   const navigate = useNavigate();
+
+  // Check if user is admin
+  const isAdmin = currentRole === 'admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -222,6 +226,12 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                   <div>
                     <p className="font-medium">{user?.name || "User"}</p>
                     <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+                    {isAdmin && (
+                      <Badge className="bg-red-500 text-white text-[10px] mt-1">
+                        <Shield className="h-2 w-2 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 
@@ -230,6 +240,15 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                     <span>Dashboard</span>
                   </DropdownMenuItem>
                 </Link>
+
+                {isAdmin && (
+                  <Link to="/admin">
+                    <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10">
+                      <Shield className="h-4 w-4 mr-2" />
+                      <span>Admin Panel</span>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
                 
                 <Link to="/settings">
                   <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
@@ -301,6 +320,12 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                 <div className="flex-1">
                   <p className="font-medium">{user?.name || "User"}</p>
                   <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+                  {isAdmin && (
+                    <Badge className="bg-red-500 text-white text-[10px] mt-1">
+                      <Shield className="h-2 w-2 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
                 </div>
               </div>
             )}
@@ -359,12 +384,33 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                     <ChevronRight size={18} className="text-primary" />
                   </Link>
 
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="flex items-center justify-between p-3 rounded-xl bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-300 hover:scale-[1.02] border border-red-200 dark:border-red-900/30"
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{ 
+                        animation: "fade-in 0.5s ease-out forwards",
+                        animationDelay: `${(navItems.length + 1) * 100}ms`,
+                        opacity: 0
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-lg bg-red-200/50 dark:bg-red-900/20 flex items-center justify-center mr-3">
+                          <Shield className="text-red-600 dark:text-red-400" size={20} />
+                        </div>
+                        <span className="text-base font-medium text-red-600 dark:text-red-400">Admin Panel</span>
+                      </div>
+                      <ChevronRight size={18} className="text-red-600 dark:text-red-400" />
+                    </Link>
+                  )}
+
                   <button 
                     onClick={handleLogout}
                     className="flex items-center justify-between p-3 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-300 hover:scale-[1.02] text-red-600 dark:text-red-400"
                     style={{ 
                       animation: "fade-in 0.5s ease-out forwards",
-                      animationDelay: `${(navItems.length + 1) * 100}ms`,
+                      animationDelay: `${(navItems.length + 2) * 100}ms`,
                       opacity: 0
                     }}
                   >

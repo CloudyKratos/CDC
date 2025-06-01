@@ -12,7 +12,7 @@ import {
   Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MobileMenu, { ActivePanel } from "@/components/dashboard/MobileMenu";
 import WorkspacePanel from "@/components/WorkspacePanel";
 import CalendarPanel from "@/components/CalendarPanel";
@@ -26,6 +26,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useMobile } from "@/hooks/use-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRole } from "@/contexts/RoleContext";
 
 const Dashboard = () => {
   const [activePanel, setActivePanel] = useState<ActivePanel>("workspace");
@@ -34,9 +35,11 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState("user"); // "user" or "admin"
   const isMobile = useMobile();
   const { user } = useAuth();
+  const { currentRole } = useRole();
+  const navigate = useNavigate();
   
-  // Check if user is admin (for demo purposes)
-  const isAdmin = user?.email?.includes("admin") || false;
+  // Check if user is admin based on role context
+  const isAdmin = currentRole === 'admin';
   
   useEffect(() => {
     // Default to user view unless explicitly set to admin
@@ -44,6 +47,16 @@ const Dashboard = () => {
       setViewMode("user");
     }
   }, [isAdmin, viewMode]);
+
+  const handleHomeClick = () => {
+    navigate("/");
+  };
+
+  const handleAdminClick = () => {
+    if (isAdmin) {
+      navigate("/admin");
+    }
+  };
   
   const handleCommunitySelect = (channelName: string) => {
     setActivePanel("community");
@@ -85,15 +98,16 @@ const Dashboard = () => {
         {!isMobile && (
           <div className="w-20 flex-shrink-0 border-r h-full py-4 flex flex-col items-center">
             <div className="space-y-6 flex flex-col items-center">
-              <Link to="/home">
-                <Button 
-                  variant="ghost"
-                  size="icon"
-                  className="w-12 h-12 rounded-xl hover:bg-primary/10"
-                >
-                  <Home className="h-6 w-6 text-muted-foreground" />
-                </Button>
-              </Link>
+              <Button 
+                variant="ghost"
+                size="icon"
+                className="w-12 h-12 rounded-xl hover:bg-primary/10"
+                onClick={handleHomeClick}
+                title="Go to Home"
+              >
+                <Home className="h-6 w-6 text-muted-foreground" />
+              </Button>
+              
               <Button 
                 variant={activePanel === "workspace" ? "secondary" : "ghost"}
                 size="icon"
@@ -165,6 +179,18 @@ const Dashboard = () => {
               >
                 <Video className="h-6 w-6 text-muted-foreground" />
               </Button>
+
+              {isAdmin && (
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  className="w-12 h-12 rounded-xl hover:bg-primary/10 bg-red-50 hover:bg-red-100 border border-red-200"
+                  onClick={handleAdminClick}
+                  title="Admin Panel"
+                >
+                  <Shield className="h-6 w-6 text-red-600" />
+                </Button>
+              )}
             </div>
             
             <div className="mt-auto">

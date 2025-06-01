@@ -1,21 +1,23 @@
 
 import React from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { 
   LayoutGrid, 
   Calendar, 
   MessageSquare, 
   Users, 
-  Video,
-  User,
-  Home
+  Video, 
+  User, 
+  X, 
+  Home,
+  Shield
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
+import { useRole } from "@/contexts/RoleContext";
 
 export type ActivePanel = "workspace" | "calendar" | "chat" | "community" | "video" | "profile";
 
-export interface MobileMenuProps {
+interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   activePanel: ActivePanel;
@@ -28,81 +30,116 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   activePanel,
   onPanelChange
 }) => {
-  const handlePanelSelect = (panel: ActivePanel) => {
+  const { currentRole } = useRole();
+  const navigate = useNavigate();
+  const isAdmin = currentRole === 'admin';
+
+  const handleHomeClick = () => {
+    navigate("/");
+    onClose();
+  };
+
+  const handleAdminClick = () => {
+    if (isAdmin) {
+      navigate("/admin");
+      onClose();
+    }
+  };
+
+  const handlePanelClick = (panel: ActivePanel) => {
     onPanelChange(panel);
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <div className="grid grid-cols-2 gap-2 p-4">
-          <Link to="/home" className="w-full">
-            <Button
-              variant="outline"
-              className="flex flex-col h-24 items-center justify-center gap-2 w-full"
-            >
-              <Home className="h-6 w-6" />
-              <span>Home</span>
-            </Button>
-          </Link>
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-y-0 left-0 w-64 bg-background border-r shadow-lg">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Navigation</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="p-4 space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-12"
+            onClick={handleHomeClick}
+          >
+            <Home className="h-5 w-5" />
+            <span>Home</span>
+          </Button>
           
           <Button
-            variant={activePanel === "workspace" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("workspace")}
+            variant={activePanel === "workspace" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("workspace")}
           >
-            <LayoutGrid className="h-6 w-6" />
+            <LayoutGrid className="h-5 w-5" />
             <span>Workspace</span>
           </Button>
           
           <Button
-            variant={activePanel === "calendar" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("calendar")}
+            variant={activePanel === "calendar" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("calendar")}
           >
-            <Calendar className="h-6 w-6" />
+            <Calendar className="h-5 w-5" />
             <span>Calendar</span>
           </Button>
           
           <Button
-            variant={activePanel === "chat" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("chat")}
+            variant={activePanel === "chat" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("chat")}
           >
-            <MessageSquare className="h-6 w-6" />
+            <MessageSquare className="h-5 w-5" />
             <span>Chat</span>
           </Button>
           
           <Button
-            variant={activePanel === "community" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("community")}
+            variant={activePanel === "community" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("community")}
           >
-            <Users className="h-6 w-6" />
+            <Users className="h-5 w-5" />
             <span>Community</span>
           </Button>
           
           <Button
-            variant={activePanel === "video" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("video")}
+            variant={activePanel === "video" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("video")}
           >
-            <Video className="h-6 w-6" />
-            <span>Video</span>
+            <Video className="h-5 w-5" />
+            <span>Video Call</span>
           </Button>
+
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleAdminClick}
+            >
+              <Shield className="h-5 w-5" />
+              <span>Admin Panel</span>
+            </Button>
+          )}
           
           <Button
-            variant={activePanel === "profile" ? "default" : "outline"}
-            className="flex flex-col h-24 items-center justify-center gap-2"
-            onClick={() => handlePanelSelect("profile")}
+            variant={activePanel === "profile" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 h-12"
+            onClick={() => handlePanelClick("profile")}
           >
-            <User className="h-6 w-6" />
+            <User className="h-5 w-5" />
             <span>Profile</span>
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 
