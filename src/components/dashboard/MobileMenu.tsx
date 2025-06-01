@@ -16,12 +16,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
+import { ActivePanel } from '@/types/dashboard';
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  activePanel: string;
-  onPanelChange: (panel: any) => void;
+  activePanel: ActivePanel;
+  onPanelChange: (panel: ActivePanel) => void;
 }
 
 const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuProps) => {
@@ -30,15 +31,15 @@ const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuP
   const isAdmin = currentRole === 'admin';
 
   const navigationItems = [
-    { id: "command-room", label: "Command Room", icon: LayoutGrid },
-    { id: "calendar", label: "Calendar", icon: Calendar },
-    { id: "community", label: "Community", icon: Users },
-    { id: "stage", label: "Stage Call", icon: Video },
-    { id: "worldmap", label: "World Map", icon: Map },
-    { id: "profile", label: "Profile", icon: User },
+    { id: "command-room" as const, label: "Command Room", icon: LayoutGrid },
+    { id: "calendar" as const, label: "Calendar", icon: Calendar },
+    { id: "community" as const, label: "Community", icon: Users },
+    { id: "stage" as const, label: "Stage Call", icon: Video },
+    { id: "worldmap" as const, label: "World Map", icon: Map },
+    { id: "profile" as const, label: "Profile", icon: User },
   ];
 
-  const handlePanelSelect = (panel: string) => {
+  const handlePanelSelect = (panel: ActivePanel) => {
     onPanelChange(panel);
     onClose();
   };

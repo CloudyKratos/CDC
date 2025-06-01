@@ -21,8 +21,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-
-export type ActivePanel = "home" | "workspace" | "calendar" | "community" | "stage" | "worldmap" | "profile";
+import { ActivePanel } from "@/types/dashboard";
 
 export interface DashboardHeaderProps {
   activePanel: ActivePanel;
@@ -39,8 +38,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const renderPanelTitle = () => {
     switch (activePanel) {
-      case "workspace":
-        return "Workspace";
+      case "command-room":
+        return "Command Room";
       case "calendar":
         return "Calendar";
       case "community":
@@ -65,13 +64,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         
         <div className="hidden md:flex items-center gap-2 mr-4">
           <Button 
-            variant={activePanel === "workspace" ? "default" : "ghost"} 
+            variant={activePanel === "command-room" ? "default" : "ghost"} 
             size="sm"
-            onClick={() => onPanelChange("workspace")}
+            onClick={() => onPanelChange("command-room")}
             className="gap-1 transition-all duration-200 hover:scale-105"
           >
             <LayoutGrid className="h-4 w-4" />
-            <span>Workspace</span>
+            <span>Command Room</span>
           </Button>
           
           <Button 

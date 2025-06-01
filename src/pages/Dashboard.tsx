@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,8 +23,7 @@ import {
   Home
 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
-
-export type ActivePanel = "command-room" | "calendar" | "community" | "stage" | "worldmap" | "profile";
+import { ActivePanel } from '@/types/dashboard';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
