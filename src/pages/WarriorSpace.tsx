@@ -22,6 +22,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
@@ -137,7 +138,7 @@ const WarriorSpace = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link to="/dashboard?panel=calendar">
+                <Link to="/dashboard?tab=calendar">
                   <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
                     <Calendar className="h-4 w-4 mr-2" />
                     View Calendar
@@ -145,7 +146,7 @@ const WarriorSpace = () => {
                   </Button>
                 </Link>
                 
-                <Link to="/dashboard?panel=community">
+                <Link to="/dashboard?tab=community">
                   <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
                     <Users className="h-4 w-4 mr-2" />
                     Join Community
@@ -153,10 +154,10 @@ const WarriorSpace = () => {
                   </Button>
                 </Link>
                 
-                <Link to="/dashboard?panel=chat">
+                <Link to="/dashboard?tab=worldmap">
                   <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30">
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    Start Chat
+                    World Map
                     <ChevronRight className="h-4 w-4 ml-auto" />
                   </Button>
                 </Link>
@@ -166,10 +167,13 @@ const WarriorSpace = () => {
 
           {/* Center Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* CDC Morning Strategy Card */}
+            <CDCMorningStrategyCard />
+
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
               <TabsList className="grid w-full grid-cols-3 bg-black/40 border-purple-800/30">
                 <TabsTrigger value="daily-challenge" className="text-white data-[state=active]:bg-purple-600">
-                  Daily Quests
+                  Today's Quests
                 </TabsTrigger>
                 <TabsTrigger value="achievements" className="text-white data-[state=active]:bg-purple-600">
                   Achievements
