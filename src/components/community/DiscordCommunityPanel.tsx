@@ -9,6 +9,7 @@ import ChannelHeader from './ChannelHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import MembersList from './MembersList';
+import StageRoomPanel from '../stage/StageRoomPanel';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCommunityChat } from '@/hooks/use-community-chat';
@@ -23,6 +24,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
   const [activeServer, setActiveServer] = useState('main');
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [showMembersList, setShowMembersList] = useState(true);
+  const [viewMode, setViewMode] = useState<'chat' | 'stage'>('chat');
   const isMobile = useIsMobile();
   
   const { user } = useAuth();
@@ -55,12 +57,17 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
   };
   
   const handleChannelSelect = (channelId: string) => {
-    setActiveChannel(channelId);
+    if (channelId === 'stage-rooms') {
+      setViewMode('stage');
+    } else {
+      setViewMode('chat');
+      setActiveChannel(channelId);
+    }
   };
   
   const handleServerSelect = (serverId: string) => {
     setActiveServer(serverId);
-    // Reset to default channel when changing servers
+    setViewMode('chat');
     setActiveChannel('general');
   };
   
@@ -68,22 +75,12 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
     setShowMembersList(prev => !prev);
   };
   
-  return (
-    <div className="flex h-full">
-      {/* Server List */}
-      <ServerList 
-        activeServer={activeServer} 
-        onServerSelect={handleServerSelect} 
-      />
-      
-      {/* Channel Sidebar */}
-      <ServerSidebar 
-        activeChannel={activeChannel}
-        onChannelSelect={handleChannelSelect}
-        collapsed={isMobile}
-      />
-      
-      {/* Main Content */}
+  const renderMainContent = () => {
+    if (viewMode === 'stage') {
+      return <StageRoomPanel />;
+    }
+
+    return (
       <div className="flex flex-col flex-1 overflow-hidden">
         <ChannelHeader 
           channelName={activeChannel.replace(/-/g, ' ')}
@@ -106,12 +103,34 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
             />
           </div>
           
-          {/* Members List - Hide on mobile */}
+          {/* Members List - Hide on mobile or when in stage mode */}
           <MembersList 
             members={members} 
-            collapsed={isMobile || !showMembersList} 
+            collapsed={isMobile || !showMembersList || viewMode === 'stage'} 
           />
         </div>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="flex h-full">
+      {/* Server List */}
+      <ServerList 
+        activeServer={activeServer} 
+        onServerSelect={handleServerSelect} 
+      />
+      
+      {/* Channel Sidebar */}
+      <ServerSidebar 
+        activeChannel={viewMode === 'stage' ? 'stage-rooms' : activeChannel}
+        onChannelSelect={handleChannelSelect}
+        collapsed={isMobile}
+      />
+      
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {renderMainContent()}
       </div>
     </div>
   );
