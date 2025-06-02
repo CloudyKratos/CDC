@@ -2,34 +2,38 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WorldMap from './WorldMap';
-import CommunityGlobe from './CommunityGlobe';
+import Enhanced3DGlobe from './Enhanced3DGlobe';
 import LocationSettingsModal from './LocationSettingsModal';
-import { Globe, MapPin, Users } from 'lucide-react';
+import { Globe, MapPin, BarChart3 } from 'lucide-react';
 
 const WorldMapPanel: React.FC = () => {
   const [showLocationSettings, setShowLocationSettings] = useState(false);
 
   return (
     <div className="h-full p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <Globe className="h-6 w-6 text-blue-500" />
-        <h2 className="text-2xl font-bold">Global Community</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <Globe className="h-7 w-7 text-blue-500" />
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Global Community
+          </h2>
+        </div>
       </div>
 
-      <Tabs defaultValue="community-globe" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="community-globe" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Community Globe
+      <Tabs defaultValue="3d-globe" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
+          <TabsTrigger value="3d-globe" className="flex items-center gap-2 text-base">
+            <Globe className="h-5 w-5" />
+            3D Globe View
           </TabsTrigger>
-          <TabsTrigger value="community-stats" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Community Stats
+          <TabsTrigger value="community-stats" className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-5 w-5" />
+            Community Statistics
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="community-globe" className="mt-0">
-          <CommunityGlobe />
+        <TabsContent value="3d-globe" className="mt-0">
+          <Enhanced3DGlobe />
         </TabsContent>
         
         <TabsContent value="community-stats" className="mt-0">
