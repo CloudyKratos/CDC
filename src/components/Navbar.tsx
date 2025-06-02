@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
@@ -155,6 +156,24 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
             <Search size={18} />
           </Button>
           
+          {/* Admin Panel Button - Only show for admins */}
+          {isAdmin && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/admin">
+                    <Button variant="ghost" size="icon" className="hidden md:flex relative hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 hover:text-red-700 transition-colors rounded-full">
+                      <Shield size={18} />
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-black/90 text-white border-0 text-xs">
+                  <p>Admin Panel</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -212,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
               <DropdownMenuTrigger asChild className="hidden md:flex">
                 <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
                   <Avatar>
-                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
                     <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
                   </Avatar>
                 </Button>
