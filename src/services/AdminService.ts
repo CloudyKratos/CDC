@@ -126,86 +126,60 @@ class AdminService {
       
       const cdcEmail = 'cdcofficialeg@gmail.com';
       
-      // First check if the user exists in auth
-      const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error listing users:', authError);
-        toast.error('Failed to check for existing user');
-        return false;
-      }
-
-      const cdcUser = users.find(user => user.email === cdcEmail);
-      
-      if (!cdcUser) {
-        // User doesn't exist, create them
-        const { data: newUser, error: createError } = await supabase.auth.signUp({
-          email: cdcEmail,
-          password: 'CDC2024!SecurePassword',
-          options: {
-            data: {
-              full_name: 'CDC Official Team',
-              is_admin: true
-            }
+      // Create the user account with signup
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: cdcEmail,
+        password: 'CDC2024!SecurePassword',
+        options: {
+          data: {
+            full_name: 'CDC Official Team',
+            is_admin: true,
+            is_hidden: true
           }
-        });
+        }
+      });
 
-        if (createError) {
-          console.error('Error creating CDC user:', createError);
+      let userId: string;
+
+      if (signUpError) {
+        // If user already exists, try to get their ID and update their role
+        if (signUpError.message.includes('User already registered')) {
+          console.log('User already exists, trying to update role...');
+          
+          // Try to sign in to get the user ID
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: cdcEmail,
+            password: 'CDC2024!SecurePassword'
+          });
+
+          if (signInError || !signInData.user) {
+            console.error('Could not sign in existing user:', signInError);
+            toast.error('CDC account exists but credentials are incorrect');
+            return false;
+          }
+
+          userId = signInData.user.id;
+          
+          // Sign out immediately after getting the ID
+          await supabase.auth.signOut();
+        } else {
+          console.error('Error creating CDC user:', signUpError);
           toast.error('Failed to create CDC user account');
           return false;
         }
-
-        if (!newUser.user) {
-          toast.error('User creation failed');
-          return false;
-        }
-
-        // Ensure profile exists
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', newUser.user.id)
-          .single();
-
-        if (!profile) {
-          // Create profile
-          const { error: insertProfileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: newUser.user.id,
-              full_name: 'CDC Official Team',
-              username: 'cdc_official'
-            });
-
-          if (insertProfileError) {
-            console.error('Error creating profile:', insertProfileError);
-          }
-        }
-
-        // Assign admin role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: newUser.user.id,
-            role: 'admin'
-          });
-
-        if (roleError) {
-          console.error('Error assigning admin role:', roleError);
-          toast.error('Failed to assign admin role');
-          return false;
-        }
-
-        toast.success('cdcofficialeg@gmail.com has been created and set up as admin successfully');
-        return true;
+      } else if (signUpData.user) {
+        userId = signUpData.user.id;
+        console.log('Created new CDC user:', userId);
+      } else {
+        toast.error('User creation failed');
+        return false;
       }
 
-      // User exists, ensure profile and role are set up correctly
+      // Ensure profile exists
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('id', cdcUser.id)
+        .eq('id', userId)
         .single();
 
       if (!profile) {
@@ -213,7 +187,7 @@ class AdminService {
         const { error: insertProfileError } = await supabase
           .from('profiles')
           .insert({
-            id: cdcUser.id,
+            id: userId,
             full_name: 'CDC Official Team',
             username: 'cdc_official'
           });
@@ -227,7 +201,7 @@ class AdminService {
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert({
-          user_id: cdcUser.id,
+          user_id: userId,
           role: 'admin'
         });
 

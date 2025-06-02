@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Crown, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Crown, CheckCircle, AlertTriangle, Loader2, LogIn } from 'lucide-react';
 import AdminService from '@/services/AdminService';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const CDCSetupPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -64,11 +65,29 @@ const CDCSetupPanel = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {setupComplete ? (
-          <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="text-green-800 font-medium">
-              CDC admin account has been set up successfully!
-            </span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-green-800 font-medium">
+                CDC admin account has been set up successfully!
+              </span>
+            </div>
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">Next Steps:</h4>
+              <p className="text-sm text-blue-700 mb-3">
+                Now you can log in with the CDC admin credentials:
+              </p>
+              <ul className="text-sm text-blue-700 space-y-1 mb-3">
+                <li>• Email: cdcofficialeg@gmail.com</li>
+                <li>• Password: CDC2024!SecurePassword</li>
+              </ul>
+              <Link to="/login">
+                <Button className="w-full">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Go to Login Page
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -128,13 +147,21 @@ const CDCSetupPanel = () => {
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">Important Notes:</h4>
+              <h4 className="font-medium text-blue-800 mb-2">Login Credentials:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• The account will use email: cdcofficialeg@gmail.com</li>
-                <li>• Default password: CDC2024!SecurePassword</li>
-                <li>• The account will have full admin privileges</li>
+                <li>• Email: cdcofficialeg@gmail.com</li>
+                <li>• Password: CDC2024!SecurePassword</li>
+                <li>• After setup, use these credentials to log in</li>
                 <li>• You can change the password after logging in</li>
               </ul>
+              <div className="mt-3">
+                <Link to="/login">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Go to Login Page
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         )}
