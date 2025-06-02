@@ -120,6 +120,96 @@ class AdminService {
     }
   }
 
+  async setupCDCAsAdmin(): Promise<boolean> {
+    try {
+      console.log("Setting up cdcofficialeg@gmail.com as admin account...");
+      
+      const cdcEmail = 'cdcofficialeg@gmail.com';
+      
+      // First check if the user exists in the database
+      const { data: userAuth, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error listing users:', authError);
+        toast.error('Failed to check for existing user');
+        return false;
+      }
+
+      let cdcUser = userAuth.users.find(user => user.email === cdcEmail);
+      
+      if (!cdcUser) {
+        // User doesn't exist, create them
+        const { data: newUser, error: createError } = await supabase.auth.signUp({
+          email: cdcEmail,
+          password: 'CDC2024!SecurePassword',
+          options: {
+            data: {
+              full_name: 'CDC Official Team',
+              is_admin: true
+            }
+          }
+        });
+
+        if (createError) {
+          console.error('Error creating CDC user:', createError);
+          toast.error('Failed to create CDC user account');
+          return false;
+        }
+
+        if (!newUser.user) {
+          toast.error('User creation failed');
+          return false;
+        }
+
+        cdcUser = newUser.user;
+      }
+
+      // Ensure profile exists
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', cdcUser.id)
+        .single();
+
+      if (!profile) {
+        // Create profile
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: cdcUser.id,
+            full_name: 'CDC Official Team',
+            username: 'cdc_official'
+          });
+
+        if (insertProfileError) {
+          console.error('Error creating profile:', insertProfileError);
+        }
+      }
+
+      // Assign admin role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: cdcUser.id,
+          role: 'admin'
+        });
+
+      if (roleError) {
+        console.error('Error assigning admin role:', roleError);
+        toast.error('Failed to assign admin role');
+        return false;
+      }
+
+      toast.success('cdcofficialeg@gmail.com has been set up as admin successfully');
+      return true;
+
+    } catch (error) {
+      console.error('Error in setupCDCAsAdmin:', error);
+      toast.error('Failed to setup CDC admin account');
+      return false;
+    }
+  }
+
   async checkCDCAccountExists(): Promise<boolean> {
     try {
       // First check if we can authenticate with the CDC credentials
