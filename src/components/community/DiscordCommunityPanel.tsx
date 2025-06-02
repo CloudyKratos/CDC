@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import CommunityService from '@/services/CommunityService';
-import { Message } from '@/types/chat';
+import { Message, ChatChannel } from '@/types/chat';
 import ServerList from './ServerList';
 import ServerSidebar from './ServerSidebar';
 import ChannelHeader from './ChannelHeader';
@@ -12,7 +12,6 @@ import MembersList from './MembersList';
 import StageRoomPanel from '../stage/StageRoomPanel';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCommunityChat } from '@/hooks/use-community-chat';
 
 interface DiscordCommunityPanelProps {
   defaultChannel?: string;
@@ -25,22 +24,75 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [showMembersList, setShowMembersList] = useState(true);
   const [viewMode, setViewMode] = useState<'chat' | 'stage'>('chat');
+  const [channels, setChannels] = useState<ChatChannel[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const isMobile = useIsMobile();
-  
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage } = useCommunityChat(activeChannel);
-  
-  const members = [
-    { id: '1', name: 'Alex Johnson', avatar: 'Alex', status: 'online' as const, role: 'Admin' as const },
-    { id: '2', name: 'Sarah Miller', avatar: 'Sarah', status: 'online' as const, role: 'Moderator' as const },
-    { id: '3', name: 'James Wilson', avatar: 'James', status: 'online' as const },
-    { id: '4', name: 'Emily Davis', avatar: 'Emily', status: 'idle' as const },
-    { id: '5', name: 'Michael Brown', avatar: 'Michael', status: 'dnd' as const },
-    { id: '6', name: 'Olivia Taylor', avatar: 'Olivia', status: 'offline' as const },
-    { id: '7', name: 'William Clark', avatar: 'William', status: 'offline' as const },
-    { id: '8', name: 'Sophia Lee', avatar: 'Sophia', status: 'online' as const, game: 'Visual Studio Code' }
-  ];
-  
+
+  // Load channels on component mount
+  useEffect(() => {
+    const loadChannels = async () => {
+      try {
+        const channelsData = await CommunityService.getChannels();
+        setChannels(channelsData);
+      } catch (error) {
+        console.error('Error loading channels:', error);
+        toast.error('Failed to load channels');
+      }
+    };
+
+    loadChannels();
+  }, []);
+
+  // Load messages and set up subscription when channel changes
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    
+    const initializeChat = async () => {
+      if (!user?.id || viewMode !== 'chat') return;
+      
+      setIsLoading(true);
+      
+      try {
+        // Join the channel
+        await CommunityService.joinChannel(activeChannel, user.id);
+        
+        // Load existing messages
+        const messagesData = await CommunityService.getMessages(activeChannel);
+        setMessages(messagesData);
+        
+        // Set up realtime subscription
+        unsubscribe = CommunityService.subscribeToMessages(
+          activeChannel, 
+          (newMessage) => {
+            setMessages(prev => {
+              // Check if message is already in the list
+              const exists = prev.some(m => m.id === newMessage.id);
+              if (exists) return prev;
+              
+              return [...prev, newMessage];
+            });
+          }
+        );
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        toast.error('Failed to load messages');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeChat();
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user?.id, activeChannel, viewMode]);
+
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
@@ -48,7 +100,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
     }
     
     try {
-      await sendMessage(content);
+      await CommunityService.sendMessage(content, activeChannel);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
@@ -74,6 +126,11 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
   const toggleMembersList = () => {
     setShowMembersList(prev => !prev);
   };
+
+  // Sample members for now - in production this would come from the database
+  const members = [
+    { id: '1', name: user?.name || 'You', avatar: user?.name || 'You', status: 'online' as const, role: 'Member' as const },
+  ];
   
   const renderMainContent = () => {
     if (viewMode === 'stage') {
@@ -84,7 +141,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
       <div className="flex flex-col flex-1 overflow-hidden">
         <ChannelHeader 
           channelName={activeChannel.replace(/-/g, ' ')}
-          memberCount={members.filter(m => m.status !== 'offline').length}
+          memberCount={members.length}
           onToggleMembersList={toggleMembersList}
           showMembersList={showMembersList}
         />
@@ -126,6 +183,7 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
         activeChannel={viewMode === 'stage' ? 'stage-rooms' : activeChannel}
         onChannelSelect={handleChannelSelect}
         collapsed={isMobile}
+        channels={channels}
       />
       
       {/* Main Content */}

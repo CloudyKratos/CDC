@@ -1,281 +1,245 @@
-import { Observable } from 'rxjs';
-import { 
-  ChatChannel, 
-  ChatMessage, 
-  ChatUser, 
-  Message, 
-  MessageType, 
-  ChannelType 
-} from '@/types/chat';
+
+import { supabase } from '@/integrations/supabase/client';
+import { Message, ChatChannel, ChannelType } from '@/types/chat';
+
+export interface CommunityMessage {
+  id: string;
+  channel_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+  sender?: {
+    id: string;
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+}
+
+export interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
 
 class CommunityService {
-  // Mock data for testing
-  private channels: ChatChannel[] = [
-    {
-      id: 'general',
-      name: 'General',
-      type: ChannelType.PUBLIC,
-      description: 'General discussion about anything',
-      members: [],
-      unreadCount: 0,
-      lastMessage: 'Welcome to the general channel!'
-    },
-    {
-      id: 'random',
-      name: 'Random',
-      type: ChannelType.PUBLIC,
-      description: 'Random discussions and fun stuff',
-      members: [],
-      unreadCount: 0,
-      lastMessage: 'Hello random channel!'
-    },
-    {
-      id: 'support',
-      name: 'Support',
-      type: ChannelType.PUBLIC,
-      description: 'Get help and support here',
-      members: [],
-      unreadCount: 0,
-      lastMessage: 'Need help? Ask here!'
+  // Get all available channels
+  async getChannels(): Promise<ChatChannel[]> {
+    const { data: channels, error } = await supabase
+      .from('channels')
+      .select('*')
+      .eq('type', 'public')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching channels:', error);
+      throw error;
     }
-  ];
 
-  private messages: Record<string, ChatMessage[]> = {
-    'general': [
-      {
-        id: '1',
-        text: 'Welcome to the general channel!',
-        content: 'Welcome to the general channel!',
-        timestamp: new Date().toISOString(),
-        sender: {
-          id: 'system',
-          name: 'System',
-          avatar: '',
-          status: 'online'
-        },
-        channelId: 'general',
-        channelType: ChannelType.PUBLIC
-      },
-    ],
-    'random': [
-      {
-        id: '2',
-        text: 'Hello random channel!',
-        content: 'Hello random channel!',
-        timestamp: new Date().toISOString(),
-        sender: {
-          id: 'system',
-          name: 'System',
-          avatar: '',
-          status: 'online'
-        },
-        channelId: 'random',
-        channelType: ChannelType.PUBLIC
-      },
-    ],
-    'support': [
-      {
-        id: '3',
-        text: 'Need help? Ask here!',
-        content: 'Need help? Ask here!',
-        timestamp: new Date().toISOString(),
-        sender: {
-          id: 'system',
-          name: 'System',
-          avatar: '',
-          status: 'online'
-        },
-        channelId: 'support',
-        channelType: ChannelType.PUBLIC
-      },
-    ]
-  };
-
-  private onlineUsers: ChatUser[] = [
-    {
-      id: 'user1',
-      name: 'John Doe',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      status: 'online'
-    },
-    {
-      id: 'user2',
-      name: 'Jane Smith',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
-      status: 'online'
-    },
-    {
-      id: 'user3',
-      name: 'Bob Johnson',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
-      status: 'online'
-    },
-    {
-      id: 'user4',
-      name: 'Alice Williams',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-      status: 'online'
-    }
-  ];
-
-  // Join a channel and mark user as online
-  public joinChannel(channelId: string, userId: string): Promise<void> {
-    return new Promise((resolve) => {
-      // Add user to online users if not already there
-      if (!this.onlineUsers.some(user => user.id === userId)) {
-        this.onlineUsers.push({
-          id: userId,
-          name: `User ${userId.substring(0, 4)}`,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-          status: 'online'
-        });
-      }
-      
-      // Simulate network delay
-      setTimeout(() => {
-        resolve();
-      }, 500);
-    });
-  }
-
-  // Get all channels
-  public getChannels(): Promise<ChatChannel[]> {
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        resolve(this.channels);
-      }, 500);
-    });
+    return channels.map(channel => ({
+      id: channel.id,
+      name: channel.name,
+      type: ChannelType.PUBLIC,
+      members: [], // Will be populated separately if needed
+      description: channel.description
+    }));
   }
 
   // Get messages for a specific channel
-  public getMessages(channelId: string): Promise<Message[]> {
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        const channelMessages = this.messages[channelId] || [];
-        
-        // Convert to the Message interface
-        const convertedMessages: Message[] = channelMessages.map(msg => ({
-          id: msg.id,
-          content: msg.text,
-          created_at: msg.timestamp,
-          sender_id: msg.sender.id,
-          sender: {
-            id: msg.sender.id,
-            username: msg.sender.name || '',
-            full_name: msg.sender.name || '',
-            avatar_url: msg.sender.avatar || ''
-          }
-        }));
-        
-        resolve(convertedMessages);
-      }, 500);
-    });
-  }
+  async getMessages(channelName: string): Promise<Message[]> {
+    // First get the channel ID by name
+    const { data: channel, error: channelError } = await supabase
+      .from('channels')
+      .select('id')
+      .eq('name', channelName)
+      .single();
 
-  // Subscribe to new messages in a channel
-  public subscribeToMessages(channelId: string, onMessage: (message: Message) => void): () => void {
-    let intervalId: NodeJS.Timeout | null = null;
-    
-    // Check for new messages every 5 seconds (simulating real-time updates)
-    intervalId = setInterval(() => {
-      // Do nothing here, just keeping the interval active
-    }, 5000);
-    
-    // Return unsubscribe function
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }
+    if (channelError || !channel) {
+      console.error('Error finding channel:', channelError);
+      return [];
+    }
 
-  // Get online users for a channel
-  public getChannelOnlineUsers(channelId: string): Promise<ChatUser[]> {
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        resolve(this.onlineUsers);
-      }, 500);
-    });
+    const { data: messages, error } = await supabase
+      .from('community_messages')
+      .select(`
+        *,
+        sender:profiles(id, username, full_name, avatar_url)
+      `)
+      .eq('channel_id', channel.id)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching messages:', error);
+      throw error;
+    }
+
+    return messages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      created_at: msg.created_at,
+      sender_id: msg.sender_id,
+      sender: msg.sender
+    }));
   }
 
   // Send a message to a channel
-  public sendMessage(content: string): Promise<Message> {
-    return new Promise((resolve) => {
-      const newMessage: Message = {
-        id: `msg-${Date.now()}`,
-        content,
-        created_at: new Date().toISOString(),
-        sender_id: 'current-user',
-        sender: {
-          id: 'current-user',
-          username: 'Current User',
-          full_name: 'Current User',
-          avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=current-user'
+  async sendMessage(content: string, channelName: string = 'general'): Promise<Message> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to send messages');
+    }
+
+    // Get channel ID
+    const { data: channel, error: channelError } = await supabase
+      .from('channels')
+      .select('id')
+      .eq('name', channelName)
+      .single();
+
+    if (channelError || !channel) {
+      throw new Error('Channel not found');
+    }
+
+    // Auto-join the user to the channel if not already a member
+    await this.joinChannel(channelName, user.id);
+
+    const { data: message, error } = await supabase
+      .from('community_messages')
+      .insert({
+        channel_id: channel.id,
+        sender_id: user.id,
+        content: content.trim()
+      })
+      .select(`
+        *,
+        sender:profiles(id, username, full_name, avatar_url)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+
+    return {
+      id: message.id,
+      content: message.content,
+      created_at: message.created_at,
+      sender_id: message.sender_id,
+      sender: message.sender
+    };
+  }
+
+  // Join a channel
+  async joinChannel(channelName: string, userId: string): Promise<void> {
+    // Get channel ID
+    const { data: channel, error: channelError } = await supabase
+      .from('channels')
+      .select('id')
+      .eq('name', channelName)
+      .single();
+
+    if (channelError || !channel) {
+      throw new Error('Channel not found');
+    }
+
+    // Insert membership (will be ignored if already exists due to UNIQUE constraint)
+    const { error } = await supabase
+      .from('channel_members')
+      .insert({
+        channel_id: channel.id,
+        user_id: userId
+      });
+
+    // Ignore unique constraint violations (user already in channel)
+    if (error && !error.message.includes('duplicate key')) {
+      console.error('Error joining channel:', error);
+      throw error;
+    }
+  }
+
+  // Subscribe to new messages in a channel
+  subscribeToMessages(channelName: string, callback: (message: Message) => void): () => void {
+    let channelId: string;
+
+    // Get channel ID first
+    supabase
+      .from('channels')
+      .select('id')
+      .eq('name', channelName)
+      .single()
+      .then(({ data: channel, error }) => {
+        if (error || !channel) {
+          console.error('Error finding channel for subscription:', error);
+          return;
         }
-      };
-      
-      // Simulate network delay
-      setTimeout(() => {
-        resolve(newMessage);
-      }, 500);
-    });
+        
+        channelId = channel.id;
+      });
+
+    const subscription = supabase
+      .channel('community_messages_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        async (payload) => {
+          const newMessage = payload.new as CommunityMessage;
+          
+          // Fetch sender details
+          const { data: sender } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', newMessage.sender_id)
+            .single();
+
+          callback({
+            id: newMessage.id,
+            content: newMessage.content,
+            created_at: newMessage.created_at,
+            sender_id: newMessage.sender_id,
+            sender: sender
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }
 
   // Delete a message
-  public deleteMessage(messageId: string): Promise<void> {
-    return new Promise((resolve) => {
-      // In a real app, we would make an API call to delete the message
-      // For now, just resolve after a short delay to simulate success
-      setTimeout(() => {
-        resolve();
-      }, 300);
-    });
+  async deleteMessage(messageId: string): Promise<void> {
+    const { error } = await supabase
+      .from('community_messages')
+      .update({ is_deleted: true })
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('Error deleting message:', error);
+      throw error;
+    }
   }
 
-  // Add a reaction to a message
-  public addReaction(messageId: string, reaction: string): Promise<void> {
-    return new Promise((resolve) => {
-      // In a real app, we would make an API call to add the reaction
-      // For now, just resolve after a short delay to simulate success
-      setTimeout(() => {
-        resolve();
-      }, 300);
-    });
-  }
-
-  // Get current community stats
-  public getCommunityStats(): Promise<{
-    total_members: number;
-    active_now: number;
-    messages_today: number;
-    total_channels: number;
-  }> {
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        resolve({
-          total_members: 128,
-          active_now: 42,
-          messages_today: 356,
-          total_channels: 8
-        });
-      }, 500);
-    });
-  }
-
-  // Get community members
-  public getCommunityMembers(): Promise<ChatUser[]> {
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        resolve(this.onlineUsers);
-      }, 500);
-    });
+  // Get online users in a channel
+  async getChannelOnlineUsers(channelName: string): Promise<any[]> {
+    // This would need to be implemented with presence tracking
+    // For now, return empty array
+    return [];
   }
 }
 
-// Export singleton instance
 export default new CommunityService();

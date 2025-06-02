@@ -76,16 +76,13 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     }
     
     try {
-      const newMessage = await CommunityService.sendMessage(content);
-      
-      // Optimistically add the message to the UI
-      setMessages(prev => [...prev, newMessage]);
+      await CommunityService.sendMessage(content, channelName);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
       throw error;
     }
-  }, [user?.id]);
+  }, [user?.id, channelName]);
   
   // Delete a message
   const deleteMessage = useCallback(async (messageId: string) => {
@@ -121,7 +118,7 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     if (!user?.id) return;
     
     try {
-      // This would need backend support 
+      // This would need backend support for reactions
       toast.success(`Added reaction ${reaction}`);
     } catch (error) {
       console.error('Error adding reaction:', error);
