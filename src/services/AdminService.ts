@@ -126,8 +126,8 @@ class AdminService {
       
       const cdcEmail = 'cdcofficialeg@gmail.com';
       
-      // First check if the user exists in the database
-      const { data: userAuth, error: authError } = await supabase.auth.admin.listUsers();
+      // First check if the user exists in auth
+      const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
         console.error('Error listing users:', authError);
@@ -135,7 +135,7 @@ class AdminService {
         return false;
       }
 
-      const cdcUser = userAuth.users.find(user => user.email === cdcEmail);
+      const cdcUser = users.find(user => user.email === cdcEmail);
       
       if (!cdcUser) {
         // User doesn't exist, create them

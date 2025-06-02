@@ -6,13 +6,36 @@ import { Badge } from '@/components/ui/badge';
 import { Crown, Shield, Users, Calendar, BarChart3, Settings, AlertTriangle } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import CDCAccountManager from './CDCAccountManager';
+import CDCSetupPanel from './CDCSetupPanel';
 import UserManagementPanel from './UserManagementPanel';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import CalendarPanel from '@/components/CalendarPanel';
 
 const EnhancedAdminPanel = () => {
-  const { currentRole } = useRole();
+  const { currentRole, isLoading } = useRole();
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Show CDC setup if user doesn't have admin role
+  if (currentRole !== 'admin') {
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Setup Required</h1>
+          <p className="text-gray-600">Set up the CDC admin account to access the admin panel</p>
+        </div>
+        <CDCSetupPanel />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
