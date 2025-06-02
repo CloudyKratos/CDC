@@ -65,11 +65,14 @@ class CommunityService {
       return [];
     }
 
+    // Get messages with sender information
     const { data: messages, error } = await supabase
       .from('community_messages')
       .select(`
-        *,
-        sender:profiles(id, username, full_name, avatar_url)
+        id,
+        content,
+        created_at,
+        sender_id
       `)
       .eq('channel_id', channel.id)
       .eq('is_deleted', false)
@@ -80,12 +83,32 @@ class CommunityService {
       throw error;
     }
 
+    // Get sender details separately to avoid join issues
+    const senderIds = [...new Set(messages.map(msg => msg.sender_id))];
+    const { data: senders } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', senderIds);
+
+    // Create a map of senders for quick lookup
+    const sendersMap = new Map();
+    if (senders) {
+      senders.forEach(sender => {
+        sendersMap.set(sender.id, sender);
+      });
+    }
+
     return messages.map(msg => ({
       id: msg.id,
       content: msg.content,
       created_at: msg.created_at,
       sender_id: msg.sender_id,
-      sender: msg.sender
+      sender: sendersMap.get(msg.sender_id) || {
+        id: msg.sender_id,
+        username: 'Unknown User',
+        full_name: 'Unknown User',
+        avatar_url: null
+      }
     }));
   }
 
@@ -118,10 +141,7 @@ class CommunityService {
         sender_id: user.id,
         content: content.trim()
       })
-      .select(`
-        *,
-        sender:profiles(id, username, full_name, avatar_url)
-      `)
+      .select('id, content, created_at, sender_id')
       .single();
 
     if (error) {
@@ -129,12 +149,24 @@ class CommunityService {
       throw error;
     }
 
+    // Get sender details
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
     return {
       id: message.id,
       content: message.content,
       created_at: message.created_at,
       sender_id: message.sender_id,
-      sender: message.sender
+      sender: sender || {
+        id: user.id,
+        username: 'Unknown User',
+        full_name: 'Unknown User',
+        avatar_url: null
+      }
     };
   }
 
@@ -210,7 +242,12 @@ class CommunityService {
             content: newMessage.content,
             created_at: newMessage.created_at,
             sender_id: newMessage.sender_id,
-            sender: sender
+            sender: sender || {
+              id: newMessage.sender_id,
+              username: 'Unknown User',
+              full_name: 'Unknown User',
+              avatar_url: null
+            }
           });
         }
       )
