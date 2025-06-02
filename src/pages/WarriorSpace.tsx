@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,8 @@ import {
   Star,
   Flame,
   Zap,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
@@ -28,29 +29,103 @@ import OptionalAddOns from "@/components/home/OptionalAddOns";
 const WarriorSpace = () => {
   const { user } = useAuth();
   const [activeQuest, setActiveQuest] = useState("daily-challenge");
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    level: 1,
+    xp: 0,
+    nextLevelXp: 100,
+    streak: 0,
+    completedQuests: 0,
+    rank: "New Warrior"
+  });
+  const [dailyQuests, setDailyQuests] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
 
-  const stats = {
-    level: 15,
-    xp: 2450,
-    nextLevelXp: 3000,
-    streak: 7,
-    completedQuests: 42,
-    rank: "Elite Warrior"
-  };
+  // Load user's actual data from database
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (user) {
+        setIsLoading(true);
+        
+        // In a real implementation, these would fetch from your database
+        // const userStats = await fetchUserStatsFromDB(user.id);
+        // const userQuests = await fetchUserQuestsFromDB(user.id);
+        // const userAchievements = await fetchUserAchievementsFromDB(user.id);
+        
+        // For now, start with fresh data for new users
+        setStats({
+          level: 1,
+          xp: 0,
+          nextLevelXp: 100,
+          streak: 0,
+          completedQuests: 0,
+          rank: "New Warrior"
+        });
+        
+        setDailyQuests([
+          { id: 1, title: "Complete your first morning routine", xp: 50, completed: false },
+          { id: 2, title: "Try a 25-minute focus session", xp: 75, completed: false },
+          { id: 3, title: "Connect with the community", xp: 30, completed: false },
+          { id: 4, title: "Write your evening reflection", xp: 40, completed: false }
+        ]);
 
-  const dailyQuests = [
-    { id: 1, title: "Complete Morning Routine", xp: 50, completed: true },
-    { id: 2, title: "Focus Session (25 min)", xp: 75, completed: true },
-    { id: 3, title: "Connect with Team", xp: 30, completed: false },
-    { id: 4, title: "Evening Reflection", xp: 40, completed: false }
-  ];
+        setAchievements([
+          { title: "First Steps", description: "Complete your first task", icon: Target, earned: false },
+          { title: "Team Player", description: "Make first community post", icon: Users, earned: false },
+          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: false },
+          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: false }
+        ]);
+      }
+      setIsLoading(false);
+    };
 
-  const achievements = [
-    { title: "Week Warrior", description: "7-day streak", icon: Flame, earned: true },
-    { title: "Team Player", description: "50 team interactions", icon: Users, earned: true },
-    { title: "Focus Master", description: "100 focus sessions", icon: Target, earned: false },
-    { title: "Quest Crusher", description: "Complete 100 quests", icon: Trophy, earned: false }
-  ];
+    loadUserData();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="border-b border-purple-800/30 bg-black/20 backdrop-blur-sm">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="icon" className="text-purple-300 hover:text-white">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Sword className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-white">Warrior's Space</h1>
+                    <p className="text-purple-300 text-sm">Loading your command center...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-black/40 border-purple-800/30 rounded-lg animate-pulse" />
+              ))}
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-64 bg-black/40 border-purple-800/30 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isNewUser = stats.completedQuests === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -70,7 +145,9 @@ const WarriorSpace = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Warrior's Space</h1>
-                  <p className="text-purple-300 text-sm">Your personal command center</p>
+                  <p className="text-purple-300 text-sm">
+                    {isNewUser ? "Welcome to your journey!" : "Your personal command center"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -90,6 +167,22 @@ const WarriorSpace = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {isNewUser && (
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border-purple-700/30 text-white backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 text-yellow-400" />
+                  Welcome to Your Warrior Journey!
+                </CardTitle>
+                <CardDescription className="text-purple-200">
+                  You're about to embark on a transformative journey. Complete your first quest below to begin building your legacy.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Stats & Optional Add-ons */}
           <div className="space-y-6">
@@ -177,7 +270,7 @@ const WarriorSpace = () => {
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
               <TabsList className="grid w-full grid-cols-3 bg-black/40 border-purple-800/30">
                 <TabsTrigger value="daily-challenge" className="text-white data-[state=active]:bg-purple-600">
-                  Today's Quests
+                  {isNewUser ? "Start Here" : "Today's Quests"}
                 </TabsTrigger>
                 <TabsTrigger value="achievements" className="text-white data-[state=active]:bg-purple-600">
                   Achievements
@@ -192,10 +285,13 @@ const WarriorSpace = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5 text-green-400" />
-                      Today's Quests
+                      {isNewUser ? "Your First Quests" : "Today's Quests"}
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      Complete your daily challenges to earn XP and maintain your streak
+                      {isNewUser 
+                        ? "Complete these quests to start your warrior journey and earn your first XP"
+                        : "Complete your daily challenges to earn XP and maintain your streak"
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -237,7 +333,10 @@ const WarriorSpace = () => {
                       Achievements
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      Unlock badges and rewards for your accomplishments
+                      {isNewUser 
+                        ? "Unlock these badges as you complete your first milestones"
+                        : "Track your accomplishments and unlock special rewards"
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -279,7 +378,10 @@ const WarriorSpace = () => {
                       Your Journey
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      Track your progress and see how far you've come
+                      {isNewUser 
+                        ? "Start your journey by completing your first quest"
+                        : "Track your progress and see how far you've come"
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -288,7 +390,10 @@ const WarriorSpace = () => {
                       <div className="text-purple-300 mb-4">Current Level</div>
                       <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="w-full max-w-md mx-auto" />
                       <div className="text-sm text-purple-300 mt-2">
-                        {stats.nextLevelXp - stats.xp} XP to next level
+                        {isNewUser 
+                          ? "Complete your first quest to start earning XP"
+                          : `${stats.nextLevelXp - stats.xp} XP to next level`
+                        }
                       </div>
                     </div>
                   </CardContent>

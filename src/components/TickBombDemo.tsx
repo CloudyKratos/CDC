@@ -2,27 +2,50 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BrainCircuit, Sunrise, SunMedium, Waves, MoonStar, Trophy, Sparkles, Star } from "lucide-react";
+import { BrainCircuit, Sunrise, SunMedium, Waves, MoonStar, Trophy, Sparkles, Star, Target } from "lucide-react";
 import AccountabilityTimeBomb from "./AccountabilityTimeBomb";
 import { TaskType } from "@/types/workspace";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TickBombDemoProps {
   className?: string;
 }
 
 const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("morning");
   const [completedBombs, setCompletedBombs] = useState<Record<string, boolean>>({});
-  const [streaks, setStreaks] = useState<Record<string, number>>({
-    morning: 3,
-    meditation: 5,
-    workout: 1,
-    evening: 2
-  });
-  const [totalPoints, setTotalPoints] = useState(450);
+  const [streaks, setStreaks] = useState<Record<string, number>>({});
+  const [totalPoints, setTotalPoints] = useState(0);
   const [showRewards, setShowRewards] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Load user's actual streak data from database
+  useEffect(() => {
+    const loadUserStreaks = async () => {
+      if (user) {
+        setIsLoading(true);
+        // In a real implementation, this would fetch from your database
+        // const userStreaks = await fetchUserStreaksFromDB(user.id);
+        // setStreaks(userStreaks);
+        // setTotalPoints(await fetchUserPointsFromDB(user.id));
+        
+        // For now, start with empty streaks for new users
+        setStreaks({
+          morning: 0,
+          meditation: 0,
+          workout: 0,
+          evening: 0
+        });
+        setTotalPoints(0);
+      }
+      setIsLoading(false);
+    };
+
+    loadUserStreaks();
+  }, [user]);
   
   // Define different bomb types
   const timeBombs = [
@@ -105,6 +128,8 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
     const pointsEarned = calculatePoints(bombId);
     setTotalPoints(prev => prev + pointsEarned);
     
+    // TODO: Save to database
+    
     toast.success(`${bombId.charAt(0).toUpperCase() + bombId.slice(1)} bomb completed!`, {
       description: `You earned ${pointsEarned} points and increased your streak to ${(streaks[bombId] || 0) + 1} days.`,
       duration: 5000,
@@ -118,11 +143,43 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
       [bombId]: 0
     }));
     
+    // TODO: Update database
+    
     toast.error(`${bombId.charAt(0).toUpperCase() + bombId.slice(1)} bomb detonated!`, {
       description: "Your streak has been reset. Try again tomorrow.",
       duration: 5000,
     });
   };
+
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-lg flex items-center">
+                <SunMedium className="h-5 w-5 mr-2 text-amber-500" />
+                Accountability Time Bombs
+              </CardTitle>
+              <CardDescription>
+                Loading your accountability habits...
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Check if user has no streaks yet
+  const hasNoStreaks = Object.values(streaks).every(streak => streak === 0);
   
   return (
     <Card className={className}>
@@ -134,7 +191,10 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
               Accountability Time Bombs
             </CardTitle>
             <CardDescription>
-              These timed activities keep you accountable to your daily habits
+              {hasNoStreaks 
+                ? "Start building your daily habits with timed accountability sessions"
+                : "Keep your momentum going with these timed activities"
+              }
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
@@ -159,6 +219,18 @@ const TickBombDemo: React.FC<TickBombDemoProps> = ({ className }) => {
         </div>
       </CardHeader>
       <CardContent>
+        {hasNoStreaks && (
+          <div className="text-center py-6 mb-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <Target className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-amber-800 dark:text-amber-300 mb-2">
+              Ready to build your first habit?
+            </h3>
+            <p className="text-amber-700 dark:text-amber-400 text-sm">
+              Choose a category below and start your first accountability session
+            </p>
+          </div>
+        )}
+
         <Tabs defaultValue="morning" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-4 mb-4">
             {timeBombs.map(bomb => (

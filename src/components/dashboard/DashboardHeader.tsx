@@ -1,29 +1,25 @@
 
-import React from "react";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Bell, 
   Menu, 
-  LayoutGrid, 
-  Calendar, 
-  Users, 
-  Video, 
-  Search,
+  Bell, 
+  Shield,
+  Calendar,
+  Users,
+  Video,
+  Map,
   User,
-  Map
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/contexts/AuthContext";
-import { ActivePanel } from "@/types/dashboard";
+  LayoutGrid
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRole } from '@/contexts/RoleContext';
+import { Link } from 'react-router-dom';
+import { ActivePanel } from '@/types/dashboard';
 
-export interface DashboardHeaderProps {
+interface DashboardHeaderProps {
   activePanel: ActivePanel;
   onOpenMobileMenu: () => void;
   onPanelChange: (panel: ActivePanel) => void;
@@ -35,9 +31,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onPanelChange
 }) => {
   const { user } = useAuth();
+  const { currentRole } = useRole();
+  const isAdmin = currentRole === 'admin';
 
-  const renderPanelTitle = () => {
-    switch (activePanel) {
+  const getPanelTitle = (panel: ActivePanel) => {
+    switch (panel) {
       case "command-room":
         return "Command Room";
       case "calendar":
@@ -47,7 +45,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       case "stage":
         return "Stage Call";
       case "worldmap":
-        return "Global Community";
+        return "World Map";
       case "profile":
         return "Profile";
       default:
@@ -55,94 +53,101 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
 
+  const getPanelIcon = (panel: ActivePanel) => {
+    switch (panel) {
+      case "command-room":
+        return <LayoutGrid className="h-5 w-5" />;
+      case "calendar":
+        return <Calendar className="h-5 w-5" />;
+      case "community":
+        return <Users className="h-5 w-5" />;
+      case "stage":
+        return <Video className="h-5 w-5" />;
+      case "worldmap":
+        return <Map className="h-5 w-5" />;
+      case "profile":
+        return <User className="h-5 w-5" />;
+      default:
+        return <LayoutGrid className="h-5 w-5" />;
+    }
+  };
+
   return (
-    <header className="border-b bg-gradient-to-r from-background to-muted/30 backdrop-blur-sm">
-      <div className="flex h-16 items-center px-4 lg:px-6">
-        <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onOpenMobileMenu}>
-          <Menu className="h-6 w-6" />
-        </Button>
-        
-        <div className="hidden md:flex items-center gap-2 mr-6">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm">
+      <div className="flex items-center justify-between px-4 md:px-6 py-4">
+        {/* Left side - Panel info and mobile menu */}
+        <div className="flex items-center gap-4">
           <Button 
-            variant={activePanel === "command-room" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("command-room")}
-            className="gap-2 transition-all duration-200 hover:scale-105"
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden"
+            onClick={onOpenMobileMenu}
           >
-            <LayoutGrid className="h-4 w-4" />
-            <span>Command Room</span>
+            <Menu className="h-5 w-5" />
           </Button>
           
-          <Button 
-            variant={activePanel === "calendar" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("calendar")}
-            className="gap-2 transition-all duration-200 hover:scale-105"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Calendar</span>
-          </Button>
-          
-          <Button 
-            variant={activePanel === "community" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("community")}
-            className="gap-2 transition-all duration-200 hover:scale-105"
-          >
-            <Users className="h-4 w-4" />
-            <span>Community</span>
-          </Button>
-          
-          <Button 
-            variant={activePanel === "stage" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("stage")}
-            className="gap-2 transition-all duration-200 hover:scale-105"
-          >
-            <Video className="h-4 w-4" />
-            <span>Stage</span>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-600/10 text-blue-600 dark:text-blue-400">
+              {getPanelIcon(activePanel)}
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                {getPanelTitle(activePanel)}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Welcome back, {user?.name || user?.email?.split('@')[0] || 'Warrior'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - User actions */}
+        <div className="flex items-center gap-3">
+          {/* Notifications - Empty for new users */}
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            {/* No notification badge for new users */}
           </Button>
 
-          <Button 
-            variant={activePanel === "worldmap" ? "default" : "ghost"} 
-            size="sm"
-            onClick={() => onPanelChange("worldmap")}
-            className="gap-2 transition-all duration-200 hover:scale-105"
-          >
-            <Map className="h-4 w-4" />
-            <span>World Map</span>
-          </Button>
-        </div>
-        
-        <div className="md:hidden font-semibold text-lg">{renderPanelTitle()}</div>
-        
-        <div className="ml-auto flex items-center gap-3">
-          <div className="relative md:w-72 hidden lg:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-10 transition-all duration-200 focus:ring-2" />
-          </div>
-          
-          <Button variant="ghost" size="icon" className="relative transition-all duration-200 hover:scale-110">
-            <Bell className="h-5 w-5" />
-            <span className="absolute h-2 w-2 top-1 right-1 rounded-full bg-red-500 animate-pulse"></span>
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full transition-all duration-200 hover:scale-110">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
-                  <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
-                </Avatar>
+          {/* Admin Panel Button */}
+          {isAdmin && (
+            <Link to="/admin">
+              <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                <Shield className="h-5 w-5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="animate-in slide-in-from-top-2">
-              <DropdownMenuItem onClick={() => onPanelChange("profile")}>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+          )}
+
+          {/* User Avatar */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {user?.name || user?.email?.split('@')[0] || 'User'}
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email}
+                </p>
+                {isAdmin && (
+                  <Badge className="bg-red-500 text-white text-[10px]">
+                    <Shield className="h-2 w-2 mr-1" />
+                    Admin
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Avatar className="h-10 w-10 ring-2 ring-gray-200 dark:ring-gray-700">
+              <AvatarImage 
+                src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'default'}`} 
+                alt="Avatar" 
+              />
+              <AvatarFallback>
+                {user?.name?.slice(0, 2).toUpperCase() || 
+                 user?.email?.slice(0, 2).toUpperCase() || 
+                 'US'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </div>
     </header>

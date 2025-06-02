@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
@@ -32,11 +31,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New message from Alex", time: "5m ago", read: false },
-    { id: 2, text: "Community event starting soon", time: "1h ago", read: false },
-    { id: 3, text: "Your daily reflection reminder", time: "2h ago", read: true },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]); // Start with empty notifications for new users
   const navbarRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout } = useAuth();
   const { currentRole } = useRole();
@@ -90,8 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const navItems = [
     { id: "home", label: "Home", icon: Home, url: "/" },
     { id: "features", label: "Features", icon: Sparkles, url: "#features" },
-    { id: "community", label: "Community", icon: Users, url: "#community", badge: "New" },
-    { id: "messages", label: "Messages", icon: MessageCircle, url: "/messages", count: 3 },
+    { id: "community", label: "Community", icon: Users, url: "#community" },
     { id: "explore", label: "Explore", icon: Hash, url: "/explore" }
   ];
 
@@ -129,16 +123,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                     <div className="absolute inset-0 bg-primary/5 dark:bg-primary/10 rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 origin-bottom"></div>
                     <item.icon size={16} className="transition-transform duration-300 group-hover:scale-110" />
                     <span className="relative">{item.label}</span>
-                    {item.badge && (
-                      <Badge className="ml-1 bg-primary text-white text-[10px] px-1.5">
-                        {item.badge}
-                      </Badge>
-                    )}
-                    {item.count && (
-                      <Badge className="ml-1 bg-primary text-white text-[10px] w-4 h-4 p-0 flex items-center justify-center">
-                        {item.count}
-                      </Badge>
-                    )}
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </Link>
                 </TooltipTrigger>
@@ -192,33 +176,35 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                 <Button variant="ghost" size="sm" className="text-xs h-7 px-2">Mark all as read</Button>
               </div>
               <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-thin">
-                {notifications.map((notif) => (
-                  <div 
-                    key={notif.id}
-                    className={cn(
-                      "p-2 rounded-lg flex items-start gap-2 transition-all cursor-pointer hover:scale-[1.02]",
-                      notif.read 
-                        ? "bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50" 
-                        : "bg-primary/5 dark:bg-primary/10"
-                    )}
-                    onClick={() => handleNotificationRead(notif.id)}
-                  >
-                    <div className={cn(
-                      "h-2 w-2 mt-2 rounded-full flex-shrink-0",
-                      notif.read ? "bg-gray-300 dark:bg-gray-700" : "bg-primary animate-pulse"
-                    )} />
-                    <div className="flex-1">
-                      <p className="text-sm">{notif.text}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{notif.time}</p>
-                    </div>
+                {notifications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">We'll notify you when something happens</p>
                   </div>
-                ))}
-              </div>
-              <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 text-center">
-                <Button variant="ghost" size="sm" className="w-full text-primary text-xs group">
-                  <span>View all notifications</span>
-                  <ChevronRight size={14} className="ml-1 transition-transform group-hover:translate-x-0.5" />
-                </Button>
+                ) : (
+                  notifications.map((notif) => (
+                    <div 
+                      key={notif.id}
+                      className={cn(
+                        "p-2 rounded-lg flex items-start gap-2 transition-all cursor-pointer hover:scale-[1.02]",
+                        notif.read 
+                          ? "bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50" 
+                          : "bg-primary/5 dark:bg-primary/10"
+                      )}
+                      onClick={() => handleNotificationRead(notif.id)}
+                    >
+                      <div className={cn(
+                        "h-2 w-2 mt-2 rounded-full flex-shrink-0",
+                        notif.read ? "bg-gray-300 dark:bg-gray-700" : "bg-primary animate-pulse"
+                      )} />
+                      <div className="flex-1">
+                        <p className="text-sm">{notif.text}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{notif.time}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -367,16 +353,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                     </div>
                     <span className="text-base font-medium">{item.label}</span>
                   </div>
-                  {item.badge && (
-                    <Badge className="bg-primary text-white">
-                      {item.badge}
-                    </Badge>
-                  )}
-                  {item.count && (
-                    <Badge className="bg-primary text-white">
-                      {item.count}
-                    </Badge>
-                  )}
                 </Link>
               ))}
               

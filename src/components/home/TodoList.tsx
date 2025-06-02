@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { 
   CheckCircle2, 
   Circle, 
@@ -7,7 +8,8 @@ import {
   MoreHorizontal, 
   CalendarClock,
   Users,
-  Tag
+  Tag,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +23,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TodoListProps {
   fullWidth?: boolean;
@@ -36,50 +39,34 @@ interface Task {
 }
 
 const TodoList: React.FC<TodoListProps> = ({ fullWidth = false, className }) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { 
-      id: '1', 
-      text: 'Review quarterly business strategy', 
-      completed: false,
-      priority: 'high',
-      label: 'Strategy'
-    },
-    { 
-      id: '2', 
-      text: 'Prepare for investor meeting', 
-      completed: false,
-      priority: 'high',
-      label: 'Finance'
-    },
-    { 
-      id: '3', 
-      text: 'Update marketing campaign assets', 
-      completed: true,
-      priority: 'medium',
-      label: 'Marketing'
-    },
-    { 
-      id: '4', 
-      text: 'Review new feature requests', 
-      completed: false,
-      priority: 'medium',
-      label: 'Product'
-    },
-    { 
-      id: '5', 
-      text: 'Schedule team building event', 
-      completed: false,
-      priority: 'low',
-      label: 'HR'
-    }
-  ]);
-  
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading user's actual tasks from database
+  useEffect(() => {
+    const loadUserTasks = async () => {
+      if (user) {
+        setIsLoading(true);
+        // In a real implementation, this would fetch from your database
+        // const userTasks = await fetchTasksFromDB(user.id);
+        // setTasks(userTasks);
+        
+        // For now, set empty array for new users
+        setTasks([]);
+      }
+      setIsLoading(false);
+    };
+
+    loadUserTasks();
+  }, [user]);
 
   const toggleTaskCompletion = (id: string) => {
     setTasks(tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
     ));
+    // TODO: Update in database
   };
 
   const addTask = () => {
@@ -92,11 +79,13 @@ const TodoList: React.FC<TodoListProps> = ({ fullWidth = false, className }) => 
       };
       setTasks([...tasks, task]);
       setNewTask("");
+      // TODO: Save to database
     }
   };
 
   const deleteTask = (id: string) => {
     setTasks(tasks.filter(task => task.id !== id));
+    // TODO: Delete from database
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -136,6 +125,30 @@ const TodoList: React.FC<TodoListProps> = ({ fullWidth = false, className }) => 
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card className={cn(
+        "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+        fullWidth ? "w-full" : "",
+        className
+      )}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold flex items-center">
+            <CheckCircle2 className="h-5 w-5 mr-2 text-primary" />
+            Daily Tasks
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-2">
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn(
       "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow",
@@ -149,86 +162,98 @@ const TodoList: React.FC<TodoListProps> = ({ fullWidth = false, className }) => 
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-2">
-        <div className="space-y-4">
-          {tasks.map(task => (
-            <div 
-              key={task.id}
-              className={cn(
-                "flex items-start justify-between p-3 rounded-lg transition-colors",
-                task.completed 
-                  ? "bg-gray-50 dark:bg-gray-900/30" 
-                  : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30"
-              )}
-            >
-              <div className="flex items-start space-x-3 flex-1">
-                <button
-                  onClick={() => toggleTaskCompletion(task.id)}
-                  className="flex-shrink-0 mt-0.5"
-                >
-                  {task.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400" />
-                  )}
-                </button>
-                <div className="flex-1">
-                  <p className={cn(
-                    "text-sm font-medium",
-                    task.completed && "line-through text-gray-500 dark:text-gray-400"
-                  )}>
-                    {task.text}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {task.label && (
-                      <Badge variant="outline" className={cn("text-xs font-normal px-2 py-0.5", getLabelColor(task.label))}>
-                        <Tag className="mr-1 h-3 w-3" />
-                        {task.label}
-                      </Badge>
+        {tasks.length === 0 ? (
+          <div className="text-center py-8">
+            <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No tasks yet
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              Add your first task to get started on your journey
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {tasks.map(task => (
+              <div 
+                key={task.id}
+                className={cn(
+                  "flex items-start justify-between p-3 rounded-lg transition-colors",
+                  task.completed 
+                    ? "bg-gray-50 dark:bg-gray-900/30" 
+                    : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+                )}
+              >
+                <div className="flex items-start space-x-3 flex-1">
+                  <button
+                    onClick={() => toggleTaskCompletion(task.id)}
+                    className="flex-shrink-0 mt-0.5"
+                  >
+                    {task.completed ? (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400" />
                     )}
+                  </button>
+                  <div className="flex-1">
+                    <p className={cn(
+                      "text-sm font-medium",
+                      task.completed && "line-through text-gray-500 dark:text-gray-400"
+                    )}>
+                      {task.text}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {task.label && (
+                        <Badge variant="outline" className={cn("text-xs font-normal px-2 py-0.5", getLabelColor(task.label))}>
+                          <Tag className="mr-1 h-3 w-3" />
+                          {task.label}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-1 ml-2">
-                <div className={cn(
-                  "h-2 w-2 rounded-full",
-                  task.priority === 'high' ? "bg-red-500" :
-                  task.priority === 'medium' ? "bg-yellow-500" : "bg-green-500"
-                )} />
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => toggleTaskCompletion(task.id)}>
-                      {task.completed ? "Mark as incomplete" : "Mark as complete"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <CalendarClock className="mr-2 h-4 w-4" />
-                      Set deadline
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Users className="mr-2 h-4 w-4" />
-                      Assign to team
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => deleteTask(task.id)} className="text-red-600">
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center space-x-1 ml-2">
+                  <div className={cn(
+                    "h-2 w-2 rounded-full",
+                    task.priority === 'high' ? "bg-red-500" :
+                    task.priority === 'medium' ? "bg-yellow-500" : "bg-green-500"
+                  )} />
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => toggleTaskCompletion(task.id)}>
+                        {task.completed ? "Mark as incomplete" : "Mark as complete"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <CalendarClock className="mr-2 h-4 w-4" />
+                        Set deadline
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Users className="mr-2 h-4 w-4" />
+                        Assign to team
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => deleteTask(task.id)} className="text-red-600">
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="pt-2">
         <div className="flex w-full space-x-2">
           <Input
-            placeholder="Add a new task..."
+            placeholder="Add your first task..."
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={handleKeyDown}
