@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +26,7 @@ const GlobalMemberMap = () => {
   const loadMemberLocations = async () => {
     try {
       setIsLoading(true);
-      const locations = await LocationService.getMemberLocations();
+      const locations = await LocationService.getVisibleMemberLocations();
       
       // Group by country and city to get member counts
       const locationMap = new Map<string, MemberLocation>();
@@ -40,7 +39,7 @@ const GlobalMemberMap = () => {
           existing.memberCount += 1;
         } else {
           locationMap.set(key, {
-            id: location.id,
+            id: location.id || location.user_id,
             country: location.country,
             city: location.city || 'Unknown',
             timezone: location.timezone || 'UTC',

@@ -135,7 +135,7 @@ class AdminService {
         return false;
       }
 
-      let cdcUser = userAuth.users.find(user => user.email === cdcEmail);
+      const cdcUser = userAuth.users.find(user => user.email === cdcEmail);
       
       if (!cdcUser) {
         // User doesn't exist, create them
@@ -161,10 +161,47 @@ class AdminService {
           return false;
         }
 
-        cdcUser = newUser.user;
+        // Ensure profile exists
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', newUser.user.id)
+          .single();
+
+        if (!profile) {
+          // Create profile
+          const { error: insertProfileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: newUser.user.id,
+              full_name: 'CDC Official Team',
+              username: 'cdc_official'
+            });
+
+          if (insertProfileError) {
+            console.error('Error creating profile:', insertProfileError);
+          }
+        }
+
+        // Assign admin role
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: newUser.user.id,
+            role: 'admin'
+          });
+
+        if (roleError) {
+          console.error('Error assigning admin role:', roleError);
+          toast.error('Failed to assign admin role');
+          return false;
+        }
+
+        toast.success('cdcofficialeg@gmail.com has been created and set up as admin successfully');
+        return true;
       }
 
-      // Ensure profile exists
+      // User exists, ensure profile and role are set up correctly
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
