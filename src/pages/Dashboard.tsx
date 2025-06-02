@@ -90,20 +90,20 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Modern Sidebar */}
+      {/* Modern Sidebar - Improved proportions */}
       <div className={`hidden md:flex md:flex-col transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? 'md:w-16' : 'md:w-64'
+        sidebarCollapsed ? 'md:w-16' : 'md:w-72'
       }`}>
-        <div className="flex flex-col flex-grow bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+        <div className="flex flex-col flex-grow bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
             {!sidebarCollapsed && (
               <div className="flex items-center gap-3 animate-fade-in">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-sm">D</span>
+                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-lg">W</span>
                 </div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Dashboard
+                  Warrior Space
                 </h1>
               </div>
             )}
@@ -182,9 +182,9 @@ const Dashboard = () => {
           {/* User Info */}
           {!sidebarCollapsed && (
             <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 animate-fade-in">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-semibold text-sm">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-semibold text-lg">
                     {user.email?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
@@ -210,8 +210,8 @@ const Dashboard = () => {
         onPanelChange={handlePanelChange}
       />
 
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Main Content - Improved layout */}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Header */}
         <DashboardHeader
           activePanel={activePanel}
@@ -219,9 +219,9 @@ const Dashboard = () => {
           onPanelChange={handlePanelChange}
         />
 
-        {/* Main Area */}
+        {/* Main Area with better spacing */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
-          <div className="animate-fade-in">
+          <div className="animate-fade-in min-h-full">
             {renderContent()}
           </div>
         </main>

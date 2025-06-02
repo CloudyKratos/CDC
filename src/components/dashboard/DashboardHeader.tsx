@@ -47,7 +47,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       case "stage":
         return "Stage Call";
       case "worldmap":
-        return "World Map";
+        return "Global Community";
       case "profile":
         return "Profile";
       default:
@@ -57,17 +57,17 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   return (
     <header className="border-b bg-gradient-to-r from-background to-muted/30 backdrop-blur-sm">
-      <div className="flex h-16 items-center px-4">
+      <div className="flex h-16 items-center px-4 lg:px-6">
         <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onOpenMobileMenu}>
           <Menu className="h-6 w-6" />
         </Button>
         
-        <div className="hidden md:flex items-center gap-2 mr-4">
+        <div className="hidden md:flex items-center gap-2 mr-6">
           <Button 
             variant={activePanel === "command-room" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("command-room")}
-            className="gap-1 transition-all duration-200 hover:scale-105"
+            className="gap-2 transition-all duration-200 hover:scale-105"
           >
             <LayoutGrid className="h-4 w-4" />
             <span>Command Room</span>
@@ -77,7 +77,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "calendar" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("calendar")}
-            className="gap-1 transition-all duration-200 hover:scale-105"
+            className="gap-2 transition-all duration-200 hover:scale-105"
           >
             <Calendar className="h-4 w-4" />
             <span>Calendar</span>
@@ -87,7 +87,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "community" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("community")}
-            className="gap-1 transition-all duration-200 hover:scale-105"
+            className="gap-2 transition-all duration-200 hover:scale-105"
           >
             <Users className="h-4 w-4" />
             <span>Community</span>
@@ -97,7 +97,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "stage" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("stage")}
-            className="gap-1 transition-all duration-200 hover:scale-105"
+            className="gap-2 transition-all duration-200 hover:scale-105"
           >
             <Video className="h-4 w-4" />
             <span>Stage</span>
@@ -107,19 +107,19 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             variant={activePanel === "worldmap" ? "default" : "ghost"} 
             size="sm"
             onClick={() => onPanelChange("worldmap")}
-            className="gap-1 transition-all duration-200 hover:scale-105"
+            className="gap-2 transition-all duration-200 hover:scale-105"
           >
             <Map className="h-4 w-4" />
             <span>World Map</span>
           </Button>
         </div>
         
-        <div className="md:hidden font-semibold">{renderPanelTitle()}</div>
+        <div className="md:hidden font-semibold text-lg">{renderPanelTitle()}</div>
         
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative md:w-64 hidden md:block">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-8 transition-all duration-200 focus:ring-2" />
+        <div className="ml-auto flex items-center gap-3">
+          <div className="relative md:w-72 hidden lg:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search..." className="pl-10 transition-all duration-200 focus:ring-2" />
           </div>
           
           <Button variant="ghost" size="icon" className="relative transition-all duration-200 hover:scale-110">
@@ -130,7 +130,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full transition-all duration-200 hover:scale-110">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-9 w-9">
                   <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
                   <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
