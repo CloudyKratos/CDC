@@ -31,6 +31,7 @@ export interface Channel {
 class CommunityService {
   // Get all available channels
   async getChannels(): Promise<ChatChannel[]> {
+    console.log('Fetching channels...');
     const { data: channels, error } = await supabase
       .from('channels')
       .select('*')
@@ -42,17 +43,20 @@ class CommunityService {
       throw error;
     }
 
+    console.log('Channels fetched:', channels);
     return channels.map(channel => ({
       id: channel.id,
       name: channel.name,
       type: ChannelType.PUBLIC,
-      members: [], // Will be populated separately if needed
+      members: [],
       description: channel.description
     }));
   }
 
   // Get messages for a specific channel
   async getMessages(channelName: string): Promise<Message[]> {
+    console.log('Fetching messages for channel:', channelName);
+    
     // First get the channel ID by name
     const { data: channel, error: channelError } = await supabase
       .from('channels')
@@ -65,7 +69,9 @@ class CommunityService {
       return [];
     }
 
-    // Get messages with sender information
+    console.log('Found channel:', channel);
+
+    // Get messages
     const { data: messages, error } = await supabase
       .from('community_messages')
       .select(`
@@ -83,12 +89,16 @@ class CommunityService {
       throw error;
     }
 
-    // Get sender details separately to avoid join issues
+    console.log('Messages fetched:', messages);
+
+    // Get sender details separately
     const senderIds = [...new Set(messages.map(msg => msg.sender_id))];
     const { data: senders } = await supabase
       .from('profiles')
       .select('id, username, full_name, avatar_url')
       .in('id', senderIds);
+
+    console.log('Senders fetched:', senders);
 
     // Create a map of senders for quick lookup
     const sendersMap = new Map();
@@ -114,22 +124,46 @@ class CommunityService {
 
   // Send a message to a channel
   async sendMessage(content: string, channelName: string = 'general'): Promise<Message> {
+    console.log('Sending message:', { content, channelName });
+    
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
+      console.error('No authenticated user found');
       throw new Error('User must be authenticated to send messages');
     }
 
-    // Get channel ID
-    const { data: channel, error: channelError } = await supabase
+    console.log('Authenticated user:', user.id);
+
+    // Get or create channel
+    let { data: channel, error: channelError } = await supabase
       .from('channels')
       .select('id')
       .eq('name', channelName)
       .single();
 
     if (channelError || !channel) {
-      throw new Error('Channel not found');
+      console.log('Channel not found, creating it...');
+      // Create the channel if it doesn't exist
+      const { data: newChannel, error: createError } = await supabase
+        .from('channels')
+        .insert({
+          name: channelName,
+          type: 'public',
+          description: `${channelName} channel`
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Error creating channel:', createError);
+        throw createError;
+      }
+      
+      channel = newChannel;
     }
+
+    console.log('Using channel:', channel);
 
     // Auto-join the user to the channel if not already a member
     await this.joinChannel(channelName, user.id);
@@ -149,12 +183,16 @@ class CommunityService {
       throw error;
     }
 
+    console.log('Message sent:', message);
+
     // Get sender details
     const { data: sender } = await supabase
       .from('profiles')
       .select('id, username, full_name, avatar_url')
       .eq('id', user.id)
       .single();
+
+    console.log('Sender details:', sender);
 
     return {
       id: message.id,
@@ -163,8 +201,8 @@ class CommunityService {
       sender_id: message.sender_id,
       sender: sender || {
         id: user.id,
-        username: 'Unknown User',
-        full_name: 'Unknown User',
+        username: user.email?.split('@')[0] || 'User',
+        full_name: user.email?.split('@')[0] || 'User',
         avatar_url: null
       }
     };
@@ -172,6 +210,8 @@ class CommunityService {
 
   // Join a channel
   async joinChannel(channelName: string, userId: string): Promise<void> {
+    console.log('Joining channel:', { channelName, userId });
+    
     // Get channel ID
     const { data: channel, error: channelError } = await supabase
       .from('channels')
@@ -196,13 +236,15 @@ class CommunityService {
       console.error('Error joining channel:', error);
       throw error;
     }
+
+    console.log('Successfully joined channel');
   }
 
   // Subscribe to new messages in a channel
   subscribeToMessages(channelName: string, callback: (message: Message) => void): () => void {
-    let channelId: string;
-
-    // Get channel ID first
+    console.log('Setting up subscription for channel:', channelName);
+    
+    // First get the channel ID
     supabase
       .from('channels')
       .select('id')
@@ -214,47 +256,51 @@ class CommunityService {
           return;
         }
         
-        channelId = channel.id;
+        console.log('Channel found for subscription:', channel);
+        
+        const subscription = supabase
+          .channel(`community_messages_${channel.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'community_messages',
+              filter: `channel_id=eq.${channel.id}`
+            },
+            async (payload) => {
+              console.log('New message received:', payload);
+              const newMessage = payload.new as CommunityMessage;
+              
+              // Fetch sender details
+              const { data: sender } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .eq('id', newMessage.sender_id)
+                .single();
+
+              callback({
+                id: newMessage.id,
+                content: newMessage.content,
+                created_at: newMessage.created_at,
+                sender_id: newMessage.sender_id,
+                sender: sender || {
+                  id: newMessage.sender_id,
+                  username: 'Unknown User',
+                  full_name: 'Unknown User',
+                  avatar_url: null
+                }
+              });
+            }
+          )
+          .subscribe();
+
+        console.log('Subscription created:', subscription);
       });
 
-    const subscription = supabase
-      .channel('community_messages_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'community_messages',
-          filter: `channel_id=eq.${channelId}`
-        },
-        async (payload) => {
-          const newMessage = payload.new as CommunityMessage;
-          
-          // Fetch sender details
-          const { data: sender } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', newMessage.sender_id)
-            .single();
-
-          callback({
-            id: newMessage.id,
-            content: newMessage.content,
-            created_at: newMessage.created_at,
-            sender_id: newMessage.sender_id,
-            sender: sender || {
-              id: newMessage.sender_id,
-              username: 'Unknown User',
-              full_name: 'Unknown User',
-              avatar_url: null
-            }
-          });
-        }
-      )
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(subscription);
+      console.log('Cleaning up subscription');
+      // This will be handled by the effect cleanup
     };
   }
 
