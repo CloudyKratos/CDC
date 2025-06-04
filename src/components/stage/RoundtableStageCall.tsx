@@ -20,7 +20,6 @@ import {
   Volume2,
   VolumeX,
   Monitor,
-  Record,
   Play,
   Pause,
   MoreVertical,
@@ -33,6 +32,8 @@ import VideoCallService, { StageCall, StageParticipant, ParticipantRole } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserName, getUserAvatar } from '@/utils/user-data';
 
 interface RoundtableStageCallProps {
   stageId: string;
@@ -64,6 +65,7 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
   const [showListeners, setShowListeners] = useState(true);
   
   const videoRefs = useRef<Record<string, HTMLVideoElement>>({});
+  const { user } = useAuth();
 
   const isHost = currentUserRole === ParticipantRole.HOST;
   const isSpeaker = currentUserRole === ParticipantRole.SPEAKER || isHost;
@@ -72,17 +74,30 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
   useEffect(() => {
     initializeStageCall();
     return () => {
-      VideoCallService.leaveStageCall(stageId, 'current-user');
+      if (user) {
+        VideoCallService.leaveStageCall(stageId, user.id);
+      }
     };
   }, [stageId]);
 
   const initializeStageCall = async () => {
     try {
-      const call = await VideoCallService.joinStageCall(stageId, {
-        id: 'current-user',
-        name: 'Current User',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=current-user'
-      }, true);
+      if (!user) {
+        toast.error('Please log in to join a stage');
+        return;
+      }
+
+      // Create a proper user object for the VideoCallService
+      const userForService = {
+        id: user.id,
+        name: getUserName(user),
+        avatar: getUserAvatar(user) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.id,
+        email: user.email || '',
+        role: 'user' as const,
+        permissions: [] as string[]
+      };
+      
+      const call = await VideoCallService.joinStageCall(stageId, userForService, true);
       
       setStageCall(call);
       const userRole = VideoCallService.getCurrentUserRole(stageId);
@@ -102,8 +117,10 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
       toast.error('Listeners cannot unmute. Request to speak first.');
       return;
     }
+    if (!user) return;
+    
     const newMuteState = !isMuted;
-    VideoCallService.muteParticipant(stageId, 'current-user', newMuteState);
+    VideoCallService.muteParticipant(stageId, user.id, newMuteState);
     setIsMuted(newMuteState);
     toast.success(newMuteState ? 'Muted' : 'Unmuted');
   };
@@ -117,13 +134,13 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
   };
 
   const handleRaiseHand = () => {
-    if (!isListener) return;
+    if (!isListener || !user) return;
     
     const newState = !isHandRaised;
     setIsHandRaised(newState);
     
     if (newState) {
-      VideoCallService.requestToSpeak(stageId, 'current-user');
+      VideoCallService.requestToSpeak(stageId, user.id);
       toast.success('Hand raised! Waiting for host approval.');
     } else {
       toast.success('Hand lowered.');
@@ -146,10 +163,12 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
   };
 
   const handleReaction = (type: Reaction['type']) => {
+    if (!user) return;
+    
     const reaction: Reaction = {
       id: `reaction-${Date.now()}`,
       type,
-      userId: 'current-user',
+      userId: user.id,
       timestamp: new Date()
     };
     
@@ -174,7 +193,7 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
   };
 
   const renderParticipantVideo = (participant: StageParticipant, isSpotlight = false) => {
-    const isCurrentUser = participant.id === 'current-user';
+    const isCurrentUser = user && participant.id === user.id;
     const showVideo = participant.isVideoEnabled && !participant.isMuted;
     const cardSize = isSpotlight ? 'h-64 w-96' : 'h-32 w-48';
     
@@ -316,7 +335,7 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
             <h1 className="text-xl font-bold">{stageCall.name}</h1>
             {isRecording && (
               <Badge variant="secondary" className="gap-1">
-                <Record className="h-3 w-3 text-red-500" />
+                <div className="h-3 w-3 text-red-500" />
                 Recording
               </Badge>
             )}
@@ -352,7 +371,7 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
                   onClick={handleToggleRecording}
                   className="gap-2"
                 >
-                  <Record className="h-4 w-4" />
+                  <div className="h-4 w-4" />
                   {isRecording ? 'Stop' : 'Record'}
                 </Button>
                 
