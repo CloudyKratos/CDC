@@ -98,6 +98,57 @@ class StageService {
     });
   }
 
+  async forceDisconnectUser(stageId: string, userId: string): Promise<boolean> {
+    try {
+      console.log('Force disconnecting user from stage:', { stageId, userId });
+      
+      // Update all active participations for this user in this stage
+      const { error } = await supabase
+        .from('stage_participants')
+        .update({ left_at: new Date().toISOString() })
+        .eq('stage_id', stageId)
+        .eq('user_id', userId)
+        .is('left_at', null);
+
+      if (error) {
+        console.error('Error force disconnecting user:', error);
+        return false;
+      }
+
+      console.log('User force disconnected successfully');
+      return true;
+    } catch (error) {
+      console.error('Error in forceDisconnectUser:', error);
+      return false;
+    }
+  }
+
+  async cleanupGhostParticipants(stageId: string): Promise<boolean> {
+    try {
+      console.log('Cleaning up ghost participants for stage:', stageId);
+      
+      // Mark participants as left if they joined more than 5 minutes ago without recent activity
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      
+      const { error } = await supabase
+        .from('stage_participants')
+        .update({ left_at: new Date().toISOString() })
+        .eq('stage_id', stageId)
+        .is('left_at', null)
+        .lt('joined_at', fiveMinutesAgo);
+
+      if (error) {
+        console.error('Error cleaning up ghost participants:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in cleanupGhostParticipants:', error);
+      return false;
+    }
+  }
+
   async validateStageJoin(stageId: string, role: StageRole = 'audience'): Promise<{ canJoin: boolean; reason?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -123,6 +174,9 @@ class StageService {
         }
       }
 
+      // Clean up any ghost participants first
+      await this.cleanupGhostParticipants(stageId);
+
       // Check participant limits
       const participants = await this.getStageParticipants(stageId);
       const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
@@ -134,12 +188,6 @@ class StageService {
 
       if (role === 'audience' && audience.length >= (stage.max_audience || 100)) {
         return { canJoin: false, reason: 'Stage is at full capacity. Please try again later when someone leaves.' };
-      }
-
-      // Check if user is already in the stage - this is OK for RealTimeStageCall
-      const existingParticipant = participants.find(p => p.user_id === user.id);
-      if (existingParticipant && !existingParticipant.left_at) {
-        return { canJoin: true }; // Allow access if already participating
       }
 
       return { canJoin: true };
@@ -165,14 +213,17 @@ class StageService {
         return { canAccess: false, reason: 'This stage has already ended. Check for recordings or upcoming sessions.' };
       }
 
-      // Check if user is already in the stage
+      // Clean up ghost participants
+      await this.cleanupGhostParticipants(stageId);
+
+      // Check if user is currently participating
       const participants = await this.getStageParticipants(stageId);
       const existingParticipant = participants.find(p => p.user_id === user.id);
       if (existingParticipant && !existingParticipant.left_at) {
         return { canAccess: true }; // User is already participating
       }
 
-      return { canAccess: false, reason: 'You are not currently participating in this stage.' };
+      return { canAccess: true }; // Allow access for joining
     } catch (error) {
       console.error('Error validating stage access:', error);
       if (error instanceof Error) {
@@ -187,6 +238,9 @@ class StageService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { success: false, error: 'Authentication required. Please log in to join the stage.' };
 
+      // First, clean up any existing connections for this user
+      await this.forceDisconnectUser(stageId, user.id);
+      
       // Validate join request
       const validation = await this.validateStageJoin(stageId, role);
       if (!validation.canJoin) {
@@ -194,47 +248,22 @@ class StageService {
       }
 
       return this.retryOperation(async () => {
-        const { data: existingParticipant } = await supabase
-          .from('stage_participants')
-          .select('id, left_at')
-          .eq('stage_id', stageId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existingParticipant) {
-          if (!existingParticipant.left_at) {
-            return { success: true }; // Already joined
-          } else {
-            const { error } = await supabase
-              .from('stage_participants')
-              .update({ 
-                left_at: null, 
-                role: role as Database['public']['Enums']['stage_role'],
-                is_muted: role === 'audience',
-                joined_at: new Date().toISOString()
-              })
-              .eq('id', existingParticipant.id);
-
-            if (error) throw new Error(`Failed to rejoin stage: ${error.message}`);
-            return { success: true };
-          }
-        }
-
+        // Insert new participation record
         const { error } = await supabase
           .from('stage_participants')
           .insert({
             stage_id: stageId,
             user_id: user.id,
             role: role as Database['public']['Enums']['stage_role'],
-            is_muted: role === 'audience'
+            is_muted: role === 'audience',
+            joined_at: new Date().toISOString()
           });
 
         if (error) {
-          if (error.code === '23505') { // Unique constraint violation
-            throw new Error('You are already participating in this stage.');
-          }
+          console.error('Error joining stage:', error);
           throw new Error(`Failed to join stage: ${error.message}`);
         }
+        
         return { success: true };
       });
     } catch (error) {
@@ -251,6 +280,8 @@ class StageService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
+      console.log('Leaving stage:', { stageId, userId: user.id });
+
       const { error } = await supabase
         .from('stage_participants')
         .update({ left_at: new Date().toISOString() })
@@ -258,7 +289,12 @@ class StageService {
         .eq('user_id', user.id)
         .is('left_at', null);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error leaving stage:', error);
+        throw error;
+      }
+      
+      console.log('Successfully left stage');
       return true;
     });
   }

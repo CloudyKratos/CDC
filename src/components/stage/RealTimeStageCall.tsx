@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StageService from '@/services/StageService';
+import { useStageConnection } from '@/hooks/useStageConnection';
 import StageHeader from './components/StageHeader';
 import EnhancedParticipantGrid from './components/EnhancedParticipantGrid';
 import EnhancedStageControls from './components/EnhancedStageControls';
@@ -31,7 +33,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   onLeave
 }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
@@ -39,22 +40,22 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [userStageRole, setUserStageRole] = useState<'speaker' | 'audience' | 'moderator'>('audience');
   const [layoutMode, setLayoutMode] = useState<'grid' | 'spotlight' | 'circle'>('grid');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const subscriptionsRef = useRef<{ unsubscribe: () => void }[]>([]);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const { user } = useAuth();
+  const { 
+    isConnecting, 
+    connectionError, 
+    isConnected, 
+    connect, 
+    disconnect, 
+    forceReconnect, 
+    clearError 
+  } = useStageConnection();
 
   const cleanup = useCallback(() => {
-    console.log('Cleaning up subscriptions and resources');
-    
-    // Clear reconnect timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
+    console.log('Cleaning up stage call resources');
     
     // Unsubscribe from all channels
     subscriptionsRef.current.forEach(sub => {
@@ -66,20 +67,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     });
     subscriptionsRef.current = [];
   }, []);
-
-  const handleConnectionError = useCallback((error: any, context: string) => {
-    console.error(`Connection error in ${context}:`, error);
-    setConnectionStatus('disconnected');
-    setError(`Connection failed: ${context}`);
-    
-    // Attempt reconnection after delay with exponential backoff
-    const delay = Math.min(3000 * Math.pow(2, retryCount), 30000);
-    reconnectTimeoutRef.current = setTimeout(() => {
-      console.log('Attempting to reconnect...');
-      setRetryCount(prev => prev + 1);
-      initializeCall();
-    }, delay);
-  }, [retryCount]);
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -111,12 +98,11 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       }
       
       console.log('Participants loaded successfully:', formattedParticipants.length);
-      setConnectionStatus('connected');
     } catch (error) {
       console.error('Error loading participants:', error);
-      handleConnectionError(error, 'loading participants');
+      toast.error('Failed to load participants');
     }
-  }, [stageId, user?.id, handleConnectionError]);
+  }, [stageId, user?.id]);
 
   const setupRealtimeSubscriptions = useCallback(() => {
     console.log('Setting up realtime subscriptions');
@@ -131,7 +117,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       // Subscribe to stage updates
       const stageSub = StageService.subscribeToStageUpdates(stageId, (payload) => {
         console.log('Stage update received:', payload);
-        // Handle stage status changes if needed
         if (payload.eventType === 'UPDATE' && payload.new?.status === 'ended') {
           toast.info('Stage has ended');
           setTimeout(() => onLeave(), 2000);
@@ -139,84 +124,42 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       });
 
       subscriptionsRef.current = [participantSub, stageSub];
-      
-      return () => {
-        participantSub.unsubscribe();
-        stageSub.unsubscribe();
-      };
     } catch (error) {
       console.error('Error setting up subscriptions:', error);
-      handleConnectionError(error, 'setting up subscriptions');
+      toast.error('Failed to setup real-time updates');
     }
-  }, [stageId, loadParticipants, handleConnectionError, onLeave]);
+  }, [stageId, loadParticipants, onLeave]);
 
-  const validateStageAccess = useCallback(async (): Promise<{ canAccess: boolean; error?: string }> => {
-    if (!user) {
-      return { canAccess: false, error: 'Please log in to access the stage' };
-    }
-
-    try {
-      // Use the new validateStageAccess method
-      const validation = await StageService.validateStageAccess(stageId);
-      if (!validation.canAccess) {
-        return { canAccess: false, error: validation.reason };
-      }
-
-      return { canAccess: true };
-    } catch (error) {
-      console.error('Error validating stage access:', error);
-      return { canAccess: false, error: 'Failed to validate stage access' };
-    }
-  }, [user, stageId]);
-
-  const initializeCall = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    setConnectionStatus('connecting');
+  const initializeStage = useCallback(async () => {
+    clearError();
     
     try {
-      console.log('Initializing stage call for:', stageId);
-      
-      // Validate access first
-      const accessValidation = await validateStageAccess();
-      if (!accessValidation.canAccess) {
-        setConnectionStatus('disconnected');
-        setError(accessValidation.error || 'Access denied');
-        setIsLoading(false);
-        return;
-      }
-
-      // Load participants and set up subscriptions
+      await connect(stageId);
       await loadParticipants();
       setupRealtimeSubscriptions();
-      setRetryCount(0); // Reset retry count on success
-      toast.success('Connected to stage successfully!');
     } catch (error) {
-      console.error('Error initializing call:', error);
-      handleConnectionError(error, 'initializing call');
-    } finally {
-      setIsLoading(false);
+      console.error('Error initializing stage:', error);
     }
-  }, [stageId, validateStageAccess, loadParticipants, setupRealtimeSubscriptions, handleConnectionError]);
+  }, [stageId, connect, loadParticipants, setupRealtimeSubscriptions, clearError]);
 
   useEffect(() => {
-    initializeCall();
+    initializeStage();
     
     return cleanup;
-  }, [initializeCall, cleanup]);
+  }, [initializeStage, cleanup]);
 
   const handleToggleAudio = async () => {
     const newAudioState = !isAudioEnabled;
     
     try {
       if (user) {
-        setIsAudioEnabled(newAudioState); // Optimistic update
+        setIsAudioEnabled(newAudioState);
         await StageService.toggleMute(stageId, user.id, !newAudioState);
         toast.success(newAudioState ? 'Microphone unmuted' : 'Microphone muted');
       }
     } catch (error) {
       console.error('Error toggling audio:', error);
-      setIsAudioEnabled(!newAudioState); // Revert on error
+      setIsAudioEnabled(!newAudioState);
       toast.error('Failed to toggle microphone');
     }
   };
@@ -231,12 +174,12 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     const newHandState = !isHandRaised;
     
     try {
-      setIsHandRaised(newHandState); // Optimistic update
+      setIsHandRaised(newHandState);
       await StageService.raiseHand(stageId, newHandState);
       toast.success(newHandState ? 'Hand raised' : 'Hand lowered');
     } catch (error) {
       console.error('Error toggling hand raise:', error);
-      setIsHandRaised(!newHandState); // Revert on error
+      setIsHandRaised(!newHandState);
       toast.error('Failed to update hand status');
     }
   };
@@ -259,22 +202,25 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const handleLeaveCall = async () => {
     try {
       cleanup();
-      await StageService.leaveStage(stageId);
+      await disconnect(stageId);
       onLeave();
     } catch (error) {
       console.error('Error leaving stage:', error);
-      toast.error('Error leaving stage');
       onLeave(); // Leave anyway
     }
   };
 
-  const handleRetryConnection = () => {
-    setError(null);
-    setRetryCount(0);
-    initializeCall();
+  const handleForceReconnect = async () => {
+    try {
+      await forceReconnect(stageId);
+      await loadParticipants();
+      setupRealtimeSubscriptions();
+    } catch (error) {
+      console.error('Error during force reconnect:', error);
+    }
   };
 
-  if (isLoading) {
+  if (isConnecting) {
     return (
       <div className="flex flex-col h-full">
         <StageHeader
@@ -288,7 +234,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="text-lg">Connecting to stage...</p>
             <p className="text-sm text-muted-foreground">
-              Initializing real-time connection...
+              Establishing connection and cleaning up any previous sessions...
             </p>
           </div>
         </div>
@@ -296,7 +242,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     );
   }
 
-  if (error) {
+  if (connectionError) {
     return (
       <div className="flex flex-col h-full">
         <StageHeader
@@ -308,13 +254,20 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4 max-w-md">
             <p className="text-lg text-destructive">Connection Error</p>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <div className="flex gap-2 justify-center">
+            <p className="text-sm text-muted-foreground">{connectionError}</p>
+            {connectionError.includes('already participating') && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  It looks like you're still connected from another session. Try force reconnecting to clean up the previous connection.
+                </p>
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
               <button 
-                onClick={handleRetryConnection}
+                onClick={handleForceReconnect}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
-                Retry Connection
+                Force Reconnect
               </button>
               <button 
                 onClick={onLeave}
@@ -344,7 +297,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       
       {/* Stage Header */}
       <StageHeader
-        connectionStatus={connectionStatus}
+        connectionStatus={isConnected ? 'connected' : 'disconnected'}
         participantCount={participants.length + 1}
         onLeave={handleLeaveCall}
         onEndCall={handleLeaveCall}

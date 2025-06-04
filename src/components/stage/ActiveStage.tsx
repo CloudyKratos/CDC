@@ -135,17 +135,8 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
         }
       }
 
-      // Join the stage
-      console.log('Joining stage...');
-      const joinResult = await StageService.joinStage(stageId, 'audience');
-      
-      if (joinResult.success) {
-        setHasJoined(true);
-        toast.success('Joined stage successfully!');
-      } else {
-        setError(joinResult.error || 'Failed to join stage');
-        toast.error(joinResult.error || 'Failed to join stage');
-      }
+      // Proceed to stage call (connection will be handled by RealTimeStageCall)
+      setHasJoined(true);
     } catch (error) {
       console.error('Error joining stage:', error);
       setError('Failed to join stage');
@@ -158,22 +149,11 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   const leaveStageCall = async () => {
     try {
       console.log('Leaving stage...');
-      const success = await StageService.leaveStage(stageId);
-      
-      if (success) {
-        setHasJoined(false);
-        onLeave();
-        toast.success('Left stage successfully!');
-      } else {
-        toast.error('Failed to leave stage gracefully');
-        // Leave anyway to prevent getting stuck
-        setHasJoined(false);
-        onLeave();
-      }
+      setHasJoined(false);
+      onLeave();
+      toast.success('Left stage successfully!');
     } catch (error) {
       console.error('Error leaving stage:', error);
-      toast.error('Error leaving stage');
-      // Force leave to prevent getting stuck
       setHasJoined(false);
       onLeave();
     }
