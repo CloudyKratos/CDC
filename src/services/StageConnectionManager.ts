@@ -1,7 +1,6 @@
-
-import { StageSignalingService } from './StageSignalingService';
+import StageSignalingService from './StageSignalingService';
 import EnhancedStageWebRTCService from './EnhancedStageWebRTCService';
-import StageMediaService from './StageMediaService';
+import { StageMediaService } from './StageMediaService';
 
 interface ConnectionState {
   isConnected: boolean;

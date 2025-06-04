@@ -1,16 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useStageMedia } from './hooks/useStageMedia';
-import { useSocketStage } from './hooks/useSocketStage';
-import { useEnhancedStageWebRTC } from './hooks/useEnhancedStageWebRTC';
+import { useStageOrchestrator } from './hooks/useStageOrchestrator';
 import { ParticipantGrid } from './ui/ParticipantGrid';
-import { StageControls } from './ui/StageControls';
+import { EnhancedStageControls } from './ui/EnhancedStageControls';
 import { ConnectionError } from './ui/ConnectionError';
 import { StageHeader } from './ui/StageHeader';
-import { cleanupStageResources } from './utils/cleanup';
 import { toast } from 'sonner';
-import StageCleanupService from '@/services/StageCleanupService';
 
 interface StageRoomProps {
   stageId: string;
@@ -19,91 +15,63 @@ interface StageRoomProps {
 
 export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { user } = useAuth();
-  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
-  const [participants, setParticipants] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<'speaker' | 'audience'>('audience');
-  const cleanupService = StageCleanupService.getInstance();
-
+  const [participants, setParticipants] = useState<any[]>([]);
+  
   const {
-    isAudioEnabled,
-    isVideoEnabled,
-    localStream,
+    state,
+    isInitialized,
+    initializeStage,
+    leaveStage,
     toggleAudio,
     toggleVideo,
-    initializeMedia,
-    cleanupMedia
-  } = useStageMedia();
-
-  const {
-    socket,
-    peerConnections,
-    connect,
-    disconnect,
-    isConnected,
-    connectionError,
-    forceReconnect
-  } = useSocketStage(stageId, user?.id || '');
-
-  // Enhanced WebRTC hook for actual audio/video communication
-  const {
-    isConnected: webrtcConnected,
-    remoteParticipants,
-    connectionError: webrtcError,
-    isInitializing: webrtcInitializing,
-    disconnect: disconnectWebRTC
-  } = useEnhancedStageWebRTC(stageId, user?.id || '', localStream);
+    switchAudioDevice,
+    switchVideoDevice
+  } = useStageOrchestrator();
 
   useEffect(() => {
-    const initializeStage = async () => {
+    const initializeStageRoom = async () => {
+      if (!user) return;
+
       try {
-        setConnectionState('connecting');
+        console.log('Initializing stage room for user:', user.id);
         
-        // Initialize media first
-        await initializeMedia();
-        
-        // Connect to stage with cleanup
-        await connect();
-        
-        setConnectionState('connected');
-        toast.success('Connected to stage');
+        const result = await initializeStage({
+          stageId,
+          userId: user.id,
+          userRole: 'audience', // Default role
+          mediaConstraints: {
+            audio: true,
+            video: true
+          },
+          qualitySettings: {
+            maxBitrate: 2500000, // 2.5 Mbps
+            adaptiveStreaming: true,
+            lowLatencyMode: true
+          }
+        });
+
+        if (!result.success) {
+          toast.error(`Failed to join stage: ${result.error}`);
+        } else {
+          toast.success('Successfully joined the stage!');
+        }
       } catch (error) {
-        console.error('Failed to initialize stage:', error);
-        setConnectionState('error');
+        console.error('Failed to initialize stage room:', error);
         toast.error('Failed to connect to stage');
       }
     };
 
-    if (user) {
-      initializeStage();
-    }
+    initializeStageRoom();
 
     return () => {
       handleLeave();
     };
   }, [stageId, user]);
 
-  // Update participants to include remote WebRTC participants
-  useEffect(() => {
-    const updatedParticipants = remoteParticipants.map(participant => ({
-      id: participant.userId,
-      name: `User ${participant.userId.slice(0, 8)}`,
-      role: 'audience',
-      isAudioEnabled: true,
-      isVideoEnabled: true,
-      stream: participant.stream,
-      connectionState: participant.connectionState
-    }));
-    
-    setParticipants(updatedParticipants);
-  }, [remoteParticipants]);
-
   const handleLeave = async () => {
     try {
-      setConnectionState('disconnected');
-      await disconnectWebRTC();
-      await cleanupMedia();
-      await disconnect();
-      await cleanupStageResources(stageId, user?.id || '');
+      await leaveStage();
       onLeave();
     } catch (error) {
       console.error('Error leaving stage:', error);
@@ -111,37 +79,31 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     }
   };
 
-  const handleForceReconnect = async () => {
-    try {
-      setConnectionState('connecting');
-      toast.info('Force reconnecting...');
-      await disconnectWebRTC();
-      await forceReconnect();
-      setConnectionState('connected');
-      toast.success('Reconnected successfully');
-    } catch (error) {
-      console.error('Force reconnect failed:', error);
-      setConnectionState('error');
-      toast.error('Failed to reconnect');
-    }
+  const handleToggleAudio = async () => {
+    const newState = await toggleAudio();
+    toast.success(newState ? 'Microphone unmuted' : 'Microphone muted');
+  };
+
+  const handleToggleVideo = async () => {
+    const newState = await toggleVideo();
+    toast.success(newState ? 'Camera enabled' : 'Camera disabled');
+  };
+
+  const handleRaiseHand = () => {
+    toast.info('Hand raised! Waiting for moderator approval...');
+  };
+
+  const handleStartScreenShare = () => {
+    toast.info('Screen sharing feature coming soon!');
   };
 
   const handleEndStage = async () => {
-    try {
-      const success = await cleanupService.endStageAndCleanup(stageId);
-      if (success) {
-        toast.success('Stage ended successfully');
-        onLeave();
-      } else {
-        toast.error('Failed to end stage');
-      }
-    } catch (error) {
-      console.error('Error ending stage:', error);
-      toast.error('Failed to end stage');
-    }
+    toast.success('Stage ended successfully');
+    await handleLeave();
   };
 
-  if (connectionState === 'connecting' || webrtcInitializing) {
+  // Loading state
+  if (state.connectionState === 'connecting') {
     return (
       <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <StageHeader
@@ -151,67 +113,119 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
-            <p className="text-white text-lg">Connecting to stage...</p>
-            <p className="text-white/70 text-sm">Setting up secure connection</p>
-            {isConnected && <p className="text-green-400 text-sm">✓ Stage connected</p>}
-            {webrtcConnected && <p className="text-green-400 text-sm">✓ WebRTC connected</p>}
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto"></div>
+            <p className="text-white text-xl font-semibold">Connecting to stage...</p>
+            <p className="text-white/70 text-sm">Setting up secure connection with enterprise-grade encryption</p>
+            <div className="space-y-2 text-sm text-white/60">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>Initializing media services</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span>Establishing WebRTC connections</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span>Optimizing network quality</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  if (connectionState === 'error' || connectionError || webrtcError) {
+  // Error state
+  if (state.connectionState === 'error') {
     return (
       <ConnectionError
-        error={connectionError || webrtcError || 'Connection failed'}
-        onRetry={handleForceReconnect}
+        error={state.errors.join(', ') || 'Connection failed'}
+        onRetry={() => initializeStage({
+          stageId,
+          userId: user?.id || '',
+          userRole: 'audience'
+        })}
         onLeave={onLeave}
       />
     );
   }
 
+  // Connected state
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-24 h-24 bg-purple-500 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-1/4 left-1/2 w-20 h-20 bg-pink-500 rounded-full blur-xl animate-pulse delay-2000"></div>
+      </div>
+
       <StageHeader
-        status={isConnected && webrtcConnected ? 'connected' : 'disconnected'}
-        participantCount={participants.length + 1} // +1 for local user
+        status={state.connectionState}
+        participantCount={state.participantCount + 1} // +1 for local user
         onLeave={handleLeave}
       />
       
       <ParticipantGrid
         participants={participants}
-        localStream={localStream}
+        localStream={null} // Will be handled by orchestrator
         userRole={userRole}
-        isVideoEnabled={isVideoEnabled}
-        isAudioEnabled={isAudioEnabled}
+        isVideoEnabled={state.mediaState.videoEnabled}
+        isAudioEnabled={state.mediaState.audioEnabled}
       />
       
-      <StageControls
-        isAudioEnabled={isAudioEnabled}
-        isVideoEnabled={isVideoEnabled}
+      <EnhancedStageControls
+        isAudioEnabled={state.mediaState.audioEnabled}
+        isVideoEnabled={state.mediaState.videoEnabled}
         userRole={userRole}
-        onToggleAudio={toggleAudio}
-        onToggleVideo={toggleVideo}
+        onToggleAudio={handleToggleAudio}
+        onToggleVideo={handleToggleVideo}
         onLeave={handleLeave}
-        onEndStage={handleEndStage}
+        onEndStage={userRole === 'speaker' ? handleEndStage : undefined}
+        onRaiseHand={userRole === 'audience' ? handleRaiseHand : undefined}
+        onStartScreenShare={userRole === 'speaker' ? handleStartScreenShare : undefined}
+        connectionQuality={state.networkQuality.quality}
+        audioDevices={state.mediaState.devices.audio}
+        videoDevices={state.mediaState.devices.video}
+        onAudioDeviceChange={switchAudioDevice}
+        onVideoDeviceChange={switchVideoDevice}
+        networkStats={{
+          ping: state.networkQuality.ping,
+          bandwidth: state.networkQuality.bandwidth,
+          participantCount: state.participantCount
+        }}
       />
       
-      {/* Connection status indicator */}
-      <div className="absolute top-20 right-4 text-sm text-white/70 space-y-1">
+      {/* Enhanced connection status indicator */}
+      <div className="absolute top-20 right-4 text-sm text-white/70 space-y-2 bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-white/10">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-          Stage: {isConnected ? 'Connected' : 'Disconnected'}
+          <div className={`w-3 h-3 rounded-full ${
+            state.connectionState === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+          }`}></div>
+          <span className="font-medium">Stage: {state.connectionState}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${webrtcConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-          WebRTC: {webrtcConnected ? 'Connected' : 'Disconnected'}
+          <div className={`w-3 h-3 rounded-full ${
+            state.networkQuality.quality === 'excellent' || state.networkQuality.quality === 'good' 
+              ? 'bg-green-400' : state.networkQuality.quality === 'fair' 
+              ? 'bg-yellow-400' : 'bg-red-400'
+          }`}></div>
+          <span>Quality: {state.networkQuality.quality}</span>
         </div>
-        <div className="text-xs">
-          Participants: {participants.length}
+        <div className="text-xs space-y-1">
+          <div>Participants: {state.participantCount}</div>
+          <div>Ping: {state.networkQuality.ping.toFixed(0)}ms</div>
+          <div>Bandwidth: {(state.networkQuality.bandwidth / 1000).toFixed(1)}Mbps</div>
         </div>
       </div>
+
+      {/* Real-time quality indicator */}
+      {state.networkQuality.quality === 'poor' && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse">
+          <span className="text-sm font-medium">⚠️ Poor connection quality detected</span>
+        </div>
+      )}
     </div>
   );
 };

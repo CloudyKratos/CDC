@@ -49,6 +49,11 @@ interface EnhancedStageControlsProps {
   videoDevices?: MediaDeviceInfo[];
   onAudioDeviceChange?: (deviceId: string) => void;
   onVideoDeviceChange?: (deviceId: string) => void;
+  networkStats?: {
+    ping: number;
+    bandwidth: number;
+    participantCount: number;
+  };
 }
 
 export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
@@ -68,7 +73,8 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
   audioDevices = [],
   videoDevices = [],
   onAudioDeviceChange,
-  onVideoDeviceChange
+  onVideoDeviceChange,
+  networkStats
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const canSpeak = userRole === 'speaker';
@@ -87,11 +93,21 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
     <div className="p-4 bg-black/20 backdrop-blur-sm border-t border-white/10">
       <div className="flex items-center justify-between">
         {/* Connection Quality Indicator */}
-        <div className="flex items-center gap-2">
-          <Wifi className={cn("h-4 w-4", getConnectionColor())} />
-          <span className={cn("text-xs", getConnectionColor())}>
-            {connectionQuality}
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Wifi className={cn("h-4 w-4", getConnectionColor())} />
+            <span className={cn("text-xs", getConnectionColor())}>
+              {connectionQuality}
+            </span>
+          </div>
+          
+          {networkStats && (
+            <div className="text-xs text-white/70 space-y-1">
+              <div>Ping: {networkStats.ping.toFixed(0)}ms</div>
+              <div>Bandwidth: {(networkStats.bandwidth / 1000).toFixed(1)}Mbps</div>
+              <div>Participants: {networkStats.participantCount}</div>
+            </div>
+          )}
         </div>
 
         {/* Main Controls */}
@@ -104,10 +120,10 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                 disabled={!canSpeak}
                 size="lg"
                 className={cn(
-                  "rounded-full w-12 h-12 p-0",
+                  "rounded-full w-12 h-12 p-0 transition-all duration-200",
                   isAudioEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600 text-white" 
-                    : "bg-red-600 hover:bg-red-700 text-white",
+                    ? "bg-gray-700 hover:bg-gray-600 text-white shadow-lg" 
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg",
                   !canSpeak && "opacity-50 cursor-not-allowed"
                 )}
               >
@@ -119,7 +135,7 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                    className="h-6 w-6 p-0 text-white hover:bg-white/20 transition-colors"
                   >
                     <Settings className="h-3 w-3" />
                   </Button>
@@ -132,7 +148,7 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                 <DropdownMenuItem
                   key={device.deviceId}
                   onClick={() => onAudioDeviceChange?.(device.deviceId)}
-                  className="hover:bg-gray-700"
+                  className="hover:bg-gray-700 cursor-pointer"
                 >
                   <Volume2 className="h-4 w-4 mr-2" />
                   {device.label || 'Unknown Device'}
@@ -148,10 +164,10 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                 onClick={onToggleVideo}
                 size="lg"
                 className={cn(
-                  "rounded-full w-12 h-12 p-0",
+                  "rounded-full w-12 h-12 p-0 transition-all duration-200",
                   isVideoEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600 text-white" 
-                    : "bg-red-600 hover:bg-red-700 text-white"
+                    ? "bg-gray-700 hover:bg-gray-600 text-white shadow-lg" 
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
                 )}
               >
                 {isVideoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
@@ -162,7 +178,7 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                    className="h-6 w-6 p-0 text-white hover:bg-white/20 transition-colors"
                   >
                     <Settings className="h-3 w-3" />
                   </Button>
@@ -175,7 +191,7 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                 <DropdownMenuItem
                   key={device.deviceId}
                   onClick={() => onVideoDeviceChange?.(device.deviceId)}
-                  className="hover:bg-gray-700"
+                  className="hover:bg-gray-700 cursor-pointer"
                 >
                   <Camera className="h-4 w-4 mr-2" />
                   {device.label || 'Unknown Device'}
@@ -186,7 +202,7 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
                   <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
                     onClick={onSwitchCamera}
-                    className="hover:bg-gray-700"
+                    className="hover:bg-gray-700 cursor-pointer"
                   >
                     <Camera className="h-4 w-4 mr-2" />
                     Switch Camera
@@ -202,10 +218,10 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
               onClick={onStartScreenShare}
               size="lg"
               className={cn(
-                "rounded-full w-12 h-12 p-0",
+                "rounded-full w-12 h-12 p-0 transition-all duration-200",
                 isScreenSharing
-                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-gray-700 hover:bg-gray-600 text-white"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg animate-pulse"
+                  : "bg-gray-700 hover:bg-gray-600 text-white shadow-lg"
               )}
             >
               <Monitor className="h-6 w-6" />
@@ -218,68 +234,101 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
               onClick={onRaiseHand}
               size="lg"
               className={cn(
-                "rounded-full w-12 h-12 p-0",
+                "rounded-full w-12 h-12 p-0 transition-all duration-200",
                 isHandRaised 
-                  ? "bg-yellow-600 hover:bg-yellow-700 text-white" 
-                  : "bg-gray-700 hover:bg-gray-600 text-white"
+                  ? "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg animate-bounce" 
+                  : "bg-gray-700 hover:bg-gray-600 text-white shadow-lg"
               )}
             >
               <Hand className="h-6 w-6" />
             </Button>
           )}
 
-          {/* Settings Dialog */}
+          {/* Advanced Settings Dialog */}
           <Dialog open={showSettings} onOpenChange={setShowSettings}>
             <DialogTrigger asChild>
               <Button
                 size="lg"
-                className="rounded-full w-12 h-12 p-0 bg-gray-700 hover:bg-gray-600 text-white"
+                className="rounded-full w-12 h-12 p-0 bg-gray-700 hover:bg-gray-600 text-white shadow-lg transition-all duration-200"
               >
                 <Settings className="h-6 w-6" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Stage Settings</DialogTitle>
+                <DialogTitle className="text-xl font-bold">Advanced Stage Settings</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Audio Devices Section */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Audio Devices</h4>
-                  {audioDevices.map((device) => (
-                    <div key={device.deviceId} className="flex items-center justify-between p-2 rounded hover:bg-gray-700">
-                      <span className="text-sm">{device.label || 'Unknown Device'}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAudioDeviceChange?.(device.deviceId)}
-                      >
-                        Select
-                      </Button>
-                    </div>
-                  ))}
+                  <h4 className="text-lg font-semibold mb-3 text-blue-400">Audio Devices</h4>
+                  <div className="space-y-2">
+                    {audioDevices.map((device) => (
+                      <div key={device.deviceId} className="flex items-center justify-between p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <Volume2 className="h-5 w-5 text-blue-400" />
+                          <span className="text-sm font-medium">{device.label || 'Unknown Device'}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAudioDeviceChange?.(device.deviceId)}
+                          className="bg-blue-600 hover:bg-blue-700 border-blue-500"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 
+                {/* Video Devices Section */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Video Devices</h4>
-                  {videoDevices.map((device) => (
-                    <div key={device.deviceId} className="flex items-center justify-between p-2 rounded hover:bg-gray-700">
-                      <span className="text-sm">{device.label || 'Unknown Device'}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onVideoDeviceChange?.(device.deviceId)}
-                      >
-                        Select
-                      </Button>
-                    </div>
-                  ))}
+                  <h4 className="text-lg font-semibold mb-3 text-green-400">Video Devices</h4>
+                  <div className="space-y-2">
+                    {videoDevices.map((device) => (
+                      <div key={device.deviceId} className="flex items-center justify-between p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <Camera className="h-5 w-5 text-green-400" />
+                          <span className="text-sm font-medium">{device.label || 'Unknown Device'}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onVideoDeviceChange?.(device.deviceId)}
+                          className="bg-green-600 hover:bg-green-700 border-green-500"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
+                {/* Network Quality Section */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Connection Quality</h4>
-                  <div className="flex items-center gap-2">
-                    <Wifi className={cn("h-4 w-4", getConnectionColor())} />
-                    <span className="text-sm capitalize">{connectionQuality}</span>
+                  <h4 className="text-lg font-semibold mb-3 text-purple-400">Network Quality</h4>
+                  <div className="p-4 rounded-lg bg-gray-700 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Wifi className={cn("h-5 w-5", getConnectionColor())} />
+                      <span className="text-sm font-medium capitalize">{connectionQuality} Connection</span>
+                    </div>
+                    {networkStats && (
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-400">{networkStats.ping.toFixed(0)}</div>
+                          <div className="text-gray-400">Ping (ms)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-400">{(networkStats.bandwidth / 1000).toFixed(1)}</div>
+                          <div className="text-gray-400">Bandwidth (Mbps)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-400">{networkStats.participantCount}</div>
+                          <div className="text-gray-400">Participants</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -291,17 +340,17 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
             <Button
               onClick={onEndStage}
               size="lg"
-              className="rounded-full w-12 h-12 p-0 bg-orange-600 hover:bg-orange-700 text-white"
+              className="rounded-full w-12 h-12 p-0 bg-orange-600 hover:bg-orange-700 text-white shadow-lg transition-all duration-200"
             >
               <UserX className="h-6 w-6" />
             </Button>
           )}
 
-          {/* Leave */}
+          {/* Leave Stage */}
           <Button
             onClick={onLeave}
             size="lg"
-            className="rounded-full w-12 h-12 p-0 bg-red-600 hover:bg-red-700 text-white"
+            className="rounded-full w-12 h-12 p-0 bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all duration-200 hover:scale-105"
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
@@ -310,12 +359,12 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
         {/* Role Indicator */}
         <div className="flex items-center gap-2">
           <span className={cn(
-            "text-xs px-2 py-1 rounded-full",
+            "text-xs px-3 py-1 rounded-full font-medium transition-all duration-200",
             userRole === 'speaker' 
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
+              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-lg" 
               : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
           )}>
-            {userRole === 'speaker' ? 'Speaker' : 'Audience'}
+            {userRole === 'speaker' ? '🎤 Speaker' : '👥 Audience'}
           </span>
         </div>
       </div>

@@ -10,7 +10,7 @@ export interface SignalingMessage {
   timestamp: string;
 }
 
-class StageSignalingService {
+export class StageSignalingService {
   private static instance: StageSignalingService;
   private channel: RealtimeChannel | null = null;
   private stageId: string | null = null;
@@ -153,4 +153,5 @@ class StageSignalingService {
   }
 }
 
+// Export as default for compatibility
 export default StageSignalingService.getInstance();
