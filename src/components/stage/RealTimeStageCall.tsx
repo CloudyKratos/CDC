@@ -6,7 +6,7 @@ import EnhancedParticipantGrid from './components/EnhancedParticipantGrid';
 import EnhancedStageControls from './components/EnhancedStageControls';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import '../../../styles/stage-effects.css';
+import '@/styles/stage-effects.css';
 
 interface RealTimeStageCallProps {
   stageId: string;
