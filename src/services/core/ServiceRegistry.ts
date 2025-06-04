@@ -1,17 +1,14 @@
 
-export interface ServiceDefinition {
-  name: string;
-  instance: any;
-  dependencies: string[];
-  isHealthy: boolean;
-  lastHealthCheck: Date;
-  healthCheckInterval?: number;
+export interface ServiceInstance {
+  initialize?: () => Promise<void>;
+  cleanup?: () => void;
+  isHealthy?: () => boolean;
 }
 
 export class ServiceRegistry {
   private static instance: ServiceRegistry;
-  private services: Map<string, ServiceDefinition> = new Map();
-  private healthCheckIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private services: Map<string, any> = new Map();
+  private healthChecks: Map<string, () => boolean> = new Map();
 
   static getInstance(): ServiceRegistry {
     if (!ServiceRegistry.instance) {
@@ -20,119 +17,77 @@ export class ServiceRegistry {
     return ServiceRegistry.instance;
   }
 
-  registerService(definition: Omit<ServiceDefinition, 'isHealthy' | 'lastHealthCheck'>): void {
-    const serviceDefinition: ServiceDefinition = {
-      ...definition,
-      isHealthy: true,
-      lastHealthCheck: new Date()
-    };
-
-    this.services.set(definition.name, serviceDefinition);
-
-    // Setup health checking if interval is specified
-    if (definition.healthCheckInterval) {
-      this.setupHealthCheck(definition.name, definition.healthCheckInterval);
+  registerService(name: string, service: any): void {
+    this.services.set(name, service);
+    
+    // Register health check if service has isHealthy method
+    if (service.isHealthy && typeof service.isHealthy === 'function') {
+      this.healthChecks.set(name, () => service.isHealthy());
+    } else {
+      // Default health check
+      this.healthChecks.set(name, () => true);
     }
-
-    console.log(`ServiceRegistry: Registered service ${definition.name}`);
+    
+    console.log(`Service registered: ${name}`);
   }
 
   getService<T>(name: string): T | null {
-    const service = this.services.get(name);
-    return service ? service.instance : null;
+    return this.services.get(name) || null;
   }
 
-  getServiceHealth(name: string): { isHealthy: boolean; lastCheck: Date } | null {
-    const service = this.services.get(name);
-    return service ? {
-      isHealthy: service.isHealthy,
-      lastCheck: service.lastHealthCheck
-    } : null;
-  }
-
-  async checkServiceHealth(name: string): Promise<boolean> {
-    const service = this.services.get(name);
-    if (!service) return false;
-
-    try {
-      // Check if service has a health check method
-      if (service.instance && typeof service.instance.healthCheck === 'function') {
-        const isHealthy = await service.instance.healthCheck();
-        service.isHealthy = isHealthy;
-      } else {
-        // Basic health check - verify service instance exists
-        service.isHealthy = !!service.instance;
+  getHealthStatus(): { [key: string]: boolean } {
+    const status: { [key: string]: boolean } = {};
+    
+    this.healthChecks.forEach((healthCheck, serviceName) => {
+      try {
+        status[serviceName] = healthCheck();
+      } catch (error) {
+        console.error(`Health check failed for ${serviceName}:`, error);
+        status[serviceName] = false;
       }
-
-      service.lastHealthCheck = new Date();
-      return service.isHealthy;
-    } catch (error) {
-      console.error(`ServiceRegistry: Health check failed for ${name}:`, error);
-      service.isHealthy = false;
-      service.lastHealthCheck = new Date();
-      return false;
-    }
+    });
+    
+    return status;
   }
 
-  async checkAllServices(): Promise<Map<string, boolean>> {
-    const results = new Map<string, boolean>();
-
-    for (const [name] of this.services) {
-      const isHealthy = await this.checkServiceHealth(name);
-      results.set(name, isHealthy);
-    }
-
-    return results;
+  async initializeAll(): Promise<void> {
+    const promises: Promise<void>[] = [];
+    
+    this.services.forEach((service, name) => {
+      if (service.initialize && typeof service.initialize === 'function') {
+        promises.push(
+          service.initialize().catch((error: Error) => {
+            console.error(`Failed to initialize service ${name}:`, error);
+          })
+        );
+      }
+    });
+    
+    await Promise.all(promises);
   }
 
-  private setupHealthCheck(serviceName: string, interval: number): void {
-    // Clear existing interval if any
-    const existingInterval = this.healthCheckIntervals.get(serviceName);
-    if (existingInterval) {
-      clearInterval(existingInterval);
-    }
-
-    // Setup new health check interval
-    const intervalId = setInterval(async () => {
-      await this.checkServiceHealth(serviceName);
-    }, interval);
-
-    this.healthCheckIntervals.set(serviceName, intervalId);
-  }
-
-  unregisterService(name: string): void {
-    // Clear health check interval
-    const interval = this.healthCheckIntervals.get(name);
-    if (interval) {
-      clearInterval(interval);
-      this.healthCheckIntervals.delete(name);
-    }
-
-    // Remove service
-    this.services.delete(name);
-    console.log(`ServiceRegistry: Unregistered service ${name}`);
+  cleanup(): void {
+    this.services.forEach((service, name) => {
+      try {
+        if (service.cleanup && typeof service.cleanup === 'function') {
+          service.cleanup();
+        }
+      } catch (error) {
+        console.error(`Error cleaning up service ${name}:`, error);
+      }
+    });
+    
+    this.services.clear();
+    this.healthChecks.clear();
+    console.log('Service registry cleaned up');
   }
 
   listServices(): string[] {
     return Array.from(this.services.keys());
   }
 
-  getUnhealthyServices(): string[] {
-    return Array.from(this.services.entries())
-      .filter(([_, service]) => !service.isHealthy)
-      .map(([name]) => name);
-  }
-
-  shutdown(): void {
-    // Clear all health check intervals
-    for (const interval of this.healthCheckIntervals.values()) {
-      clearInterval(interval);
-    }
-    this.healthCheckIntervals.clear();
-
-    // Clear services
-    this.services.clear();
-    console.log('ServiceRegistry: Shutdown complete');
+  isServiceRegistered(name: string): boolean {
+    return this.services.has(name);
   }
 }
 

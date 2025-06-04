@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -37,6 +38,14 @@ export class StageSignalingService {
       StageSignalingService.instance = new StageSignalingService();
     }
     return StageSignalingService.instance;
+  }
+
+  static startMonitoring(): void {
+    console.log('Stage monitoring started');
+  }
+
+  static stopMonitoring(): void {
+    console.log('Stage monitoring stopped');
   }
 
   async joinStage(stageId: string, userId: string): Promise<boolean> {

@@ -1,43 +1,56 @@
-export interface DeviceFingerprint {
-  userAgent: string;
-  screen: string;
-  timezone: string;
-  language: string;
-  platform: string;
-  canvasFingerprint: string;
-  audioFingerprint: string;
-  webglFingerprint: string;
-  hash: string;
-}
+
+import QuantumResistantSecurity from './QuantumResistantSecurity';
 
 export interface SecurityContext {
   userId: string;
-  deviceFingerprint: DeviceFingerprint;
   sessionId: string;
-  ipAddress: string;
-  location?: string;
-  lastActivity: number;
   riskScore: number;
-  authenticationLevel: 'basic' | 'mfa' | 'biometric';
+  authenticationLevel: 'basic' | 'multi-factor' | 'biometric';
+  deviceFingerprint: string;
+  createdAt: number;
+  lastActivity: number;
+  permissions: string[];
+  anomalies: SecurityAnomaly[];
 }
 
-export interface ThreatDetection {
-  threatType: 'brute_force' | 'anomalous_behavior' | 'device_change' | 'location_change' | 'malware';
+export interface SecurityAnomaly {
+  type: 'location' | 'device' | 'behavior' | 'network';
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
   timestamp: number;
+  resolved: boolean;
+}
+
+export interface ThreatDetection {
   userId: string;
-  blocked: boolean;
+  threatType: 'malware' | 'phishing' | 'intrusion' | 'data_exfiltration';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  timestamp: number;
+  mitigated: boolean;
+  sourceIP?: string;
+  userAgent?: string;
+}
+
+export interface AccessRequest {
+  userId: string;
+  resource: string;
+  action: string;
+  context: {
+    timestamp: number;
+    location: string;
+    device: string;
+    riskFactors: string[];
+  };
 }
 
 export class ZeroTrustSecurityService {
   private static instance: ZeroTrustSecurityService;
   private securityContexts: Map<string, SecurityContext> = new Map();
-  private deviceFingerprints: Map<string, DeviceFingerprint> = new Map();
-  private threatDetections: ThreatDetection[] = [];
-  private behaviorBaselines: Map<string, any> = new Map();
-  private securityPolicies: Map<string, any> = new Map();
-  private auditLog: any[] = [];
+  private threatDetections: Map<string, ThreatDetection[]> = new Map();
+  private accessLogs: AccessRequest[] = [];
+  private monitoringInterval: NodeJS.Timeout | null = null;
+  private deviceFingerprints: Map<string, string> = new Map();
 
   static getInstance(): ZeroTrustSecurityService {
     if (!ZeroTrustSecurityService.instance) {
@@ -46,364 +59,380 @@ export class ZeroTrustSecurityService {
     return ZeroTrustSecurityService.instance;
   }
 
-  async initialize(): Promise<void> {
-    // Initialize security policies
-    this.initializeSecurityPolicies();
-    
-    // Start continuous monitoring
-    this.startContinuousMonitoring();
-    
-    console.log('Zero-Trust Security Service initialized');
-  }
-
-  private initializeSecurityPolicies(): void {
-    // Device trust policy
-    this.securityPolicies.set('device-trust', {
-      maxDevicesPerUser: 5,
-      deviceTrustExpiry: 30 * 24 * 60 * 60 * 1000, // 30 days
-      requireReauthOnNewDevice: true
-    });
-
-    // Location policy
-    this.securityPolicies.set('location', {
-      maxLocationChangesPerDay: 3,
-      suspiciousCountries: ['XX', 'YY'], // Country codes
-      requireMFAOnLocationChange: true
-    });
-
-    // Behavior analysis policy
-    this.securityPolicies.set('behavior', {
-      typingPatternAnalysis: true,
-      mouseMovementAnalysis: true,
-      sessionTimeoutMinutes: 60,
-      maxFailedAttempts: 3
-    });
+  static async initialize(): Promise<void> {
+    const instance = ZeroTrustSecurityService.getInstance();
+    await instance.startContinuousMonitoring();
+    console.log('Zero Trust Security Service initialized');
   }
 
   async createSecurityContext(userId: string): Promise<SecurityContext> {
     const deviceFingerprint = await this.generateDeviceFingerprint();
-    const ipAddress = await this.getClientIPAddress();
-    
+    const sessionId = this.generateSecureSessionId();
+
     const context: SecurityContext = {
       userId,
+      sessionId,
+      riskScore: await this.calculateInitialRiskScore(userId),
+      authenticationLevel: 'basic',
       deviceFingerprint,
-      sessionId: this.generateSessionId(),
-      ipAddress,
+      createdAt: Date.now(),
       lastActivity: Date.now(),
-      riskScore: 0,
-      authenticationLevel: 'basic'
+      permissions: ['basic_access'],
+      anomalies: []
     };
 
-    // Calculate initial risk score
-    context.riskScore = await this.calculateRiskScore(context);
-    
     this.securityContexts.set(userId, context);
-    this.deviceFingerprints.set(deviceFingerprint.hash, deviceFingerprint);
-    
-    this.auditLog.push({
-      action: 'security_context_created',
-      userId,
-      timestamp: Date.now(),
-      riskScore: context.riskScore
-    });
+    this.deviceFingerprints.set(userId, deviceFingerprint);
 
+    console.log(`Security context created for user: ${userId} (Risk: ${context.riskScore})`);
     return context;
   }
 
-  private async generateDeviceFingerprint(): Promise<DeviceFingerprint> {
-    const userAgent = navigator.userAgent;
-    const screen = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const language = navigator.language;
-    const platform = navigator.platform;
-    
-    const canvasFingerprint = await this.generateCanvasFingerprint();
-    const audioFingerprint = await this.generateAudioFingerprint();
-    const webglFingerprint = await this.generateWebGLFingerprint();
-    
-    const combinedString = `${userAgent}|${screen}|${timezone}|${language}|${platform}|${canvasFingerprint}|${audioFingerprint}|${webglFingerprint}`;
-    const hash = await this.hashString(combinedString);
-
-    return {
-      userAgent,
-      screen,
-      timezone,
-      language,
-      platform,
-      canvasFingerprint,
-      audioFingerprint,
-      webglFingerprint,
-      hash
-    };
-  }
-
-  private async generateCanvasFingerprint(): Promise<string> {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return 'no-canvas';
-
-    canvas.width = 200;
-    canvas.height = 50;
-    
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#f60';
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = '#069';
-    ctx.fillText('Device fingerprinting', 2, 15);
-    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-    ctx.fillText('Security validation', 4, 45);
-
-    return canvas.toDataURL();
-  }
-
-  private async generateAudioFingerprint(): Promise<string> {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const analyser = audioContext.createAnalyser();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(10000, audioContext.currentTime);
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      
-      oscillator.connect(analyser);
-      analyser.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.start(0);
-      oscillator.stop(audioContext.currentTime + 0.1);
-      
-      const data = new Float32Array(analyser.fftSize);
-      analyser.getFloatTimeDomainData(data);
-      
-      audioContext.close();
-      
-      return Array.from(data.slice(0, 100)).join(',');
-    } catch (error) {
-      return 'no-audio';
-    }
-  }
-
-  private async generateWebGLFingerprint(): Promise<string> {
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (!gl) return 'no-webgl';
-
-      const renderer = gl.getParameter(gl.RENDERER);
-      const vendor = gl.getParameter(gl.VENDOR);
-      const version = gl.getParameter(gl.VERSION);
-      const shadingLanguageVersion = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
-
-      return `${renderer}|${vendor}|${version}|${shadingLanguageVersion}`;
-    } catch (error) {
-      return 'no-webgl';
-    }
-  }
-
-  private async hashString(input: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(input);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private async getClientIPAddress(): Promise<string> {
-    try {
-      // This would typically be provided by the server
-      // For client-side, we'll use a placeholder
-      return 'client-ip-placeholder';
-    } catch (error) {
-      return 'unknown';
-    }
-  }
-
-  private async calculateRiskScore(context: SecurityContext): Promise<number> {
-    let riskScore = 0;
-
-    // Check device fingerprint against known devices
-    const knownDevice = this.deviceFingerprints.has(context.deviceFingerprint.hash);
-    if (!knownDevice) {
-      riskScore += 30; // New device adds risk
-    }
-
-    // Check for suspicious patterns
-    const recentThreats = this.threatDetections.filter(
-      threat => threat.userId === context.userId && 
-      Date.now() - threat.timestamp < 24 * 60 * 60 * 1000
-    );
-    riskScore += recentThreats.length * 10;
-
-    // Time-based risk (unusual login times)
-    const hour = new Date().getHours();
-    if (hour < 6 || hour > 22) {
-      riskScore += 15; // Outside normal hours
-    }
-
-    return Math.min(100, riskScore);
-  }
-
-  async validateAccess(userId: string, resource: string): Promise<boolean> {
+  async validateAccess(userId: string, resource: string, action: string = 'read'): Promise<boolean> {
     const context = this.securityContexts.get(userId);
     if (!context) {
-      this.logThreat({
-        threatType: 'anomalous_behavior',
-        severity: 'high',
-        description: 'Access attempt without valid security context',
-        timestamp: Date.now(),
-        userId,
-        blocked: true
-      });
+      console.warn(`No security context found for user: ${userId}`);
       return false;
     }
 
     // Update last activity
     context.lastActivity = Date.now();
 
-    // Check risk score
-    if (context.riskScore > 70) {
-      this.logThreat({
-        threatType: 'anomalous_behavior',
-        severity: 'high',
-        description: `High risk score access attempt: ${context.riskScore}`,
-        timestamp: Date.now(),
-        userId,
-        blocked: true
-      });
-      return false;
-    }
-
-    // Check session timeout
-    const sessionTimeout = 60 * 60 * 1000; // 1 hour
-    if (Date.now() - context.lastActivity > sessionTimeout) {
-      this.logThreat({
-        threatType: 'anomalous_behavior',
-        severity: 'medium',
-        description: 'Session timeout exceeded',
-        timestamp: Date.now(),
-        userId,
-        blocked: true
-      });
-      return false;
-    }
-
-    this.auditLog.push({
-      action: 'access_granted',
+    // Log access request
+    const accessRequest: AccessRequest = {
       userId,
       resource,
-      timestamp: Date.now(),
-      riskScore: context.riskScore
-    });
+      action,
+      context: {
+        timestamp: Date.now(),
+        location: await this.getGeoLocation(),
+        device: context.deviceFingerprint,
+        riskFactors: this.identifyRiskFactors(context)
+      }
+    };
 
-    return true;
+    this.accessLogs.push(accessRequest);
+
+    // Evaluate access based on zero-trust principles
+    const accessGranted = await this.evaluateAccess(context, accessRequest);
+
+    // Detect anomalies
+    await this.detectAnomalies(userId, accessRequest);
+
+    console.log(`Access ${accessGranted ? 'granted' : 'denied'} for ${userId} to ${resource}`);
+    return accessGranted;
   }
 
-  private logThreat(threat: ThreatDetection): void {
-    this.threatDetections.push(threat);
-    
-    // Keep only last 1000 threats
-    if (this.threatDetections.length > 1000) {
-      this.threatDetections.shift();
+  private async evaluateAccess(context: SecurityContext, request: AccessRequest): Promise<boolean> {
+    // Risk-based access control
+    if (context.riskScore > 80) {
+      this.recordThreat(request.userId, {
+        threatType: 'intrusion',
+        severity: 'high',
+        description: 'High risk score detected during access attempt',
+        timestamp: Date.now(),
+        mitigated: false
+      });
+      return false;
     }
 
-    console.warn(`Security Threat Detected: ${threat.threatType} - ${threat.description}`);
-    
-    // Auto-block critical threats
-    if (threat.severity === 'critical') {
-      this.blockUser(threat.userId, threat.description);
+    // Device validation
+    const currentFingerprint = await this.generateDeviceFingerprint();
+    if (currentFingerprint !== context.deviceFingerprint) {
+      context.anomalies.push({
+        type: 'device',
+        severity: 'medium',
+        description: 'Device fingerprint mismatch detected',
+        timestamp: Date.now(),
+        resolved: false
+      });
+      context.riskScore += 20;
     }
+
+    // Time-based analysis
+    const timeSinceLastActivity = Date.now() - context.lastActivity;
+    if (timeSinceLastActivity > 30 * 60 * 1000) { // 30 minutes
+      context.riskScore += 10;
+    }
+
+    // Permission check
+    const requiredPermission = this.getRequiredPermission(request.resource, request.action);
+    if (!context.permissions.includes(requiredPermission)) {
+      return false;
+    }
+
+    return context.riskScore < 70; // Threshold for access
   }
 
-  private blockUser(userId: string, reason: string): void {
+  private async detectAnomalies(userId: string, request: AccessRequest): Promise<void> {
     const context = this.securityContexts.get(userId);
-    if (context) {
-      context.riskScore = 100; // Maximum risk
-      this.auditLog.push({
-        action: 'user_blocked',
-        userId,
-        reason,
-        timestamp: Date.now()
+    if (!context) return;
+
+    // Behavioral analysis
+    const recentAccess = this.accessLogs
+      .filter(log => log.userId === userId)
+      .slice(-10); // Last 10 requests
+
+    // Check for unusual patterns
+    if (recentAccess.length > 5) {
+      const locations = recentAccess.map(log => log.context.location);
+      const uniqueLocations = new Set(locations);
+      
+      if (uniqueLocations.size > 3) {
+        context.anomalies.push({
+          type: 'location',
+          severity: 'medium',
+          description: 'Multiple geographic locations detected',
+          timestamp: Date.now(),
+          resolved: false
+        });
+        context.riskScore += 15;
+      }
+    }
+
+    // Rate limiting detection
+    const recentRequests = this.accessLogs
+      .filter(log => log.userId === userId && Date.now() - log.context.timestamp < 60000); // Last minute
+
+    if (recentRequests.length > 20) {
+      this.recordThreat(userId, {
+        threatType: 'intrusion',
+        severity: 'high',
+        description: 'Potential DDoS or automated attack detected',
+        timestamp: Date.now(),
+        mitigated: false
       });
     }
   }
 
-  private startContinuousMonitoring(): void {
-    // Monitor for behavioral anomalies
-    setInterval(() => {
-      this.analyzeBehaviorPatterns();
-    }, 30000); // Every 30 seconds
+  private async generateDeviceFingerprint(): Promise<string> {
+    const fingerprint = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      platform: navigator.platform,
+      screen: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      canvas: await this.getCanvasFingerprint(),
+      webgl: await this.getWebGLFingerprint()
+    };
 
-    // Clean up old data
-    setInterval(() => {
-      this.cleanupOldData();
-    }, 60 * 60 * 1000); // Every hour
+    return btoa(JSON.stringify(fingerprint));
   }
 
-  private analyzeBehaviorPatterns(): void {
+  private async getCanvasFingerprint(): Promise<string> {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Device fingerprinting', 2, 2);
+    
+    return canvas.toDataURL();
+  }
+
+  private async getWebGLFingerprint(): Promise<string> {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    
+    if (!gl) return '';
+
+    try {
+      const renderer = gl.getParameter(gl.RENDERER);
+      const vendor = gl.getParameter(gl.VENDOR);
+      const version = gl.getParameter(gl.VERSION);
+      
+      return `${renderer}|${vendor}|${version}`;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  private generateSecureSessionId(): string {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  private async calculateInitialRiskScore(userId: string): Promise<number> {
+    let riskScore = 0;
+
+    // Base risk factors
+    const isNewDevice = !this.deviceFingerprints.has(userId);
+    if (isNewDevice) riskScore += 20;
+
+    // Network analysis
+    const networkRisk = await this.analyzeNetworkRisk();
+    riskScore += networkRisk;
+
+    return Math.min(riskScore, 100);
+  }
+
+  private async analyzeNetworkRisk(): Promise<number> {
+    // Simulate network risk analysis
+    return Math.random() * 30; // 0-30 risk points
+  }
+
+  private async getGeoLocation(): Promise<string> {
+    return 'Unknown'; // Simplified - would use IP geolocation
+  }
+
+  private identifyRiskFactors(context: SecurityContext): string[] {
+    const factors: string[] = [];
+
+    if (context.riskScore > 50) factors.push('high_risk_score');
+    if (context.anomalies.length > 0) factors.push('anomalies_detected');
+    if (Date.now() - context.lastActivity > 60 * 60 * 1000) factors.push('inactive_session');
+
+    return factors;
+  }
+
+  private getRequiredPermission(resource: string, action: string): string {
+    // Simplified permission mapping
+    if (resource.includes('admin')) return 'admin_access';
+    if (action === 'write' || action === 'delete') return 'write_access';
+    return 'basic_access';
+  }
+
+  private recordThreat(userId: string, threat: Omit<ThreatDetection, 'userId'>): void {
+    const fullThreat: ThreatDetection = { userId, ...threat };
+    
+    if (!this.threatDetections.has(userId)) {
+      this.threatDetections.set(userId, []);
+    }
+    
+    this.threatDetections.get(userId)!.push(fullThreat);
+    
+    // Auto-mitigation for critical threats
+    if (threat.severity === 'critical') {
+      this.automaticThreatMitigation(userId, fullThreat);
+    }
+    
+    console.warn(`Threat detected for ${userId}:`, threat);
+  }
+
+  private automaticThreatMitigation(userId: string, threat: ThreatDetection): void {
+    const context = this.securityContexts.get(userId);
+    if (!context) return;
+
+    // Increase risk score
+    context.riskScore = Math.min(context.riskScore + 50, 100);
+
+    // Reduce permissions
+    context.permissions = ['basic_access'];
+
+    // Mark threat as mitigated
+    threat.mitigated = true;
+
+    console.log(`Automatic mitigation applied for user ${userId}`);
+  }
+
+  private async startContinuousMonitoring(): Promise<void> {
+    this.monitoringInterval = setInterval(() => {
+      this.performSecurityScan();
+    }, 30000); // Every 30 seconds
+
+    console.log('Continuous security monitoring started');
+  }
+
+  private performSecurityScan(): void {
+    // Clean up old access logs
+    const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 hours
+    this.accessLogs = this.accessLogs.filter(log => log.context.timestamp > cutoff);
+
+    // Update risk scores
     this.securityContexts.forEach((context, userId) => {
-      // Check for rapid successive actions
-      const recentActivity = Date.now() - context.lastActivity;
-      if (recentActivity < 1000) { // Less than 1 second
-        this.logThreat({
-          threatType: 'anomalous_behavior',
-          severity: 'medium',
-          description: 'Rapid successive actions detected',
-          timestamp: Date.now(),
-          userId,
-          blocked: false
-        });
+      this.updateRiskScore(context);
+    });
+
+    // Check for dormant threats
+    this.threatDetections.forEach((threats, userId) => {
+      const unmitgiatedThreats = threats.filter(t => !t.mitigated);
+      if (unmitgiatedThreats.length > 0) {
+        console.warn(`Unmitigated threats detected for user ${userId}:`, unmitgiatedThreats.length);
       }
     });
   }
 
-  private cleanupOldData(): void {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    
-    // Clean old threats
-    this.threatDetections = this.threatDetections.filter(
-      threat => threat.timestamp > oneDayAgo
-    );
+  private updateRiskScore(context: SecurityContext): void {
+    const timeSinceCreation = Date.now() - context.createdAt;
+    const timeSinceActivity = Date.now() - context.lastActivity;
 
-    // Clean old audit logs
-    this.auditLog = this.auditLog.filter(
-      log => log.timestamp > oneDayAgo
-    );
+    // Decay risk score over time for good behavior
+    if (timeSinceActivity < 5 * 60 * 1000 && context.anomalies.length === 0) { // 5 minutes
+      context.riskScore = Math.max(context.riskScore - 1, 0);
+    }
+
+    // Increase risk for inactivity
+    if (timeSinceActivity > 60 * 60 * 1000) { // 1 hour
+      context.riskScore = Math.min(context.riskScore + 5, 100);
+    }
   }
 
+  // Public interface methods
   getSecurityContext(userId: string): SecurityContext | null {
     return this.securityContexts.get(userId) || null;
   }
 
-  getThreatDetections(userId?: string): ThreatDetection[] {
-    if (userId) {
-      return this.threatDetections.filter(threat => threat.userId === userId);
-    }
-    return [...this.threatDetections];
+  getThreatDetections(userId: string): ThreatDetection[] {
+    return this.threatDetections.get(userId) || [];
   }
 
-  getAuditLog(userId?: string): any[] {
+  getAllSecurityContexts(): Map<string, SecurityContext> {
+    return new Map(this.securityContexts);
+  }
+
+  getAccessLogs(userId?: string): AccessRequest[] {
     if (userId) {
-      return this.auditLog.filter(log => log.userId === userId);
+      return this.accessLogs.filter(log => log.userId === userId);
     }
-    return [...this.auditLog];
+    return [...this.accessLogs];
+  }
+
+  mitigateThreat(userId: string, threatIndex: number): boolean {
+    const threats = this.threatDetections.get(userId);
+    if (!threats || !threats[threatIndex]) return false;
+
+    threats[threatIndex].mitigated = true;
+    console.log(`Threat mitigated for user ${userId} at index ${threatIndex}`);
+    return true;
+  }
+
+  elevatePermissions(userId: string, permissions: string[]): boolean {
+    const context = this.securityContexts.get(userId);
+    if (!context || context.riskScore > 30) return false;
+
+    context.permissions = [...new Set([...context.permissions, ...permissions])];
+    console.log(`Permissions elevated for user ${userId}:`, permissions);
+    return true;
+  }
+
+  revokePermissions(userId: string, permissions: string[]): void {
+    const context = this.securityContexts.get(userId);
+    if (!context) return;
+
+    context.permissions = context.permissions.filter(p => !permissions.includes(p));
+    console.log(`Permissions revoked for user ${userId}:`, permissions);
+  }
+
+  static cleanup(): void {
+    const instance = ZeroTrustSecurityService.getInstance();
+    
+    if (instance.monitoringInterval) {
+      clearInterval(instance.monitoringInterval);
+      instance.monitoringInterval = null;
+    }
+
+    instance.securityContexts.clear();
+    instance.threatDetections.clear();
+    instance.accessLogs = [];
+    instance.deviceFingerprints.clear();
+
+    console.log('Zero Trust Security Service cleaned up');
   }
 
   cleanup(): void {
-    this.securityContexts.clear();
-    this.deviceFingerprints.clear();
-    this.threatDetections = [];
-    this.behaviorBaselines.clear();
-    this.auditLog = [];
-    
-    console.log('Zero-Trust Security Service cleaned up');
+    ZeroTrustSecurityService.cleanup();
   }
 }
 

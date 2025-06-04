@@ -2,7 +2,7 @@
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
-import { StageMonitoringService } from '../monitoring/StageMonitoringService';
+import StageMonitoringService from '../monitoring/StageMonitoringService';
 import CircuitBreakerService from '../reliability/CircuitBreakerService';
 import PerformanceOptimizationService from '../performance/PerformanceOptimizationService';
 import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
@@ -12,21 +12,57 @@ import QuantumResistantSecurity from '../security/QuantumResistantSecurity';
 export interface StageConfig {
   stageId: string;
   userId: string;
-  maxParticipants: number;
-  enableRecording: boolean;
-  enableSecurity: boolean;
-  enableMonitoring: boolean;
-  enableCompliance: boolean;
+  userRole?: 'speaker' | 'audience';
+  maxParticipants?: number;
+  enableRecording?: boolean;
+  enableSecurity?: boolean;
+  enableMonitoring?: boolean;
+  enableCompliance?: boolean;
+  mediaConstraints?: {
+    audio: boolean;
+    video: boolean;
+  };
+  qualitySettings?: {
+    maxBitrate: number;
+    adaptiveStreaming: boolean;
+    lowLatencyMode: boolean;
+  };
+}
+
+export interface NetworkQuality {
+  quality: 'excellent' | 'good' | 'fair' | 'poor';
+  ping: number;
+  bandwidth: number;
+  jitter?: number;
+  packetLoss?: number;
+}
+
+export interface MediaDevice {
+  deviceId: string;
+  label: string;
+  kind: 'audioinput' | 'videoinput' | 'audiooutput';
+}
+
+export interface MediaState {
+  audioEnabled: boolean;
+  videoEnabled: boolean;
+  devices: {
+    audio: MediaDevice[];
+    video: MediaDevice[];
+  };
 }
 
 export interface StageState {
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
   isConnected: boolean;
   isConnecting: boolean;
   participantCount: number;
-  networkQuality: 'excellent' | 'good' | 'fair' | 'poor';
+  networkQuality: NetworkQuality;
   securityLevel: 'basic' | 'enhanced' | 'military';
   performanceScore: number;
   complianceStatus: 'compliant' | 'warning' | 'violation';
+  mediaState: MediaState;
+  errors: string[];
 }
 
 export class StageOrchestrator {
@@ -34,14 +70,29 @@ export class StageOrchestrator {
   private serviceRegistry = ServiceRegistry.getInstance();
   private isInitialized = false;
   private currentStage: StageConfig | null = null;
+  private eventListeners: Map<string, ((data: any) => void)[]> = new Map();
   private stageState: StageState = {
+    connectionState: 'disconnected',
     isConnected: false,
     isConnecting: false,
     participantCount: 0,
-    networkQuality: 'good',
+    networkQuality: {
+      quality: 'good',
+      ping: 50,
+      bandwidth: 1000
+    },
     securityLevel: 'enhanced',
     performanceScore: 100,
-    complianceStatus: 'compliant'
+    complianceStatus: 'compliant',
+    mediaState: {
+      audioEnabled: false,
+      videoEnabled: false,
+      devices: {
+        audio: [],
+        video: []
+      }
+    },
+    errors: []
   };
 
   static getInstance(): StageOrchestrator {
@@ -85,13 +136,15 @@ export class StageOrchestrator {
     }
   }
 
-  async joinStage(config: StageConfig): Promise<boolean> {
+  async initializeStage(config: StageConfig): Promise<{ success: boolean; error?: string }> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     this.currentStage = config;
     this.stageState.isConnecting = true;
+    this.stageState.connectionState = 'connecting';
+    this.emit('stateChanged', { state: this.stageState });
 
     try {
       console.log('Joining stage with enterprise-grade orchestration:', config.stageId);
@@ -111,7 +164,8 @@ export class StageOrchestrator {
           purpose: 'Stage call participation',
           legalBasis: 'Consent',
           location: 'EU',
-          encrypted: true
+          encrypted: true,
+          retention: 30 // 30 days
         });
       }
 
@@ -128,16 +182,21 @@ export class StageOrchestrator {
 
       this.stageState.isConnected = true;
       this.stageState.isConnecting = false;
+      this.stageState.connectionState = 'connected';
       this.updateStageState();
+      this.emit('stageInitialized', { config });
 
       console.log('Successfully joined stage with all enterprise services active');
-      return true;
+      return { success: true };
 
     } catch (error) {
       console.error('Failed to join stage:', error);
       this.stageState.isConnecting = false;
       this.stageState.isConnected = false;
-      return false;
+      this.stageState.connectionState = 'error';
+      this.stageState.errors = [error instanceof Error ? error.message : 'Unknown error'];
+      this.emit('stateChanged', { state: this.stageState });
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -168,12 +227,15 @@ export class StageOrchestrator {
           purpose: 'Stage call ended',
           legalBasis: 'Data minimization',
           location: 'EU',
-          encrypted: true
+          encrypted: true,
+          retention: 0 // Immediate deletion
         });
       }
 
       this.stageState.isConnected = false;
+      this.stageState.connectionState = 'disconnected';
       this.currentStage = null;
+      this.emit('stageLeft', {});
 
       console.log('Stage cleanup completed');
 
@@ -182,13 +244,39 @@ export class StageOrchestrator {
     }
   }
 
+  async toggleAudio(): Promise<boolean> {
+    this.stageState.mediaState.audioEnabled = !this.stageState.mediaState.audioEnabled;
+    this.emit('stateChanged', { state: this.stageState });
+    return this.stageState.mediaState.audioEnabled;
+  }
+
+  async toggleVideo(): Promise<boolean> {
+    this.stageState.mediaState.videoEnabled = !this.stageState.mediaState.videoEnabled;
+    this.emit('stateChanged', { state: this.stageState });
+    return this.stageState.mediaState.videoEnabled;
+  }
+
+  async switchAudioDevice(deviceId: string): Promise<void> {
+    console.log('Switching audio device to:', deviceId);
+    // Implementation would involve WebRTC service
+  }
+
+  async switchVideoDevice(deviceId: string): Promise<void> {
+    console.log('Switching video device to:', deviceId);
+    // Implementation would involve WebRTC service
+  }
+
   private updateStageState(): void {
     if (!this.currentStage) return;
 
     // Update network quality
     const networkQuality = StageSignalingService.getNetworkQuality();
     if (networkQuality) {
-      this.stageState.networkQuality = networkQuality.quality;
+      this.stageState.networkQuality = {
+        quality: networkQuality.quality,
+        ping: networkQuality.ping,
+        bandwidth: networkQuality.bandwidth
+      };
     }
 
     // Update performance score
@@ -208,6 +296,8 @@ export class StageOrchestrator {
 
     // Check compliance status
     this.stageState.complianceStatus = this.checkComplianceStatus();
+
+    this.emit('stateChanged', { state: this.stageState });
   }
 
   private calculatePerformanceScore(metrics: any): number {
@@ -245,8 +335,39 @@ export class StageOrchestrator {
     return 'compliant';
   }
 
+  // Event system
+  on(event: string, callback: (data: any) => void): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  off(event: string, callback: (data: any) => void): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
+  }
+
+  private emit(event: string, data: any): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(`Error in event listener for ${event}:`, error);
+        }
+      });
+    }
+  }
+
   // Public interface methods
-  getStageState(): StageState {
+  getState(): StageState {
     this.updateStageState();
     return { ...this.stageState };
   }
@@ -304,6 +425,7 @@ export class StageOrchestrator {
       QuantumResistantSecurity.cleanup();
 
       this.stageState.isConnected = false;
+      this.stageState.connectionState = 'disconnected';
       this.currentStage = null;
 
       console.log('Emergency shutdown completed');
@@ -318,6 +440,7 @@ export class StageOrchestrator {
     this.serviceRegistry.cleanup();
     this.currentStage = null;
     this.isInitialized = false;
+    this.eventListeners.clear();
 
     console.log('Stage Orchestrator cleanup completed');
   }

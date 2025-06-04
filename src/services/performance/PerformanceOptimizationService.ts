@@ -18,7 +18,7 @@ export interface MemoryPool {
 
 export class PerformanceOptimizationService {
   private static instance: PerformanceOptimizationService;
-  private circuitBreaker = CircuitBreakerService.getInstance();
+  private circuitBreaker = CircuitBreakerService;
   private memoryPools: Map<string, MemoryPool> = new Map();
   private performanceMetrics: PerformanceMetrics[] = [];
   private webAssemblyModules: Map<string, WebAssembly.Module> = new Map();
