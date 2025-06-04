@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StageService from '@/services/StageService';
@@ -44,57 +45,93 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const { user } = useAuth();
 
   useEffect(() => {
-    // Initialize stage call
     initializeCall();
     
     return () => {
-      // Cleanup
+      // Cleanup when component unmounts
+      handleLeaveCall();
     };
   }, [stageId]);
 
   const initializeCall = async () => {
     try {
       setConnectionStatus('connecting');
-      // Simulate connection
-      setTimeout(() => {
+      
+      // Join the stage through StageService
+      const joinSuccess = await StageService.joinStage(stageId, 'audience');
+      
+      if (joinSuccess) {
         setConnectionStatus('connected');
-        // Mock participants for demo
-        setParticipants([
-          {
-            id: '1',
-            name: 'Alice Johnson',
-            role: 'moderator',
-            isAudioEnabled: true,
-            isVideoEnabled: true,
-            isMuted: false,
-            isHandRaised: false,
-            isSpeaking: true,
-            audioLevel: 0.8,
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice'
-          },
-          {
-            id: '2',
-            name: 'Bob Smith',
-            role: 'speaker',
-            isAudioEnabled: true,
-            isVideoEnabled: false,
-            isMuted: false,
-            isHandRaised: false,
-            audioLevel: 0.3,
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob'
-          }
-        ]);
-        setActiveSpeaker('1');
-      }, 1500);
+        loadParticipants();
+        setupRealtimeSubscriptions();
+        toast.success('Joined stage successfully!');
+      } else {
+        setConnectionStatus('disconnected');
+        toast.error('Failed to join stage');
+      }
     } catch (error) {
       console.error('Error initializing call:', error);
       setConnectionStatus('disconnected');
+      toast.error('Failed to connect to stage');
     }
   };
 
-  const handleToggleAudio = () => {
-    setIsAudioEnabled(!isAudioEnabled);
-    toast.success(isAudioEnabled ? 'Microphone muted' : 'Microphone unmuted');
+  const loadParticipants = async () => {
+    try {
+      const participantData = await StageService.getStageParticipants(stageId);
+      
+      const formattedParticipants: Participant[] = participantData.map(p => ({
+        id: p.user_id,
+        name: p.profiles?.full_name || p.profiles?.username || 'Anonymous',
+        role: p.role,
+        isAudioEnabled: !p.is_muted,
+        isVideoEnabled: false, // Will be updated by WebRTC
+        isMuted: p.is_muted,
+        isHandRaised: p.is_hand_raised,
+        isSpeaking: false,
+        audioLevel: 0,
+        avatarUrl: p.profiles?.avatar_url
+      }));
+      
+      setParticipants(formattedParticipants);
+      
+      // Determine current user's role
+      const currentUserParticipant = participantData.find(p => p.user_id === user?.id);
+      if (currentUserParticipant) {
+        setUserStageRole(currentUserParticipant.role);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+  };
+
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to participant changes
+    const participantChannel = StageService.subscribeToParticipants(stageId, () => {
+      loadParticipants();
+    });
+
+    // Subscribe to stage updates
+    const stageChannel = StageService.subscribeToStageUpdates(stageId, () => {
+      // Handle stage status changes
+    });
+
+    return () => {
+      participantChannel.unsubscribe();
+      stageChannel.unsubscribe();
+    };
+  };
+
+  const handleToggleAudio = async () => {
+    const newAudioState = !isAudioEnabled;
+    setIsAudioEnabled(newAudioState);
+    
+    // Update in database
+    if (user) {
+      await StageService.toggleMute(stageId, user.id, !newAudioState);
+    }
+    
+    toast.success(newAudioState ? 'Microphone unmuted' : 'Microphone muted');
   };
 
   const handleToggleVideo = () => {
@@ -102,9 +139,14 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     toast.success(isVideoEnabled ? 'Camera off' : 'Camera on');
   };
 
-  const handleToggleHandRaise = () => {
-    setIsHandRaised(!isHandRaised);
-    toast.success(isHandRaised ? 'Hand lowered' : 'Hand raised');
+  const handleToggleHandRaise = async () => {
+    const newHandState = !isHandRaised;
+    setIsHandRaised(newHandState);
+    
+    // Update in database
+    await StageService.raiseHand(stageId, newHandState);
+    
+    toast.success(newHandState ? 'Hand raised' : 'Hand lowered');
   };
 
   const handleStartScreenShare = () => {
@@ -120,6 +162,14 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const handleLayoutChange = (mode: 'grid' | 'spotlight' | 'circle') => {
     setLayoutMode(mode);
     toast.success(`Switched to ${mode} view`);
+  };
+
+  const handleLeaveCall = async () => {
+    try {
+      await StageService.leaveStage(stageId);
+    } catch (error) {
+      console.error('Error leaving stage:', error);
+    }
   };
 
   const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
