@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import HomePage from '@/components/HomePage';
 import CalendarPanel from '@/components/CalendarPanel';
 import CommunityPanel from '@/components/CommunityPanel';
-import StageCallPanel from '@/components/StageCallPanel';
+import StageRoomPanel from '@/components/stage/StageRoomPanel';
 import CommandRoomPanel from '@/components/CommandRoomPanel';
 import WorldMapPanel from '@/components/WorldMapPanel';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -31,7 +32,6 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { currentRole } = useRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (!user) {
@@ -40,14 +40,6 @@ const Dashboard = () => {
 
   const handlePanelChange = (panel: ActivePanel) => {
     setSearchParams({ tab: panel });
-  };
-
-  const handleToggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const handleRaiseHand = () => {
-    console.log('Hand raised');
   };
 
   const renderContent = () => {
@@ -59,15 +51,7 @@ const Dashboard = () => {
       case "community":
         return <CommunityPanel channelName="general" />;
       case "stage":
-        return (
-          <StageCallPanel 
-            userName={user.email || 'User'}
-            avatarUrl=""
-            isMuted={isMuted}
-            onToggleMute={handleToggleMute}
-            onRaiseHand={handleRaiseHand}
-          />
-        );
+        return <StageRoomPanel />;
       case "worldmap":
         return <WorldMapPanel />;
       case "profile":
@@ -83,7 +67,7 @@ const Dashboard = () => {
     { id: "command-room", label: "Command Room", icon: LayoutGrid },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "community", label: "Community", icon: Users },
-    { id: "stage", label: "Stage Call", icon: Video },
+    { id: "stage", label: "Stage Rooms", icon: Video },
     { id: "worldmap", label: "World Map", icon: Map },
     { id: "profile", label: "Profile", icon: User },
   ];

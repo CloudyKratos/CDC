@@ -1,36 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRole } from '@/contexts/RoleContext';
+import StageService from '@/services/StageService';
+import RealTimeStageCall from './RealTimeStageCall';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Mic, 
-  MicOff, 
-  Hand, 
   Users, 
-  Settings, 
-  LogOut,
-  Crown,
-  Shield,
-  Volume2,
-  VolumeX,
-  Video,
-  VideoOff
+  Mic, 
+  Clock, 
+  Calendar,
+  ArrowLeft,
+  Play,
+  Settings
 } from 'lucide-react';
-import StageService, { StageRole } from '@/services/StageService';
-import SpeakerRequestModal from './SpeakerRequestModal';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 
 type Stage = Database['public']['Tables']['stages']['Row'];
 
 interface ActiveStageProps {
   stageId: string;
   onLeave: () => void;
-  userRole: string;
+  userRole?: string;
 }
 
 const ActiveStage: React.FC<ActiveStageProps> = ({
@@ -39,374 +34,255 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   userRole
 }) => {
   const [stage, setStage] = useState<Stage | null>(null);
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [userParticipant, setUserParticipant] = useState<any>(null);
-  const [isHandRaised, setIsHandRaised] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [showSpeakerRequests, setShowSpeakerRequests] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
 
   const { user } = useAuth();
-  const isAdmin = userRole === 'admin';
-  const isModerator = userRole === 'moderator' || isAdmin;
+  const { currentRole } = useRole();
 
   useEffect(() => {
-    loadStageData();
-    setupRealTimeSubscriptions();
+    loadStage();
     
-    // Auto-start the stage if it's scheduled and user is creator
-    if (stage?.status === 'scheduled' && stage?.creator_id === user?.id) {
-      StageService.updateStageStatus(stageId, 'live');
-    }
-  }, [stageId, user?.id]);
+    // Set up real-time subscription for stage updates
+    const channel = StageService.subscribeToStageUpdates(stageId, handleStageUpdate);
+    
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [stageId]);
 
-  const loadStageData = async () => {
+  const loadStage = async () => {
+    setIsLoading(true);
     try {
-      const [stageData, participantsData] = await Promise.all([
-        StageService.getStageById(stageId),
-        StageService.getStageParticipants(stageId)
-      ]);
-      
+      const stageData = await StageService.getStageById(stageId);
       setStage(stageData);
-      setParticipants(participantsData);
-      
-      // Find current user's participation
-      const userParticipation = participantsData.find(p => p.user_id === user?.id);
-      if (userParticipation) {
-        setUserParticipant(userParticipation);
-        setIsHandRaised(userParticipation.is_hand_raised || false);
-        setIsMuted(userParticipation.is_muted || true);
-        setIsVideoEnabled(userParticipation.is_video_enabled || false);
+    } catch (error) {
+      console.error('Error loading stage:', error);
+      toast.error('Failed to load stage details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStageUpdate = () => {
+    loadStage();
+  };
+
+  const joinStageCall = async () => {
+    if (!user) {
+      toast.error('Please log in to join the stage');
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      // Start the stage if it's scheduled and user is creator/moderator
+      if (stage?.status === 'scheduled' && 
+          (stage.creator_id === user.id || currentRole === 'admin' || currentRole === 'moderator')) {
+        await StageService.updateStageStatus(stageId, 'live');
+        setStage(prev => prev ? { ...prev, status: 'live' } : null);
+        toast.success('Stage is now live!');
+      }
+
+      // Join as participant
+      const success = await StageService.joinStage(stageId, 'audience');
+      if (success) {
+        setHasJoined(true);
+        toast.success('Joined stage successfully!');
+      } else {
+        toast.error('Failed to join stage');
       }
     } catch (error) {
-      console.error('Error loading stage data:', error);
-      toast.error('Failed to load stage data');
+      console.error('Error joining stage:', error);
+      toast.error('Failed to join stage');
+    } finally {
+      setIsJoining(false);
     }
   };
 
-  const setupRealTimeSubscriptions = () => {
-    const stageChannel = StageService.subscribeToStageUpdates(stageId, () => {
-      loadStageData();
-    });
-
-    const participantsChannel = StageService.subscribeToParticipants(stageId, () => {
-      loadStageData();
-    });
-
-    return () => {
-      stageChannel.unsubscribe();
-      participantsChannel.unsubscribe();
-    };
-  };
-
-  const canManageStage = isModerator || (stage?.creator_id === user?.id);
-
-  const handleRaiseHand = async () => {
-    if (!user) return;
-    
-    const newState = !isHandRaised;
-    const success = await StageService.raiseHand(stageId, newState);
-    
-    if (success) {
-      setIsHandRaised(newState);
-      if (newState) {
-        await StageService.requestToSpeak(stageId);
-        toast.success('Hand raised! Waiting for moderator approval.');
+  const leaveStageCall = async () => {
+    try {
+      const success = await StageService.leaveStage(stageId);
+      if (success) {
+        setHasJoined(false);
+        onLeave();
+        toast.success('Left stage successfully!');
       } else {
-        toast.success('Hand lowered.');
+        toast.error('Failed to leave stage');
       }
-    } else {
-      toast.error('Failed to update hand status');
+    } catch (error) {
+      console.error('Error leaving stage:', error);
+      toast.error('Failed to leave stage');
     }
   };
 
-  const handleToggleMute = async () => {
-    if (!user || userParticipant?.role === 'audience') {
-      toast.error('Audience members cannot unmute');
-      return;
-    }
-
-    const newMuteState = !isMuted;
-    const success = await StageService.toggleMute(stageId, user.id, newMuteState);
-    
-    if (success) {
-      setIsMuted(newMuteState);
-      toast.success(newMuteState ? 'Muted' : 'Unmuted');
-    } else {
-      toast.error('Failed to toggle mute');
-    }
-  };
-
-  const handleToggleVideo = async () => {
-    if (!user || userParticipant?.role === 'audience') {
-      toast.error('Audience members cannot enable video');
-      return;
-    }
-
-    setIsVideoEnabled(!isVideoEnabled);
-    // In a real implementation, this would control the video stream
-    toast.success(isVideoEnabled ? 'Video disabled' : 'Video enabled');
-  };
-
-  const promoteToSpeaker = async (userId: string) => {
-    const success = await StageService.updateParticipantRole(stageId, userId, 'speaker');
-    if (success) {
-      toast.success('User promoted to speaker');
-      loadStageData();
-    } else {
-      toast.error('Failed to promote user');
-    }
-  };
-
-  const demoteToAudience = async (userId: string) => {
-    const success = await StageService.updateParticipantRole(stageId, userId, 'audience');
-    if (success) {
-      toast.success('User moved to audience');
-      loadStageData();
-    } else {
-      toast.error('Failed to demote user');
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'moderator':
-        return <Shield className="h-4 w-4 text-blue-500" />;
-      case 'speaker':
-        return <Mic className="h-4 w-4 text-green-500" />;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'live':
+        return <Badge variant="destructive" className="gap-1"><Play className="h-3 w-3" />Live</Badge>;
+      case 'scheduled':
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Scheduled</Badge>;
       default:
-        return <Users className="h-4 w-4 text-gray-500" />;
+        return <Badge variant="outline">Ended</Badge>;
     }
   };
 
-  const getParticipantName = (participant: any) => {
-    return participant.profiles?.full_name || 
-           participant.profiles?.username || 
-           `User ${participant.user_id.slice(0, 8)}`;
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'Not scheduled';
+    return new Date(dateString).toLocaleString();
   };
 
-  const getParticipantAvatar = (participant: any) => {
-    return participant.profiles?.avatar_url || 
-           `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.user_id}`;
-  };
+  const canStartStage = stage?.creator_id === user?.id || currentRole === 'admin' || currentRole === 'moderator';
 
-  const speakers = participants.filter(p => ['moderator', 'speaker'].includes(p.role));
-  const audience = participants.filter(p => p.role === 'audience');
-
-  if (!stage) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Loading stage...</h3>
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex items-center gap-2 p-4 border-b">
+          <Button variant="ghost" size="sm" onClick={onLeave} disabled>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Skeleton className="h-6 w-48" />
+        </div>
+        <div className="flex-1 p-4">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
+  if (!stage) {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex items-center gap-2 p-4 border-b">
+          <Button variant="ghost" size="sm" onClick={onLeave}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-lg font-semibold">Stage Not Found</h1>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground mb-4">
+                The stage you're looking for could not be found or may have been deleted.
+              </p>
+              <Button onClick={onLeave}>Go Back</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If user has joined the stage call, show the real-time call interface
+  if (hasJoined) {
+    return <RealTimeStageCall stageId={stageId} onLeave={leaveStageCall} />;
+  }
+
+  // Show stage details and join interface
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Stage Header */}
-      <div className="p-4 border-b bg-card">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Badge variant={stage.status === 'live' ? 'destructive' : 'secondary'} className="gap-1">
-              {stage.status === 'live' && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
-              {stage.status.toUpperCase()}
-            </Badge>
-            <h1 className="text-xl font-bold">{stage.title}</h1>
-          </div>
+      {/* Header */}
+      <div className="flex items-center gap-2 p-4 border-b">
+        <Button variant="ghost" size="sm" onClick={onLeave}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-lg font-semibold">{stage.title}</h1>
+        {getStatusBadge(stage.status)}
+      </div>
+
+      {/* Stage Details */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>{stage.title}</span>
+              {stage.topic && (
+                <Badge variant="outline">#{stage.topic}</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
           
-          <div className="flex items-center gap-2">
-            {canManageStage && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSpeakerRequests(true)}
-                className="gap-2"
-              >
-                <Hand className="h-4 w-4" />
-                Requests
-              </Button>
+          <CardContent className="space-y-6">
+            {stage.description && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">Description</h3>
+                <p className="text-sm text-muted-foreground">{stage.description}</p>
+              </div>
             )}
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onLeave}
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Leave
-            </Button>
-          </div>
-        </div>
-        
-        {stage.topic && (
-          <p className="text-sm text-muted-foreground">#{stage.topic}</p>
-        )}
-        
-        {stage.description && (
-          <p className="text-sm text-muted-foreground mt-1">{stage.description}</p>
-        )}
-        
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-          <span>{speakers.length} speakers</span>
-          <span>{audience.length} in audience</span>
-          {stage.scheduled_start_time && (
-            <span>Scheduled: {new Date(stage.scheduled_start_time).toLocaleString()}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Stage Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Main Stage Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Speakers Section */}
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">
-              SPEAKERS ({speakers.length})
-            </h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {speakers.map((participant) => (
-                <Card key={participant.id} className="p-3">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={getParticipantAvatar(participant)} />
-                        <AvatarFallback>
-                          {getParticipantName(participant).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="absolute -bottom-1 -right-1">
-                        {participant.is_muted ? (
-                          <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                            <MicOff className="h-3 w-3 text-white" />
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                            <Mic className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 justify-center">
-                        {getRoleIcon(participant.role)}
-                        <span className="text-sm font-medium truncate">
-                          {getParticipantName(participant)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {canManageStage && participant.role === 'speaker' && participant.user_id !== user?.id && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => demoteToAudience(participant.user_id)}
-                        className="text-xs"
-                      >
-                        Move to Audience
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Audience Section */}
-          <div className="flex-1 p-4 overflow-hidden">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">
-              AUDIENCE ({audience.length})
-            </h3>
-            
-            <ScrollArea className="h-full">
-              <div className="space-y-2">
-                {audience.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={getParticipantAvatar(participant)} />
-                        <AvatarFallback>
-                          {getParticipantName(participant).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <span className="text-sm">
-                        {getParticipantName(participant)}
-                      </span>
-                      
-                      {participant.is_hand_raised && (
-                        <Hand className="h-4 w-4 text-orange-500 animate-bounce" />
-                      )}
-                    </div>
-                    
-                    {canManageStage && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => promoteToSpeaker(participant.user_id)}
-                        className="text-xs"
-                      >
-                        Invite to Speak
-                      </Button>
-                    )}
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span>Max Audience: {stage.max_audience || 100}</span>
               </div>
-            </ScrollArea>
-          </div>
-        </div>
+              
+              <div className="flex items-center gap-2">
+                <Mic className="h-4 w-4 text-muted-foreground" />
+                <span>Max Speakers: {stage.max_speakers || 10}</span>
+              </div>
+              
+              {stage.scheduled_start_time && (
+                <div className="flex items-center gap-2 col-span-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>Scheduled: {formatDateTime(stage.scheduled_start_time)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {stage.allow_hand_raising && (
+                <Badge variant="secondary">Hand Raising Allowed</Badge>
+              )}
+              {stage.recording_enabled && (
+                <Badge variant="secondary">Recording Enabled</Badge>
+              )}
+            </div>
+
+            {/* Join Button */}
+            <div className="pt-4">
+              {stage.status === 'scheduled' && canStartStage ? (
+                <Button 
+                  onClick={joinStageCall} 
+                  disabled={isJoining}
+                  size="lg"
+                  className="w-full gap-2"
+                >
+                  <Play className="h-5 w-5" />
+                  {isJoining ? 'Starting Stage...' : 'Start & Join Stage'}
+                </Button>
+              ) : stage.status === 'live' ? (
+                <Button 
+                  onClick={joinStageCall} 
+                  disabled={isJoining}
+                  size="lg"
+                  className="w-full gap-2"
+                >
+                  <Users className="h-5 w-5" />
+                  {isJoining ? 'Joining...' : 'Join Live Stage'}
+                </Button>
+              ) : stage.status === 'scheduled' ? (
+                <div className="text-center text-muted-foreground">
+                  <p>This stage is scheduled but not yet live.</p>
+                  <p className="text-sm">Only the creator or moderators can start it.</p>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <p>This stage has ended.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Stage Controls */}
-      <div className="p-4 border-t bg-card">
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant={isMuted ? "destructive" : "default"}
-            size="lg"
-            onClick={handleToggleMute}
-            disabled={userParticipant?.role === 'audience'}
-            className="gap-2"
-          >
-            {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </Button>
-
-          <Button
-            variant={isVideoEnabled ? "default" : "outline"}
-            size="lg"
-            onClick={handleToggleVideo}
-            disabled={userParticipant?.role === 'audience'}
-            className="gap-2"
-          >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </Button>
-          
-          {userParticipant?.role === 'audience' && (
-            <Button
-              variant={isHandRaised ? "secondary" : "outline"}
-              size="lg"
-              onClick={handleRaiseHand}
-              className="gap-2"
-            >
-              <Hand className="h-5 w-5" />
-              {isHandRaised ? 'Lower Hand' : 'Raise Hand'}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Speaker Request Modal */}
-      <SpeakerRequestModal
-        isOpen={showSpeakerRequests}
-        onClose={() => setShowSpeakerRequests(false)}
-        stageId={stageId}
-        onApprove={promoteToSpeaker}
-      />
     </div>
   );
 };
