@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import StageService from '@/services/StageService';
-import RealTimeStageCall from './RealTimeStageCall';
+import { StageRoom } from '@/components/stage-call/StageRoom';
 import StageDetails from './components/StageDetails';
 import StageError from './components/StageError';
 import StageLoading from './components/StageLoading';
@@ -136,7 +136,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
         }
       }
 
-      // Proceed to stage call
+      // Proceed to stage call with new component
       setHasJoined(true);
     } catch (error) {
       console.error('Error joining stage:', error);
@@ -182,7 +182,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   }
 
   if (hasJoined) {
-    return <RealTimeStageCall stageId={stageId} onLeave={leaveStageCall} />;
+    return <StageRoom stageId={stageId} onLeave={leaveStageCall} />;
   }
 
   return (
