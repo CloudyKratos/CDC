@@ -32,7 +32,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   onLeave
 }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
@@ -42,6 +42,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const [layoutMode, setLayoutMode] = useState<'grid' | 'spotlight' | 'circle'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const subscriptionsRef = useRef<{ unsubscribe: () => void }[]>([]);
@@ -69,15 +70,17 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
 
   const handleConnectionError = useCallback((error: any, context: string) => {
     console.error(`Connection error in ${context}:`, error);
-    setConnectionStatus('error');
+    setConnectionStatus('disconnected');
     setError(`Connection failed: ${context}`);
     
-    // Attempt reconnection after delay
+    // Attempt reconnection after delay with exponential backoff
+    const delay = Math.min(3000 * Math.pow(2, retryCount), 30000);
     reconnectTimeoutRef.current = setTimeout(() => {
       console.log('Attempting to reconnect...');
+      setRetryCount(prev => prev + 1);
       initializeCall();
-    }, 3000);
-  }, []);
+    }, delay);
+  }, [retryCount]);
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -107,6 +110,8 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
         setIsAudioEnabled(!currentUserParticipant.is_muted);
         setIsVideoEnabled(currentUserParticipant.is_video_enabled || false);
       }
+      
+      console.log('Participants loaded successfully:', formattedParticipants.length);
     } catch (error) {
       console.error('Error loading participants:', error);
       handleConnectionError(error, 'loading participants');
@@ -127,6 +132,10 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       const stageSub = StageService.subscribeToStageUpdates(stageId, (payload) => {
         console.log('Stage update received:', payload);
         // Handle stage status changes if needed
+        if (payload.eventType === 'UPDATE' && payload.new?.status === 'ended') {
+          toast.info('Stage has ended');
+          setTimeout(() => onLeave(), 2000);
+        }
       });
 
       subscriptionsRef.current = [participantSub, stageSub];
@@ -139,7 +148,36 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       console.error('Error setting up subscriptions:', error);
       handleConnectionError(error, 'setting up subscriptions');
     }
-  }, [stageId, loadParticipants, handleConnectionError]);
+  }, [stageId, loadParticipants, handleConnectionError, onLeave]);
+
+  const validateStageAccess = useCallback(async (): Promise<{ canJoin: boolean; error?: string }> => {
+    if (!user) {
+      return { canJoin: false, error: 'Please log in to join the stage' };
+    }
+
+    try {
+      // Check if stage exists and get current status
+      const stage = await StageService.getStageById(stageId);
+      if (!stage) {
+        return { canJoin: false, error: 'Stage not found' };
+      }
+
+      if (stage.status === 'ended') {
+        return { canJoin: false, error: 'This stage has ended' };
+      }
+
+      // Validate join request
+      const validation = await StageService.validateStageJoin(stageId, 'audience');
+      if (!validation.canJoin) {
+        return { canJoin: false, error: validation.reason };
+      }
+
+      return { canJoin: true };
+    } catch (error) {
+      console.error('Error validating stage access:', error);
+      return { canJoin: false, error: 'Failed to validate stage access' };
+    }
+  }, [user, stageId]);
 
   const initializeCall = useCallback(async () => {
     setIsLoading(true);
@@ -149,11 +187,21 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     try {
       console.log('Initializing stage call for:', stageId);
       
+      // Validate access first
+      const accessValidation = await validateStageAccess();
+      if (!accessValidation.canJoin) {
+        setConnectionStatus('disconnected');
+        setError(accessValidation.error || 'Access denied');
+        setIsLoading(false);
+        return;
+      }
+
       // Join the stage through StageService
       const joinResult = await StageService.joinStage(stageId, 'audience');
       
       if (joinResult.success) {
         setConnectionStatus('connected');
+        setRetryCount(0); // Reset retry count on success
         await loadParticipants();
         setupRealtimeSubscriptions();
         toast.success('Joined stage successfully!');
@@ -168,7 +216,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [stageId, loadParticipants, setupRealtimeSubscriptions, handleConnectionError]);
+  }, [stageId, validateStageAccess, loadParticipants, setupRealtimeSubscriptions, handleConnectionError]);
 
   useEffect(() => {
     initializeCall();
@@ -178,10 +226,10 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
 
   const handleToggleAudio = async () => {
     const newAudioState = !isAudioEnabled;
-    setIsAudioEnabled(newAudioState);
     
     try {
       if (user) {
+        setIsAudioEnabled(newAudioState); // Optimistic update
         await StageService.toggleMute(stageId, user.id, !newAudioState);
         toast.success(newAudioState ? 'Microphone unmuted' : 'Microphone muted');
       }
@@ -200,9 +248,9 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
 
   const handleToggleHandRaise = async () => {
     const newHandState = !isHandRaised;
-    setIsHandRaised(newHandState);
     
     try {
+      setIsHandRaised(newHandState); // Optimistic update
       await StageService.raiseHand(stageId, newHandState);
       toast.success(newHandState ? 'Hand raised' : 'Hand lowered');
     } catch (error) {
@@ -241,6 +289,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
 
   const handleRetryConnection = () => {
     setError(null);
+    setRetryCount(0);
     initializeCall();
   };
 
@@ -257,6 +306,9 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="text-lg">Connecting to stage...</p>
+            <p className="text-sm text-muted-foreground">
+              Initializing real-time connection...
+            </p>
           </div>
         </div>
       </div>
@@ -267,7 +319,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     return (
       <div className="flex flex-col h-full">
         <StageHeader
-          connectionStatus="error"
+          connectionStatus="disconnected"
           participantCount={0}
           onLeave={onLeave}
           onEndCall={onLeave}
@@ -276,12 +328,20 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
           <div className="text-center space-y-4 max-w-md">
             <p className="text-lg text-destructive">Connection Error</p>
             <p className="text-sm text-muted-foreground">{error}</p>
-            <button 
-              onClick={handleRetryConnection}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Retry Connection
-            </button>
+            <div className="flex gap-2 justify-center">
+              <button 
+                onClick={handleRetryConnection}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Retry Connection
+              </button>
+              <button 
+                onClick={onLeave}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+              >
+                Leave Stage
+              </button>
+            </div>
           </div>
         </div>
       </div>
