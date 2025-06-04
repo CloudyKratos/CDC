@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, LogOut } from 'lucide-react';
+import { AlertTriangle, RefreshCw, LogOut, Info } from 'lucide-react';
 
 interface ConnectionErrorProps {
   error: string;
@@ -15,6 +15,8 @@ export const ConnectionError: React.FC<ConnectionErrorProps> = ({
   onRetry,
   onLeave
 }) => {
+  const isDuplicateKeyError = error.includes('duplicate key') || error.includes('stage_participants_stage_id_user_id_key');
+  
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <div className="flex-1 flex items-center justify-center p-6">
@@ -28,8 +30,23 @@ export const ConnectionError: React.FC<ConnectionErrorProps> = ({
           
           <CardContent className="space-y-4">
             <p className="text-white/80 text-center text-sm">
-              {error}
+              {isDuplicateKeyError 
+                ? "There's an existing session that needs to be cleaned up. Please try force reconnecting."
+                : error
+              }
             </p>
+            
+            {isDuplicateKeyError && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-blue-200 text-xs">
+                    This usually happens when a previous session wasn't properly closed. 
+                    Force reconnecting will clean up the old session and establish a new connection.
+                  </p>
+                </div>
+              </div>
+            )}
             
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
               <p className="text-yellow-200 text-xs text-center">
@@ -43,7 +60,7 @@ export const ConnectionError: React.FC<ConnectionErrorProps> = ({
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Force Reconnect
+                {isDuplicateKeyError ? 'Force Reconnect & Cleanup' : 'Force Reconnect'}
               </Button>
               
               <Button 

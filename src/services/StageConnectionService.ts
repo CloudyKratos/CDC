@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import StageService from './StageService';
+import StageCleanupService from './StageCleanupService';
 
 interface ConnectionResult {
   success: boolean;
@@ -17,6 +18,7 @@ interface ConnectionState {
 
 class StageConnectionService {
   private static instance: StageConnectionService;
+  private cleanupService = StageCleanupService.getInstance();
   private state: ConnectionState = {
     isConnected: false,
     isConnecting: false,
@@ -46,11 +48,11 @@ class StageConnectionService {
     this.state.isConnecting = true;
     
     try {
-      // Step 1: Clean up any existing connections
+      // Step 1: Force cleanup any existing connections
       await this.cleanupExistingConnection(stageId, userId);
       
       // Step 2: Wait for cleanup to complete
-      await this.delay(1000);
+      await this.delay(2000); // Increased delay
       
       // Step 3: Validate stage access
       const accessCheck = await StageService.validateStageAccess(stageId);
@@ -58,7 +60,7 @@ class StageConnectionService {
         throw new Error(accessCheck.reason || 'Cannot access stage');
       }
       
-      // Step 4: Join the stage with timeout
+      // Step 4: Join the stage with timeout using safe method
       const joinResult = await Promise.race([
         this.attemptStageJoin(stageId, userId),
         this.createTimeout(this.CONNECTION_TIMEOUT, 'Connection timeout')
@@ -99,6 +101,8 @@ class StageConnectionService {
     if (this.state.stageId && this.state.userId) {
       try {
         await StageService.leaveStage(this.state.stageId);
+        // Additional cleanup
+        await this.cleanupService.forceCleanupUserParticipation(this.state.stageId, this.state.userId);
       } catch (error) {
         console.error('Error during stage leave:', error);
       }
@@ -109,14 +113,14 @@ class StageConnectionService {
   }
 
   private async cleanupExistingConnection(stageId: string, userId: string): Promise<void> {
-    console.log('Cleaning up existing connections');
+    console.log('Cleaning up existing connections thoroughly');
     
     try {
-      // Force disconnect from any existing sessions
-      await StageService.forceDisconnectUser(stageId, userId);
+      // Use the improved cleanup service
+      await this.cleanupService.forceCleanupUserParticipation(stageId, userId);
       
       // Clean up ghost participants
-      await StageService.cleanupGhostParticipants(stageId);
+      await this.cleanupService.cleanupGhostParticipants(stageId);
       
     } catch (error) {
       console.error('Cleanup error (non-fatal):', error);
@@ -125,7 +129,8 @@ class StageConnectionService {
 
   private async attemptStageJoin(stageId: string, userId: string): Promise<ConnectionResult> {
     try {
-      const result = await StageService.joinStage(stageId, 'audience');
+      // Use the safe join method from cleanup service
+      const result = await this.cleanupService.safeJoinStage(stageId, userId, 'audience');
       return result;
     } catch (error) {
       console.error('Join attempt failed:', error);

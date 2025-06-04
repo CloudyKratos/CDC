@@ -1,15 +1,18 @@
 
 import StageService from '@/services/StageService';
+import StageCleanupService from '@/services/StageCleanupService';
 
 export const cleanupStageResources = async (stageId: string, userId: string): Promise<void> => {
   console.log('Cleaning up stage resources for:', { stageId, userId });
   
   try {
+    const cleanupService = StageCleanupService.getInstance();
+    
     // Force disconnect user from any existing sessions
-    await StageService.forceDisconnectUser(stageId, userId);
+    await cleanupService.forceCleanupUserParticipation(stageId, userId);
     
     // Clean up ghost participants
-    await StageService.cleanupGhostParticipants(stageId);
+    await cleanupService.cleanupGhostParticipants(stageId);
     
     // Clean up completed calls (older than 2 hours)
     await cleanupCompletedCalls();

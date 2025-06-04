@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import StageCleanupService from "./StageCleanupService";
 
 type Stage = Database['public']['Tables']['stages']['Row'];
 type StageInsert = Database['public']['Tables']['stages']['Insert'];
@@ -11,6 +12,7 @@ export type StageRole = 'moderator' | 'speaker' | 'audience';
 class StageService {
   private retryDelay = 1000;
   private maxRetries = 3;
+  private cleanupService = StageCleanupService.getInstance();
 
   private async retryOperation<T>(
     operation: () => Promise<T>,
@@ -99,60 +101,12 @@ class StageService {
   }
 
   async forceDisconnectUser(stageId: string, userId: string): Promise<boolean> {
-    try {
-      console.log('Force disconnecting user from stage:', { stageId, userId });
-      
-      // Update all active participations for this user in this stage
-      const { error } = await supabase
-        .from('stage_participants')
-        .update({ 
-          left_at: new Date().toISOString(),
-          is_muted: true,
-          is_video_enabled: false,
-          is_hand_raised: false
-        })
-        .eq('stage_id', stageId)
-        .eq('user_id', userId)
-        .is('left_at', null);
-
-      if (error) {
-        console.error('Error force disconnecting user:', error);
-        return false;
-      }
-
-      console.log('User force disconnected successfully');
-      return true;
-    } catch (error) {
-      console.error('Error in forceDisconnectUser:', error);
-      return false;
-    }
+    return this.cleanupService.forceCleanupUserParticipation(stageId, userId);
   }
 
   async cleanupGhostParticipants(stageId: string): Promise<boolean> {
     try {
-      console.log('Cleaning up ghost participants for stage:', stageId);
-      
-      // Mark participants as left if they joined more than 5 minutes ago without recent activity
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      
-      const { error } = await supabase
-        .from('stage_participants')
-        .update({ 
-          left_at: new Date().toISOString(),
-          is_muted: true,
-          is_video_enabled: false,
-          is_hand_raised: false
-        })
-        .eq('stage_id', stageId)
-        .is('left_at', null)
-        .lt('joined_at', fiveMinutesAgo);
-
-      if (error) {
-        console.error('Error cleaning up ghost participants:', error);
-        return false;
-      }
-
-      console.log('Ghost participants cleanup completed');
+      await this.cleanupService.cleanupGhostParticipants(stageId);
       return true;
     } catch (error) {
       console.error('Error in cleanupGhostParticipants:', error);
@@ -188,59 +142,10 @@ class StageService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { success: false, error: 'Authentication required. Please log in to join the stage.' };
 
-      console.log('Attempting to join stage:', { stageId, userId: user.id, role });
+      console.log('Attempting to join stage using safe method:', { stageId, userId: user.id, role });
       
-      // Check for existing active participation first
-      const { data: existing } = await supabase
-        .from('stage_participants')
-        .select('id')
-        .eq('stage_id', stageId)
-        .eq('user_id', user.id)
-        .is('left_at', null)
-        .single();
-
-      if (existing) {
-        console.log('User already has active participation');
-        return { success: true };
-      }
-
-      // Insert new participation record
-      const { error: insertError } = await supabase
-        .from('stage_participants')
-        .insert({
-          stage_id: stageId,
-          user_id: user.id,
-          role: role as Database['public']['Enums']['stage_role'],
-          is_muted: role === 'audience',
-          is_video_enabled: false,
-          is_hand_raised: false,
-          joined_at: new Date().toISOString()
-        });
-
-      if (insertError) {
-        console.error('Error joining stage:', insertError);
-        
-        // Handle duplicate key error specifically
-        if (insertError.code === '23505') {
-          console.log('Duplicate participation detected, checking existing record');
-          const { data: existingRecord } = await supabase
-            .from('stage_participants')
-            .select('id')
-            .eq('stage_id', stageId)
-            .eq('user_id', user.id)
-            .is('left_at', null)
-            .single();
-            
-          if (existingRecord) {
-            return { success: true };
-          }
-        }
-        
-        throw new Error(`Failed to join stage: ${insertError.message}`);
-      }
-      
-      console.log('Successfully joined stage');
-      return { success: true };
+      // Use the new safe join method
+      return await this.cleanupService.safeJoinStage(stageId, user.id, role);
       
     } catch (error) {
       console.error('Error joining stage:', error);
