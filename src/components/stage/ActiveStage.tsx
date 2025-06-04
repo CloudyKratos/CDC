@@ -15,15 +15,17 @@ import {
   Crown,
   Shield,
   Volume2,
-  VolumeX
+  VolumeX,
+  Video,
+  VideoOff
 } from 'lucide-react';
 import StageService, { StageRole } from '@/services/StageService';
 import SpeakerRequestModal from './SpeakerRequestModal';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Stage = Database['public']['Tables']['stages']['Row'];
-type StageParticipant = Database['public']['Tables']['stage_participants']['Row'];
 
 interface ActiveStageProps {
   stageId: string;
@@ -37,34 +39,48 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   userRole
 }) => {
   const [stage, setStage] = useState<Stage | null>(null);
-  const [participants, setParticipants] = useState<StageParticipant[]>([]);
-  const [userParticipant, setUserParticipant] = useState<StageParticipant | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [userParticipant, setUserParticipant] = useState<any>(null);
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [showSpeakerRequests, setShowSpeakerRequests] = useState(false);
 
+  const { user } = useAuth();
   const isAdmin = userRole === 'admin';
   const isModerator = userRole === 'moderator' || isAdmin;
-  const canManageStage = isModerator || (stage?.creator_id === userParticipant?.user_id);
 
   useEffect(() => {
     loadStageData();
     setupRealTimeSubscriptions();
-  }, [stageId]);
+    
+    // Auto-start the stage if it's scheduled and user is creator
+    if (stage?.status === 'scheduled' && stage?.creator_id === user?.id) {
+      StageService.updateStageStatus(stageId, 'live');
+    }
+  }, [stageId, user?.id]);
 
   const loadStageData = async () => {
-    const stageData = await StageService.getStageById(stageId);
-    const participantsData = await StageService.getStageParticipants(stageId);
-    
-    setStage(stageData);
-    setParticipants(participantsData);
-    
-    // Find current user's participation
-    const userParticipation = participantsData.find(p => p.user_id === userParticipant?.user_id);
-    if (userParticipation) {
-      setUserParticipant(userParticipation);
-      setIsHandRaised(userParticipation.is_hand_raised || false);
-      setIsMuted(userParticipation.is_muted || true);
+    try {
+      const [stageData, participantsData] = await Promise.all([
+        StageService.getStageById(stageId),
+        StageService.getStageParticipants(stageId)
+      ]);
+      
+      setStage(stageData);
+      setParticipants(participantsData);
+      
+      // Find current user's participation
+      const userParticipation = participantsData.find(p => p.user_id === user?.id);
+      if (userParticipation) {
+        setUserParticipant(userParticipation);
+        setIsHandRaised(userParticipation.is_hand_raised || false);
+        setIsMuted(userParticipation.is_muted || true);
+        setIsVideoEnabled(userParticipation.is_video_enabled || false);
+      }
+    } catch (error) {
+      console.error('Error loading stage data:', error);
+      toast.error('Failed to load stage data');
     }
   };
 
@@ -83,7 +99,11 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
     };
   };
 
+  const canManageStage = isModerator || (stage?.creator_id === user?.id);
+
   const handleRaiseHand = async () => {
+    if (!user) return;
+    
     const newState = !isHandRaised;
     const success = await StageService.raiseHand(stageId, newState);
     
@@ -101,13 +121,13 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   };
 
   const handleToggleMute = async () => {
-    if (userParticipant?.role === 'audience') {
+    if (!user || userParticipant?.role === 'audience') {
       toast.error('Audience members cannot unmute');
       return;
     }
 
     const newMuteState = !isMuted;
-    const success = await StageService.toggleMute(stageId, userParticipant?.user_id || '', newMuteState);
+    const success = await StageService.toggleMute(stageId, user.id, newMuteState);
     
     if (success) {
       setIsMuted(newMuteState);
@@ -115,6 +135,17 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
     } else {
       toast.error('Failed to toggle mute');
     }
+  };
+
+  const handleToggleVideo = async () => {
+    if (!user || userParticipant?.role === 'audience') {
+      toast.error('Audience members cannot enable video');
+      return;
+    }
+
+    setIsVideoEnabled(!isVideoEnabled);
+    // In a real implementation, this would control the video stream
+    toast.success(isVideoEnabled ? 'Video disabled' : 'Video enabled');
   };
 
   const promoteToSpeaker = async (userId: string) => {
@@ -148,6 +179,17 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
     }
   };
 
+  const getParticipantName = (participant: any) => {
+    return participant.profiles?.full_name || 
+           participant.profiles?.username || 
+           `User ${participant.user_id.slice(0, 8)}`;
+  };
+
+  const getParticipantAvatar = (participant: any) => {
+    return participant.profiles?.avatar_url || 
+           `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.user_id}`;
+  };
+
   const speakers = participants.filter(p => ['moderator', 'speaker'].includes(p.role));
   const audience = participants.filter(p => p.role === 'audience');
 
@@ -167,9 +209,9 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
       <div className="p-4 border-b bg-card">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="gap-1">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              LIVE
+            <Badge variant={stage.status === 'live' ? 'destructive' : 'secondary'} className="gap-1">
+              {stage.status === 'live' && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+              {stage.status.toUpperCase()}
             </Badge>
             <h1 className="text-xl font-bold">{stage.title}</h1>
           </div>
@@ -206,6 +248,14 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
         {stage.description && (
           <p className="text-sm text-muted-foreground mt-1">{stage.description}</p>
         )}
+        
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+          <span>{speakers.length} speakers</span>
+          <span>{audience.length} in audience</span>
+          {stage.scheduled_start_time && (
+            <span>Scheduled: {new Date(stage.scheduled_start_time).toLocaleString()}</span>
+          )}
+        </div>
       </div>
 
       {/* Stage Content */}
@@ -224,9 +274,9 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
                   <div className="flex flex-col items-center space-y-2">
                     <div className="relative">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.user_id}`} />
+                        <AvatarImage src={getParticipantAvatar(participant)} />
                         <AvatarFallback>
-                          {participant.user_id.slice(0, 2).toUpperCase()}
+                          {getParticipantName(participant).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       
@@ -247,12 +297,12 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
                       <div className="flex items-center gap-1 justify-center">
                         {getRoleIcon(participant.role)}
                         <span className="text-sm font-medium truncate">
-                          User {participant.user_id.slice(0, 8)}
+                          {getParticipantName(participant)}
                         </span>
                       </div>
                     </div>
                     
-                    {canManageStage && participant.role === 'speaker' && (
+                    {canManageStage && participant.role === 'speaker' && participant.user_id !== user?.id && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -280,18 +330,18 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
                   <div key={participant.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.user_id}`} />
+                        <AvatarImage src={getParticipantAvatar(participant)} />
                         <AvatarFallback>
-                          {participant.user_id.slice(0, 2).toUpperCase()}
+                          {getParticipantName(participant).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       
                       <span className="text-sm">
-                        User {participant.user_id.slice(0, 8)}
+                        {getParticipantName(participant)}
                       </span>
                       
                       {participant.is_hand_raised && (
-                        <Hand className="h-4 w-4 text-orange-500" />
+                        <Hand className="h-4 w-4 text-orange-500 animate-bounce" />
                       )}
                     </div>
                     
@@ -324,7 +374,16 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
             className="gap-2"
           >
             {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            {isMuted ? 'Unmute' : 'Mute'}
+          </Button>
+
+          <Button
+            variant={isVideoEnabled ? "default" : "outline"}
+            size="lg"
+            onClick={handleToggleVideo}
+            disabled={userParticipant?.role === 'audience'}
+            className="gap-2"
+          >
+            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
           </Button>
           
           {userParticipant?.role === 'audience' && (

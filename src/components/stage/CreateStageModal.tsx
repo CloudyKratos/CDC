@@ -1,21 +1,15 @@
 
 import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface CreateStageModalProps {
@@ -33,178 +27,218 @@ const CreateStageModal: React.FC<CreateStageModalProps> = ({
     title: '',
     description: '',
     topic: '',
-    max_speakers: 10,
-    max_audience: 100,
-    allow_hand_raising: true,
-    recording_enabled: false,
-    scheduled_start_time: null as Date | null,
+    scheduledDate: undefined as Date | undefined,
+    scheduledTime: '',
+    maxSpeakers: 10,
+    maxAudience: 100,
+    allowHandRaising: true,
+    recordingEnabled: false,
+    startImmediately: false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) {
+      return;
+    }
 
-    const stageData = {
+    let scheduledStartTime;
+    if (formData.scheduledDate && formData.scheduledTime && !formData.startImmediately) {
+      const [hours, minutes] = formData.scheduledTime.split(':');
+      scheduledStartTime = new Date(formData.scheduledDate);
+      scheduledStartTime.setHours(parseInt(hours), parseInt(minutes));
+    }
+
+    onCreateStage({
       ...formData,
-      scheduled_start_time: formData.scheduled_start_time?.toISOString(),
-    };
+      scheduledStartTime,
+    });
 
-    onCreateStage(stageData);
-    
     // Reset form
     setFormData({
       title: '',
       description: '',
       topic: '',
-      max_speakers: 10,
-      max_audience: 100,
-      allow_hand_raising: true,
-      recording_enabled: false,
-      scheduled_start_time: null,
+      scheduledDate: undefined,
+      scheduledTime: '',
+      maxSpeakers: 10,
+      maxAudience: 100,
+      allowHandRaising: true,
+      recordingEnabled: false,
+      startImmediately: false
     });
   };
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleClose = () => {
+    onClose();
+    // Reset form on close
+    setFormData({
+      title: '',
+      description: '',
+      topic: '',
+      scheduledDate: undefined,
+      scheduledTime: '',
+      maxSpeakers: 10,
+      maxAudience: 100,
+      allowHandRaising: true,
+      recordingEnabled: false,
+      startImmediately: false
+    });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Stage</DialogTitle>
-          <DialogDescription>
-            Set up a new stage room for live discussions, AMAs, or presentations.
-          </DialogDescription>
         </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Stage Title *</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Enter stage title"
+              required
+            />
+          </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Stage Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                placeholder="Enter stage title..."
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="What will you discuss?"
+              rows={3}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="topic">Topic/Category</Label>
-              <Input
-                id="topic"
-                value={formData.topic}
-                onChange={(e) => handleInputChange('topic', e.target.value)}
-                placeholder="e.g., AMA, Tech Talk, Community Chat..."
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="topic">Topic/Tag</Label>
+            <Input
+              id="topic"
+              value={formData.topic}
+              onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+              placeholder="e.g., #business, #tech, #general"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Describe what this stage is about..."
-                rows={3}
-              />
-            </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="startImmediately"
+              checked={formData.startImmediately}
+              onCheckedChange={(checked) => setFormData({ ...formData, startImmediately: checked })}
+            />
+            <Label htmlFor="startImmediately">Start immediately</Label>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
+          {!formData.startImmediately && (
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label htmlFor="max_speakers">Max Speakers</Label>
-                <Input
-                  id="max_speakers"
-                  type="number"
-                  value={formData.max_speakers}
-                  onChange={(e) => handleInputChange('max_speakers', parseInt(e.target.value))}
-                  min={1}
-                  max={50}
-                />
+                <Label>Scheduled Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.scheduledDate ? format(formData.scheduledDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.scheduledDate}
+                      onSelect={(date) => setFormData({ ...formData, scheduledDate: date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="max_audience">Max Audience</Label>
+                <Label htmlFor="time">Time</Label>
                 <Input
-                  id="max_audience"
-                  type="number"
-                  value={formData.max_audience}
-                  onChange={(e) => handleInputChange('max_audience', parseInt(e.target.value))}
-                  min={1}
-                  max={1000}
+                  id="time"
+                  type="time"
+                  value={formData.scheduledTime}
+                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
                 />
               </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="maxSpeakers">Max Speakers</Label>
+              <Select
+                value={formData.maxSpeakers.toString()}
+                onValueChange={(value) => setFormData({ ...formData, maxSpeakers: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Schedule Start Time (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.scheduled_start_time ? 
-                      format(formData.scheduled_start_time, "PPP p") : 
-                      "Pick a date and time"
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.scheduled_start_time}
-                    onSelect={(date) => handleInputChange('scheduled_start_time', date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Allow Hand Raising</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Let audience members request to speak
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.allow_hand_raising}
-                  onCheckedChange={(checked) => handleInputChange('allow_hand_raising', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Recording</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Record this stage session
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.recording_enabled}
-                  onCheckedChange={(checked) => handleInputChange('recording_enabled', checked)}
-                />
-              </div>
+              <Label htmlFor="maxAudience">Max Audience</Label>
+              <Select
+                value={formData.maxAudience.toString()}
+                onValueChange={(value) => setFormData({ ...formData, maxAudience: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="250">250</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="allowHandRaising"
+                checked={formData.allowHandRaising}
+                onCheckedChange={(checked) => setFormData({ ...formData, allowHandRaising: checked })}
+              />
+              <Label htmlFor="allowHandRaising">Allow hand raising</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="recordingEnabled"
+                checked={formData.recordingEnabled}
+                onCheckedChange={(checked) => setFormData({ ...formData, recordingEnabled: checked })}
+              />
+              <Label htmlFor="recordingEnabled">Enable recording</Label>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={!formData.title.trim()}>
-              Create Stage
+            <Button type="submit" className="flex-1">
+              {formData.startImmediately ? 'Create & Start' : 'Schedule Stage'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

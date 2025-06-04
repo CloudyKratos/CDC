@@ -26,22 +26,62 @@ const StageRoomPanel: React.FC = () => {
 
   useEffect(() => {
     loadActiveStages();
+    
+    // Set up real-time subscription for stage updates
+    const handleStageUpdates = () => {
+      loadActiveStages();
+    };
+
+    // Subscribe to general stage updates
+    const channel = StageService.subscribeToStageUpdates('*', handleStageUpdates);
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, []);
 
   const loadActiveStages = async () => {
     setIsLoading(true);
-    const stages = await StageService.getActiveStages();
-    setActiveStages(stages);
-    setIsLoading(false);
+    try {
+      const stages = await StageService.getActiveStages();
+      setActiveStages(stages);
+    } catch (error) {
+      console.error('Error loading stages:', error);
+      toast.error('Failed to load stages');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateStage = async (stageData: any) => {
-    const newStage = await StageService.createStage(stageData);
-    if (newStage) {
-      toast.success('Stage created successfully!');
-      setShowCreateModal(false);
-      loadActiveStages();
-    } else {
+    try {
+      const newStage = await StageService.createStage({
+        title: stageData.title,
+        description: stageData.description,
+        topic: stageData.topic,
+        scheduled_start_time: stageData.scheduledStartTime?.toISOString(),
+        max_speakers: stageData.maxSpeakers || 10,
+        max_audience: stageData.maxAudience || 100,
+        allow_hand_raising: stageData.allowHandRaising ?? true,
+        recording_enabled: stageData.recordingEnabled ?? false
+      });
+
+      if (newStage) {
+        toast.success('Stage created successfully!');
+        setShowCreateModal(false);
+        
+        // If the stage should start immediately, update status and join
+        if (stageData.startImmediately) {
+          await StageService.updateStageStatus(newStage.id, 'live');
+          await handleJoinStage(newStage.id);
+        } else {
+          loadActiveStages();
+        }
+      } else {
+        toast.error('Failed to create stage');
+      }
+    } catch (error) {
+      console.error('Error creating stage:', error);
       toast.error('Failed to create stage');
     }
   };
@@ -52,11 +92,16 @@ const StageRoomPanel: React.FC = () => {
       return;
     }
 
-    const success = await StageService.joinStage(stageId, 'audience');
-    if (success) {
-      setCurrentStageId(stageId);
-      toast.success('Joined stage successfully!');
-    } else {
+    try {
+      const success = await StageService.joinStage(stageId, 'audience');
+      if (success) {
+        setCurrentStageId(stageId);
+        toast.success('Joined stage successfully!');
+      } else {
+        toast.error('Failed to join stage');
+      }
+    } catch (error) {
+      console.error('Error joining stage:', error);
       toast.error('Failed to join stage');
     }
   };
@@ -64,11 +109,17 @@ const StageRoomPanel: React.FC = () => {
   const handleLeaveStage = async () => {
     if (!currentStageId) return;
 
-    const success = await StageService.leaveStage(currentStageId);
-    if (success) {
-      setCurrentStageId(null);
-      toast.success('Left stage successfully!');
-    } else {
+    try {
+      const success = await StageService.leaveStage(currentStageId);
+      if (success) {
+        setCurrentStageId(null);
+        loadActiveStages(); // Refresh the list
+        toast.success('Left stage successfully!');
+      } else {
+        toast.error('Failed to leave stage');
+      }
+    } catch (error) {
+      console.error('Error leaving stage:', error);
       toast.error('Failed to leave stage');
     }
   };
@@ -90,6 +141,9 @@ const StageRoomPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <Mic className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Stage Rooms</h1>
+          <span className="text-sm text-muted-foreground">
+            ({activeStages.length} active)
+          </span>
         </div>
         
         {canCreateStage && (

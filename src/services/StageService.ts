@@ -15,11 +15,14 @@ class StageService {
   // Stage management
   async createStage(stageData: Omit<StageInsert, 'creator_id'>): Promise<Stage | null> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('stages')
         .insert([{
           ...stageData,
-          creator_id: (await supabase.auth.getUser()).data.user?.id
+          creator_id: user.id
         }])
         .select()
         .single();
@@ -90,8 +93,22 @@ class StageService {
   // Participant management
   async joinStage(stageId: string, role: StageRole = 'audience'): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
+
+      // Check if user is already a participant
+      const { data: existingParticipant } = await supabase
+        .from('stage_participants')
+        .select('id')
+        .eq('stage_id', stageId)
+        .eq('user_id', user.id)
+        .is('left_at', null)
+        .single();
+
+      if (existingParticipant) {
+        console.log('User already participating in stage');
+        return true;
+      }
 
       const { error } = await supabase
         .from('stage_participants')
@@ -112,7 +129,7 @@ class StageService {
 
   async leaveStage(stageId: string): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
       const { error } = await supabase
@@ -130,7 +147,7 @@ class StageService {
     }
   }
 
-  async getStageParticipants(stageId: string): Promise<StageParticipant[]> {
+  async getStageParticipants(stageId: string): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('stage_participants')
@@ -194,7 +211,7 @@ class StageService {
 
   async raiseHand(stageId: string, isRaised: boolean): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
       const { error } = await supabase
@@ -215,8 +232,22 @@ class StageService {
   // Speaker requests
   async requestToSpeak(stageId: string): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
+
+      // Check if there's already a pending request
+      const { data: existingRequest } = await supabase
+        .from('speaker_requests')
+        .select('id')
+        .eq('stage_id', stageId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .single();
+
+      if (existingRequest) {
+        console.log('User already has a pending speaker request');
+        return true;
+      }
 
       const { error } = await supabase
         .from('speaker_requests')
@@ -236,7 +267,7 @@ class StageService {
 
   async respondToSpeakerRequest(requestId: string, approved: boolean): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
       const status = approved ? 'approved' : 'rejected';
@@ -271,7 +302,7 @@ class StageService {
     }
   }
 
-  async getPendingSpeakerRequests(stageId: string): Promise<SpeakerRequest[]> {
+  async getPendingSpeakerRequests(stageId: string): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('speaker_requests')
