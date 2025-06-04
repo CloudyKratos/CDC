@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { EventData } from './SupabaseService';
 
 export interface EnhancedEventData extends EventData {
-  event_type?: string;
-  status?: string;
+  event_type?: 'mission_call' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'workshop' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
+  status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
   max_attendees?: number;
   is_recurring?: boolean;
   recurrence_pattern?: any;
@@ -99,13 +99,13 @@ class CalendarService {
     try {
       const { data, error } = await supabase
         .from('events')
-        .insert([{
+        .insert({
           ...eventData,
           event_type: eventData.event_type || 'mission_call',
           status: eventData.status || 'scheduled',
           visibility_level: eventData.visibility_level || 'public',
           xp_reward: eventData.xp_reward || 10
-        }])
+        })
         .select()
         .single();
 
@@ -166,11 +166,11 @@ class CalendarService {
     try {
       const { data, error } = await supabase
         .from('event_rsvps')
-        .upsert([{
+        .upsert({
           event_id: eventId,
           user_id: (await supabase.auth.getUser()).data.user?.id,
           status
-        }], {
+        }, {
           onConflict: 'event_id,user_id'
         })
         .select()
@@ -212,12 +212,12 @@ class CalendarService {
     try {
       const { data, error } = await supabase
         .from('event_comments')
-        .insert([{
+        .insert({
           event_id: eventId,
           user_id: (await supabase.auth.getUser()).data.user?.id,
           content,
           comment_type: commentType
-        }])
+        })
         .select()
         .single();
 
@@ -258,11 +258,11 @@ class CalendarService {
     try {
       const { error } = await supabase
         .from('event_attendance')
-        .insert([{
+        .insert({
           event_id: eventId,
           user_id: (await supabase.auth.getUser()).data.user?.id,
           joined_at: new Date().toISOString()
-        }]);
+        });
 
       if (error) {
         console.error('Error recording attendance:', error);
@@ -371,11 +371,11 @@ class CalendarService {
     try {
       const { data, error } = await supabase
         .from('cohorts')
-        .insert([{
+        .insert({
           name,
           description,
           created_by: (await supabase.auth.getUser()).data.user?.id
-        }])
+        })
         .select()
         .single();
 
