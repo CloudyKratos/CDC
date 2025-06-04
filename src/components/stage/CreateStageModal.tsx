@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -49,23 +48,22 @@ const CreateStageModal: React.FC<CreateStageModalProps> = ({
 
     setIsLoading(true);
     try {
-      let scheduledStartTime;
+      let scheduled_start_time;
       if (formData.scheduledDate && formData.scheduledTime && !formData.startImmediately) {
         const [hours, minutes] = formData.scheduledTime.split(':');
-        scheduledStartTime = new Date(formData.scheduledDate);
-        scheduledStartTime.setHours(parseInt(hours), parseInt(minutes));
+        scheduled_start_time = new Date(formData.scheduledDate);
+        scheduled_start_time.setHours(parseInt(hours), parseInt(minutes));
       }
 
       await StageService.createStage({
         title: formData.title,
         description: formData.description,
         topic: formData.topic,
-        scheduledStartTime,
-        maxSpeakers: formData.maxSpeakers,
-        maxAudience: formData.maxAudience,
-        allowHandRaising: formData.allowHandRaising,
-        recordingEnabled: formData.recordingEnabled,
-        startImmediately: formData.startImmediately
+        scheduled_start_time,
+        max_speakers: formData.maxSpeakers,
+        max_audience: formData.maxAudience,
+        allow_hand_raising: formData.allowHandRaising,
+        recording_enabled: formData.recordingEnabled
       });
 
       toast.success('Stage created successfully!');
