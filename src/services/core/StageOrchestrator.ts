@@ -1,4 +1,3 @@
-
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -109,7 +108,7 @@ export class StageOrchestrator {
     console.log('Initializing Stage Orchestrator with enterprise services...');
 
     try {
-      // Register all services
+      // Register all services using static getInstance methods
       this.serviceRegistry.registerService('signaling', StageSignalingService);
       this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
       this.serviceRegistry.registerService('monitoring', StageMonitoringService.getInstance());
@@ -444,41 +443,6 @@ export class StageOrchestrator {
     this.eventListeners.clear();
 
     console.log('Stage Orchestrator cleanup completed');
-  }
-
-  private calculatePerformanceScore(metrics: any): number {
-    // Calculate composite performance score
-    const cpuScore = Math.max(0, 100 - metrics.cpuUsage);
-    const memoryScore = Math.max(0, 100 - metrics.memoryUsage);
-    const latencyScore = Math.max(0, 100 - (metrics.latency / 10));
-    
-    return Math.round((cpuScore + memoryScore + latencyScore) / 3);
-  }
-
-  private calculateSecurityLevel(riskScore: number): 'basic' | 'enhanced' | 'military' {
-    if (riskScore < 20) return 'military';
-    if (riskScore < 50) return 'enhanced';
-    return 'basic';
-  }
-
-  private checkComplianceStatus(): 'compliant' | 'warning' | 'violation' {
-    if (!this.currentStage?.enableCompliance) return 'compliant';
-
-    // Check for any compliance violations
-    const hasConsent = ComplianceFrameworkService.hasValidConsent(
-      this.currentStage.userId, 
-      'data_processing'
-    );
-
-    if (!hasConsent) return 'violation';
-
-    // Check for any warnings
-    const threats = ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId);
-    const recentThreats = threats.filter(t => Date.now() - t.timestamp < 60000); // Last minute
-
-    if (recentThreats.length > 0) return 'warning';
-
-    return 'compliant';
   }
 }
 
