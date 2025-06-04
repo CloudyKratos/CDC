@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -87,16 +86,18 @@ export class StageSignalingService {
           this.reconnectAttempts = 0;
           
           // Track presence with enhanced metadata
-          await this.channel?.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-            capabilities: {
-              webrtc: true,
-              datachannel: true,
-              screenshare: true
-            },
-            network_quality: this.lastQualityReport
-          });
+          if (this.channel) {
+            await this.channel.track({
+              user_id: userId,
+              online_at: new Date().toISOString(),
+              capabilities: {
+                webrtc: true,
+                datachannel: true,
+                screenshare: true
+              },
+              network_quality: this.lastQualityReport
+            });
+          }
 
           // Start quality monitoring
           this.startQualityMonitoring();
@@ -271,8 +272,7 @@ export class StageSignalingService {
   }
 
   private selectOptimalPeers(users: string[]): string[] {
-    // AI algorithm to select optimal peers based on network quality
-    return users.slice(0, 4); // Simplified for now
+    return users.slice(0, 4);
   }
 
   private broadcastMeshUpdate(): void {
@@ -329,7 +329,6 @@ export class StageSignalingService {
   }
 
   private calculateQualityRating(): 'excellent' | 'good' | 'fair' | 'poor' {
-    // AI-powered quality assessment
     const score = Math.random();
     if (score > 0.8) return 'excellent';
     if (score > 0.6) return 'good';

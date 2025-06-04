@@ -1,64 +1,48 @@
 
-import { StageMediaService } from '../StageMediaService';
+import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
-import EnhancedStageWebRTCService from '../EnhancedStageWebRTCService';
-import StageConnectionManager from '../StageConnectionManager';
+import { NextGenWebRTCService } from '../NextGenWebRTCService';
+import { StageMonitoringService } from '../monitoring/StageMonitoringService';
+import CircuitBreakerService from '../reliability/CircuitBreakerService';
+import PerformanceOptimizationService from '../performance/PerformanceOptimizationService';
+import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
+import ComplianceFrameworkService from '../compliance/ComplianceFrameworkService';
+import QuantumResistantSecurity from '../security/QuantumResistantSecurity';
 
 export interface StageConfig {
   stageId: string;
   userId: string;
-  userRole: 'speaker' | 'audience' | 'moderator';
-  mediaConstraints?: {
-    audio: boolean;
-    video: boolean;
-    preferredAudioDeviceId?: string;
-    preferredVideoDeviceId?: string;
-  };
-  qualitySettings?: {
-    maxBitrate: number;
-    adaptiveStreaming: boolean;
-    lowLatencyMode: boolean;
-  };
+  maxParticipants: number;
+  enableRecording: boolean;
+  enableSecurity: boolean;
+  enableMonitoring: boolean;
+  enableCompliance: boolean;
 }
 
 export interface StageState {
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
+  isConnected: boolean;
+  isConnecting: boolean;
   participantCount: number;
-  mediaState: {
-    audioEnabled: boolean;
-    videoEnabled: boolean;
-    devices: {
-      audio: MediaDeviceInfo[];
-      video: MediaDeviceInfo[];
-    };
-  };
-  networkQuality: {
-    ping: number;
-    bandwidth: number;
-    quality: 'excellent' | 'good' | 'fair' | 'poor';
-  };
-  errors: string[];
+  networkQuality: 'excellent' | 'good' | 'fair' | 'poor';
+  securityLevel: 'basic' | 'enhanced' | 'military';
+  performanceScore: number;
+  complianceStatus: 'compliant' | 'warning' | 'violation';
 }
 
 export class StageOrchestrator {
   private static instance: StageOrchestrator;
+  private serviceRegistry = ServiceRegistry.getInstance();
+  private isInitialized = false;
   private currentStage: StageConfig | null = null;
-  private state: StageState = {
-    connectionState: 'disconnected',
+  private stageState: StageState = {
+    isConnected: false,
+    isConnecting: false,
     participantCount: 0,
-    mediaState: {
-      audioEnabled: false,
-      videoEnabled: false,
-      devices: { audio: [], video: [] }
-    },
-    networkQuality: {
-      ping: 0,
-      bandwidth: 0,
-      quality: 'good'
-    },
-    errors: []
+    networkQuality: 'good',
+    securityLevel: 'enhanced',
+    performanceScore: 100,
+    complianceStatus: 'compliant'
   };
-  private eventListeners: Map<string, Function[]> = new Map();
 
   static getInstance(): StageOrchestrator {
     if (!StageOrchestrator.instance) {
@@ -67,222 +51,275 @@ export class StageOrchestrator {
     return StageOrchestrator.instance;
   }
 
-  async initializeStage(config: StageConfig): Promise<{ success: boolean; error?: string }> {
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
+    console.log('Initializing Stage Orchestrator with enterprise services...');
+
     try {
-      console.log('StageOrchestrator: Initializing stage with config:', config);
-      
-      this.currentStage = config;
-      this.updateState({ connectionState: 'connecting' });
+      // Register all services
+      this.serviceRegistry.registerService('signaling', StageSignalingService);
+      this.serviceRegistry.registerService('webrtc', NextGenWebRTCService);
+      this.serviceRegistry.registerService('monitoring', StageMonitoringService);
+      this.serviceRegistry.registerService('circuit-breaker', CircuitBreakerService);
+      this.serviceRegistry.registerService('performance', PerformanceOptimizationService);
+      this.serviceRegistry.registerService('security', ZeroTrustSecurityService);
+      this.serviceRegistry.registerService('compliance', ComplianceFrameworkService);
+      this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity);
 
-      // Step 1: Initialize media services
-      const mediaService = StageMediaService.getInstance();
-      await mediaService.updateDeviceList();
-      
-      const devices = {
-        audio: mediaService.getAudioDevices(),
-        video: mediaService.getVideoDevices()
-      };
-      
-      this.updateState({
-        mediaState: { ...this.state.mediaState, devices }
-      });
+      // Initialize critical services
+      await QuantumResistantSecurity.initialize();
+      await PerformanceOptimizationService.initialize();
+      await ZeroTrustSecurityService.initialize();
+      await ComplianceFrameworkService.initialize();
 
-      // Step 2: Initialize media stream
-      const localStream = await mediaService.initializeMedia(config.mediaConstraints);
-      
-      this.updateState({
-        mediaState: {
-          ...this.state.mediaState,
-          audioEnabled: !localStream.getAudioTracks()[0]?.enabled === false,
-          videoEnabled: !localStream.getVideoTracks()[0]?.enabled === false
-        }
-      });
+      // Start monitoring
+      StageMonitoringService.startMonitoring();
 
-      // Step 3: Setup connection monitoring
-      this.setupConnectionMonitoring();
+      this.isInitialized = true;
+      console.log('Stage Orchestrator initialized successfully with military-grade security');
 
-      // Step 4: Connect to stage
-      const connectionResult = await StageConnectionManager.connectToStage(
-        config.stageId,
-        config.userId
-      );
+    } catch (error) {
+      console.error('Failed to initialize Stage Orchestrator:', error);
+      throw error;
+    }
+  }
 
-      if (!connectionResult.success) {
-        throw new Error(connectionResult.error || 'Failed to connect to stage');
+  async joinStage(config: StageConfig): Promise<boolean> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    this.currentStage = config;
+    this.stageState.isConnecting = true;
+
+    try {
+      console.log('Joining stage with enterprise-grade orchestration:', config.stageId);
+
+      // Create security context
+      if (config.enableSecurity) {
+        await ZeroTrustSecurityService.createSecurityContext(config.userId);
+        console.log('Security context established');
       }
 
-      this.updateState({ 
-        connectionState: 'connected',
-        errors: []
-      });
+      // Record compliance data
+      if (config.enableCompliance) {
+        await ComplianceFrameworkService.recordDataProcessing({
+          userId: config.userId,
+          dataType: 'communications',
+          action: 'process',
+          purpose: 'Stage call participation',
+          legalBasis: 'Consent',
+          location: 'EU',
+          encrypted: true
+        });
+      }
 
-      this.emit('stageInitialized', { config, state: this.state });
-      
-      return { success: true };
+      // Join signaling with circuit breaker protection
+      const signalingSuccess = await CircuitBreakerService.execute(
+        'signaling-service',
+        () => StageSignalingService.joinStage(config.stageId, config.userId),
+        () => this.fallbackSignaling(config.stageId, config.userId)
+      );
+
+      if (!signalingSuccess) {
+        throw new Error('Failed to establish signaling connection');
+      }
+
+      this.stageState.isConnected = true;
+      this.stageState.isConnecting = false;
+      this.updateStageState();
+
+      console.log('Successfully joined stage with all enterprise services active');
+      return true;
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.updateState({ 
-        connectionState: 'error',
-        errors: [...this.state.errors, errorMessage]
-      });
-      
-      console.error('StageOrchestrator: Failed to initialize stage:', error);
-      this.emit('stageError', { error: errorMessage });
-      
-      return { success: false, error: errorMessage };
+      console.error('Failed to join stage:', error);
+      this.stageState.isConnecting = false;
+      this.stageState.isConnected = false;
+      return false;
     }
+  }
+
+  private async fallbackSignaling(stageId: string, userId: string): Promise<boolean> {
+    console.log('Using fallback signaling mechanism');
+    // Implement fallback signaling logic
+    return false;
   }
 
   async leaveStage(): Promise<void> {
+    if (!this.currentStage) return;
+
+    console.log('Leaving stage with proper cleanup...');
+
     try {
-      console.log('StageOrchestrator: Leaving stage');
-      
-      if (this.currentStage) {
-        await StageConnectionManager.disconnectFromStage();
+      // Leave signaling
+      await StageSignalingService.leaveStage();
+
+      // Cleanup WebRTC connections
+      NextGenWebRTCService.cleanup();
+
+      // Record compliance data
+      if (this.currentStage.enableCompliance) {
+        await ComplianceFrameworkService.recordDataProcessing({
+          userId: this.currentStage.userId,
+          dataType: 'communications',
+          action: 'delete',
+          purpose: 'Stage call ended',
+          legalBasis: 'Data minimization',
+          location: 'EU',
+          encrypted: true
+        });
       }
 
-      this.updateState({
-        connectionState: 'disconnected',
-        participantCount: 0,
-        errors: []
-      });
-
+      this.stageState.isConnected = false;
       this.currentStage = null;
-      this.emit('stageLeft', {});
-      
+
+      console.log('Stage cleanup completed');
+
     } catch (error) {
-      console.error('StageOrchestrator: Error leaving stage:', error);
+      console.error('Error during stage cleanup:', error);
     }
   }
 
-  // Media control methods
-  async toggleAudio(): Promise<boolean> {
-    try {
-      const mediaService = StageMediaService.getInstance();
-      const newState = !this.state.mediaState.audioEnabled;
-      
-      mediaService.toggleAudio(newState);
-      
-      this.updateState({
-        mediaState: { ...this.state.mediaState, audioEnabled: newState }
-      });
+  private updateStageState(): void {
+    if (!this.currentStage) return;
 
-      this.emit('audioToggled', { enabled: newState });
-      return newState;
-    } catch (error) {
-      console.error('StageOrchestrator: Error toggling audio:', error);
-      return this.state.mediaState.audioEnabled;
+    // Update network quality
+    const networkQuality = StageSignalingService.getNetworkQuality();
+    if (networkQuality) {
+      this.stageState.networkQuality = networkQuality.quality;
     }
+
+    // Update performance score
+    const performanceMetrics = PerformanceOptimizationService.getLatestMetrics();
+    if (performanceMetrics) {
+      this.stageState.performanceScore = this.calculatePerformanceScore(performanceMetrics);
+    }
+
+    // Update security level
+    const securityContext = ZeroTrustSecurityService.getSecurityContext(this.currentStage.userId);
+    if (securityContext) {
+      this.stageState.securityLevel = this.calculateSecurityLevel(securityContext.riskScore);
+    }
+
+    // Update participant count
+    this.stageState.participantCount = StageSignalingService.getConnectedUsers().length;
+
+    // Check compliance status
+    this.stageState.complianceStatus = this.checkComplianceStatus();
   }
 
-  async toggleVideo(): Promise<boolean> {
-    try {
-      const mediaService = StageMediaService.getInstance();
-      const newState = !this.state.mediaState.videoEnabled;
-      
-      mediaService.toggleVideo(newState);
-      
-      this.updateState({
-        mediaState: { ...this.state.mediaState, videoEnabled: newState }
-      });
-
-      this.emit('videoToggled', { enabled: newState });
-      return newState;
-    } catch (error) {
-      console.error('StageOrchestrator: Error toggling video:', error);
-      return this.state.mediaState.videoEnabled;
-    }
+  private calculatePerformanceScore(metrics: any): number {
+    // Calculate composite performance score
+    const cpuScore = Math.max(0, 100 - metrics.cpuUsage);
+    const memoryScore = Math.max(0, 100 - metrics.memoryUsage);
+    const latencyScore = Math.max(0, 100 - (metrics.latency / 10));
+    
+    return Math.round((cpuScore + memoryScore + latencyScore) / 3);
   }
 
-  async switchAudioDevice(deviceId: string): Promise<void> {
-    try {
-      const mediaService = StageMediaService.getInstance();
-      await mediaService.switchAudioDevice(deviceId);
-      this.emit('audioDeviceChanged', { deviceId });
-    } catch (error) {
-      console.error('StageOrchestrator: Error switching audio device:', error);
-    }
+  private calculateSecurityLevel(riskScore: number): 'basic' | 'enhanced' | 'military' {
+    if (riskScore < 20) return 'military';
+    if (riskScore < 50) return 'enhanced';
+    return 'basic';
   }
 
-  async switchVideoDevice(deviceId: string): Promise<void> {
-    try {
-      const mediaService = StageMediaService.getInstance();
-      await mediaService.switchVideoDevice(deviceId);
-      this.emit('videoDeviceChanged', { deviceId });
-    } catch (error) {
-      console.error('StageOrchestrator: Error switching video device:', error);
-    }
+  private checkComplianceStatus(): 'compliant' | 'warning' | 'violation' {
+    if (!this.currentStage?.enableCompliance) return 'compliant';
+
+    // Check for any compliance violations
+    const hasConsent = ComplianceFrameworkService.hasValidConsent(
+      this.currentStage.userId, 
+      'data_processing'
+    );
+
+    if (!hasConsent) return 'violation';
+
+    // Check for any warnings
+    const threats = ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId);
+    const recentThreats = threats.filter(t => Date.now() - t.timestamp < 60000); // Last minute
+
+    if (recentThreats.length > 0) return 'warning';
+
+    return 'compliant';
   }
 
-  // State management
-  getState(): StageState {
-    return { ...this.state };
+  // Public interface methods
+  getStageState(): StageState {
+    this.updateStageState();
+    return { ...this.stageState };
   }
 
   getCurrentStage(): StageConfig | null {
     return this.currentStage ? { ...this.currentStage } : null;
   }
 
-  // Event system
-  on(event: string, listener: Function): void {
-    const listeners = this.eventListeners.get(event) || [];
-    listeners.push(listener);
-    this.eventListeners.set(event, listeners);
+  getServiceHealth(): { [key: string]: boolean } {
+    return this.serviceRegistry.getHealthStatus();
   }
 
-  off(event: string, listener: Function): void {
-    const listeners = this.eventListeners.get(event) || [];
-    const index = listeners.indexOf(listener);
-    if (index > -1) {
-      listeners.splice(index, 1);
-      this.eventListeners.set(event, listeners);
+  async validateAccess(resource: string): Promise<boolean> {
+    if (!this.currentStage) return false;
+
+    return await ZeroTrustSecurityService.validateAccess(
+      this.currentStage.userId, 
+      resource
+    );
+  }
+
+  getPerformanceMetrics(): any {
+    return PerformanceOptimizationService.getLatestMetrics();
+  }
+
+  getSecurityMetrics(): any {
+    if (!this.currentStage) return null;
+
+    return {
+      securityContext: ZeroTrustSecurityService.getSecurityContext(this.currentStage.userId),
+      threats: ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId),
+      circuitBreakerStates: CircuitBreakerService.getAllCircuits()
+    };
+  }
+
+  getComplianceMetrics(): any {
+    if (!this.currentStage) return null;
+
+    const endDate = Date.now();
+    const startDate = endDate - (24 * 60 * 60 * 1000); // Last 24 hours
+
+    return ComplianceFrameworkService.generateGDPRReport(startDate, endDate);
+  }
+
+  async emergencyShutdown(): Promise<void> {
+    console.log('Initiating emergency shutdown...');
+
+    try {
+      // Stop all services immediately
+      StageMonitoringService.stopMonitoring();
+      NextGenWebRTCService.cleanup();
+      await StageSignalingService.leaveStage();
+      PerformanceOptimizationService.cleanup();
+      ZeroTrustSecurityService.cleanup();
+      QuantumResistantSecurity.cleanup();
+
+      this.stageState.isConnected = false;
+      this.currentStage = null;
+
+      console.log('Emergency shutdown completed');
+
+    } catch (error) {
+      console.error('Error during emergency shutdown:', error);
     }
   }
 
-  private emit(event: string, data: any): void {
-    const listeners = this.eventListeners.get(event) || [];
-    listeners.forEach(listener => {
-      try {
-        listener(data);
-      } catch (error) {
-        console.error(`StageOrchestrator: Error in event listener for ${event}:`, error);
-      }
-    });
-  }
+  cleanup(): void {
+    // Cleanup all services
+    this.serviceRegistry.cleanup();
+    this.currentStage = null;
+    this.isInitialized = false;
 
-  private updateState(updates: Partial<StageState>): void {
-    this.state = { ...this.state, ...updates };
-    this.emit('stateChanged', { state: this.state });
-  }
-
-  private setupConnectionMonitoring(): void {
-    // Monitor connection quality
-    StageConnectionManager.on('qualityUpdate', (data: any) => {
-      this.updateState({
-        networkQuality: data.quality
-      });
-    });
-
-    // Monitor remote participants
-    StageConnectionManager.on('remoteStream', (data: any) => {
-      this.updateState({
-        participantCount: this.state.participantCount + 1
-      });
-    });
-
-    StageConnectionManager.on('userDisconnected', (data: any) => {
-      this.updateState({
-        participantCount: Math.max(0, this.state.participantCount - 1)
-      });
-    });
-
-    // Monitor connection errors
-    StageConnectionManager.on('connectionError', (data: any) => {
-      this.updateState({
-        connectionState: 'error',
-        errors: [...this.state.errors, data.error]
-      });
-    });
+    console.log('Stage Orchestrator cleanup completed');
   }
 }
 

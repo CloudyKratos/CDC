@@ -1,5 +1,6 @@
 import StageSignalingService, { SignalingMessage } from './StageSignalingService';
-import WebRTCIntelligenceEngine, { ConnectionMetrics } from './ai/WebRTCIntelligenceEngine';
+import { WebRTCIntelligenceEngine } from './ai/WebRTCIntelligenceEngine';
+import { ConnectionMetrics } from './ai/WebRTCIntelligenceEngine';
 
 interface EnhancedPeerConnection {
   pc: RTCPeerConnection;
