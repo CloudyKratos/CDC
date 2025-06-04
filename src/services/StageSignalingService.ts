@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -118,7 +117,8 @@ export class StageSignalingService {
         }
       });
 
-      return subscriptionResult === 'SUBSCRIBED';
+      // Fix: Check subscription status properly
+      return subscriptionResult?.status === 'SUBSCRIBED';
     } catch (error) {
       console.error('Error joining enhanced stage signaling:', error);
       this.handleConnectionError();
