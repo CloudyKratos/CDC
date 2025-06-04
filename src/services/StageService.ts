@@ -90,26 +90,42 @@ class StageService {
     }
   }
 
-  // Participant management
+  // Participant management - Fixed duplicate handling
   async joinStage(stageId: string, role: StageRole = 'audience'): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      // Check if user is already a participant
+      // Check if user is already a participant and handle it properly
       const { data: existingParticipant } = await supabase
         .from('stage_participants')
-        .select('id')
+        .select('id, left_at')
         .eq('stage_id', stageId)
         .eq('user_id', user.id)
-        .is('left_at', null)
-        .single();
+        .maybeSingle();
 
       if (existingParticipant) {
-        console.log('User already participating in stage');
-        return true;
+        if (!existingParticipant.left_at) {
+          console.log('User already participating in stage');
+          return true; // Already active participant
+        } else {
+          // User left before, update to rejoin
+          const { error } = await supabase
+            .from('stage_participants')
+            .update({ 
+              left_at: null, 
+              role: role as Database['public']['Enums']['stage_role'],
+              is_muted: role === 'audience',
+              joined_at: new Date().toISOString()
+            })
+            .eq('id', existingParticipant.id);
+
+          if (error) throw error;
+          return true;
+        }
       }
 
+      // Create new participant record
       const { error } = await supabase
         .from('stage_participants')
         .insert({
