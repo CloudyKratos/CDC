@@ -60,8 +60,9 @@ class StageSignalingService {
       });
 
       // Subscribe to the channel
-      const status = await this.channel.subscribe(async (status) => {
+      const subscriptionResult = await this.channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          console.log('Channel subscribed successfully');
           // Track presence
           await this.channel?.track({
             user_id: userId,
@@ -70,7 +71,7 @@ class StageSignalingService {
         }
       });
 
-      return status === 'SUBSCRIBED';
+      return subscriptionResult === 'SUBSCRIBED';
     } catch (error) {
       console.error('Error joining stage signaling:', error);
       return false;

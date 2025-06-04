@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStageMedia } from './hooks/useStageMedia';
 import { useSocketStage } from './hooks/useSocketStage';
-import { useStageWebRTC } from './hooks/useStageWebRTC';
+import { useEnhancedStageWebRTC } from './hooks/useEnhancedStageWebRTC';
 import { ParticipantGrid } from './ui/ParticipantGrid';
 import { StageControls } from './ui/StageControls';
 import { ConnectionError } from './ui/ConnectionError';
@@ -44,13 +44,14 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     forceReconnect
   } = useSocketStage(stageId, user?.id || '');
 
-  // New WebRTC hook for actual audio/video communication
+  // Enhanced WebRTC hook for actual audio/video communication
   const {
     isConnected: webrtcConnected,
     remoteParticipants,
     connectionError: webrtcError,
+    isInitializing: webrtcInitializing,
     disconnect: disconnectWebRTC
-  } = useStageWebRTC(stageId, user?.id || '', localStream);
+  } = useEnhancedStageWebRTC(stageId, user?.id || '', localStream);
 
   useEffect(() => {
     const initializeStage = async () => {
@@ -87,7 +88,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       id: participant.userId,
       name: `User ${participant.userId.slice(0, 8)}`,
       role: 'audience',
-      isAudioEnabled: true, // We'll need to track this per participant
+      isAudioEnabled: true,
       isVideoEnabled: true,
       stream: participant.stream,
       connectionState: participant.connectionState
@@ -140,7 +141,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     }
   };
 
-  if (connectionState === 'connecting') {
+  if (connectionState === 'connecting' || webrtcInitializing) {
     return (
       <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <StageHeader
@@ -153,6 +154,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
             <p className="text-white text-lg">Connecting to stage...</p>
             <p className="text-white/70 text-sm">Setting up secure connection</p>
+            {isConnected && <p className="text-green-400 text-sm">✓ Stage connected</p>}
             {webrtcConnected && <p className="text-green-400 text-sm">✓ WebRTC connected</p>}
           </div>
         </div>
@@ -197,10 +199,17 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       />
       
       {/* Connection status indicator */}
-      <div className="absolute top-20 right-4 text-sm text-white/70">
+      <div className="absolute top-20 right-4 text-sm text-white/70 space-y-1">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+          Stage: {isConnected ? 'Connected' : 'Disconnected'}
+        </div>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${webrtcConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
           WebRTC: {webrtcConnected ? 'Connected' : 'Disconnected'}
+        </div>
+        <div className="text-xs">
+          Participants: {participants.length}
         </div>
       </div>
     </div>
