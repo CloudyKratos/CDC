@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Maximize, Minimize, Settings, Share, Monitor, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CallService, CallParticipant } from "../services/CallService";
-import StageRoomPanel from "./stage/StageRoomPanel";
+import StageCallManager from "./stage/StageCallManager";
 import ComingSoonBanner from "./ComingSoonBanner";
 
 interface CallType {
@@ -197,8 +196,8 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
         {showBanner && (
           <div className="absolute top-0 left-0 right-0 z-50">
             <ComingSoonBanner 
-              title="Video Call Feature in Development" 
-              description="Stage Rooms are now integrated! Traditional video calls coming soon."
+              title="Enhanced Stage Calls Now Available!" 
+              description="Experience our new roundtable-style stage calls with time zone awareness."
               className="rounded-none"
               showNotifyButton={false}
             />
@@ -219,9 +218,9 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
               <Users size={18} className="text-celestial-gold mr-2" />
               <div>
                 <h3 className="font-medium text-white">
-                  Video & Audio Communication
+                  Community Communication Hub
                 </h3>
-                <p className="text-xs text-white/60">Choose your communication mode</p>
+                <p className="text-xs text-white/60">Connect with your global community</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -250,7 +249,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
                   <TabsList className="grid w-full grid-cols-2 bg-celestial-dark/80">
                     <TabsTrigger value="stage" className="flex items-center gap-2">
                       <Headphones size={16} />
-                      Stage Rooms
+                      Stage Calls
                     </TabsTrigger>
                     <TabsTrigger value="video" className="flex items-center gap-2">
                       <Video size={16} />
@@ -261,7 +260,7 @@ const VideoCallPanel: React.FC<VideoCallPanelProps> = ({ isOpen, onClose }) => {
                 
                 <TabsContent value="stage" className="flex-1 p-4 m-0">
                   <div className="h-full bg-background rounded-lg overflow-hidden">
-                    <StageRoomPanel />
+                    <StageCallManager onClose={onClose} />
                   </div>
                 </TabsContent>
                 
