@@ -1,4 +1,3 @@
-
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -41,6 +40,7 @@ export interface MediaDevice {
   deviceId: string;
   label: string;
   kind: 'audioinput' | 'videoinput' | 'audiooutput';
+  groupId?: string;
 }
 
 export interface MediaState {
@@ -110,7 +110,7 @@ export class StageOrchestrator {
     try {
       // Register all services
       this.serviceRegistry.registerService('signaling', StageSignalingService);
-      this.serviceRegistry.registerService('webrtc', NextGenWebRTCService);
+      this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
       this.serviceRegistry.registerService('monitoring', StageMonitoringService);
       this.serviceRegistry.registerService('circuit-breaker', CircuitBreakerService);
       this.serviceRegistry.registerService('performance', PerformanceOptimizationService);
@@ -118,13 +118,13 @@ export class StageOrchestrator {
       this.serviceRegistry.registerService('compliance', ComplianceFrameworkService);
       this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity);
 
-      // Initialize critical services
+      // Initialize critical services using static methods
       await QuantumResistantSecurity.initialize();
       await PerformanceOptimizationService.initialize();
       await ZeroTrustSecurityService.initialize();
       await ComplianceFrameworkService.initialize();
 
-      // Start monitoring
+      // Start monitoring using static method
       StageMonitoringService.startMonitoring();
 
       this.isInitialized = true;
@@ -216,7 +216,8 @@ export class StageOrchestrator {
       await StageSignalingService.leaveStage();
 
       // Cleanup WebRTC connections
-      NextGenWebRTCService.cleanup();
+      const webrtcService = NextGenWebRTCService.getInstance();
+      webrtcService.cleanup();
 
       // Record compliance data
       if (this.currentStage.enableCompliance) {
@@ -416,9 +417,10 @@ export class StageOrchestrator {
     console.log('Initiating emergency shutdown...');
 
     try {
-      // Stop all services immediately
+      // Stop all services immediately using static methods
       StageMonitoringService.stopMonitoring();
-      NextGenWebRTCService.cleanup();
+      const webrtcService = NextGenWebRTCService.getInstance();
+      webrtcService.cleanup();
       await StageSignalingService.leaveStage();
       PerformanceOptimizationService.cleanup();
       ZeroTrustSecurityService.cleanup();

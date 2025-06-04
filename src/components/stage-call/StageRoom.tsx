@@ -102,6 +102,28 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     await handleLeave();
   };
 
+  // Convert MediaDevice to MediaDeviceInfo format
+  const convertToMediaDeviceInfo = (devices: any[]): MediaDeviceInfo[] => {
+    return devices.map(device => ({
+      deviceId: device.deviceId,
+      label: device.label,
+      kind: device.kind,
+      groupId: device.groupId || '',
+      toJSON: () => ({
+        deviceId: device.deviceId,
+        label: device.label,
+        kind: device.kind,
+        groupId: device.groupId || ''
+      })
+    }));
+  };
+
+  // Map connection state to expected values
+  const getHeaderStatus = (connectionState: string): "disconnected" | "connecting" | "connected" => {
+    if (connectionState === 'reconnecting') return 'connecting';
+    return connectionState as "disconnected" | "connecting" | "connected";
+  };
+
   // Loading state
   if (state.connectionState === 'connecting') {
     return (
@@ -162,7 +184,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       </div>
 
       <StageHeader
-        status={state.connectionState}
+        status={getHeaderStatus(state.connectionState)}
         participantCount={state.participantCount + 1} // +1 for local user
         onLeave={handleLeave}
       />
@@ -186,8 +208,8 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         onRaiseHand={userRole === 'audience' ? handleRaiseHand : undefined}
         onStartScreenShare={userRole === 'speaker' ? handleStartScreenShare : undefined}
         connectionQuality={state.networkQuality.quality}
-        audioDevices={state.mediaState.devices.audio}
-        videoDevices={state.mediaState.devices.video}
+        audioDevices={convertToMediaDeviceInfo(state.mediaState.devices.audio)}
+        videoDevices={convertToMediaDeviceInfo(state.mediaState.devices.video)}
         onAudioDeviceChange={switchAudioDevice}
         onVideoDeviceChange={switchVideoDevice}
         networkStats={{
