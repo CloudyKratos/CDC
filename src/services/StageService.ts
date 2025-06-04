@@ -136,10 +136,10 @@ class StageService {
         return { canJoin: false, reason: 'Stage is at full capacity. Please try again later when someone leaves.' };
       }
 
-      // Check if user is already in the stage
+      // Check if user is already in the stage - this is OK for RealTimeStageCall
       const existingParticipant = participants.find(p => p.user_id === user.id);
       if (existingParticipant && !existingParticipant.left_at) {
-        return { canJoin: false, reason: 'You are already participating in this stage.' };
+        return { canJoin: true }; // Allow access if already participating
       }
 
       return { canJoin: true };
@@ -149,6 +149,36 @@ class StageService {
         return { canJoin: false, reason: error.message };
       }
       return { canJoin: false, reason: 'Unable to validate stage access. Please check your connection and try again.' };
+    }
+  }
+
+  async validateStageAccess(stageId: string): Promise<{ canAccess: boolean; reason?: string }> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { canAccess: false, reason: 'Authentication required. Please log in to access the stage.' };
+
+      // Check if stage exists and is accessible
+      const stage = await this.getStageById(stageId);
+      if (!stage) return { canAccess: false, reason: 'Stage not found. The stage may have been deleted or moved.' };
+      
+      if (stage.status === 'ended') {
+        return { canAccess: false, reason: 'This stage has already ended. Check for recordings or upcoming sessions.' };
+      }
+
+      // Check if user is already in the stage
+      const participants = await this.getStageParticipants(stageId);
+      const existingParticipant = participants.find(p => p.user_id === user.id);
+      if (existingParticipant && !existingParticipant.left_at) {
+        return { canAccess: true }; // User is already participating
+      }
+
+      return { canAccess: false, reason: 'You are not currently participating in this stage.' };
+    } catch (error) {
+      console.error('Error validating stage access:', error);
+      if (error instanceof Error) {
+        return { canAccess: false, reason: error.message };
+      }
+      return { canAccess: false, reason: 'Unable to validate stage access. Please check your connection and try again.' };
     }
   }
 

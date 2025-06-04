@@ -150,32 +150,22 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     }
   }, [stageId, loadParticipants, handleConnectionError, onLeave]);
 
-  const validateStageAccess = useCallback(async (): Promise<{ canJoin: boolean; error?: string }> => {
+  const validateStageAccess = useCallback(async (): Promise<{ canAccess: boolean; error?: string }> => {
     if (!user) {
-      return { canJoin: false, error: 'Please log in to join the stage' };
+      return { canAccess: false, error: 'Please log in to access the stage' };
     }
 
     try {
-      // Check if stage exists and get current status
-      const stage = await StageService.getStageById(stageId);
-      if (!stage) {
-        return { canJoin: false, error: 'Stage not found' };
+      // Use the new validateStageAccess method
+      const validation = await StageService.validateStageAccess(stageId);
+      if (!validation.canAccess) {
+        return { canAccess: false, error: validation.reason };
       }
 
-      if (stage.status === 'ended') {
-        return { canJoin: false, error: 'This stage has ended' };
-      }
-
-      // Validate join request
-      const validation = await StageService.validateStageJoin(stageId, 'audience');
-      if (!validation.canJoin) {
-        return { canJoin: false, error: validation.reason };
-      }
-
-      return { canJoin: true };
+      return { canAccess: true };
     } catch (error) {
       console.error('Error validating stage access:', error);
-      return { canJoin: false, error: 'Failed to validate stage access' };
+      return { canAccess: false, error: 'Failed to validate stage access' };
     }
   }, [user, stageId]);
 
@@ -189,15 +179,14 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       
       // Validate access first
       const accessValidation = await validateStageAccess();
-      if (!accessValidation.canJoin) {
+      if (!accessValidation.canAccess) {
         setConnectionStatus('disconnected');
         setError(accessValidation.error || 'Access denied');
         setIsLoading(false);
         return;
       }
 
-      // Join the stage through StageService (this was already handled in ActiveStage)
-      // Just load participants and set up subscriptions
+      // Load participants and set up subscriptions
       await loadParticipants();
       setupRealtimeSubscriptions();
       setRetryCount(0); // Reset retry count on success
