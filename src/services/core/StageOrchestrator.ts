@@ -109,7 +109,7 @@ export class StageOrchestrator {
     console.log('Initializing Stage Orchestrator with enterprise services...');
 
     try {
-      // Register all services using their getInstance methods properly
+      // Register all services using static getInstance methods
       this.serviceRegistry.registerService('signaling', StageSignalingService);
       this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
       this.serviceRegistry.registerService('monitoring', StageMonitoringService.getInstance());
