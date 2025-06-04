@@ -1,3 +1,4 @@
+
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -151,13 +152,13 @@ export class StageOrchestrator {
 
       // Create security context
       if (config.enableSecurity) {
-        await ZeroTrustSecurityService.createSecurityContext(config.userId);
+        await ZeroTrustSecurityService.getInstance().createSecurityContext(config.userId);
         console.log('Security context established');
       }
 
       // Record compliance data
       if (config.enableCompliance) {
-        await ComplianceFrameworkService.recordDataProcessing({
+        await ComplianceFrameworkService.getInstance().recordDataProcessing({
           userId: config.userId,
           dataType: 'communications',
           action: 'process',
@@ -170,7 +171,7 @@ export class StageOrchestrator {
       }
 
       // Join signaling with circuit breaker protection
-      const signalingSuccess = await CircuitBreakerService.execute(
+      const signalingSuccess = await CircuitBreakerService.getInstance().execute(
         'signaling-service',
         () => StageSignalingService.joinStage(config.stageId, config.userId),
         () => this.fallbackSignaling(config.stageId, config.userId)
@@ -220,7 +221,7 @@ export class StageOrchestrator {
 
       // Record compliance data
       if (this.currentStage.enableCompliance) {
-        await ComplianceFrameworkService.recordDataProcessing({
+        await ComplianceFrameworkService.getInstance().recordDataProcessing({
           userId: this.currentStage.userId,
           dataType: 'communications',
           action: 'delete',
