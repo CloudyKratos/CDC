@@ -14,8 +14,8 @@ export const cleanupStageResources = async (stageId: string, userId: string): Pr
     // Clean up ghost participants
     await cleanupService.cleanupGhostParticipants(stageId);
     
-    // Clean up completed calls (older than 2 hours)
-    await cleanupCompletedCalls();
+    // Clean up completed stages
+    await cleanupService.cleanupCompletedStages();
     
     console.log('Stage resources cleaned up successfully');
   } catch (error) {
@@ -27,15 +27,8 @@ export const cleanupStageResources = async (stageId: string, userId: string): Pr
 export const cleanupCompletedCalls = async (): Promise<void> => {
   try {
     console.log('Cleaning up completed calls...');
-    
-    // This would ideally be done via a Supabase edge function or cron job
-    // For now, we'll clean up participants who left more than 2 hours ago
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    
-    // Note: This would need to be implemented as a database function or edge function
-    // since we can't directly delete from the frontend for security reasons
-    console.log('Cleanup would remove participants who left before:', twoHoursAgo);
-    
+    const cleanupService = StageCleanupService.getInstance();
+    await cleanupService.cleanupCompletedStages();
   } catch (error) {
     console.error('Error cleaning up completed calls:', error);
   }
@@ -63,4 +56,16 @@ export const destroyPeerConnections = (peerConnections: Map<string, any>): void 
   });
   
   peerConnections.clear();
+};
+
+// Auto cleanup function that can be called periodically
+export const performPeriodicCleanup = async (): Promise<void> => {
+  try {
+    console.log('Performing periodic cleanup...');
+    const cleanupService = StageCleanupService.getInstance();
+    await cleanupService.cleanupCompletedStages();
+    console.log('Periodic cleanup completed');
+  } catch (error) {
+    console.error('Error in periodic cleanup:', error);
+  }
 };

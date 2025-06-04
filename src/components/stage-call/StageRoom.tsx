@@ -9,6 +9,7 @@ import { ConnectionError } from './ui/ConnectionError';
 import { StageHeader } from './ui/StageHeader';
 import { cleanupStageResources } from './utils/cleanup';
 import { toast } from 'sonner';
+import StageCleanupService from '@/services/StageCleanupService';
 
 interface StageRoomProps {
   stageId: string;
@@ -20,6 +21,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
   const [participants, setParticipants] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<'speaker' | 'audience'>('audience');
+  const cleanupService = StageCleanupService.getInstance();
 
   const {
     isAudioEnabled,
@@ -46,13 +48,10 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       try {
         setConnectionState('connecting');
         
-        // Force cleanup any previous session
-        await cleanupStageResources(stageId, user?.id || '');
-        
         // Initialize media first
         await initializeMedia();
         
-        // Connect to signaling server
+        // Connect to stage with cleanup
         await connect();
         
         setConnectionState('connected');
@@ -89,12 +88,29 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const handleForceReconnect = async () => {
     try {
       setConnectionState('connecting');
+      toast.info('Force reconnecting...');
       await forceReconnect();
       setConnectionState('connected');
       toast.success('Reconnected successfully');
     } catch (error) {
       console.error('Force reconnect failed:', error);
       setConnectionState('error');
+      toast.error('Failed to reconnect');
+    }
+  };
+
+  const handleEndStage = async () => {
+    try {
+      const success = await cleanupService.endStageAndCleanup(stageId);
+      if (success) {
+        toast.success('Stage ended successfully');
+        onLeave();
+      } else {
+        toast.error('Failed to end stage');
+      }
+    } catch (error) {
+      console.error('Error ending stage:', error);
+      toast.error('Failed to end stage');
     }
   };
 
@@ -150,6 +166,7 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         onToggleAudio={toggleAudio}
         onToggleVideo={toggleVideo}
         onLeave={handleLeave}
+        onEndStage={handleEndStage}
       />
     </div>
   );

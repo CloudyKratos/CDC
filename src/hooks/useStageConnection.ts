@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StageConnectionService from '@/services/StageConnectionService';
+import StageCleanupService from '@/services/StageCleanupService';
 import { toast } from 'sonner';
 
 interface UseStageConnectionReturn {
@@ -23,8 +24,9 @@ export const useStageConnection = (): UseStageConnectionReturn => {
   
   const { user } = useAuth();
   const connectionService = useRef(StageConnectionService.getInstance());
+  const cleanupService = useRef(StageCleanupService.getInstance());
   const retryCount = useRef(0);
-  const maxRetries = 3;
+  const maxRetries = 2; // Reduced retries
 
   // Monitor connection state changes
   useEffect(() => {
@@ -62,6 +64,10 @@ export const useStageConnection = (): UseStageConnectionReturn => {
     try {
       console.log('Attempting to connect to stage:', stageId);
       
+      // Aggressive cleanup first
+      await cleanupService.current.forceCleanupUserParticipation(stageId, user.id);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const result = await connectionService.current.connectToStage(stageId, user.id);
       
       if (result.success) {
@@ -79,15 +85,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
       setConnectionError(errorMessage);
       setConnectionState('error');
       setIsConnected(false);
-      
-      // Auto-retry logic
-      if (retryCount.current < maxRetries && errorMessage.includes('already participating')) {
-        retryCount.current++;
-        toast.error(`Connection failed. Retrying... (${retryCount.current}/${maxRetries})`);
-        setTimeout(() => connect(stageId), 2000 * retryCount.current);
-      } else {
-        toast.error(errorMessage);
-      }
+      toast.error(errorMessage);
     } finally {
       setIsConnecting(false);
     }
@@ -123,11 +121,14 @@ export const useStageConnection = (): UseStageConnectionReturn => {
     try {
       console.log('Force reconnecting to stage:', stageId);
       
+      // Aggressive cleanup
+      await cleanupService.current.forceCleanupUserParticipation(stageId, user.id);
+      
       // Disconnect first
       await disconnect();
       
-      // Wait a bit before reconnecting
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer before reconnecting
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Reset retry count for force reconnect
       retryCount.current = 0;

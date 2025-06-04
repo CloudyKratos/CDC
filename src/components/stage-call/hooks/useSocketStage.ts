@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import StageService from '@/services/StageService';
+import StageCleanupService from '@/services/StageCleanupService';
 
 interface PeerConnection {
   pc: RTCPeerConnection;
@@ -16,6 +17,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
   const socketRef = useRef<any>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnection>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const cleanupService = StageCleanupService.getInstance();
 
   const createPeerConnection = useCallback((remoteUserId: string) => {
     const pc = new RTCPeerConnection({
@@ -45,6 +47,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
   const connect = useCallback(async () => {
     try {
       setConnectionError(null);
+      console.log('Starting stage connection process...');
       
       // First validate stage access through our service
       const validation = await StageService.validateStageAccess(stageId);
@@ -52,8 +55,11 @@ export const useSocketStage = (stageId: string, userId: string) => {
         throw new Error(validation.reason || 'Cannot access stage');
       }
 
-      // Join stage through our service
-      const joinResult = await StageService.joinStage(stageId, 'audience');
+      // Clean up any ghost participants first
+      await cleanupService.cleanupGhostParticipants(stageId);
+      
+      // Use the safe join method with aggressive cleanup
+      const joinResult = await cleanupService.safeJoinStage(stageId, userId, 'audience');
       if (!joinResult.success) {
         throw new Error(joinResult.error || 'Failed to join stage');
       }
@@ -71,7 +77,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
       setIsConnected(false);
       throw error;
     }
-  }, [stageId]);
+  }, [stageId, userId, cleanupService]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -86,6 +92,9 @@ export const useSocketStage = (stageId: string, userId: string) => {
       // Leave stage through our service
       await StageService.leaveStage(stageId);
       
+      // Additional cleanup
+      await cleanupService.forceCleanupUserParticipation(stageId, userId);
+      
       setIsConnected(false);
       setParticipants([]);
       
@@ -94,36 +103,33 @@ export const useSocketStage = (stageId: string, userId: string) => {
       // Force reset state even if disconnect fails
       setIsConnected(false);
     }
-  }, [stageId]);
+  }, [stageId, userId, cleanupService]);
 
   const forceReconnect = useCallback(async () => {
     console.log('Force reconnecting...');
     
+    // Aggressive cleanup first
+    await cleanupService.forceCleanupUserParticipation(stageId, userId);
+    
     // Disconnect first
     await disconnect();
     
-    // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait a longer moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Reconnect
     await connect();
-  }, [disconnect, connect]);
+  }, [disconnect, connect, cleanupService, stageId, userId]);
 
-  // Auto-reconnect on connection loss
+  // Cleanup on unmount
   useEffect(() => {
-    if (!isConnected && !connectionError) {
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting auto-reconnect...');
-        connect().catch(console.error);
-      }, 5000);
-    }
-
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      disconnect();
     };
-  }, [isConnected, connectionError, connect]);
+  }, [disconnect]);
 
   return {
     socket: socketRef.current,
