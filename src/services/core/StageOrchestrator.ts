@@ -1,3 +1,4 @@
+
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -108,7 +109,7 @@ export class StageOrchestrator {
     console.log('Initializing Stage Orchestrator with enterprise services...');
 
     try {
-      // Register all services using static getInstance methods
+      // Register all services using their getInstance methods properly
       this.serviceRegistry.registerService('signaling', StageSignalingService);
       this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
       this.serviceRegistry.registerService('monitoring', StageMonitoringService.getInstance());
@@ -120,7 +121,7 @@ export class StageOrchestrator {
 
       // Initialize critical services using static methods
       await QuantumResistantSecurity.initialize();
-      await PerformanceOptimizationService.initialize();
+      await PerformanceOptimizationService.getInstance().initialize();
       await ZeroTrustSecurityService.initialize();
       await ComplianceFrameworkService.initialize();
 
@@ -280,13 +281,13 @@ export class StageOrchestrator {
     }
 
     // Update performance score
-    const performanceMetrics = PerformanceOptimizationService.getLatestMetrics();
+    const performanceMetrics = PerformanceOptimizationService.getInstance().getLatestMetrics();
     if (performanceMetrics) {
       this.stageState.performanceScore = this.calculatePerformanceScore(performanceMetrics);
     }
 
     // Update security level
-    const securityContext = ZeroTrustSecurityService.getSecurityContext(this.currentStage.userId);
+    const securityContext = ZeroTrustSecurityService.getInstance().getSecurityContext(this.currentStage.userId);
     if (securityContext) {
       this.stageState.securityLevel = this.calculateSecurityLevel(securityContext.riskScore);
     }
@@ -319,7 +320,7 @@ export class StageOrchestrator {
     if (!this.currentStage?.enableCompliance) return 'compliant';
 
     // Check for any compliance violations
-    const hasConsent = ComplianceFrameworkService.hasValidConsent(
+    const hasConsent = ComplianceFrameworkService.getInstance().hasValidConsent(
       this.currentStage.userId, 
       'data_processing'
     );
@@ -327,7 +328,7 @@ export class StageOrchestrator {
     if (!hasConsent) return 'violation';
 
     // Check for any warnings
-    const threats = ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId);
+    const threats = ZeroTrustSecurityService.getInstance().getThreatDetections(this.currentStage.userId);
     const recentThreats = threats.filter(t => Date.now() - t.timestamp < 60000); // Last minute
 
     if (recentThreats.length > 0) return 'warning';
@@ -383,23 +384,23 @@ export class StageOrchestrator {
   async validateAccess(resource: string): Promise<boolean> {
     if (!this.currentStage) return false;
 
-    return await ZeroTrustSecurityService.validateAccess(
+    return await ZeroTrustSecurityService.getInstance().validateAccess(
       this.currentStage.userId, 
       resource
     );
   }
 
   getPerformanceMetrics(): any {
-    return PerformanceOptimizationService.getLatestMetrics();
+    return PerformanceOptimizationService.getInstance().getLatestMetrics();
   }
 
   getSecurityMetrics(): any {
     if (!this.currentStage) return null;
 
     return {
-      securityContext: ZeroTrustSecurityService.getSecurityContext(this.currentStage.userId),
-      threats: ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId),
-      circuitBreakerStates: CircuitBreakerService.getAllCircuits()
+      securityContext: ZeroTrustSecurityService.getInstance().getSecurityContext(this.currentStage.userId),
+      threats: ZeroTrustSecurityService.getInstance().getThreatDetections(this.currentStage.userId),
+      circuitBreakerStates: CircuitBreakerService.getInstance().getAllCircuits()
     };
   }
 
@@ -409,7 +410,7 @@ export class StageOrchestrator {
     const endDate = Date.now();
     const startDate = endDate - (24 * 60 * 60 * 1000); // Last 24 hours
 
-    return ComplianceFrameworkService.generateGDPRReport(startDate, endDate);
+    return ComplianceFrameworkService.getInstance().generateGDPRReport(startDate, endDate);
   }
 
   async emergencyShutdown(): Promise<void> {
@@ -420,8 +421,8 @@ export class StageOrchestrator {
       StageMonitoringService.stopMonitoring();
       NextGenWebRTCService.cleanup();
       await StageSignalingService.leaveStage();
-      PerformanceOptimizationService.cleanup();
-      ZeroTrustSecurityService.cleanup();
+      PerformanceOptimizationService.getInstance().cleanup();
+      ZeroTrustSecurityService.getInstance().cleanup();
       QuantumResistantSecurity.cleanup();
 
       this.stageState.isConnected = false;
