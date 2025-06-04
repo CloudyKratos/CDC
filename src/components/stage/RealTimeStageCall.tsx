@@ -51,6 +51,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [userStageRole, setUserStageRole] = useState<'speaker' | 'audience' | 'moderator'>('audience');
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -80,8 +81,15 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     try {
       await EnhancedWebRTCService.initialize();
       
-      // Get local media stream
-      const stream = await EnhancedWebRTCService.getLocalStream(true, currentRole !== 'audience');
+      // Determine user's stage role based on their system role
+      let stageRole: 'speaker' | 'audience' | 'moderator' = 'audience';
+      if (currentRole === 'admin') {
+        stageRole = 'moderator';
+      }
+      setUserStageRole(stageRole);
+      
+      // Get local media stream - only enable video for speakers/moderators
+      const stream = await EnhancedWebRTCService.getLocalStream(true, stageRole !== 'audience');
       setLocalStream(stream);
       
       if (localVideoRef.current) {
@@ -216,8 +224,8 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     setParticipants([]);
   };
 
-  const canSpeak = currentRole === 'moderator' || currentRole === 'speaker';
-  const canModerate = currentRole === 'moderator';
+  const canSpeak = userStageRole === 'moderator' || userStageRole === 'speaker';
+  const canModerate = userStageRole === 'moderator';
 
   return (
     <div className="flex flex-col h-full bg-background">

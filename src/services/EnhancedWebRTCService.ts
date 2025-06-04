@@ -1,76 +1,4 @@
 
-interface MediaStreamTrack {
-  id: string;
-  kind: 'audio' | 'video';
-  enabled: boolean;
-  muted: boolean;
-  readyState: 'live' | 'ended';
-  stop(): void;
-}
-
-interface MediaStream {
-  id: string;
-  active: boolean;
-  getTracks(): MediaStreamTrack[];
-  getAudioTracks(): MediaStreamTrack[];
-  getVideoTracks(): MediaStreamTrack[];
-  addTrack(track: MediaStreamTrack): void;
-  removeTrack(track: MediaStreamTrack): void;
-  clone(): MediaStream;
-}
-
-interface RTCPeerConnection {
-  localDescription: RTCSessionDescription | null;
-  remoteDescription: RTCSessionDescription | null;
-  connectionState: RTCPeerConnectionState;
-  iceConnectionState: RTCIceConnectionState;
-  signalingState: RTCSignalingState;
-  
-  addStream(stream: MediaStream): void;
-  removeStream(stream: MediaStream): void;
-  createOffer(options?: RTCOfferOptions): Promise<RTCSessionDescriptionInit>;
-  createAnswer(options?: RTCAnswerOptions): Promise<RTCSessionDescriptionInit>;
-  setLocalDescription(description: RTCSessionDescriptionInit): Promise<void>;
-  setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
-  addIceCandidate(candidate: RTCIceCandidateInit): Promise<void>;
-  close(): void;
-  
-  addEventListener(type: string, listener: EventListener): void;
-  removeEventListener(type: string, listener: EventListener): void;
-}
-
-type RTCPeerConnectionState = 'new' | 'connecting' | 'connected' | 'disconnected' | 'failed' | 'closed';
-type RTCIceConnectionState = 'new' | 'checking' | 'connected' | 'completed' | 'failed' | 'disconnected' | 'closed';
-type RTCSignalingState = 'stable' | 'have-local-offer' | 'have-remote-offer' | 'have-local-pranswer' | 'have-remote-pranswer' | 'closed';
-
-interface RTCOfferOptions {
-  offerToReceiveAudio?: boolean;
-  offerToReceiveVideo?: boolean;
-}
-
-interface RTCAnswerOptions {
-  // Standard answer options
-}
-
-interface RTCSessionDescriptionInit {
-  type: RTCSdpType;
-  sdp?: string;
-}
-
-interface RTCSessionDescription {
-  type: RTCSdpType;
-  sdp: string;
-}
-
-type RTCSdpType = 'offer' | 'answer' | 'pranswer' | 'rollback';
-
-interface RTCIceCandidateInit {
-  candidate?: string;
-  sdpMLineIndex?: number | null;
-  sdpMid?: string | null;
-  usernameFragment?: string | null;
-}
-
 interface Participant {
   id: string;
   name: string;
@@ -153,20 +81,20 @@ class EnhancedWebRTCService {
 
   public async createPeerConnection(participantId: string): Promise<RTCPeerConnection> {
     try {
-      const peerConnection = new (window as any).RTCPeerConnection({
+      const peerConnection = new RTCPeerConnection({
         iceServers: this.iceServers,
         iceCandidatePoolSize: 10
       });
 
       // Handle ICE candidates
-      peerConnection.addEventListener('icecandidate', (event: any) => {
+      peerConnection.addEventListener('icecandidate', (event) => {
         if (event.candidate) {
           this.sendIceCandidate(participantId, event.candidate);
         }
       });
 
       // Handle remote stream
-      peerConnection.addEventListener('track', (event: any) => {
+      peerConnection.addEventListener('track', (event) => {
         const remoteStream = event.streams[0];
         this.handleRemoteStream(participantId, remoteStream);
       });
@@ -317,7 +245,7 @@ class EnhancedWebRTCService {
     this.participants.clear();
   }
 
-  public getConnectionStats(participantId: string): Promise<RTCStatsReport> {
+  public async getConnectionStats(participantId: string): Promise<RTCStatsReport> {
     const peerConnection = this.peerConnections.get(participantId);
     if (!peerConnection) {
       throw new Error(`No peer connection found for ${participantId}`);
