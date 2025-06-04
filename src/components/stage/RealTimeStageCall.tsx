@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StageService from '@/services/StageService';
@@ -39,11 +40,9 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [userStageRole, setUserStageRole] = useState<'speaker' | 'audience' | 'moderator'>('audience');
   const [layoutMode, setLayoutMode] = useState<'grid' | 'spotlight' | 'circle'>('grid');
-  const [initializationAttempts, setInitializationAttempts] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const subscriptionsRef = useRef<{ unsubscribe: () => void }[]>([]);
-  const initializationInProgress = useRef(false);
   const { user } = useAuth();
   const { 
     isConnecting, 
@@ -52,7 +51,8 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     connect, 
     disconnect, 
     forceReconnect, 
-    clearError 
+    clearError,
+    connectionState
   } = useStageConnection();
 
   const cleanup = useCallback(() => {
@@ -67,7 +67,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       }
     });
     subscriptionsRef.current = [];
-    initializationInProgress.current = false;
   }, []);
 
   const loadParticipants = useCallback(async () => {
@@ -133,28 +132,19 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   }, [stageId, loadParticipants, onLeave]);
 
   const initializeStage = useCallback(async () => {
-    if (initializationInProgress.current) {
-      console.log('Initialization already in progress');
-      return;
-    }
-
-    initializationInProgress.current = true;
     clearError();
     
     try {
       console.log('Initializing stage connection...');
       await connect(stageId);
       
-      // Wait a bit for connection to stabilize
+      // Wait for connection to stabilize
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       await loadParticipants();
       setupRealtimeSubscriptions();
     } catch (error) {
       console.error('Error initializing stage:', error);
-      setInitializationAttempts(prev => prev + 1);
-    } finally {
-      initializationInProgress.current = false;
     }
   }, [stageId, connect, loadParticipants, setupRealtimeSubscriptions, clearError]);
 
@@ -163,18 +153,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     
     return cleanup;
   }, [initializeStage, cleanup]);
-
-  // Auto-retry logic for failed connections
-  useEffect(() => {
-    if (connectionError && initializationAttempts < 3) {
-      const retryTimeout = setTimeout(() => {
-        console.log(`Auto-retrying connection (attempt ${initializationAttempts + 1}/3)`);
-        initializeStage();
-      }, 3000 * (initializationAttempts + 1)); // Exponential backoff
-
-      return () => clearTimeout(retryTimeout);
-    }
-  }, [connectionError, initializationAttempts, initializeStage]);
 
   const handleToggleAudio = async () => {
     const newAudioState = !isAudioEnabled;
@@ -230,7 +208,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   const handleLeaveCall = async () => {
     try {
       cleanup();
-      await disconnect(stageId);
+      await disconnect();
       onLeave();
     } catch (error) {
       console.error('Error leaving stage:', error);
@@ -240,7 +218,6 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
 
   const handleForceReconnect = async () => {
     try {
-      setInitializationAttempts(0);
       await forceReconnect(stageId);
       
       // Wait for reconnection to stabilize
@@ -253,7 +230,21 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     }
   };
 
-  if (isConnecting) {
+  // Enhanced connection status display
+  const getConnectionStatusMessage = () => {
+    switch (connectionState) {
+      case 'connecting':
+        return 'Connecting to stage...';
+      case 'connected':
+        return 'Connected';
+      case 'error':
+        return connectionError || 'Connection error';
+      default:
+        return 'Disconnected';
+    }
+  };
+
+  if (isConnecting || connectionState === 'connecting') {
     return (
       <div className="flex flex-col h-full">
         <StageHeader
@@ -265,12 +256,9 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-lg">Connecting to stage...</p>
+            <p className="text-lg">{getConnectionStatusMessage()}</p>
             <p className="text-sm text-muted-foreground">
-              {initializationAttempts > 0 
-                ? `Retrying connection (attempt ${initializationAttempts + 1}/3)...`
-                : 'Establishing connection and cleaning up any previous sessions...'
-              }
+              Establishing secure connection and setting up real-time features...
             </p>
           </div>
         </div>
@@ -278,7 +266,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
     );
   }
 
-  if (connectionError) {
+  if (connectionError || connectionState === 'error') {
     return (
       <div className="flex flex-col h-full">
         <StageHeader
@@ -292,27 +280,19 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
             <p className="text-lg text-destructive">Connection Error</p>
             <p className="text-sm text-muted-foreground">{connectionError}</p>
             
-            {connectionError.includes('already participating') && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  It looks like you're still connected from another session. 
-                  {initializationAttempts < 3 
-                    ? ' Automatically retrying...' 
-                    : ' Try force reconnecting to clean up the previous connection.'
-                  }
-                </p>
-              </div>
-            )}
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                Having trouble connecting? Try force reconnecting to clean up any previous sessions.
+              </p>
+            </div>
             
             <div className="flex flex-col gap-2">
-              {initializationAttempts >= 3 && (
-                <button 
-                  onClick={handleForceReconnect}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                >
-                  Force Reconnect
-                </button>
-              )}
+              <button 
+                onClick={handleForceReconnect}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Force Reconnect
+              </button>
               <button 
                 onClick={onLeave}
                 className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"

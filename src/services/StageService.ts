@@ -102,7 +102,7 @@ class StageService {
     try {
       console.log('Force disconnecting user from stage:', { stageId, userId });
       
-      // Use a more robust query to handle potential race conditions
+      // Update all active participations for this user in this stage
       const { error } = await supabase
         .from('stage_participants')
         .update({ 
@@ -132,8 +132,8 @@ class StageService {
     try {
       console.log('Cleaning up ghost participants for stage:', stageId);
       
-      // Mark participants as left if they joined more than 2 minutes ago without recent activity
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      // Mark participants as left if they joined more than 5 minutes ago without recent activity
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       
       const { error } = await supabase
         .from('stage_participants')
@@ -145,7 +145,7 @@ class StageService {
         })
         .eq('stage_id', stageId)
         .is('left_at', null)
-        .lt('joined_at', twoMinutesAgo);
+        .lt('joined_at', fiveMinutesAgo);
 
       if (error) {
         console.error('Error cleaning up ghost participants:', error);
@@ -157,57 +157,6 @@ class StageService {
     } catch (error) {
       console.error('Error in cleanupGhostParticipants:', error);
       return false;
-    }
-  }
-
-  async validateStageJoin(stageId: string, role: StageRole = 'audience'): Promise<{ canJoin: boolean; reason?: string }> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { canJoin: false, reason: 'Authentication required. Please log in to join the stage.' };
-
-      // Check if stage exists and is joinable
-      const stage = await this.getStageById(stageId);
-      if (!stage) return { canJoin: false, reason: 'Stage not found. The stage may have been deleted or moved.' };
-      
-      if (stage.status === 'ended') {
-        return { canJoin: false, reason: 'This stage has already ended. Check for recordings or upcoming sessions.' };
-      }
-
-      if (stage.status === 'scheduled') {
-        const now = new Date();
-        const startTime = new Date(stage.scheduled_start_time || '');
-        const timeDiff = startTime.getTime() - now.getTime();
-        
-        // Allow joining 15 minutes before scheduled time
-        if (timeDiff > 15 * 60 * 1000) {
-          const startTimeStr = startTime.toLocaleString();
-          return { canJoin: false, reason: `Stage is scheduled to start at ${startTimeStr}. You can join 15 minutes before the start time.` };
-        }
-      }
-
-      // Clean up any ghost participants first
-      await this.cleanupGhostParticipants(stageId);
-
-      // Check participant limits
-      const participants = await this.getStageParticipants(stageId);
-      const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
-      const audience = participants.filter(p => p.role === 'audience');
-
-      if (role === 'speaker' && speakers.length >= (stage.max_speakers || 10)) {
-        return { canJoin: false, reason: 'Speaker limit reached. Wait for a speaker slot to become available or join as audience.' };
-      }
-
-      if (role === 'audience' && audience.length >= (stage.max_audience || 100)) {
-        return { canJoin: false, reason: 'Stage is at full capacity. Please try again later when someone leaves.' };
-      }
-
-      return { canJoin: true };
-    } catch (error) {
-      console.error('Error validating stage join:', error);
-      if (error instanceof Error) {
-        return { canJoin: false, reason: error.message };
-      }
-      return { canJoin: false, reason: 'Unable to validate stage access. Please check your connection and try again.' };
     }
   }
 
@@ -239,53 +188,60 @@ class StageService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { success: false, error: 'Authentication required. Please log in to join the stage.' };
 
-      // Force cleanup any existing connections for this user first
-      await this.forceDisconnectUser(stageId, user.id);
+      console.log('Attempting to join stage:', { stageId, userId: user.id, role });
       
-      // Wait a bit for cleanup to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Validate join request
-      const validation = await this.validateStageJoin(stageId, role);
-      if (!validation.canJoin) {
-        return { success: false, error: validation.reason };
+      // Check for existing active participation first
+      const { data: existing } = await supabase
+        .from('stage_participants')
+        .select('id')
+        .eq('stage_id', stageId)
+        .eq('user_id', user.id)
+        .is('left_at', null)
+        .single();
+
+      if (existing) {
+        console.log('User already has active participation');
+        return { success: true };
       }
 
-      return this.retryOperation(async () => {
-        // Check one more time for existing participation to avoid duplicates
-        const { data: existingParticipant } = await supabase
-          .from('stage_participants')
-          .select('id')
-          .eq('stage_id', stageId)
-          .eq('user_id', user.id)
-          .is('left_at', null)
-          .single();
+      // Insert new participation record
+      const { error: insertError } = await supabase
+        .from('stage_participants')
+        .insert({
+          stage_id: stageId,
+          user_id: user.id,
+          role: role as Database['public']['Enums']['stage_role'],
+          is_muted: role === 'audience',
+          is_video_enabled: false,
+          is_hand_raised: false,
+          joined_at: new Date().toISOString()
+        });
 
-        if (existingParticipant) {
-          console.log('User already has active participation, using existing record');
-          return { success: true };
-        }
-
-        // Insert new participation record
-        const { error } = await supabase
-          .from('stage_participants')
-          .insert({
-            stage_id: stageId,
-            user_id: user.id,
-            role: role as Database['public']['Enums']['stage_role'],
-            is_muted: role === 'audience',
-            is_video_enabled: false,
-            is_hand_raised: false,
-            joined_at: new Date().toISOString()
-          });
-
-        if (error) {
-          console.error('Error joining stage:', error);
-          throw new Error(`Failed to join stage: ${error.message}`);
+      if (insertError) {
+        console.error('Error joining stage:', insertError);
+        
+        // Handle duplicate key error specifically
+        if (insertError.code === '23505') {
+          console.log('Duplicate participation detected, checking existing record');
+          const { data: existingRecord } = await supabase
+            .from('stage_participants')
+            .select('id')
+            .eq('stage_id', stageId)
+            .eq('user_id', user.id)
+            .is('left_at', null)
+            .single();
+            
+          if (existingRecord) {
+            return { success: true };
+          }
         }
         
-        return { success: true };
-      });
+        throw new Error(`Failed to join stage: ${insertError.message}`);
+      }
+      
+      console.log('Successfully joined stage');
+      return { success: true };
+      
     } catch (error) {
       console.error('Error joining stage:', error);
       if (error instanceof Error) {
@@ -413,7 +369,6 @@ class StageService {
     }
   }
 
-  // Speaker request methods
   async getPendingSpeakerRequests(stageId: string): Promise<SpeakerRequest[]> {
     try {
       const { data, error } = await supabase

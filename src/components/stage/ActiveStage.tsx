@@ -50,13 +50,14 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
       console.log('Stage loaded successfully:', stageData);
     } catch (error) {
       console.error('Error loading stage:', error);
-      setError('Failed to load stage details');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load stage details';
+      setError(errorMessage);
       
       // Retry logic for network issues
-      if (retryCount < 3) {
+      if (retryCount < 3 && !errorMessage.includes('not found')) {
         console.log(`Retrying... (${retryCount + 1}/3)`);
         setRetryCount(prev => prev + 1);
-        setTimeout(() => loadStage(), 2000);
+        setTimeout(() => loadStage(), 2000 * (retryCount + 1));
         return;
       }
     } finally {
@@ -94,8 +95,8 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
     }
 
     // Additional validation through service
-    const validation = await StageService.validateStageJoin(stageId, 'audience');
-    if (!validation.canJoin) {
+    const validation = await StageService.validateStageAccess(stageId);
+    if (!validation.canAccess) {
       return { canJoin: false, error: validation.reason };
     }
 
@@ -135,12 +136,13 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
         }
       }
 
-      // Proceed to stage call (connection will be handled by RealTimeStageCall)
+      // Proceed to stage call
       setHasJoined(true);
     } catch (error) {
       console.error('Error joining stage:', error);
-      setError('Failed to join stage');
-      toast.error('Failed to join stage');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to join stage';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsJoining(false);
     }
