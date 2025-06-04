@@ -344,32 +344,35 @@ const FlatWorldMap: React.FC = () => {
             preserveAspectRatio="xMidYMid meet"
           >
             {/* Background */}
-            <rect width="1000" height="500" fill="#f8fafc" />
+            <rect width="1000" height="500" fill="#e0f2fe" />
             
-            {/* Continent shapes - Simplified outlines */}
-            <g fill="#a3e4c7" stroke="#22c55e" strokeWidth="1" opacity="0.7">
+            {/* Accurate Continent shapes */}
+            <g fill="#22c55e" stroke="#059669" strokeWidth="0.5" opacity="0.8">
               {/* North America */}
-              <path d="M 100 100 Q 150 80 250 90 Q 300 95 350 110 Q 380 130 360 180 Q 340 200 300 220 Q 250 240 200 230 Q 150 220 120 180 Q 100 140 100 100 Z" />
+              <path d="M 50 120 Q 80 100 120 110 Q 160 120 200 115 Q 240 110 280 125 Q 320 140 340 170 Q 360 200 350 230 Q 340 260 320 280 Q 280 300 240 290 Q 200 280 160 270 Q 120 260 90 240 Q 60 220 50 180 Q 45 150 50 120 Z M 80 180 Q 90 190 110 185 Q 130 180 140 170 Q 145 160 140 150 Q 130 145 115 150 Q 100 155 90 165 Q 80 175 80 180 Z" />
               
               {/* South America */}
-              <path d="M 220 250 Q 260 240 300 260 Q 320 280 330 320 Q 340 360 320 400 Q 300 420 280 430 Q 260 425 240 410 Q 220 390 210 350 Q 200 310 210 280 Q 215 260 220 250 Z" />
+              <path d="M 280 280 Q 310 270 340 290 Q 360 310 370 340 Q 380 370 375 400 Q 370 430 360 460 Q 350 480 330 485 Q 310 490 290 485 Q 270 480 255 465 Q 240 450 235 430 Q 230 410 235 390 Q 240 370 250 350 Q 260 330 270 310 Q 275 295 280 280 Z" />
               
               {/* Europe */}
-              <path d="M 450 100 Q 500 90 550 100 Q 580 110 590 130 Q 585 150 570 160 Q 540 170 510 165 Q 480 160 460 145 Q 445 130 445 115 Q 445 105 450 100 Z" />
+              <path d="M 480 100 Q 520 90 560 105 Q 590 120 600 140 Q 605 160 595 175 Q 580 185 560 180 Q 540 175 520 170 Q 500 165 485 155 Q 470 145 465 130 Q 460 115 470 105 Q 475 100 480 100 Z" />
               
               {/* Africa */}
-              <path d="M 480 180 Q 520 170 560 185 Q 590 200 600 240 Q 610 280 600 320 Q 590 360 570 380 Q 540 390 510 385 Q 480 380 460 360 Q 450 340 455 300 Q 460 260 470 220 Q 475 190 480 180 Z" />
+              <path d="M 490 180 Q 530 170 570 190 Q 600 210 615 240 Q 625 270 620 300 Q 615 330 605 360 Q 595 390 580 410 Q 560 425 535 420 Q 510 415 490 405 Q 470 395 455 380 Q 445 365 450 345 Q 455 325 465 305 Q 475 285 485 265 Q 488 245 490 225 Q 490 200 490 180 Z" />
               
               {/* Asia */}
-              <path d="M 600 80 Q 650 70 720 85 Q 780 100 830 120 Q 870 140 880 170 Q 885 200 870 220 Q 850 240 800 245 Q 750 250 700 240 Q 650 230 620 210 Q 600 190 595 160 Q 590 130 595 100 Q 598 85 600 80 Z" />
+              <path d="M 600 80 Q 650 70 700 80 Q 750 90 800 105 Q 850 120 880 140 Q 900 160 895 185 Q 890 210 875 230 Q 855 245 830 250 Q 800 255 770 250 Q 740 245 710 235 Q 680 225 655 210 Q 630 195 615 175 Q 605 155 600 135 Q 598 115 600 95 Q 600 85 600 80 Z M 720 140 Q 740 130 760 135 Q 780 140 790 155 Q 795 170 785 180 Q 775 185 760 180 Q 745 175 735 165 Q 725 155 720 145 Q 718 140 720 140 Z" />
               
               {/* Australia */}
-              <path d="M 750 350 Q 800 340 850 350 Q 880 360 890 380 Q 885 400 870 410 Q 840 415 810 410 Q 780 405 760 395 Q 745 385 745 375 Q 745 365 750 350 Z" />
+              <path d="M 780 350 Q 820 340 860 355 Q 890 370 900 390 Q 905 410 895 425 Q 885 435 870 440 Q 850 445 830 440 Q 810 435 795 425 Q 780 415 775 400 Q 770 385 775 370 Q 778 360 780 350 Z" />
+              
+              {/* Greenland */}
+              <path d="M 380 60 Q 400 50 420 55 Q 440 60 450 75 Q 455 90 450 105 Q 445 115 435 120 Q 420 125 405 120 Q 390 115 385 100 Q 380 85 380 70 Q 378 60 380 60 Z" />
             </g>
 
             {/* Grid Lines */}
             {showGrid && (
-              <g stroke="#94a3b8" strokeWidth="0.5" opacity="0.8">
+              <g stroke="#0284c7" strokeWidth="0.8" opacity="0.6">
                 {/* Longitude lines (every 30 degrees) */}
                 {Array.from({ length: 13 }, (_, i) => {
                   const x = (i * 1000) / 12;
@@ -383,41 +386,39 @@ const FlatWorldMap: React.FC = () => {
                 })}
                 
                 {/* Prime Meridian (0°) */}
-                <line x1="500" y1="0" x2="500" y2="500" stroke="#ef4444" strokeWidth="1.5" />
+                <line x1="500" y1="0" x2="500" y2="500" stroke="#dc2626" strokeWidth="2" />
                 
                 {/* Equator (0°) */}
-                <line x1="0" y1="250" x2="1000" y2="250" stroke="#ef4444" strokeWidth="1.5" />
+                <line x1="0" y1="250" x2="1000" y2="250" stroke="#dc2626" strokeWidth="2" />
               </g>
             )}
 
             {/* Coordinate Labels */}
             {showGrid && (
-              <g className="text-xs font-medium" fill="#475569">
+              <g className="text-xs font-semibold" fill="#1e40af">
                 {/* Longitude labels (top) */}
-                <text x="83" y="15" textAnchor="middle">180°</text>
-                <text x="167" y="15" textAnchor="middle">150°</text>
-                <text x="250" y="15" textAnchor="middle">120°</text>
-                <text x="333" y="15" textAnchor="middle">90°</text>
-                <text x="417" y="15" textAnchor="middle">60°</text>
-                <text x="500" y="15" textAnchor="middle">0°</text>
-                <text x="583" y="15" textAnchor="middle">60°</text>
-                <text x="667" y="15" textAnchor="middle">90°</text>
-                <text x="750" y="15" textAnchor="middle">120°</text>
-                <text x="833" y="15" textAnchor="middle">150°</text>
-                <text x="917" y="15" textAnchor="middle">180°</text>
+                <text x="83" y="20" textAnchor="middle" className="font-bold">180°W</text>
+                <text x="167" y="20" textAnchor="middle">150°W</text>
+                <text x="250" y="20" textAnchor="middle">120°W</text>
+                <text x="333" y="20" textAnchor="middle">90°W</text>
+                <text x="417" y="20" textAnchor="middle">60°W</text>
+                <text x="500" y="20" textAnchor="middle" className="font-bold">0°</text>
+                <text x="583" y="20" textAnchor="middle">60°E</text>
+                <text x="667" y="20" textAnchor="middle">90°E</text>
+                <text x="750" y="20" textAnchor="middle">120°E</text>
+                <text x="833" y="20" textAnchor="middle">150°E</text>
+                <text x="917" y="20" textAnchor="middle" className="font-bold">180°E</text>
 
                 {/* Latitude labels (left) */}
-                <text x="15" y="45" textAnchor="start">75°</text>
-                <text x="15" y="128" textAnchor="start">45°</text>
-                <text x="15" y="170" textAnchor="start">30°</text>
-                <text x="15" y="255" textAnchor="start">0°</text>
-                <text x="15" y="340" textAnchor="start">30°</text>
-                <text x="15" y="380" textAnchor="start">45°</text>
-                <text x="15" y="460" textAnchor="start">75°</text>
+                <text x="20" y="50" textAnchor="start">60°N</text>
+                <text x="20" y="133" textAnchor="start">30°N</text>
+                <text x="20" y="255" textAnchor="start" className="font-bold">0°</text>
+                <text x="20" y="375" textAnchor="start">30°S</text>
+                <text x="20" y="460" textAnchor="start">60°S</text>
 
                 {/* Prime Meridian and Equator labels */}
-                <text x="505" y="35" className="font-semibold" fill="#dc2626">Prime Meridian</text>
-                <text x="15" y="245" className="font-semibold" fill="#dc2626">Equator</text>
+                <text x="505" y="40" className="font-bold text-sm" fill="#dc2626">Prime Meridian</text>
+                <text x="20" y="240" className="font-bold text-sm" fill="#dc2626">Equator</text>
               </g>
             )}
 
