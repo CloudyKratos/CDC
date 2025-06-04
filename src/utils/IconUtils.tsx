@@ -66,7 +66,10 @@ import {
   Hash,
   Trophy,
   Mic,
-  Gift
+  Gift,
+  Play,
+  Filter,
+  CheckSquare
 } from "lucide-react";
 
 // Icon mapping for easy access
@@ -136,7 +139,10 @@ export const Icons = {
   Hash,
   Trophy,
   Mic,
-  Gift
+  Gift,
+  Play,
+  Filter,
+  CheckSquare
 };
 
 export default Icons;
