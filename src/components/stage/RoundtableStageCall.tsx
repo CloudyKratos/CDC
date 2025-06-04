@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +32,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserName, getUserAvatar } from '@/utils/user-data';
 
 interface RoundtableStageCallProps {
   stageId: string;
@@ -90,8 +88,8 @@ const RoundtableStageCall: React.FC<RoundtableStageCallProps> = ({
       // Create a proper user object for the VideoCallService
       const userForService = {
         id: user.id,
-        name: getUserName(user),
-        avatar: getUserAvatar(user) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.id,
+        name: user.name || user.email?.split('@')[0] || 'Anonymous User',
+        avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
         email: user.email || '',
         role: 'user' as const,
         permissions: [] as string[]
