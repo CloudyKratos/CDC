@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mic, MicOff, Video, VideoOff } from 'lucide-react';
 
@@ -10,6 +10,8 @@ interface Participant {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
   avatarUrl?: string;
+  stream?: MediaStream;
+  connectionState?: RTCPeerConnectionState;
 }
 
 interface ParticipantGridProps {
@@ -27,6 +29,34 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   isVideoEnabled,
   isAudioEnabled
 }) => {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Set up local video stream
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  const RemoteParticipantVideo: React.FC<{ participant: Participant }> = ({ participant }) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+      if (videoRef.current && participant.stream) {
+        videoRef.current.srcObject = participant.stream;
+      }
+    }, [participant.stream]);
+
+    return (
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-full object-cover"
+      />
+    );
+  };
+
   const renderParticipantTile = (participant: Participant, isLocal = false) => (
     <div
       key={participant.id}
@@ -35,17 +65,17 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
       {/* Video/Avatar Display */}
       <div className="aspect-video w-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
         {participant.isVideoEnabled || (isLocal && isVideoEnabled) ? (
-          <video
-            className="w-full h-full object-cover"
-            autoPlay
-            muted={isLocal}
-            playsInline
-            ref={(video) => {
-              if (video && isLocal && localStream) {
-                video.srcObject = localStream;
-              }
-            }}
-          />
+          isLocal ? (
+            <video
+              ref={localVideoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              muted
+              playsInline
+            />
+          ) : (
+            <RemoteParticipantVideo participant={participant} />
+          )
         ) : (
           <Avatar className="w-16 h-16">
             <AvatarImage src={participant.avatarUrl} />
@@ -68,6 +98,15 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
                 Speaker
               </span>
             )}
+            {participant.connectionState && !isLocal && (
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                participant.connectionState === 'connected' ? 'bg-green-500/20 text-green-400' :
+                participant.connectionState === 'connecting' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {participant.connectionState}
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-1">
@@ -86,6 +125,17 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
       {/* Speaking Indicator */}
       {(participant.isAudioEnabled && !isLocal) || (isLocal && isAudioEnabled) && (
         <div className="absolute inset-0 border-2 border-green-400 rounded-xl animate-pulse pointer-events-none" />
+      )}
+
+      {/* Connection Quality Indicator */}
+      {!isLocal && participant.connectionState && (
+        <div className="absolute top-2 right-2">
+          <div className={`w-3 h-3 rounded-full ${
+            participant.connectionState === 'connected' ? 'bg-green-400' :
+            participant.connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
+            'bg-red-400'
+          }`}></div>
+        </div>
       )}
     </div>
   );
@@ -116,6 +166,13 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           renderParticipantTile(participant, index === 0)
         )}
       </div>
+      
+      {/* Debug info */}
+      {participants.length > 0 && (
+        <div className="absolute bottom-20 left-4 text-xs text-white/50">
+          Remote participants: {participants.length}
+        </div>
+      )}
     </div>
   );
 };

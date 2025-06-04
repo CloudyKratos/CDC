@@ -19,31 +19,6 @@ export const useSocketStage = (stageId: string, userId: string) => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const cleanupService = StageCleanupService.getInstance();
 
-  const createPeerConnection = useCallback((remoteUserId: string) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current) {
-        socketRef.current.emit('ice-candidate', {
-          to: remoteUserId,
-          candidate: event.candidate
-        });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      console.log('Received remote track from:', remoteUserId);
-      // Handle incoming track
-    };
-
-    return pc;
-  }, []);
-
   const connect = useCallback(async () => {
     try {
       setConnectionError(null);
@@ -67,9 +42,32 @@ export const useSocketStage = (stageId: string, userId: string) => {
       setIsConnected(true);
       console.log('Connected to stage successfully');
       
-      // Load participants
+      // Load participants from database
       const participantData = await StageService.getStageParticipants(stageId);
       setParticipants(participantData);
+      
+      // Set up real-time subscription for participant changes
+      const participantsChannel = supabase
+        .channel(`stage-participants-${stageId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'stage_participants',
+            filter: `stage_id=eq.${stageId}`
+          },
+          async (payload) => {
+            console.log('Participant change:', payload);
+            // Reload participants when changes occur
+            const updatedParticipants = await StageService.getStageParticipants(stageId);
+            setParticipants(updatedParticipants);
+          }
+        )
+        .subscribe();
+
+      // Store channel reference for cleanup
+      socketRef.current = participantsChannel;
       
     } catch (error) {
       console.error('Connection failed:', error);
@@ -83,6 +81,12 @@ export const useSocketStage = (stageId: string, userId: string) => {
     try {
       console.log('Disconnecting from stage');
       
+      // Clean up real-time subscription
+      if (socketRef.current) {
+        await socketRef.current.unsubscribe();
+        socketRef.current = null;
+      }
+
       // Clean up peer connections
       peerConnectionsRef.current.forEach(({ pc }) => {
         pc.close();
