@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GlobalCommunityNetwork from './GlobalCommunityNetwork';
-import Enhanced3DGlobe from './Enhanced3DGlobe';
 import LocationSettingsModal from './LocationSettingsModal';
-import { Globe, MapPin, BarChart3 } from 'lucide-react';
+import { Globe, BarChart3 } from 'lucide-react';
 
 const WorldMapPanel: React.FC = () => {
   const [showLocationSettings, setShowLocationSettings] = useState(false);
@@ -21,27 +20,19 @@ const WorldMapPanel: React.FC = () => {
       </div>
 
       <Tabs defaultValue="community-network" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 h-12">
+        <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
           <TabsTrigger value="community-network" className="flex items-center gap-2 text-base">
             <Globe className="h-5 w-5" />
             Community Network
           </TabsTrigger>
-          <TabsTrigger value="3d-globe" className="flex items-center gap-2 text-base">
-            <BarChart3 className="h-5 w-5" />
-            3D Globe View
-          </TabsTrigger>
           <TabsTrigger value="community-stats" className="flex items-center gap-2 text-base">
-            <MapPin className="h-5 w-5" />
+            <BarChart3 className="h-5 w-5" />
             Statistics
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="community-network" className="mt-0">
           <GlobalCommunityNetwork />
-        </TabsContent>
-        
-        <TabsContent value="3d-globe" className="mt-0">
-          <Enhanced3DGlobe />
         </TabsContent>
         
         <TabsContent value="community-stats" className="mt-0">
