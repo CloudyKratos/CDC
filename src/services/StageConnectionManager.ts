@@ -1,31 +1,49 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import StageService from './StageService';
+import { StageSignalingService } from './StageSignalingService';
+import EnhancedStageWebRTCService from './EnhancedStageWebRTCService';
+import StageMediaService from './StageMediaService';
 
 interface ConnectionState {
   isConnected: boolean;
-  stageId: string | null;
-  userId: string | null;
-  lastPing: number;
   isConnecting: boolean;
+  error: string | null;
+  reconnectAttempts: number;
+  lastConnectionTime: Date | null;
 }
 
-class StageConnectionManager {
+interface ConnectionQuality {
+  ping: number;
+  jitter: number;
+  packetLoss: number;
+  bandwidth: number;
+  quality: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export class StageConnectionManager {
   private static instance: StageConnectionManager;
   private connectionState: ConnectionState = {
     isConnected: false,
-    stageId: null,
-    userId: null,
-    lastPing: Date.now(),
-    isConnecting: false
+    isConnecting: false,
+    error: null,
+    reconnectAttempts: 0,
+    lastConnectionTime: null
   };
-  private heartbeatInterval: NodeJS.Timeout | null = null;
-  private cleanupTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  private connectionLock = false;
+  private connectionQuality: ConnectionQuality = {
+    ping: 0,
+    jitter: 0,
+    packetLoss: 0,
+    bandwidth: 0,
+    quality: 'good'
+  };
+  private stageId: string | null = null;
+  private userId: string | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private qualityCheckInterval: NodeJS.Timeout | null = null;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 2000; // Start with 2 seconds
 
-  private constructor() {
-    this.setupEventHandlers();
-  }
+  // Event listeners
+  private eventListeners: Map<string, Function[]> = new Map();
 
   static getInstance(): StageConnectionManager {
     if (!StageConnectionManager.instance) {
@@ -34,185 +52,175 @@ class StageConnectionManager {
     return StageConnectionManager.instance;
   }
 
-  async forceDisconnect(stageId: string, userId?: string): Promise<void> {
-    if (this.connectionLock) {
-      console.log('Connection operation in progress, waiting...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    this.connectionLock = true;
-    
-    try {
-      console.log('Force disconnecting from stage:', stageId);
-      
-      // Clear any existing timeouts and intervals
-      this.clearAllTimeouts();
-      this.stopHeartbeat();
-
-      // Force cleanup in database with retries
-      if (userId) {
-        await this.retryOperation(() => StageService.forceDisconnectUser(stageId, userId), 3);
-      }
-
-      // Reset connection state
-      this.connectionState = {
-        isConnected: false,
-        stageId: null,
-        userId: null,
-        lastPing: Date.now(),
-        isConnecting: false
-      };
-
-      console.log('Force disconnect completed');
-    } catch (error) {
-      console.error('Error during force disconnect:', error);
-      // Reset state anyway to prevent getting stuck
-      this.connectionState.isConnected = false;
-      this.connectionState.isConnecting = false;
-    } finally {
-      this.connectionLock = false;
-    }
-  }
-
-  async attemptConnection(stageId: string, userId: string): Promise<{ success: boolean; error?: string }> {
-    if (this.connectionLock || this.connectionState.isConnecting) {
+  async connectToStage(stageId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    if (this.connectionState.isConnecting) {
       return { success: false, error: 'Connection already in progress' };
     }
 
-    this.connectionLock = true;
+    this.stageId = stageId;
+    this.userId = userId;
     this.connectionState.isConnecting = true;
-    
+    this.connectionState.error = null;
+
     try {
-      console.log('Attempting connection to stage:', stageId);
-      
-      // Step 1: Force cleanup any existing connections
-      await this.forceDisconnect(stageId, userId);
-      await this.waitForCleanup(1000);
+      // Initialize media first
+      const mediaService = StageMediaService.getInstance();
+      const localStream = await mediaService.initializeMedia();
 
-      // Step 2: Validate access
-      const validation = await StageService.validateStageAccess(stageId);
-      if (!validation.canAccess) {
-        return { success: false, error: validation.reason };
+      // Connect signaling
+      const signalingConnected = await StageSignalingService.joinStage(stageId, userId);
+      if (!signalingConnected) {
+        throw new Error('Failed to connect to signaling server');
       }
 
-      // Step 3: Clean up ghost participants
-      await StageService.cleanupGhostParticipants(stageId);
-      await this.waitForCleanup(500);
+      // Initialize WebRTC with enhanced error handling
+      await EnhancedStageWebRTCService.initialize(localStream, {
+        onRemoteStream: (userId, stream) => this.emit('remoteStream', { userId, stream }),
+        onConnectionStateChange: (userId, state) => this.handleConnectionStateChange(userId, state),
+        onUserDisconnected: (userId) => this.emit('userDisconnected', { userId })
+      });
 
-      // Step 4: Attempt to join with retries
-      const joinResult = await this.retryOperation(
-        () => StageService.joinStage(stageId, 'audience'),
-        3
-      );
-      
-      if (joinResult.success) {
-        this.connectionState = {
-          isConnected: true,
-          stageId,
-          userId,
-          lastPing: Date.now(),
-          isConnecting: false
-        };
-        
-        this.startHeartbeat();
-        console.log('Connection successful');
-        return { success: true };
-      } else {
-        return { success: false, error: joinResult.error };
-      }
-    } catch (error) {
-      console.error('Connection attempt failed:', error);
-      return { success: false, error: 'Failed to establish connection' };
-    } finally {
+      // Connect to existing users
+      await EnhancedStageWebRTCService.connectToExistingUsers();
+
+      this.connectionState.isConnected = true;
       this.connectionState.isConnecting = false;
-      this.connectionLock = false;
+      this.connectionState.lastConnectionTime = new Date();
+      this.connectionState.reconnectAttempts = 0;
+
+      // Start quality monitoring
+      this.startQualityMonitoring();
+
+      this.emit('connected', { stageId, userId });
+      console.log('Successfully connected to stage:', stageId);
+
+      return { success: true };
+    } catch (error) {
+      this.connectionState.isConnecting = false;
+      this.connectionState.error = error instanceof Error ? error.message : 'Connection failed';
+      
+      console.error('Connection error:', error);
+      this.emit('connectionError', { error: this.connectionState.error });
+
+      return { success: false, error: this.connectionState.error };
     }
   }
 
-  private async retryOperation<T>(operation: () => Promise<T>, maxRetries: number): Promise<T> {
-    let lastError: Error;
-    
-    for (let i = 0; i < maxRetries; i++) {
+  async disconnectFromStage(): Promise<void> {
+    try {
+      // Stop quality monitoring
+      this.stopQualityMonitoring();
+
+      // Stop reconnection attempts
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+
+      // Cleanup WebRTC
+      EnhancedStageWebRTCService.cleanup();
+
+      // Leave signaling
+      await StageSignalingService.leaveStage();
+
+      // Cleanup media
+      StageMediaService.getInstance().cleanup();
+
+      this.connectionState.isConnected = false;
+      this.connectionState.isConnecting = false;
+      this.connectionState.error = null;
+      this.connectionState.reconnectAttempts = 0;
+
+      this.emit('disconnected', {});
+      console.log('Disconnected from stage');
+    } catch (error) {
+      console.error('Error during disconnect:', error);
+    }
+  }
+
+  private handleConnectionStateChange(userId: string, state: RTCPeerConnectionState): void {
+    console.log(`Connection state changed for ${userId}:`, state);
+
+    if (state === 'failed' || state === 'disconnected') {
+      this.attemptReconnection();
+    }
+
+    this.emit('connectionStateChange', { userId, state });
+  }
+
+  private async attemptReconnection(): Promise<void> {
+    if (!this.stageId || !this.userId || this.connectionState.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.connectionState.error = 'Maximum reconnection attempts reached';
+      this.emit('connectionError', { error: this.connectionState.error });
+      return;
+    }
+
+    this.connectionState.reconnectAttempts++;
+    const delay = this.reconnectDelay * Math.pow(2, this.connectionState.reconnectAttempts - 1); // Exponential backoff
+
+    console.log(`Attempting reconnection ${this.connectionState.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+
+    this.reconnectTimer = setTimeout(async () => {
       try {
-        return await operation();
+        await this.disconnectFromStage();
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit before reconnecting
+        await this.connectToStage(this.stageId!, this.userId!);
       } catch (error) {
-        lastError = error as Error;
-        console.log(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error);
-        
-        if (i < maxRetries - 1) {
-          await this.waitForCleanup(1000 * (i + 1)); // Exponential backoff
+        console.error('Reconnection failed:', error);
+        this.attemptReconnection(); // Try again
+      }
+    }, delay);
+  }
+
+  private startQualityMonitoring(): void {
+    this.qualityCheckInterval = setInterval(() => {
+      this.checkConnectionQuality();
+    }, 5000); // Check every 5 seconds
+  }
+
+  private stopQualityMonitoring(): void {
+    if (this.qualityCheckInterval) {
+      clearInterval(this.qualityCheckInterval);
+      this.qualityCheckInterval = null;
+    }
+  }
+
+  private async checkConnectionQuality(): Promise<void> {
+    try {
+      const connections = EnhancedStageWebRTCService.getConnectionStates();
+      let totalPing = 0;
+      let connectedCount = 0;
+
+      for (const [userId, state] of connections) {
+        if (state === 'connected') {
+          connectedCount++;
+          // In a real implementation, you'd get actual stats from the peer connection
+          // For now, we'll simulate some quality metrics
+          totalPing += Math.random() * 100 + 50; // 50-150ms ping simulation
         }
       }
-    }
-    
-    throw lastError!;
-  }
 
-  private async waitForCleanup(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+      if (connectedCount > 0) {
+        this.connectionQuality.ping = totalPing / connectedCount;
+        this.connectionQuality.jitter = Math.random() * 10; // 0-10ms jitter
+        this.connectionQuality.packetLoss = Math.random() * 5; // 0-5% packet loss
+        this.connectionQuality.bandwidth = 1000 + Math.random() * 2000; // 1-3 Mbps
 
-  private startHeartbeat(): void {
-    this.stopHeartbeat();
-    
-    this.heartbeatInterval = setInterval(() => {
-      this.connectionState.lastPing = Date.now();
-      console.log('Heartbeat ping');
-    }, 30000);
-  }
+        // Determine quality based on metrics
+        if (this.connectionQuality.ping < 100 && this.connectionQuality.packetLoss < 1) {
+          this.connectionQuality.quality = 'excellent';
+        } else if (this.connectionQuality.ping < 200 && this.connectionQuality.packetLoss < 3) {
+          this.connectionQuality.quality = 'good';
+        } else if (this.connectionQuality.ping < 300 && this.connectionQuality.packetLoss < 5) {
+          this.connectionQuality.quality = 'fair';
+        } else {
+          this.connectionQuality.quality = 'poor';
+        }
 
-  private stopHeartbeat(): void {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
-  }
-
-  private clearAllTimeouts(): void {
-    this.cleanupTimeouts.forEach(timeout => clearTimeout(timeout));
-    this.cleanupTimeouts.clear();
-  }
-
-  private setupEventHandlers(): void {
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.connectionState.isConnected) {
-        this.scheduleCleanup();
-      } else if (!document.hidden) {
-        this.cancelScheduledCleanup();
+        this.emit('qualityUpdate', { quality: this.connectionQuality });
       }
-    });
-
-    // Handle page unload
-    window.addEventListener('beforeunload', () => {
-      if (this.connectionState.isConnected && this.connectionState.stageId) {
-        // Attempt synchronous cleanup
-        navigator.sendBeacon(
-          '/api/stage-disconnect',
-          JSON.stringify({
-            stageId: this.connectionState.stageId,
-            userId: this.connectionState.userId
-          })
-        );
-      }
-    });
-  }
-
-  private scheduleCleanup(): void {
-    const cleanupTimeout = setTimeout(() => {
-      if (this.connectionState.isConnected && this.connectionState.stageId) {
-        this.forceDisconnect(this.connectionState.stageId, this.connectionState.userId);
-      }
-    }, 60000); // 1 minute delay
-
-    this.cleanupTimeouts.set('visibility', cleanupTimeout);
-  }
-
-  private cancelScheduledCleanup(): void {
-    const timeout = this.cleanupTimeouts.get('visibility');
-    if (timeout) {
-      clearTimeout(timeout);
-      this.cleanupTimeouts.delete('visibility');
+    } catch (error) {
+      console.error('Error checking connection quality:', error);
     }
   }
 
@@ -220,9 +228,30 @@ class StageConnectionManager {
     return { ...this.connectionState };
   }
 
-  isConnectedToStage(stageId: string): boolean {
-    return this.connectionState.isConnected && this.connectionState.stageId === stageId;
+  getConnectionQuality(): ConnectionQuality {
+    return { ...this.connectionQuality };
+  }
+
+  // Event system
+  on(event: string, listener: Function): void {
+    const listeners = this.eventListeners.get(event) || [];
+    listeners.push(listener);
+    this.eventListeners.set(event, listeners);
+  }
+
+  off(event: string, listener: Function): void {
+    const listeners = this.eventListeners.get(event) || [];
+    const index = listeners.indexOf(listener);
+    if (index > -1) {
+      listeners.splice(index, 1);
+      this.eventListeners.set(event, listeners);
+    }
+  }
+
+  private emit(event: string, data: any): void {
+    const listeners = this.eventListeners.get(event) || [];
+    listeners.forEach(listener => listener(data));
   }
 }
 
-export default StageConnectionManager;
+export default StageConnectionManager.getInstance();
