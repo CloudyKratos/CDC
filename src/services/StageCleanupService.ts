@@ -136,17 +136,30 @@ class StageCleanupService {
       // Get stages that ended more than 2 hours ago
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       
+      // First, get the IDs of ended stages
+      const { data: endedStages, error: stagesError } = await supabase
+        .from('stages')
+        .select('id')
+        .eq('status', 'ended')
+        .lt('end_time', twoHoursAgo);
+
+      if (stagesError) {
+        console.error('Error fetching ended stages:', stagesError);
+        return;
+      }
+
+      if (!endedStages || endedStages.length === 0) {
+        console.log('No ended stages to clean up');
+        return;
+      }
+
+      const stageIds = endedStages.map(stage => stage.id);
+
       // Delete all participants from ended stages
       const { error: participantsError } = await supabase
         .from('stage_participants')
         .delete()
-        .in('stage_id', 
-          supabase
-            .from('stages')
-            .select('id')
-            .eq('status', 'ended')
-            .lt('end_time', twoHoursAgo)
-        );
+        .in('stage_id', stageIds);
 
       if (participantsError) {
         console.error('Error cleaning up stage participants:', participantsError);
@@ -156,13 +169,7 @@ class StageCleanupService {
       const { error: requestsError } = await supabase
         .from('speaker_requests')
         .delete()
-        .in('stage_id', 
-          supabase
-            .from('stages')
-            .select('id')
-            .eq('status', 'ended')
-            .lt('end_time', twoHoursAgo)
-        );
+        .in('stage_id', stageIds);
 
       if (requestsError) {
         console.error('Error cleaning up speaker requests:', requestsError);
