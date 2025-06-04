@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import StageService from '@/services/StageService';
-import RealTimeStageCall from './RealTimeStageCall';
+import RoundtableStageCall from './RoundtableStageCall';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -184,7 +183,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
 
   // If user has joined the stage call, show the real-time call interface
   if (hasJoined) {
-    return <RealTimeStageCall stageId={stageId} onLeave={leaveStageCall} />;
+    return <RoundtableStageCall stageId={stageId} onLeave={leaveStageCall} userRole={userRole || 'audience'} />;
   }
 
   // Show stage details and join interface
