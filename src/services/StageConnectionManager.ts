@@ -7,6 +7,7 @@ interface ConnectionState {
   stageId: string | null;
   userId: string | null;
   lastPing: number;
+  isConnecting: boolean;
 }
 
 class StageConnectionManager {
@@ -15,14 +16,15 @@ class StageConnectionManager {
     isConnected: false,
     stageId: null,
     userId: null,
-    lastPing: Date.now()
+    lastPing: Date.now(),
+    isConnecting: false
   };
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private cleanupTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private connectionLock = false;
 
   private constructor() {
-    this.setupVisibilityHandlers();
-    this.setupBeforeUnloadHandler();
+    this.setupEventHandlers();
   }
 
   static getInstance(): StageConnectionManager {
@@ -33,22 +35,23 @@ class StageConnectionManager {
   }
 
   async forceDisconnect(stageId: string, userId?: string): Promise<void> {
-    console.log('Force disconnecting from stage:', stageId);
+    if (this.connectionLock) {
+      console.log('Connection operation in progress, waiting...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    this.connectionLock = true;
     
     try {
-      // Clear any existing timeouts
-      this.cleanupTimeouts.forEach(timeout => clearTimeout(timeout));
-      this.cleanupTimeouts.clear();
+      console.log('Force disconnecting from stage:', stageId);
       
-      // Stop heartbeat
-      if (this.heartbeatInterval) {
-        clearInterval(this.heartbeatInterval);
-        this.heartbeatInterval = null;
-      }
+      // Clear any existing timeouts and intervals
+      this.clearAllTimeouts();
+      this.stopHeartbeat();
 
-      // Force leave stage in database
+      // Force cleanup in database with retries
       if (userId) {
-        await StageService.leaveStage(stageId);
+        await this.retryOperation(() => StageService.forceDisconnectUser(stageId, userId), 3);
       }
 
       // Reset connection state
@@ -56,7 +59,8 @@ class StageConnectionManager {
         isConnected: false,
         stageId: null,
         userId: null,
-        lastPing: Date.now()
+        lastPing: Date.now(),
+        isConnecting: false
       };
 
       console.log('Force disconnect completed');
@@ -64,39 +68,54 @@ class StageConnectionManager {
       console.error('Error during force disconnect:', error);
       // Reset state anyway to prevent getting stuck
       this.connectionState.isConnected = false;
+      this.connectionState.isConnecting = false;
+    } finally {
+      this.connectionLock = false;
     }
   }
 
   async attemptConnection(stageId: string, userId: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      // First, force disconnect any existing connection
-      await this.forceDisconnect(stageId, userId);
-      
-      // Wait a moment before attempting new connection
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (this.connectionLock || this.connectionState.isConnecting) {
+      return { success: false, error: 'Connection already in progress' };
+    }
 
-      // Check if user is already participating and clean up if needed
-      const participants = await StageService.getStageParticipants(stageId);
-      const existingParticipant = participants.find(p => p.user_id === userId && !p.left_at);
+    this.connectionLock = true;
+    this.connectionState.isConnecting = true;
+    
+    try {
+      console.log('Attempting connection to stage:', stageId);
       
-      if (existingParticipant) {
-        console.log('Found existing participant, cleaning up...');
-        await StageService.leaveStage(stageId);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for cleanup
+      // Step 1: Force cleanup any existing connections
+      await this.forceDisconnect(stageId, userId);
+      await this.waitForCleanup(1000);
+
+      // Step 2: Validate access
+      const validation = await StageService.validateStageAccess(stageId);
+      if (!validation.canAccess) {
+        return { success: false, error: validation.reason };
       }
 
-      // Attempt to join
-      const joinResult = await StageService.joinStage(stageId, 'audience');
+      // Step 3: Clean up ghost participants
+      await StageService.cleanupGhostParticipants(stageId);
+      await this.waitForCleanup(500);
+
+      // Step 4: Attempt to join with retries
+      const joinResult = await this.retryOperation(
+        () => StageService.joinStage(stageId, 'audience'),
+        3
+      );
       
       if (joinResult.success) {
         this.connectionState = {
           isConnected: true,
           stageId,
           userId,
-          lastPing: Date.now()
+          lastPing: Date.now(),
+          isConnecting: false
         };
         
         this.startHeartbeat();
+        console.log('Connection successful');
         return { success: true };
       } else {
         return { success: false, error: joinResult.error };
@@ -104,33 +123,67 @@ class StageConnectionManager {
     } catch (error) {
       console.error('Connection attempt failed:', error);
       return { success: false, error: 'Failed to establish connection' };
+    } finally {
+      this.connectionState.isConnecting = false;
+      this.connectionLock = false;
     }
+  }
+
+  private async retryOperation<T>(operation: () => Promise<T>, maxRetries: number): Promise<T> {
+    let lastError: Error;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error);
+        
+        if (i < maxRetries - 1) {
+          await this.waitForCleanup(1000 * (i + 1)); // Exponential backoff
+        }
+      }
+    }
+    
+    throw lastError!;
+  }
+
+  private async waitForCleanup(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private startHeartbeat(): void {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-    }
-
+    this.stopHeartbeat();
+    
     this.heartbeatInterval = setInterval(() => {
       this.connectionState.lastPing = Date.now();
-      // Could send heartbeat to server here if needed
-    }, 30000); // 30 second intervals
+      console.log('Heartbeat ping');
+    }, 30000);
   }
 
-  private setupVisibilityHandlers(): void {
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  private clearAllTimeouts(): void {
+    this.cleanupTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.cleanupTimeouts.clear();
+  }
+
+  private setupEventHandlers(): void {
+    // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.connectionState.isConnected) {
-        // Page hidden, prepare for potential cleanup
         this.scheduleCleanup();
       } else if (!document.hidden) {
-        // Page visible again, cancel cleanup
         this.cancelScheduledCleanup();
       }
     });
-  }
 
-  private setupBeforeUnloadHandler(): void {
+    // Handle page unload
     window.addEventListener('beforeunload', () => {
       if (this.connectionState.isConnected && this.connectionState.stageId) {
         // Attempt synchronous cleanup
