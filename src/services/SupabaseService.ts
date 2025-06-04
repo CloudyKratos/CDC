@@ -16,6 +16,19 @@ export interface EventData {
   end_time: string;
   created_by?: string;
   workspace_id?: string;
+  event_type?: string;
+  status?: string;
+  max_attendees?: number;
+  is_recurring?: boolean;
+  recurrence_pattern?: any;
+  tags?: string[];
+  cohort_id?: string;
+  coach_id?: string;
+  replay_url?: string;
+  meeting_url?: string;
+  resources?: any;
+  visibility_level?: string;
+  xp_reward?: number;
 }
 
 class SupabaseService {
@@ -53,13 +66,14 @@ class SupabaseService {
     }
   }
 
-  // Event-related methods
+  // Enhanced event-related methods
   async getEventsByWorkspaceId(workspaceId: string): Promise<EventData[]> {
     try {
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .eq('workspace_id', workspaceId);
+        .eq('workspace_id', workspaceId)
+        .order('start_time', { ascending: true });
 
       if (error) {
         console.error('Error fetching events:', error);
@@ -77,7 +91,13 @@ class SupabaseService {
     try {
       const { data, error } = await supabase
         .from('events')
-        .insert([eventData])
+        .insert([{
+          ...eventData,
+          event_type: eventData.event_type || 'mission_call',
+          status: eventData.status || 'scheduled',
+          visibility_level: eventData.visibility_level || 'public',
+          xp_reward: eventData.xp_reward || 10
+        }])
         .select()
         .single();
 
@@ -197,7 +217,8 @@ class SupabaseService {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('*');
+        .select('*')
+        .order('start_time', { ascending: true });
 
       if (error) {
         console.error('Error fetching events:', error);
@@ -221,6 +242,50 @@ class SupabaseService {
 
   async deleteEvent(id: string): Promise<boolean> {
     return this.deleteCalendarEvent(id);
+  }
+
+  // Enhanced event methods for RSVP and attendance
+  async createRSVP(eventId: string, status: 'going' | 'maybe' | 'not_going'): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('event_rsvps')
+        .upsert([{
+          event_id: eventId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          status
+        }], {
+          onConflict: 'event_id,user_id'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating/updating RSVP:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error creating/updating RSVP:', error);
+      return null;
+    }
+  }
+
+  async getEventWithStats(eventId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_event_with_stats', { event_id_param: eventId });
+
+      if (error) {
+        console.error('Error fetching event with stats:', error);
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching event with stats:', error);
+      return null;
+    }
   }
 }
 

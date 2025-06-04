@@ -68,6 +68,62 @@ export type Database = {
         }
         Relationships: []
       }
+      cohort_members: {
+        Row: {
+          cohort_id: string | null
+          id: string
+          joined_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cohort_id?: string | null
+          id?: string
+          joined_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string | null
+          id?: string
+          joined_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_members_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cohorts: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       community_messages: {
         Row: {
           channel_id: string
@@ -106,39 +162,240 @@ export type Database = {
           },
         ]
       }
+      event_attendance: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number | null
+          event_id: string | null
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          event_id?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          event_id?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_comments: {
+        Row: {
+          comment_type: string | null
+          content: string
+          created_at: string | null
+          event_id: string | null
+          id: string
+          parent_comment_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comment_type?: string | null
+          content: string
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comment_type?: string | null
+          content?: string
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_comments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "event_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_reminders: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          is_sent: boolean | null
+          minutes_before: number
+          reminder_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          is_sent?: boolean | null
+          minutes_before: number
+          reminder_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          is_sent?: boolean | null
+          minutes_before?: number
+          reminder_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_reminders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          status: Database["public"]["Enums"]["rsvp_status"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rsvp_status"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rsvp_status"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
+          coach_id: string | null
+          cohort_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           end_time: string
+          event_type: Database["public"]["Enums"]["event_type"] | null
           id: string
+          is_recurring: boolean | null
+          max_attendees: number | null
+          meeting_url: string | null
+          recurrence_pattern: Json | null
+          replay_url: string | null
+          resources: Json | null
           start_time: string
+          status: Database["public"]["Enums"]["event_status"] | null
+          tags: string[] | null
           title: string
           updated_at: string
+          visibility_level: string | null
           workspace_id: string | null
+          xp_reward: number | null
         }
         Insert: {
+          coach_id?: string | null
+          cohort_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_time: string
+          event_type?: Database["public"]["Enums"]["event_type"] | null
           id?: string
+          is_recurring?: boolean | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          recurrence_pattern?: Json | null
+          replay_url?: string | null
+          resources?: Json | null
           start_time: string
+          status?: Database["public"]["Enums"]["event_status"] | null
+          tags?: string[] | null
           title: string
           updated_at?: string
+          visibility_level?: string | null
           workspace_id?: string | null
+          xp_reward?: number | null
         }
         Update: {
+          coach_id?: string | null
+          cohort_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_time?: string
+          event_type?: Database["public"]["Enums"]["event_type"] | null
           id?: string
+          is_recurring?: boolean | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          recurrence_pattern?: Json | null
+          replay_url?: string | null
+          resources?: Json | null
           start_time?: string
+          status?: Database["public"]["Enums"]["event_status"] | null
+          tags?: string[] | null
           title?: string
           updated_at?: string
+          visibility_level?: string | null
           workspace_id?: string | null
+          xp_reward?: number | null
         }
         Relationships: [
           {
@@ -542,6 +799,37 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_event_with_stats: {
+        Args: { event_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          start_time: string
+          end_time: string
+          created_by: string
+          workspace_id: string
+          created_at: string
+          updated_at: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          status: Database["public"]["Enums"]["event_status"]
+          max_attendees: number
+          is_recurring: boolean
+          recurrence_pattern: Json
+          tags: string[]
+          cohort_id: string
+          coach_id: string
+          replay_url: string
+          meeting_url: string
+          resources: Json
+          visibility_level: string
+          xp_reward: number
+          rsvp_count: number
+          attendance_count: number
+          comment_count: number
+          user_rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+        }[]
+      }
       get_stage_with_counts: {
         Args: { stage_id_param: string }
         Returns: {
@@ -597,6 +885,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "member"
+      event_status: "scheduled" | "live" | "completed" | "cancelled"
+      event_type:
+        | "mission_call"
+        | "reflection_hour"
+        | "wisdom_drop"
+        | "tribe_meetup"
+        | "office_hours"
+        | "accountability_circle"
+        | "solo_ritual"
+        | "workshop"
+        | "course_drop"
+        | "challenge_sprint"
+        | "deep_work_day"
+      rsvp_status: "going" | "maybe" | "not_going"
       speaker_request_status: "pending" | "approved" | "rejected"
       stage_role: "moderator" | "speaker" | "audience"
       stage_status: "scheduled" | "live" | "ended"
@@ -716,6 +1018,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "member"],
+      event_status: ["scheduled", "live", "completed", "cancelled"],
+      event_type: [
+        "mission_call",
+        "reflection_hour",
+        "wisdom_drop",
+        "tribe_meetup",
+        "office_hours",
+        "accountability_circle",
+        "solo_ritual",
+        "workshop",
+        "course_drop",
+        "challenge_sprint",
+        "deep_work_day",
+      ],
+      rsvp_status: ["going", "maybe", "not_going"],
       speaker_request_status: ["pending", "approved", "rejected"],
       stage_role: ["moderator", "speaker", "audience"],
       stage_status: ["scheduled", "live", "ended"],
