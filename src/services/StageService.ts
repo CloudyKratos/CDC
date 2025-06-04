@@ -68,7 +68,12 @@ class StageService {
         .eq('id', stageId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Stage not found. The stage may have been deleted or the link is incorrect.');
+        }
+        throw new Error(`Failed to load stage: ${error.message}`);
+      }
       return data;
     });
   }
@@ -96,13 +101,27 @@ class StageService {
   async validateStageJoin(stageId: string, role: StageRole = 'audience'): Promise<{ canJoin: boolean; reason?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { canJoin: false, reason: 'User not authenticated' };
+      if (!user) return { canJoin: false, reason: 'Authentication required. Please log in to join the stage.' };
 
       // Check if stage exists and is joinable
       const stage = await this.getStageById(stageId);
-      if (!stage) return { canJoin: false, reason: 'Stage not found' };
+      if (!stage) return { canJoin: false, reason: 'Stage not found. The stage may have been deleted or moved.' };
       
-      if (stage.status === 'ended') return { canJoin: false, reason: 'Stage has ended' };
+      if (stage.status === 'ended') {
+        return { canJoin: false, reason: 'This stage has already ended. Check for recordings or upcoming sessions.' };
+      }
+
+      if (stage.status === 'scheduled') {
+        const now = new Date();
+        const startTime = new Date(stage.scheduled_start_time || '');
+        const timeDiff = startTime.getTime() - now.getTime();
+        
+        // Allow joining 15 minutes before scheduled time
+        if (timeDiff > 15 * 60 * 1000) {
+          const startTimeStr = startTime.toLocaleString();
+          return { canJoin: false, reason: `Stage is scheduled to start at ${startTimeStr}. You can join 15 minutes before the start time.` };
+        }
+      }
 
       // Check participant limits
       const participants = await this.getStageParticipants(stageId);
@@ -110,24 +129,33 @@ class StageService {
       const audience = participants.filter(p => p.role === 'audience');
 
       if (role === 'speaker' && speakers.length >= (stage.max_speakers || 10)) {
-        return { canJoin: false, reason: 'Speaker limit reached' };
+        return { canJoin: false, reason: 'Speaker limit reached. Wait for a speaker slot to become available or join as audience.' };
       }
 
       if (role === 'audience' && audience.length >= (stage.max_audience || 100)) {
-        return { canJoin: false, reason: 'Audience limit reached' };
+        return { canJoin: false, reason: 'Stage is at full capacity. Please try again later when someone leaves.' };
+      }
+
+      // Check if user is already in the stage
+      const existingParticipant = participants.find(p => p.user_id === user.id);
+      if (existingParticipant && !existingParticipant.left_at) {
+        return { canJoin: false, reason: 'You are already participating in this stage.' };
       }
 
       return { canJoin: true };
     } catch (error) {
       console.error('Error validating stage join:', error);
-      return { canJoin: false, reason: 'Validation failed' };
+      if (error instanceof Error) {
+        return { canJoin: false, reason: error.message };
+      }
+      return { canJoin: false, reason: 'Unable to validate stage access. Please check your connection and try again.' };
     }
   }
 
   async joinStage(stageId: string, role: StageRole = 'audience'): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { success: false, error: 'User not authenticated' };
+      if (!user) return { success: false, error: 'Authentication required. Please log in to join the stage.' };
 
       // Validate join request
       const validation = await this.validateStageJoin(stageId, role);
@@ -157,7 +185,7 @@ class StageService {
               })
               .eq('id', existingParticipant.id);
 
-            if (error) throw error;
+            if (error) throw new Error(`Failed to rejoin stage: ${error.message}`);
             return { success: true };
           }
         }
@@ -171,12 +199,20 @@ class StageService {
             is_muted: role === 'audience'
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') { // Unique constraint violation
+            throw new Error('You are already participating in this stage.');
+          }
+          throw new Error(`Failed to join stage: ${error.message}`);
+        }
         return { success: true };
       });
     } catch (error) {
       console.error('Error joining stage:', error);
-      return { success: false, error: 'Failed to join stage' };
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Failed to join stage. Please check your connection and try again.' };
     }
   }
 
