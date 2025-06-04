@@ -136,7 +136,7 @@ const FlatWorldMap: React.FC = () => {
   const [showGrid, setShowGrid] = useState(true);
   const [showInactive, setShowInactive] = useState(true);
   const [filterRegion, setFilterRegion] = useState('all');
-  const [userTimezone] = useState('Asia/Kolkata'); // IST timezone
+  const [userTimezone] = useState('Asia/Kolkata');
 
   // Mock data for demonstration
   const mockMembers: MemberLocation[] = [
@@ -224,12 +224,12 @@ const FlatWorldMap: React.FC = () => {
     return true;
   });
 
-  // Convert lat/lng to map coordinates (simple projection)
+  // Convert lat/lng to cylindrical projection coordinates
   const getMapPosition = (lat: number, lng: number) => {
-    const mapWidth = 800;
-    const mapHeight = 400;
+    const mapWidth = 1000;
+    const mapHeight = 500;
     
-    // Simple equirectangular projection
+    // Cylindrical projection with proper scaling
     const x = ((lng + 180) / 360) * mapWidth;
     const y = ((90 - lat) / 180) * mapHeight;
     
@@ -335,52 +335,91 @@ const FlatWorldMap: React.FC = () => {
         </div>
       </div>
 
-      {/* Map Container */}
-      <Card className="p-6 relative overflow-hidden">
+      {/* Cylindrical World Map */}
+      <Card className="p-6 relative overflow-hidden bg-gray-50">
         <div className="relative w-full" style={{ paddingBottom: '50%' }}>
           <svg
             className="absolute inset-0 w-full h-full"
-            viewBox="0 0 800 400"
+            viewBox="0 0 1000 500"
             preserveAspectRatio="xMidYMid meet"
           >
-            {/* World Map Background */}
-            <rect width="800" height="400" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
+            {/* Background */}
+            <rect width="1000" height="500" fill="#f8fafc" />
             
+            {/* Continent shapes - Simplified outlines */}
+            <g fill="#a3e4c7" stroke="#22c55e" strokeWidth="1" opacity="0.7">
+              {/* North America */}
+              <path d="M 100 100 Q 150 80 250 90 Q 300 95 350 110 Q 380 130 360 180 Q 340 200 300 220 Q 250 240 200 230 Q 150 220 120 180 Q 100 140 100 100 Z" />
+              
+              {/* South America */}
+              <path d="M 220 250 Q 260 240 300 260 Q 320 280 330 320 Q 340 360 320 400 Q 300 420 280 430 Q 260 425 240 410 Q 220 390 210 350 Q 200 310 210 280 Q 215 260 220 250 Z" />
+              
+              {/* Europe */}
+              <path d="M 450 100 Q 500 90 550 100 Q 580 110 590 130 Q 585 150 570 160 Q 540 170 510 165 Q 480 160 460 145 Q 445 130 445 115 Q 445 105 450 100 Z" />
+              
+              {/* Africa */}
+              <path d="M 480 180 Q 520 170 560 185 Q 590 200 600 240 Q 610 280 600 320 Q 590 360 570 380 Q 540 390 510 385 Q 480 380 460 360 Q 450 340 455 300 Q 460 260 470 220 Q 475 190 480 180 Z" />
+              
+              {/* Asia */}
+              <path d="M 600 80 Q 650 70 720 85 Q 780 100 830 120 Q 870 140 880 170 Q 885 200 870 220 Q 850 240 800 245 Q 750 250 700 240 Q 650 230 620 210 Q 600 190 595 160 Q 590 130 595 100 Q 598 85 600 80 Z" />
+              
+              {/* Australia */}
+              <path d="M 750 350 Q 800 340 850 350 Q 880 360 890 380 Q 885 400 870 410 Q 840 415 810 410 Q 780 405 760 395 Q 745 385 745 375 Q 745 365 750 350 Z" />
+            </g>
+
             {/* Grid Lines */}
             {showGrid && (
-              <g stroke="#d1d5db" strokeWidth="0.5" opacity="0.6">
-                {/* Longitude lines */}
-                {Array.from({ length: 25 }, (_, i) => {
-                  const x = (i * 800) / 24;
-                  return <line key={`lng-${i}`} x1={x} y1="0" x2={x} y2="400" />;
-                })}
-                {/* Latitude lines */}
+              <g stroke="#94a3b8" strokeWidth="0.5" opacity="0.8">
+                {/* Longitude lines (every 30 degrees) */}
                 {Array.from({ length: 13 }, (_, i) => {
-                  const y = (i * 400) / 12;
-                  return <line key={`lat-${i}`} x1="0" y1={y} x2="800" y2={y} />;
+                  const x = (i * 1000) / 12;
+                  return <line key={`lng-${i}`} x1={x} y1="0" x2={x} y2="500" />;
                 })}
-                {/* Prime Meridian */}
-                <line x1="400" y1="0" x2="400" y2="400" stroke="#ef4444" strokeWidth="1" />
-                {/* Equator */}
-                <line x1="0" y1="200" x2="800" y2="200" stroke="#ef4444" strokeWidth="1" />
+                
+                {/* Latitude lines (every 30 degrees) */}
+                {Array.from({ length: 7 }, (_, i) => {
+                  const y = (i * 500) / 6;
+                  return <line key={`lat-${i}`} x1="0" y1={y} x2="1000" y2={y} />;
+                })}
+                
+                {/* Prime Meridian (0°) */}
+                <line x1="500" y1="0" x2="500" y2="500" stroke="#ef4444" strokeWidth="1.5" />
+                
+                {/* Equator (0°) */}
+                <line x1="0" y1="250" x2="1000" y2="250" stroke="#ef4444" strokeWidth="1.5" />
               </g>
             )}
 
-            {/* Continent Outlines (simplified) */}
-            <g fill="#e5e7eb" stroke="#9ca3af" strokeWidth="1">
-              {/* North America */}
-              <path d="M 120 80 L 280 60 L 300 120 L 250 180 L 180 160 L 120 120 Z" />
-              {/* South America */}
-              <path d="M 200 220 L 260 240 L 280 320 L 240 360 L 200 340 L 180 280 Z" />
-              {/* Europe */}
-              <path d="M 380 80 L 450 70 L 470 120 L 420 140 L 380 120 Z" />
-              {/* Africa */}
-              <path d="M 420 140 L 480 160 L 500 280 L 460 320 L 420 300 L 400 220 Z" />
-              {/* Asia */}
-              <path d="M 480 60 L 650 80 L 680 160 L 620 200 L 520 180 L 480 120 Z" />
-              {/* Australia */}
-              <path d="M 580 280 L 650 290 L 670 320 L 620 340 L 580 330 Z" />
-            </g>
+            {/* Coordinate Labels */}
+            {showGrid && (
+              <g className="text-xs font-medium" fill="#475569">
+                {/* Longitude labels (top) */}
+                <text x="83" y="15" textAnchor="middle">180°</text>
+                <text x="167" y="15" textAnchor="middle">150°</text>
+                <text x="250" y="15" textAnchor="middle">120°</text>
+                <text x="333" y="15" textAnchor="middle">90°</text>
+                <text x="417" y="15" textAnchor="middle">60°</text>
+                <text x="500" y="15" textAnchor="middle">0°</text>
+                <text x="583" y="15" textAnchor="middle">60°</text>
+                <text x="667" y="15" textAnchor="middle">90°</text>
+                <text x="750" y="15" textAnchor="middle">120°</text>
+                <text x="833" y="15" textAnchor="middle">150°</text>
+                <text x="917" y="15" textAnchor="middle">180°</text>
+
+                {/* Latitude labels (left) */}
+                <text x="15" y="45" textAnchor="start">75°</text>
+                <text x="15" y="128" textAnchor="start">45°</text>
+                <text x="15" y="170" textAnchor="start">30°</text>
+                <text x="15" y="255" textAnchor="start">0°</text>
+                <text x="15" y="340" textAnchor="start">30°</text>
+                <text x="15" y="380" textAnchor="start">45°</text>
+                <text x="15" y="460" textAnchor="start">75°</text>
+
+                {/* Prime Meridian and Equator labels */}
+                <text x="505" y="35" className="font-semibold" fill="#dc2626">Prime Meridian</text>
+                <text x="15" y="245" className="font-semibold" fill="#dc2626">Equator</text>
+              </g>
+            )}
 
             {/* Member Pins */}
             {filteredMembers.map((member) => {
@@ -393,37 +432,34 @@ const FlatWorldMap: React.FC = () => {
 
               return (
                 <g key={member.id}>
+                  {/* Pulse ring for online users */}
+                  {member.status === 'online' && (
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r="15"
+                      fill={statusColors[member.status]}
+                      opacity="0.2"
+                      className="animate-ping"
+                    />
+                  )}
+                  
+                  {/* Main pin */}
                   <circle
                     cx={pos.x}
                     cy={pos.y}
-                    r="8"
+                    r="6"
                     fill={statusColors[member.status]}
                     stroke="white"
                     strokeWidth="2"
-                    className={`cursor-pointer transition-all duration-200 hover:r-12 ${
+                    className={`cursor-pointer transition-all duration-200 hover:r-8 ${
                       member.status === 'online' ? 'animate-pulse' : ''
                     }`}
                     onClick={() => setSelectedMember(member)}
                   />
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r="12"
-                    fill={statusColors[member.status]}
-                    opacity="0.3"
-                    className={member.status === 'online' ? 'animate-ping' : ''}
-                  />
                 </g>
               );
             })}
-
-            {/* Map Labels */}
-            <text x="400" y="20" textAnchor="middle" className="text-sm font-medium fill-gray-700">
-              Prime Meridian
-            </text>
-            <text x="20" y="205" className="text-sm font-medium fill-gray-700">
-              Equator
-            </text>
           </svg>
         </div>
       </Card>
