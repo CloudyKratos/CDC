@@ -1,3 +1,4 @@
+
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -111,12 +112,12 @@ export class StageOrchestrator {
       // Register all services
       this.serviceRegistry.registerService('signaling', StageSignalingService);
       this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
-      this.serviceRegistry.registerService('monitoring', StageMonitoringService);
-      this.serviceRegistry.registerService('circuit-breaker', CircuitBreakerService);
-      this.serviceRegistry.registerService('performance', PerformanceOptimizationService);
-      this.serviceRegistry.registerService('security', ZeroTrustSecurityService);
-      this.serviceRegistry.registerService('compliance', ComplianceFrameworkService);
-      this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity);
+      this.serviceRegistry.registerService('monitoring', StageMonitoringService.getInstance());
+      this.serviceRegistry.registerService('circuit-breaker', CircuitBreakerService.getInstance());
+      this.serviceRegistry.registerService('performance', PerformanceOptimizationService.getInstance());
+      this.serviceRegistry.registerService('security', ZeroTrustSecurityService.getInstance());
+      this.serviceRegistry.registerService('compliance', ComplianceFrameworkService.getInstance());
+      this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity.getInstance());
 
       // Initialize critical services using static methods
       await QuantumResistantSecurity.initialize();
@@ -216,8 +217,7 @@ export class StageOrchestrator {
       await StageSignalingService.leaveStage();
 
       // Cleanup WebRTC connections
-      const webrtcService = NextGenWebRTCService.getInstance();
-      webrtcService.cleanup();
+      NextGenWebRTCService.cleanup();
 
       // Record compliance data
       if (this.currentStage.enableCompliance) {
@@ -419,8 +419,7 @@ export class StageOrchestrator {
     try {
       // Stop all services immediately using static methods
       StageMonitoringService.stopMonitoring();
-      const webrtcService = NextGenWebRTCService.getInstance();
-      webrtcService.cleanup();
+      NextGenWebRTCService.cleanup();
       await StageSignalingService.leaveStage();
       PerformanceOptimizationService.cleanup();
       ZeroTrustSecurityService.cleanup();
@@ -445,6 +444,41 @@ export class StageOrchestrator {
     this.eventListeners.clear();
 
     console.log('Stage Orchestrator cleanup completed');
+  }
+
+  private calculatePerformanceScore(metrics: any): number {
+    // Calculate composite performance score
+    const cpuScore = Math.max(0, 100 - metrics.cpuUsage);
+    const memoryScore = Math.max(0, 100 - metrics.memoryUsage);
+    const latencyScore = Math.max(0, 100 - (metrics.latency / 10));
+    
+    return Math.round((cpuScore + memoryScore + latencyScore) / 3);
+  }
+
+  private calculateSecurityLevel(riskScore: number): 'basic' | 'enhanced' | 'military' {
+    if (riskScore < 20) return 'military';
+    if (riskScore < 50) return 'enhanced';
+    return 'basic';
+  }
+
+  private checkComplianceStatus(): 'compliant' | 'warning' | 'violation' {
+    if (!this.currentStage?.enableCompliance) return 'compliant';
+
+    // Check for any compliance violations
+    const hasConsent = ComplianceFrameworkService.hasValidConsent(
+      this.currentStage.userId, 
+      'data_processing'
+    );
+
+    if (!hasConsent) return 'violation';
+
+    // Check for any warnings
+    const threats = ZeroTrustSecurityService.getThreatDetections(this.currentStage.userId);
+    const recentThreats = threats.filter(t => Date.now() - t.timestamp < 60000); // Last minute
+
+    if (recentThreats.length > 0) return 'warning';
+
+    return 'compliant';
   }
 }
 
