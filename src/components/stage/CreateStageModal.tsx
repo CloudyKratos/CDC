@@ -11,17 +11,19 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import StageService from '@/services/StageService';
 
 interface CreateStageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateStage: (stageData: any) => void;
+  onStageCreated: () => void;
 }
 
 const CreateStageModal: React.FC<CreateStageModalProps> = ({
   isOpen,
   onClose,
-  onCreateStage
+  onStageCreated
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -35,39 +37,46 @@ const CreateStageModal: React.FC<CreateStageModalProps> = ({
     recordingEnabled: false,
     startImmediately: false
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title.trim()) {
+      toast.error('Stage title is required');
       return;
     }
 
-    let scheduledStartTime;
-    if (formData.scheduledDate && formData.scheduledTime && !formData.startImmediately) {
-      const [hours, minutes] = formData.scheduledTime.split(':');
-      scheduledStartTime = new Date(formData.scheduledDate);
-      scheduledStartTime.setHours(parseInt(hours), parseInt(minutes));
+    setIsLoading(true);
+    try {
+      let scheduledStartTime;
+      if (formData.scheduledDate && formData.scheduledTime && !formData.startImmediately) {
+        const [hours, minutes] = formData.scheduledTime.split(':');
+        scheduledStartTime = new Date(formData.scheduledDate);
+        scheduledStartTime.setHours(parseInt(hours), parseInt(minutes));
+      }
+
+      await StageService.createStage({
+        title: formData.title,
+        description: formData.description,
+        topic: formData.topic,
+        scheduledStartTime,
+        maxSpeakers: formData.maxSpeakers,
+        maxAudience: formData.maxAudience,
+        allowHandRaising: formData.allowHandRaising,
+        recordingEnabled: formData.recordingEnabled,
+        startImmediately: formData.startImmediately
+      });
+
+      toast.success('Stage created successfully!');
+      onStageCreated();
+      handleClose();
+    } catch (error) {
+      console.error('Error creating stage:', error);
+      toast.error('Failed to create stage');
+    } finally {
+      setIsLoading(false);
     }
-
-    onCreateStage({
-      ...formData,
-      scheduledStartTime,
-    });
-
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      topic: '',
-      scheduledDate: undefined,
-      scheduledTime: '',
-      maxSpeakers: 10,
-      maxAudience: 100,
-      allowHandRaising: true,
-      recordingEnabled: false,
-      startImmediately: false
-    });
   };
 
   const handleClose = () => {
@@ -232,11 +241,11 @@ const CreateStageModal: React.FC<CreateStageModalProps> = ({
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1" disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              {formData.startImmediately ? 'Create & Start' : 'Schedule Stage'}
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading ? 'Creating...' : (formData.startImmediately ? 'Create & Start' : 'Schedule Stage')}
             </Button>
           </div>
         </form>
