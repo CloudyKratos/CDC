@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import GlobalCommunityNetwork from './GlobalCommunityNetwork';
+import FlatWorldMap from './FlatWorldMap';
 import LocationSettingsModal from './LocationSettingsModal';
 import { Globe, BarChart3 } from 'lucide-react';
 
@@ -14,16 +14,20 @@ const WorldMapPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <Globe className="h-7 w-7 text-blue-500" />
           <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Global Community
+            🌐 Global Community Network
           </h2>
         </div>
       </div>
 
-      <Tabs defaultValue="community-network" className="w-full">
+      <div className="mb-4">
+        <p className="text-gray-600 text-lg">Discover, connect, and grow with members around the world.</p>
+      </div>
+
+      <Tabs defaultValue="world-map" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
-          <TabsTrigger value="community-network" className="flex items-center gap-2 text-base">
+          <TabsTrigger value="world-map" className="flex items-center gap-2 text-base">
             <Globe className="h-5 w-5" />
-            Community Network
+            World Map
           </TabsTrigger>
           <TabsTrigger value="community-stats" className="flex items-center gap-2 text-base">
             <BarChart3 className="h-5 w-5" />
@@ -31,8 +35,8 @@ const WorldMapPanel: React.FC = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="community-network" className="mt-0">
-          <GlobalCommunityNetwork />
+        <TabsContent value="world-map" className="mt-0">
+          <FlatWorldMap />
         </TabsContent>
         
         <TabsContent value="community-stats" className="mt-0">
