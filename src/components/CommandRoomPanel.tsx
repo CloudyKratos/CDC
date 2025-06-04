@@ -1,151 +1,263 @@
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import Icons from '@/utils/IconUtils';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-const CREATE_OPTIONS = [
-  { id: 'reflection', name: 'New Reflection', icon: <Icons.BookOpen size={20} className="text-purple-500" /> },
-  { id: 'ritual', name: 'Ritual Template', icon: <Icons.Target size={20} className="text-blue-500" /> },
-  { id: 'journal', name: 'Journal Entry', icon: <Icons.FileText size={20} className="text-green-500" /> },
-  { id: 'insight', name: 'Upload Insight', icon: <Icons.Upload size={20} className="text-orange-500" /> },
-  { id: 'snapshot', name: 'Daily Snapshot', icon: <Icons.Camera size={20} className="text-cyan-500" /> },
-];
-
-interface MindTile {
-  id: string;
-  title: string;
-  category: 'reflection' | 'strategy' | 'wisdom' | 'ritual';
-  lastReviewed: string;
-  anchored: boolean;
-  isPrivate: boolean;
-  content?: string;
-}
+import LearningCard, { LearningItem } from './command-room/LearningCard';
+import LearningFilters, { FilterState } from './command-room/LearningFilters';
+import LearningDetailModal from './command-room/LearningDetailModal';
 
 const CommandRoomPanel = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [mindTiles, setMindTiles] = useState<MindTile[]>([
-    { id: '1', title: 'Morning Ritual Framework', category: 'ritual', lastReviewed: '2 hours ago', anchored: true, isPrivate: true },
-    { id: '2', title: 'Weekly Mission Review', category: 'reflection', lastReviewed: '1 day ago', anchored: false, isPrivate: true },
-    { id: '3', title: 'Stoic Decision Matrix', category: 'strategy', lastReviewed: '3 days ago', anchored: true, isPrivate: false },
-    { id: '4', title: 'Gratitude Insights - Week 23', category: 'wisdom', lastReviewed: '4 days ago', anchored: false, isPrivate: true },
-    { id: '5', title: 'Energy Management Protocol', category: 'strategy', lastReviewed: '1 week ago', anchored: false, isPrivate: true },
+  const [selectedItem, setSelectedItem] = useState<LearningItem | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  
+  const [filters, setFilters] = useState<FilterState>({
+    category: 'all',
+    level: 'all',
+    coach: 'all',
+    format: 'all'
+  });
+
+  // Sample learning content data
+  const [learningItems, setLearningItems] = useState<LearningItem[]>([
+    {
+      id: '1',
+      title: 'Morning Ritual Mastery Course',
+      type: 'course',
+      category: 'rituals',
+      level: 'beginner',
+      coach: 'Alex Chen',
+      format: 'video',
+      lastReviewed: '2 hours ago',
+      progress: 65,
+      isPrivate: false,
+      isPremium: true,
+      isFavorited: true,
+      description: 'Transform your mornings with proven rituals that set the foundation for extraordinary days.',
+      modules: 7,
+      duration: '2.5 hours'
+    },
+    {
+      id: '2',
+      title: 'Stoic Decision Framework',
+      type: 'vault',
+      category: 'wisdom',
+      level: 'intermediate',
+      coach: 'Maya Singh',
+      format: 'pdf',
+      lastReviewed: '1 day ago',
+      isPrivate: false,
+      isPremium: false,
+      isFavorited: false,
+      description: 'Ancient wisdom meets modern decision-making. A comprehensive framework for clear thinking.',
+      duration: '45 min read'
+    },
+    {
+      id: '3',
+      title: 'Weekly Mission Review Live Call',
+      type: 'replay',
+      category: 'strategy',
+      level: 'advanced',
+      coach: 'Jordan Blake',
+      format: 'video',
+      lastReviewed: '3 days ago',
+      isPrivate: false,
+      isPremium: true,
+      isFavorited: false,
+      description: 'Deep dive into effective weekly planning and mission alignment with Q&A session.',
+      duration: '1.2 hours'
+    },
+    {
+      id: '4',
+      title: 'Energy Management Protocol',
+      type: 'template',
+      category: 'productivity',
+      level: 'intermediate',
+      coach: 'Alex Chen',
+      format: 'checklist',
+      lastReviewed: '5 days ago',
+      isPrivate: true,
+      isPremium: false,
+      isFavorited: true,
+      description: 'Practical checklist for optimizing your daily energy cycles and peak performance windows.',
+      duration: '30 min setup'
+    },
+    {
+      id: '5',
+      title: 'Mindful Leadership Workshop',
+      type: 'course',
+      category: 'mindset',
+      level: 'advanced',
+      coach: 'Maya Singh',
+      format: 'video',
+      lastReviewed: '1 week ago',
+      progress: 20,
+      isPrivate: false,
+      isPremium: true,
+      isFavorited: false,
+      description: 'Develop conscious leadership skills rooted in mindfulness and emotional intelligence.',
+      modules: 12,
+      duration: '4 hours'
+    },
+    {
+      id: '6',
+      title: 'Wellness Optimization Guide',
+      type: 'vault',
+      category: 'wellness',
+      level: 'beginner',
+      coach: 'Jordan Blake',
+      format: 'pdf',
+      lastReviewed: '2 weeks ago',
+      isPrivate: false,
+      isPremium: false,
+      isFavorited: true,
+      description: 'Complete guide to physical, mental, and spiritual wellness practices for modern warriors.',
+      duration: '1 hour read'
+    }
   ]);
-  
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
-  
-  const handleCreateNew = (type: string) => {
-    const newTile: MindTile = {
-      id: (mindTiles.length + 1).toString(),
-      title: `Untitled ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-      category: type as MindTile['category'],
-      lastReviewed: 'Just now',
-      anchored: false,
-      isPrivate: true
-    };
-    
-    setMindTiles([newTile, ...mindTiles]);
-    setShowCreateDialog(false);
-    
-    toast.success(`New ${type} created!`, {
-      description: "Your mind tile is ready for wisdom."
+
+  const handleFilterChange = (key: keyof FilterState, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      category: 'all',
+      level: 'all',
+      coach: 'all',
+      format: 'all'
     });
   };
-  
-  const toggleAnchor = (id: string) => {
-    setMindTiles(tiles => 
-      tiles.map(tile => 
-        tile.id === id ? { ...tile, anchored: !tile.anchored } : tile
+
+  const getActiveFiltersCount = () => {
+    return Object.values(filters).filter(value => value !== 'all').length;
+  };
+
+  const handleFavorite = (id: string) => {
+    setLearningItems(items =>
+      items.map(item =>
+        item.id === id ? { ...item, isFavorited: !item.isFavorited } : item
       )
     );
   };
-  
-  const filteredTiles = mindTiles.filter(tile => 
-    tile.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tile.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'reflection': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
-      case 'strategy': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-      case 'wisdom': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
-      case 'ritual': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
-      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
-    }
+
+  const handleItemClick = (item: LearningItem) => {
+    setSelectedItem(item);
+    setShowDetailModal(true);
   };
-  
+
+  const handleStartLearning = (item: LearningItem) => {
+    toast.success(`Starting: ${item.title}`, {
+      description: "Your learning journey begins now!"
+    });
+    setShowDetailModal(false);
+  };
+
+  const handleCreateNew = (type: string) => {
+    toast.success(`New ${type} created!`, {
+      description: "Ready to add your wisdom to the sanctuary."
+    });
+    setShowCreateDialog(false);
+  };
+
+  // Filter logic
+  const filteredItems = learningItems.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesTab = activeTab === 'all' || 
+                      (activeTab === 'courses' && item.type === 'course') ||
+                      (activeTab === 'vault' && item.type === 'vault') ||
+                      (activeTab === 'replays' && item.type === 'replay') ||
+                      (activeTab === 'templates' && item.type === 'template') ||
+                      (activeTab === 'favorites' && item.isFavorited);
+    
+    const matchesFilters = (filters.category === 'all' || item.category === filters.category) &&
+                          (filters.level === 'all' || item.level === filters.level) &&
+                          (filters.coach === 'all' || item.coach.toLowerCase().includes(filters.coach)) &&
+                          (filters.format === 'all' || item.format === filters.format);
+    
+    return matchesSearch && matchesTab && matchesFilters;
+  });
+
+  const CREATE_OPTIONS = [
+    { id: 'course', name: 'New Course', icon: <Icons.BookOpen size={20} className="text-purple-500" /> },
+    { id: 'vault', name: 'Vault Item', icon: <Icons.FileText size={20} className="text-amber-500" /> },
+    { id: 'replay', name: 'Upload Replay', icon: <Icons.Video size={20} className="text-blue-500" /> },
+    { id: 'template', name: 'Create Template', icon: <Icons.LayoutDashboard size={20} className="text-green-500" /> },
+  ];
+
   return (
-    <div className="p-6 h-full relative overflow-hidden">
-      {/* Cosmic background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 dark:opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-cyan-950/20"></div>
-        <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-48 h-48 bg-gradient-to-br from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl"></div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-blue-50/20 to-cyan-50/30 dark:from-purple-950/10 dark:via-blue-950/10 dark:to-cyan-950/10">
+      {/* Ambient Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 dark:opacity-10">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-purple-200/40 to-pink-200/40 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-32 right-32 w-64 h-64 bg-gradient-to-br from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full blur-3xl"></div>
       </div>
-      
-      <div className="relative z-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Command Room</h2>
-            <p className="text-sm text-muted-foreground mt-1">Your personal mental library and growth sanctuary</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="relative w-full md:w-72">
-              <Input 
-                placeholder="Search your mental library..."
-                className="pl-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50"
-                value={searchQuery}
-                onChange={handleSearch}
-              />
-              <Icons.Search size={16} className="absolute top-1/2 transform -translate-y-1/2 left-3 text-muted-foreground" />
+
+      <div className="relative z-10 p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                Command Room
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 font-light">
+                Your growth sanctuary for deep learning and timeless knowledge
+              </p>
             </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="hidden md:flex backdrop-blur-sm"
-              >
-                {viewMode === 'grid' ? <Icons.LayoutGrid size={18} /> : <Icons.LineChart size={18} />}
-              </Button>
-              
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Search */}
+              <div className="relative w-full sm:w-80">
+                <Input 
+                  placeholder="Search your mental library..."
+                  className="pl-12 pr-4 h-12 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50 text-lg"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                />
+                <Icons.Search size={20} className="absolute top-1/2 transform -translate-y-1/2 left-4 text-gray-500" />
+              </div>
+
+              {/* Create Button */}
               <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2 backdrop-blur-sm border-purple-200/50">
-                    <Icons.Plus size={16} />
-                    <span className="hidden sm:inline">Create</span>
+                  <Button className="h-12 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg">
+                    <Icons.Plus size={20} className="mr-2" />
+                    Create
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md backdrop-blur-md">
+                <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
                   <DialogHeader>
-                    <DialogTitle>Create New Mind Tile</DialogTitle>
+                    <DialogTitle className="text-xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      Add to Your Sanctuary
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="grid grid-cols-1 gap-3 pt-4">
                     {CREATE_OPTIONS.map((option) => (
                       <button
                         key={option.id}
-                        className="flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 group border border-gray-200/50 dark:border-gray-700/50"
+                        className="flex items-center gap-4 p-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-all duration-200 group border border-purple-200/30 dark:border-purple-800/30"
                         onClick={() => handleCreateNew(option.id)}
                       >
-                        <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
                           {option.icon}
                         </div>
-                        <span className="text-sm font-medium">{option.name}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{option.name}</span>
                       </button>
                     ))}
                   </div>
@@ -155,139 +267,64 @@ const CommandRoomPanel = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="daily-flow" className="w-full">
-          <TabsList className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-purple-200/30 dark:border-purple-800/30">
-            <TabsTrigger value="daily-flow">Daily Flow</TabsTrigger>
-            <TabsTrigger value="rituals">Rituals</TabsTrigger>
-            <TabsTrigger value="reflections">Reflections</TabsTrigger>
-            <TabsTrigger value="library">Library</TabsTrigger>
-            <TabsTrigger value="templates">Templates</TabsTrigger>
+        {/* Navigation Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-purple-200/30 dark:border-purple-800/30 p-1">
+            <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">All</TabsTrigger>
+            <TabsTrigger value="courses" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Courses</TabsTrigger>
+            <TabsTrigger value="vault" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Vault</TabsTrigger>
+            <TabsTrigger value="replays" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Replays</TabsTrigger>
+            <TabsTrigger value="templates" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Templates</TabsTrigger>
+            <TabsTrigger value="favorites" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Favorites</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="daily-flow" className="space-y-4 mt-6">
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              {searchQuery && filteredTiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Icons.Search size={48} className="mb-4 text-muted-foreground opacity-30" />
-                  <h3 className="text-lg font-medium mb-2">No mind tiles found</h3>
-                  <p className="text-sm text-muted-foreground">Try a different search term or create new content</p>
+          {/* Filters */}
+          <div className="mb-6">
+            <LearningFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+              activeFiltersCount={getActiveFiltersCount()}
+            />
+          </div>
+
+          {/* Content */}
+          <TabsContent value={activeTab} className="space-y-6">
+            {filteredItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-full flex items-center justify-center mb-6">
+                  <Icons.Search size={40} className="text-purple-400 opacity-60" />
                 </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredTiles.map((tile) => (
-                    <Card key={tile.id} className="p-6 cursor-pointer hover:shadow-lg transition-all duration-300 backdrop-blur-sm bg-white/60 dark:bg-gray-800/60 hover:translate-y-[-4px] border-purple-200/30 dark:border-purple-800/30 group">
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                              {tile.title}
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Last reviewed: {tile.lastReviewed}
-                            </p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 opacity-60 hover:opacity-100"
-                            onClick={() => toggleAnchor(tile.id)}
-                          >
-                            <Icons.Star 
-                              size={16} 
-                              className={tile.anchored ? "text-yellow-500 fill-yellow-500" : "text-gray-400"} 
-                            />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Badge className={`${getCategoryColor(tile.category)} border-0`}>
-                            {tile.category}
-                          </Badge>
-                          <div className="flex items-center gap-2">
-                            {tile.anchored && <Icons.Star size={12} className="text-yellow-500" />}
-                            <span className="text-xs text-muted-foreground">
-                              {tile.isPrivate ? "Private" : "Shared"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredTiles.map((tile) => (
-                    <div 
-                      key={tile.id} 
-                      className="flex items-center p-4 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg cursor-pointer backdrop-blur-sm transition-all duration-200 border border-purple-200/20 dark:border-purple-800/20"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate">{tile.title}</h4>
-                        <p className="text-xs text-muted-foreground">Last reviewed: {tile.lastReviewed}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={`${getCategoryColor(tile.category)} border-0 text-xs`}>
-                          {tile.category}
-                        </Badge>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => toggleAnchor(tile.id)}
-                        >
-                          <Icons.Star 
-                            size={14} 
-                            className={tile.anchored ? "text-yellow-500 fill-yellow-500" : "text-gray-400"} 
-                          />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="rituals" className="space-y-4 mt-6">
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-purple-200/30 dark:border-purple-800/30">
-              <Icons.Target size={48} className="mb-4 text-purple-400 opacity-60" />
-              <h3 className="text-lg font-medium mb-2">Your Ritual Library</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Sacred routines and frameworks for consistent growth
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reflections" className="space-y-4 mt-6">
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-purple-200/30 dark:border-purple-800/30">
-              <Icons.BookOpen size={48} className="mb-4 text-purple-400 opacity-60" />
-              <h3 className="text-lg font-medium mb-2">Reflection Archive</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Journal entries, insights, and lessons learned on your journey
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="library" className="space-y-4 mt-6">
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-purple-200/30 dark:border-purple-800/30">
-              <Icons.FileText size={48} className="mb-4 text-purple-400 opacity-60" />
-              <h3 className="text-lg font-medium mb-2">Wisdom Library</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Your collection of resources, PDFs, images, and saved wisdom
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="templates" className="space-y-4 mt-6">
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-purple-200/30 dark:border-purple-800/30">
-              <Icons.LayoutDashboard size={48} className="mb-4 text-purple-400 opacity-60" />
-              <h3 className="text-lg font-medium mb-2">Master Templates</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Reusable frameworks for decision-making, planning, and self-mastery
-              </p>
-            </div>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No learning materials found</h3>
+                <p className="text-gray-600 dark:text-gray-400 max-w-md">
+                  {searchQuery || getActiveFiltersCount() > 0
+                    ? "Try adjusting your search or filters to discover more content"
+                    : "Your learning sanctuary awaits. Create your first piece of wisdom."
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredItems.map((item) => (
+                  <LearningCard
+                    key={item.id}
+                    item={item}
+                    onFavorite={handleFavorite}
+                    onClick={handleItemClick}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
+
+        {/* Detail Modal */}
+        <LearningDetailModal
+          item={selectedItem}
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          onStartLearning={handleStartLearning}
+        />
       </div>
     </div>
   );
