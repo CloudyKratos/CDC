@@ -574,6 +574,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_speaker_requests_stage_id"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_speaker_requests_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "speaker_requests_stage_id_fkey"
             columns: ["stage_id"]
             isOneToOne: false
@@ -617,6 +631,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stage_participants_stage_id"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stage_participants_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stage_participants_stage_id_fkey"
             columns: ["stage_id"]

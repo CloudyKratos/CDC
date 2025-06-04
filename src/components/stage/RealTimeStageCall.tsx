@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StageService from '@/services/StageService';
@@ -112,6 +111,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
       }
       
       console.log('Participants loaded successfully:', formattedParticipants.length);
+      setConnectionStatus('connected');
     } catch (error) {
       console.error('Error loading participants:', error);
       handleConnectionError(error, 'loading participants');
@@ -196,20 +196,12 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
         return;
       }
 
-      // Join the stage through StageService
-      const joinResult = await StageService.joinStage(stageId, 'audience');
-      
-      if (joinResult.success) {
-        setConnectionStatus('connected');
-        setRetryCount(0); // Reset retry count on success
-        await loadParticipants();
-        setupRealtimeSubscriptions();
-        toast.success('Joined stage successfully!');
-      } else {
-        setConnectionStatus('disconnected');
-        setError(joinResult.error || 'Failed to join stage');
-        toast.error(joinResult.error || 'Failed to join stage');
-      }
+      // Join the stage through StageService (this was already handled in ActiveStage)
+      // Just load participants and set up subscriptions
+      await loadParticipants();
+      setupRealtimeSubscriptions();
+      setRetryCount(0); // Reset retry count on success
+      toast.success('Connected to stage successfully!');
     } catch (error) {
       console.error('Error initializing call:', error);
       handleConnectionError(error, 'initializing call');

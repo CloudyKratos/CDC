@@ -235,11 +235,21 @@ class StageService {
 
   async getStageParticipants(stageId: string): Promise<any[]> {
     return this.retryOperation(async () => {
+      console.log('Loading stage participants for:', stageId);
+      
       const { data, error } = await supabase
         .from('stage_participants')
         .select(`
-          *,
-          profiles (
+          id,
+          stage_id,
+          user_id,
+          role,
+          joined_at,
+          left_at,
+          is_muted,
+          is_video_enabled,
+          is_hand_raised,
+          profiles!fk_stage_participants_user_id (
             id,
             full_name,
             avatar_url,
@@ -250,7 +260,12 @@ class StageService {
         .is('left_at', null)
         .order('joined_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading participants:', error);
+        throw new Error(`Failed to load participants: ${error.message}`);
+      }
+      
+      console.log('Participants loaded:', data);
       return data || [];
     });
   }
