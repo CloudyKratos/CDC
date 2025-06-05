@@ -1,4 +1,3 @@
-
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
@@ -444,37 +443,6 @@ export class StageOrchestrator {
     this.eventListeners.clear();
 
     console.log('Stage Orchestrator cleanup completed');
-  }
-
-  // Event system
-  on(event: string, callback: (data: any) => void): void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, []);
-    }
-    this.eventListeners.get(event)!.push(callback);
-  }
-
-  off(event: string, callback: (data: any) => void): void {
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      const index = listeners.indexOf(callback);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
-    }
-  }
-
-  private emit(event: string, data: any): void {
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      listeners.forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error(`Error in event listener for ${event}:`, error);
-        }
-      });
-    }
   }
 }
 
