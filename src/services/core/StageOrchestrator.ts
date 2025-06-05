@@ -149,7 +149,6 @@ export class StageOrchestrator {
     await this.connectionManager.switchVideoDevice(deviceId);
   }
 
-  // Event system delegation
   on(event: string, callback: (data: any) => void): void {
     this.eventManager.on(event, callback);
   }
@@ -158,7 +157,6 @@ export class StageOrchestrator {
     this.eventManager.off(event, callback);
   }
 
-  // Public interface methods
   getState(): StageState {
     return this.stateManager.getState();
   }
