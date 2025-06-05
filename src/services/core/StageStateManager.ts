@@ -1,9 +1,9 @@
 
 import { StageConfig, StageState, NetworkQuality, MediaState } from './StageOrchestrator';
 import StageSignalingService from '../StageSignalingService';
-import PerformanceOptimizationService from '../performance/PerformanceOptimizationService';
-import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
-import ComplianceFrameworkService from '../compliance/ComplianceFrameworkService';
+import { PerformanceOptimizationService } from '../performance/PerformanceOptimizationService';
+import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
+import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
 
 export class StageStateManager {
   private stageState: StageState;

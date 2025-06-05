@@ -3,10 +3,10 @@ import { StageStateManager } from './StageStateManager';
 import { StageEventManager } from './StageEventManager';
 import { StageServiceInitializer } from './StageServiceInitializer';
 import { StageConnectionManager } from './StageConnectionManager';
-import PerformanceOptimizationService from '../performance/PerformanceOptimizationService';
-import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
-import CircuitBreakerService from '../reliability/CircuitBreakerService';
-import ComplianceFrameworkService from '../compliance/ComplianceFrameworkService';
+import { PerformanceOptimizationService } from '../performance/PerformanceOptimizationService';
+import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
+import { CircuitBreakerService } from '../reliability/CircuitBreakerService';
+import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
 
 export interface StageConfig {
   stageId: string;

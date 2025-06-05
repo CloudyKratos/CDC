@@ -2,12 +2,12 @@
 import { ServiceRegistry } from './ServiceRegistry';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
-import StageMonitoringService from '../monitoring/StageMonitoringService';
-import CircuitBreakerService from '../reliability/CircuitBreakerService';
-import PerformanceOptimizationService from '../performance/PerformanceOptimizationService';
-import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
-import ComplianceFrameworkService from '../compliance/ComplianceFrameworkService';
-import QuantumResistantSecurity from '../security/QuantumResistantSecurity';
+import { StageMonitoringService } from '../monitoring/StageMonitoringService';
+import { CircuitBreakerService } from '../reliability/CircuitBreakerService';
+import { PerformanceOptimizationService } from '../performance/PerformanceOptimizationService';
+import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
+import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
+import { QuantumResistantSecurity } from '../security/QuantumResistantSecurity';
 
 export class StageServiceInitializer {
   private serviceRegistry = ServiceRegistry.getInstance();

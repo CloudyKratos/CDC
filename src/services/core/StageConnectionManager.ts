@@ -3,8 +3,8 @@ import { StageConfig } from './StageOrchestrator';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
 import CircuitBreakerService from '../reliability/CircuitBreakerService';
-import ZeroTrustSecurityService from '../security/ZeroTrustSecurityService';
-import ComplianceFrameworkService from '../compliance/ComplianceFrameworkService';
+import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
+import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
 
 export class StageConnectionManager {
   async initializeStage(config: StageConfig): Promise<{ success: boolean; error?: string }> {
