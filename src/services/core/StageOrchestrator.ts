@@ -246,7 +246,7 @@ export class StageOrchestrator {
 
   async toggleAudio(): Promise<boolean> {
     this.stageState.mediaState.audioEnabled = !this.stageState.mediaState.audioEnabled;
-    this.emit('stageChanged', { state: this.stageState });
+    this.emit('stateChanged', { state: this.stageState });
     return this.stageState.mediaState.audioEnabled;
   }
 
