@@ -108,7 +108,7 @@ export class StageOrchestrator {
     console.log('Initializing Stage Orchestrator with enterprise services...');
 
     try {
-      // Register all services using static getInstance methods
+      // Register all services using correct static getInstance methods
       this.serviceRegistry.registerService('signaling', StageSignalingService);
       this.serviceRegistry.registerService('webrtc', NextGenWebRTCService.getInstance());
       this.serviceRegistry.registerService('monitoring', StageMonitoringService.getInstance());
@@ -118,13 +118,13 @@ export class StageOrchestrator {
       this.serviceRegistry.registerService('compliance', ComplianceFrameworkService.getInstance());
       this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity.getInstance());
 
-      // Initialize critical services using static methods
+      // Initialize critical services using correct static methods
       await QuantumResistantSecurity.initialize();
       await PerformanceOptimizationService.getInstance().initialize();
       await ZeroTrustSecurityService.initialize();
       await ComplianceFrameworkService.initialize();
 
-      // Start monitoring using static method
+      // Start monitoring using correct static method
       StageMonitoringService.startMonitoring();
 
       this.isInitialized = true;
@@ -416,7 +416,7 @@ export class StageOrchestrator {
     console.log('Initiating emergency shutdown...');
 
     try {
-      // Stop all services immediately using static methods
+      // Stop all services immediately using correct static methods
       StageMonitoringService.stopMonitoring();
       NextGenWebRTCService.cleanup();
       await StageSignalingService.leaveStage();
