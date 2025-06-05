@@ -119,7 +119,7 @@ export class StageOrchestrator {
       this.serviceRegistry.registerService('quantum-security', QuantumResistantSecurity.getInstance());
 
       // Initialize critical services using correct static methods
-      await QuantumResistantSecurity.initialize();
+      await QuantumResistantSecurity.getInstance().initialize();
       await PerformanceOptimizationService.getInstance().initialize();
       await ZeroTrustSecurityService.initialize();
       await ComplianceFrameworkService.initialize();
