@@ -3,67 +3,8 @@ import { StageStateManager } from './StageStateManager';
 import { StageEventManager } from './StageEventManager';
 import { StageServiceInitializer } from './StageServiceInitializer';
 import { StageConnectionManager } from './StageConnectionManager';
-import { PerformanceOptimizationService } from '../performance/PerformanceOptimizationService';
-import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
-import { CircuitBreakerService } from '../reliability/CircuitBreakerService';
-import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
-
-export interface StageConfig {
-  stageId: string;
-  userId: string;
-  userRole?: 'speaker' | 'audience';
-  maxParticipants?: number;
-  enableRecording?: boolean;
-  enableSecurity?: boolean;
-  enableMonitoring?: boolean;
-  enableCompliance?: boolean;
-  mediaConstraints?: {
-    audio: boolean;
-    video: boolean;
-  };
-  qualitySettings?: {
-    maxBitrate: number;
-    adaptiveStreaming: boolean;
-    lowLatencyMode: boolean;
-  };
-}
-
-export interface NetworkQuality {
-  quality: 'excellent' | 'good' | 'fair' | 'poor';
-  ping: number;
-  bandwidth: number;
-  jitter?: number;
-  packetLoss?: number;
-}
-
-export interface MediaDevice {
-  deviceId: string;
-  label: string;
-  kind: 'audioinput' | 'videoinput' | 'audiooutput';
-  groupId?: string;
-}
-
-export interface MediaState {
-  audioEnabled: boolean;
-  videoEnabled: boolean;
-  devices: {
-    audio: MediaDevice[];
-    video: MediaDevice[];
-  };
-}
-
-export interface StageState {
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
-  isConnected: boolean;
-  isConnecting: boolean;
-  participantCount: number;
-  networkQuality: NetworkQuality;
-  securityLevel: 'basic' | 'enhanced' | 'military';
-  performanceScore: number;
-  complianceStatus: 'compliant' | 'warning' | 'violation';
-  mediaState: MediaState;
-  errors: string[];
-}
+import { StageMetricsService } from './StageMetricsService';
+import { StageConfig, StageState } from './types/StageTypes';
 
 export class StageOrchestrator {
   private static instance: StageOrchestrator;
@@ -71,6 +12,7 @@ export class StageOrchestrator {
   private eventManager = new StageEventManager();
   private serviceInitializer = new StageServiceInitializer();
   private connectionManager = new StageConnectionManager();
+  private metricsService = new StageMetricsService();
 
   static getInstance(): StageOrchestrator {
     if (!StageOrchestrator.instance) {
@@ -177,28 +119,15 @@ export class StageOrchestrator {
   }
 
   getPerformanceMetrics(): any {
-    return PerformanceOptimizationService.getInstance().getLatestMetrics();
+    return this.metricsService.getPerformanceMetrics();
   }
 
   getSecurityMetrics(): any {
-    const currentStage = this.stateManager.getCurrentStage();
-    if (!currentStage) return null;
-
-    return {
-      securityContext: ZeroTrustSecurityService.getInstance().getSecurityContext(currentStage.userId),
-      threats: ZeroTrustSecurityService.getInstance().getThreatDetections(currentStage.userId),
-      circuitBreakerStates: CircuitBreakerService.getInstance().getAllCircuits()
-    };
+    return this.metricsService.getSecurityMetrics(this.stateManager.getCurrentStage());
   }
 
   getComplianceMetrics(): any {
-    const currentStage = this.stateManager.getCurrentStage();
-    if (!currentStage) return null;
-
-    const endDate = Date.now();
-    const startDate = endDate - (24 * 60 * 60 * 1000);
-
-    return ComplianceFrameworkService.getInstance().generateGDPRReport(startDate, endDate);
+    return this.metricsService.getComplianceMetrics(this.stateManager.getCurrentStage());
   }
 
   async emergencyShutdown(): Promise<void> {
@@ -221,3 +150,6 @@ export class StageOrchestrator {
 }
 
 export default StageOrchestrator.getInstance();
+
+// Re-export types for backward compatibility
+export * from './types/StageTypes';

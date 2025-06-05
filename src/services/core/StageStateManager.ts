@@ -1,5 +1,5 @@
 
-import { StageConfig, StageState, NetworkQuality, MediaState } from './StageOrchestrator';
+import { StageConfig, StageState, NetworkQuality, MediaState } from './types/StageTypes';
 import StageSignalingService from '../StageSignalingService';
 import { PerformanceOptimizationService } from '../performance/PerformanceOptimizationService';
 import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';

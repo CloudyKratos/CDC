@@ -1,8 +1,8 @@
 
-import { StageConfig } from './StageOrchestrator';
+import { StageConfig } from './types/StageTypes';
 import StageSignalingService from '../StageSignalingService';
 import { NextGenWebRTCService } from '../NextGenWebRTCService';
-import CircuitBreakerService from '../reliability/CircuitBreakerService';
+import { CircuitBreakerService } from '../reliability/CircuitBreakerService';
 import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
 import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
 

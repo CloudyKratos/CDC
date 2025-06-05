@@ -33,7 +33,7 @@ export class StageServiceInitializer {
       await QuantumResistantSecurity.getInstance().initialize();
       await PerformanceOptimizationService.getInstance().initialize();
       await ZeroTrustSecurityService.initialize();
-      await ComplianceFrameworkService.initialize();
+      await ComplianceFrameworkService.getInstance().initialize();
 
       // Start monitoring
       StageMonitoringService.startMonitoring();
@@ -60,7 +60,7 @@ export class StageServiceInitializer {
       await StageSignalingService.leaveStage();
       PerformanceOptimizationService.getInstance().cleanup();
       ZeroTrustSecurityService.getInstance().cleanup();
-      QuantumResistantSecurity.cleanup();
+      QuantumResistantSecurity.getInstance().cleanup();
 
       console.log('Emergency shutdown completed');
     } catch (error) {
