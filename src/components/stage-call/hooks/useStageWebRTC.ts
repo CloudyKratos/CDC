@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import StageSignalingService from '@/services/StageSignalingService';
-import StageWebRTCService from '@/services/StageWebRTCService';
+import RefactoredStageWebRTCService from '@/services/webrtc/RefactoredStageWebRTCService';
 
 interface RemoteParticipant {
   userId: string;
@@ -31,10 +31,10 @@ export const useStageWebRTC = (stageId: string, userId: string, localStream: Med
         }
 
         // Initialize WebRTC service
-        await StageWebRTCService.initialize(localStream);
+        await RefactoredStageWebRTCService.initialize(localStream);
 
         // Set up event handlers
-        StageWebRTCService.onRemoteStream((userId, stream) => {
+        RefactoredStageWebRTCService.onRemoteStream((userId, stream) => {
           console.log('Adding remote stream for user:', userId);
           setRemoteParticipants(prev => {
             const updated = new Map(prev);
@@ -48,7 +48,7 @@ export const useStageWebRTC = (stageId: string, userId: string, localStream: Med
           });
         });
 
-        StageWebRTCService.onConnectionStateChange((userId, state) => {
+        RefactoredStageWebRTCService.onConnectionStateChange((userId, state) => {
           console.log('Connection state changed for user:', userId, state);
           setRemoteParticipants(prev => {
             const updated = new Map(prev);
@@ -69,7 +69,7 @@ export const useStageWebRTC = (stageId: string, userId: string, localStream: Med
         });
 
         // Connect to existing users
-        await StageWebRTCService.connectToExistingUsers();
+        await RefactoredStageWebRTCService.connectToExistingUsers();
 
         setIsConnected(true);
         setConnectionError(null);
@@ -89,14 +89,14 @@ export const useStageWebRTC = (stageId: string, userId: string, localStream: Med
   // Update local stream when it changes
   useEffect(() => {
     if (localStream && isInitialized.current) {
-      StageWebRTCService.updateLocalStream(localStream);
+      RefactoredStageWebRTCService.updateLocalStream(localStream);
     }
   }, [localStream]);
 
   const disconnect = useCallback(async () => {
     try {
       await StageSignalingService.leaveStage();
-      StageWebRTCService.cleanup();
+      RefactoredStageWebRTCService.cleanup();
       
       setIsConnected(false);
       setRemoteParticipants(new Map());
