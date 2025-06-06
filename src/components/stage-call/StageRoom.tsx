@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import RealTimeStageService from '@/services/RealTimeStageService';
 import WebRTCStageService from '@/services/WebRTCStageService';
 import { StageParticipant, ChatMessage } from '@/services/core/types/StageTypes';
+import { getUserName } from '@/utils/user-data';
 
 interface StageRoomProps {
   stageId: string;
@@ -18,7 +19,7 @@ interface StageRoomProps {
 
 export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<'speaker' | 'audience' | 'moderator'>('audience');
+  const [userRole, setUserRole] = useState<'speaker' | 'audience'>('audience');
   const [participants, setParticipants] = useState<StageParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -203,9 +204,10 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
 
   const handleSendChatMessage = async (message: string) => {
     if (user) {
+      const userName = getUserName(user);
       await RealTimeStageService.sendChatMessage(
         user.id,
-        user.user_metadata?.full_name || user.email || 'Anonymous',
+        userName,
         message
       );
     }
