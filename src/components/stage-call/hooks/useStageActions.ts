@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import RealTimeStageService from '@/services/RealTimeStageService';
 import WebRTCStageService from '@/services/WebRTCStageService';
 import { useStageOrchestrator } from './useStageOrchestrator';
-import { getUserName } from '@/utils/user-data';
 
 export const useStageActions = () => {
   const { user } = useAuth();
@@ -69,7 +68,8 @@ export const useStageActions = () => {
 
   const handleSendChatMessage = async (message: string) => {
     if (user) {
-      const userName = getUserName(user);
+      // Use user.email as fallback for username since user object structure differs
+      const userName = user.email?.split('@')[0] || 'Anonymous';
       await RealTimeStageService.sendChatMessage(
         user.id,
         userName,
