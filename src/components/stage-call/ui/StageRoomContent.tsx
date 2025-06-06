@@ -4,10 +4,12 @@ import { ParticipantGrid } from './ParticipantGrid';
 import { EnhancedStageControls } from './EnhancedStageControls';
 import { StageHeader } from './StageHeader';
 import { StageConnectionStatus } from './StageConnectionStatus';
+import { ParticipantVideo } from './ParticipantVideo';
+import { StageParticipant } from '@/services/core/types/StageTypes';
 
 interface StageRoomContentProps {
   state: any;
-  participants: any[];
+  participants: StageParticipant[];
   userRole: 'speaker' | 'audience';
   onLeave: () => void;
   onToggleAudio: () => Promise<boolean>;
@@ -18,6 +20,8 @@ interface StageRoomContentProps {
   convertToMediaDeviceInfo: (devices: any[]) => MediaDeviceInfo[];
   switchAudioDevice: (deviceId: string) => void;
   switchVideoDevice: (deviceId: string) => void;
+  localStream?: MediaStream | null;
+  remoteStreams?: Map<string, MediaStream>;
 }
 
 export const StageRoomContent: React.FC<StageRoomContentProps> = ({
@@ -32,13 +36,17 @@ export const StageRoomContent: React.FC<StageRoomContentProps> = ({
   onStartScreenShare,
   convertToMediaDeviceInfo,
   switchAudioDevice,
-  switchVideoDevice
+  switchVideoDevice,
+  localStream,
+  remoteStreams = new Map()
 }) => {
-  // Map connection state to expected values
   const getHeaderStatus = (connectionState: string): "disconnected" | "connecting" | "connected" => {
     if (connectionState === 'reconnecting') return 'connecting';
     return connectionState as "disconnected" | "connecting" | "connected";
   };
+
+  const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
+  const audience = participants.filter(p => p.role === 'audience');
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
@@ -50,23 +58,79 @@ export const StageRoomContent: React.FC<StageRoomContentProps> = ({
         <div className="absolute top-1/2 right-1/3 w-16 h-16 bg-cyan-500 rounded-full blur-2xl animate-pulse delay-500"></div>
       </div>
 
-      {/* Gradient overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/20 pointer-events-none"></div>
 
       <StageHeader
         status={getHeaderStatus(state.connectionState)}
-        participantCount={state.participantCount + 1} // +1 for local user
+        participantCount={participants.length + 1}
         onLeave={onLeave}
       />
       
-      <div className="flex-1 relative">
-        <ParticipantGrid
-          participants={participants}
-          localStream={null} // Will be handled by orchestrator
-          userRole={userRole}
-          isVideoEnabled={state.mediaState.videoEnabled}
-          isAudioEnabled={state.mediaState.audioEnabled}
-        />
+      <div className="flex-1 relative p-4">
+        {/* Main Video Grid */}
+        <div className="h-full">
+          {/* Local Video (Always visible) */}
+          <div className="grid gap-4 h-full">
+            {/* Speakers Section */}
+            {speakers.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-2/3">
+                {speakers.map(participant => (
+                  <ParticipantVideo
+                    key={participant.id}
+                    participant={participant}
+                    stream={remoteStreams.get(participant.id)}
+                    isActiveSpeaker={participant.isSpeaking}
+                    className="aspect-video"
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Local User Video */}
+            <div className="h-1/3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-full">
+                {/* Local video tile */}
+                <ParticipantVideo
+                  participant={{
+                    id: 'local',
+                    name: 'You',
+                    role: userRole,
+                    isAudioEnabled: state.mediaState.audioEnabled,
+                    isVideoEnabled: state.mediaState.videoEnabled,
+                    isHandRaised: false,
+                    isSpeaking: false
+                  }}
+                  stream={localStream}
+                  isLocal={true}
+                  className="aspect-video"
+                />
+
+                {/* Audience members */}
+                {audience.map(participant => (
+                  <ParticipantVideo
+                    key={participant.id}
+                    participant={participant}
+                    stream={remoteStreams.get(participant.id)}
+                    className="aspect-video"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Empty state when no participants */}
+        {participants.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white/80">
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                <span className="text-2xl">👋</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Welcome to the Stage!</h3>
+              <p className="text-white/60">You're the first one here. Others will join soon.</p>
+            </div>
+          </div>
+        )}
       </div>
       
       <EnhancedStageControls

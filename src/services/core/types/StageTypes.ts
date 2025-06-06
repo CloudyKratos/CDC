@@ -2,12 +2,7 @@
 export interface StageConfig {
   stageId: string;
   userId: string;
-  userRole?: 'speaker' | 'audience';
-  maxParticipants?: number;
-  enableRecording?: boolean;
-  enableSecurity?: boolean;
-  enableMonitoring?: boolean;
-  enableCompliance?: boolean;
+  userRole: 'speaker' | 'audience' | 'moderator';
   mediaConstraints?: {
     audio: boolean;
     video: boolean;
@@ -17,41 +12,54 @@ export interface StageConfig {
     adaptiveStreaming: boolean;
     lowLatencyMode: boolean;
   };
+  enableSecurity?: boolean;
+  enableCompliance?: boolean;
 }
 
-export interface NetworkQuality {
-  quality: 'excellent' | 'good' | 'fair' | 'poor';
-  ping: number;
-  bandwidth: number;
-  jitter?: number;
-  packetLoss?: number;
+export interface StageState {
+  isConnected: boolean;
+  isConnecting: boolean;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+  participantCount: number;
+  mediaState: {
+    audioEnabled: boolean;
+    videoEnabled: boolean;
+    devices: {
+      audio: MediaDevice[];
+      video: MediaDevice[];
+    };
+  };
+  networkQuality: {
+    quality: 'excellent' | 'good' | 'fair' | 'poor';
+    ping: number;
+    bandwidth: number;
+  };
+  errors: string[];
 }
 
 export interface MediaDevice {
   deviceId: string;
   label: string;
-  kind: 'audioinput' | 'videoinput' | 'audiooutput';
+  kind: string;
   groupId?: string;
 }
 
-export interface MediaState {
-  audioEnabled: boolean;
-  videoEnabled: boolean;
-  devices: {
-    audio: MediaDevice[];
-    video: MediaDevice[];
-  };
+export interface StageParticipant {
+  id: string;
+  name: string;
+  role: 'speaker' | 'audience' | 'moderator';
+  isAudioEnabled: boolean;
+  isVideoEnabled: boolean;
+  isHandRaised: boolean;
+  isSpeaking: boolean;
+  stream?: MediaStream;
 }
 
-export interface StageState {
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
-  isConnected: boolean;
-  isConnecting: boolean;
-  participantCount: number;
-  networkQuality: NetworkQuality;
-  securityLevel: 'basic' | 'enhanced' | 'military';
-  performanceScore: number;
-  complianceStatus: 'compliant' | 'warning' | 'violation';
-  mediaState: MediaState;
-  errors: string[];
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  message: string;
+  timestamp: string;
+  type: 'text' | 'system' | 'emoji';
 }
