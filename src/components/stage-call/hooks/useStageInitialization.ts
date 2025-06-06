@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import RealTimeStageService from '@/services/RealTimeStageService';
 import WebRTCStageService from '@/services/WebRTCStageService';
+import StageCleanupService from '@/services/StageCleanupService';
 import { useStageOrchestrator } from './useStageOrchestrator';
 
 interface UseStageInitializationProps {
@@ -37,6 +38,10 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
           description: 'Setting up audio, video and real-time features'
         });
 
+        // Clean up any existing sessions first
+        await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, user.id);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Initialize WebRTC first
         const stream = await WebRTCStageService.initializeMedia({
           audio: true,
@@ -49,10 +54,29 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
           setRemoteStreams(prev => new Map(prev.set(userId, stream)));
         });
 
-        // Join real-time stage
-        const joined = await RealTimeStageService.joinStage(stageId, user.id, 'audience');
-        if (!joined) {
-          throw new Error('Failed to join real-time stage');
+        // Join real-time stage with retry logic
+        let joined = false;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (!joined && retryCount < maxRetries) {
+          try {
+            joined = await RealTimeStageService.joinStage(stageId, user.id, 'audience');
+            if (!joined) {
+              throw new Error('Failed to join real-time stage');
+            }
+          } catch (error: any) {
+            retryCount++;
+            console.warn(`Join attempt ${retryCount} failed:`, error);
+            
+            if (error?.message?.includes('duplicate key') && retryCount < maxRetries) {
+              console.log('Duplicate key detected, cleaning up and retrying...');
+              await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, user.id);
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Exponential backoff
+            } else if (retryCount >= maxRetries) {
+              throw error;
+            }
+          }
         }
 
         // Initialize stage orchestrator
@@ -80,8 +104,18 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
         });
       } catch (error) {
         console.error('Failed to initialize stage room:', error);
+        
+        let errorMessage = 'Please try again';
+        if (error instanceof Error) {
+          if (error.message.includes('duplicate key')) {
+            errorMessage = 'Session conflict detected. Please try force reconnecting.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
         toast.error('Connection failed', {
-          description: error instanceof Error ? error.message : 'Please try again',
+          description: errorMessage,
           action: {
             label: 'Retry',
             onClick: () => initializeStageRoom()

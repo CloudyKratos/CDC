@@ -7,9 +7,29 @@ import { ZeroTrustSecurityService } from '../security/ZeroTrustSecurityService';
 import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkService';
 
 export class StageConnectionManager {
+  private circuitBreakerInitialized = false;
+
+  private async initializeCircuitBreakers(): Promise<void> {
+    if (this.circuitBreakerInitialized) return;
+
+    // Create circuit breakers for critical services
+    CircuitBreakerService.createCircuit('signaling-service', {
+      failureThreshold: 3,
+      recoveryTimeout: 30000,
+      monitoringPeriod: 5000,
+      halfOpenMaxCalls: 2
+    });
+
+    this.circuitBreakerInitialized = true;
+    console.log('Circuit breakers initialized');
+  }
+
   async initializeStage(config: StageConfig): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('Joining stage with enterprise-grade orchestration:', config.stageId);
+
+      // Initialize circuit breakers first
+      await this.initializeCircuitBreakers();
 
       // Create security context
       if (config.enableSecurity) {
@@ -31,7 +51,7 @@ export class StageConnectionManager {
         });
       }
 
-      // Join signaling with circuit breaker protection
+      // Join signaling with circuit breaker protection and fallback
       const signalingSuccess = await CircuitBreakerService.getInstance().execute(
         'signaling-service',
         () => StageSignalingService.joinStage(config.stageId, config.userId),
@@ -47,7 +67,18 @@ export class StageConnectionManager {
 
     } catch (error) {
       console.error('Failed to join stage:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      
+      // Provide more specific error messages
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key')) {
+          errorMessage = 'Session already exists. Please try force reconnecting to clean up the previous session.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -78,8 +109,15 @@ export class StageConnectionManager {
   }
 
   private async fallbackSignaling(stageId: string, userId: string): Promise<boolean> {
-    console.log('Using fallback signaling mechanism');
-    return false;
+    console.log('Using fallback signaling mechanism - attempting direct connection');
+    
+    try {
+      // Simplified fallback - direct connection without circuit breaker
+      return await StageSignalingService.joinStage(stageId, userId);
+    } catch (error) {
+      console.error('Fallback signaling also failed:', error);
+      return false;
+    }
   }
 
   async switchAudioDevice(deviceId: string): Promise<void> {
@@ -91,6 +129,11 @@ export class StageConnectionManager {
   }
 
   async validateAccess(userId: string, resource: string): Promise<boolean> {
-    return await ZeroTrustSecurityService.getInstance().validateAccess(userId, resource);
+    try {
+      return await ZeroTrustSecurityService.getInstance().validateAccess(userId, resource);
+    } catch (error) {
+      console.error('Access validation failed:', error);
+      return false; // Fail secure
+    }
   }
 }
