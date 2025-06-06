@@ -22,6 +22,8 @@ interface StageRoomContentProps {
   switchVideoDevice: (deviceId: string) => void;
   localStream?: MediaStream | null;
   remoteStreams?: Map<string, MediaStream>;
+  connectionQuality?: 'excellent' | 'good' | 'fair' | 'poor';
+  participantCount?: number;
 }
 
 export const StageRoomContent: React.FC<StageRoomContentProps> = ({
@@ -38,7 +40,9 @@ export const StageRoomContent: React.FC<StageRoomContentProps> = ({
   switchAudioDevice,
   switchVideoDevice,
   localStream,
-  remoteStreams = new Map()
+  remoteStreams = new Map(),
+  connectionQuality = 'fair',
+  participantCount = 0
 }) => {
   const getHeaderStatus = (connectionState: string): "disconnected" | "connecting" | "connected" => {
     if (connectionState === 'reconnecting') return 'connecting';
@@ -62,7 +66,7 @@ export const StageRoomContent: React.FC<StageRoomContentProps> = ({
 
       <StageHeader
         status={getHeaderStatus(state.connectionState)}
-        participantCount={participants.length + 1}
+        participantCount={participantCount}
         onLeave={onLeave}
       />
       
@@ -147,22 +151,22 @@ export const StageRoomContent: React.FC<StageRoomContentProps> = ({
         onEndStage={userRole === 'speaker' ? onEndStage : undefined}
         onRaiseHand={userRole === 'audience' ? onRaiseHand : undefined}
         onStartScreenShare={userRole === 'speaker' ? onStartScreenShare : undefined}
-        connectionQuality={state.networkQuality.quality}
+        connectionQuality={connectionQuality}
         audioDevices={convertToMediaDeviceInfo(state.mediaState.devices.audio)}
         videoDevices={convertToMediaDeviceInfo(state.mediaState.devices.video)}
         onAudioDeviceChange={switchAudioDevice}
         onVideoDeviceChange={switchVideoDevice}
         networkStats={{
-          ping: state.networkQuality.ping,
-          bandwidth: state.networkQuality.bandwidth,
-          participantCount: state.participantCount
+          ping: state.networkQuality?.ping || 0,
+          bandwidth: state.networkQuality?.bandwidth || 0,
+          participantCount: participantCount
         }}
       />
       
       <StageConnectionStatus
         connectionState={state.connectionState}
         networkQuality={state.networkQuality}
-        participantCount={state.participantCount}
+        participantCount={participantCount}
       />
     </div>
   );

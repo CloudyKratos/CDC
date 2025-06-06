@@ -10,6 +10,7 @@ interface StageChatProps {
   isOpen: boolean;
   onToggle: () => void;
   participantCount: number;
+  connectionState?: 'connected' | 'disconnected' | 'connecting' | 'reconnecting';
 }
 
 export const StageChat: React.FC<StageChatProps> = ({
@@ -17,7 +18,8 @@ export const StageChat: React.FC<StageChatProps> = ({
   onSendMessage,
   isOpen,
   onToggle,
-  participantCount
+  participantCount,
+  connectionState = 'connected'
 }) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,7 +34,7 @@ export const StageChat: React.FC<StageChatProps> = ({
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim()) {
+    if (newMessage.trim() && connectionState === 'connected') {
       onSendMessage(newMessage.trim());
       setNewMessage('');
     }
@@ -43,6 +45,20 @@ export const StageChat: React.FC<StageChatProps> = ({
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const getConnectionIndicator = () => {
+    switch (connectionState) {
+      case 'connected':
+        return <div className="w-2 h-2 bg-green-400 rounded-full" />;
+      case 'connecting':
+      case 'reconnecting':
+        return <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />;
+      case 'disconnected':
+        return <div className="w-2 h-2 bg-red-400 rounded-full" />;
+      default:
+        return <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />;
+    }
   };
 
   return (
@@ -63,13 +79,27 @@ export const StageChat: React.FC<StageChatProps> = ({
         {isOpen ? (
           <X className="w-4 h-4 text-white/60 hover:text-white" />
         ) : (
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+          getConnectionIndicator()
         )}
       </div>
 
       {/* Chat Content */}
       {isOpen && (
         <>
+          {/* Connection Status */}
+          {connectionState !== 'connected' && (
+            <div className="px-3 py-2 bg-yellow-500/10 border-b border-white/10">
+              <div className="flex items-center gap-2 text-yellow-400 text-xs">
+                {getConnectionIndicator()}
+                <span>
+                  {connectionState === 'connecting' && 'Connecting...'}
+                  {connectionState === 'reconnecting' && 'Reconnecting...'}
+                  {connectionState === 'disconnected' && 'Disconnected'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 h-64">
             {messages.length === 0 ? (
@@ -101,13 +131,14 @@ export const StageChat: React.FC<StageChatProps> = ({
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:border-blue-400"
+                placeholder={connectionState === 'connected' ? "Type a message..." : "Chat unavailable"}
+                disabled={connectionState !== 'connected'}
+                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 maxLength={500}
               />
               <button
                 type="submit"
-                disabled={!newMessage.trim()}
+                disabled={!newMessage.trim() || connectionState !== 'connected'}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-white/10 disabled:text-white/40 text-white p-2 rounded-lg transition-colors"
               >
                 <Send className="w-4 h-4" />

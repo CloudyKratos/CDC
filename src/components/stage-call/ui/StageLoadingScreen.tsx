@@ -4,9 +4,15 @@ import { StageHeader } from './StageHeader';
 
 interface StageLoadingScreenProps {
   onLeave: () => void;
+  message?: string;
+  showProgress?: boolean;
 }
 
-export const StageLoadingScreen: React.FC<StageLoadingScreenProps> = ({ onLeave }) => {
+export const StageLoadingScreen: React.FC<StageLoadingScreenProps> = ({ 
+  onLeave, 
+  message = "Joining Stage",
+  showProgress = false 
+}) => {
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
       {/* Animated background for loading */}
@@ -31,29 +37,30 @@ export const StageLoadingScreen: React.FC<StageLoadingScreenProps> = ({ onLeave 
           </div>
           
           <div className="space-y-3">
-            <h2 className="text-white text-2xl font-bold">Joining Stage</h2>
+            <h2 className="text-white text-2xl font-bold">{message}</h2>
             <p className="text-white/80 text-base">Setting up your secure connection...</p>
           </div>
           
-          {/* Enhanced loading steps */}
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-center gap-3 text-white/70">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span>🎤 Checking microphone access</span>
+          {showProgress && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-center gap-3 text-white/70">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>🎤 Checking microphone access</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-white/70">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-300"></div>
+                <span>📹 Configuring video stream</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-white/70">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-500"></div>
+                <span>🔐 Establishing secure connection</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-white/70">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse delay-700"></div>
+                <span>⚡ Optimizing audio quality</span>
+              </div>
             </div>
-            <div className="flex items-center justify-center gap-3 text-white/70">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-300"></div>
-              <span>📹 Configuring video stream</span>
-            </div>
-            <div className="flex items-center justify-center gap-3 text-white/70">
-              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-500"></div>
-              <span>🔐 Establishing secure connection</span>
-            </div>
-            <div className="flex items-center justify-center gap-3 text-white/70">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse delay-700"></div>
-              <span>⚡ Optimizing audio quality</span>
-            </div>
-          </div>
+          )}
           
           {/* Connection tips */}
           <div className="mt-8 p-4 bg-black/20 rounded-lg border border-white/10">
