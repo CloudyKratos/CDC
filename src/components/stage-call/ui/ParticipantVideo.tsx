@@ -1,12 +1,12 @@
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { Mic, MicOff, Video, VideoOff, Hand, Crown, Volume2 } from 'lucide-react';
 import { StageParticipant } from '@/services/core/types/StageTypes';
 import { cn } from '@/lib/utils';
 
 interface ParticipantVideoProps {
   participant: StageParticipant;
-  stream?: MediaStream;
+  stream?: MediaStream | null;
   isLocal?: boolean;
   isActiveSpeaker?: boolean;
   className?: string;
@@ -19,9 +19,9 @@ export const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
   isActiveSpeaker = false,
   className
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
@@ -32,17 +32,22 @@ export const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
       case 'moderator':
         return <Crown className="w-3 h-3 text-yellow-400" />;
       case 'speaker':
-        return <Mic className="w-3 h-3 text-blue-400" />;
+        return <Volume2 className="w-3 h-3 text-blue-400" />;
       default:
         return null;
     }
   };
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   return (
     <div className={cn(
-      "relative rounded-lg overflow-hidden bg-gray-900",
-      isActiveSpeaker && "ring-2 ring-blue-400",
-      participant.isSpeaking && "ring-2 ring-green-400 animate-pulse",
+      "relative bg-gray-900 rounded-lg overflow-hidden border-2 transition-all duration-200",
+      isActiveSpeaker && "border-green-400 shadow-lg shadow-green-400/20",
+      participant.isSpeaking && "border-blue-400 shadow-lg shadow-blue-400/20",
+      !isActiveSpeaker && !participant.isSpeaking && "border-white/10",
       className
     )}>
       {/* Video Element */}
@@ -50,85 +55,68 @@ export const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
         <video
           ref={videoRef}
           autoPlay
-          playsInline
           muted={isLocal}
+          playsInline
           className="w-full h-full object-cover"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-2 mx-auto">
-              <span className="text-white text-xl font-semibold">
-                {participant.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <p className="text-white text-sm font-medium">{participant.name}</p>
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+            {getInitials(participant.name)}
           </div>
         </div>
       )}
 
-      {/* Status Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Top Status Bar */}
-        <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
-          <div className="flex items-center gap-1 bg-black/60 rounded px-2 py-1">
-            {getRoleIcon()}
-            <span className="text-white text-xs font-medium">{participant.name}</span>
-            {isLocal && <span className="text-blue-400 text-xs">(You)</span>}
+      {/* Overlay with participant info */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+      
+      {/* Top indicators */}
+      <div className="absolute top-2 left-2 flex items-center gap-1">
+        {getRoleIcon()}
+        {participant.isHandRaised && (
+          <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+            <Hand className="w-3 h-3 text-white" />
+          </div>
+        )}
+      </div>
+
+      {/* Speaking indicator */}
+      {participant.isSpeaking && (
+        <div className="absolute top-2 right-2">
+          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg" />
+        </div>
+      )}
+
+      {/* Bottom info */}
+      <div className="absolute bottom-0 left-0 right-0 p-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <span className="text-white text-sm font-medium truncate max-w-[120px]">
+              {participant.name}
+              {isLocal && " (You)"}
+            </span>
           </div>
           
-          {participant.isHandRaised && (
-            <div className="bg-orange-500 rounded-full p-1 animate-bounce">
-              <Hand className="w-3 h-3 text-white" />
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Status Bar */}
-        <div className="absolute bottom-2 left-2 right-2 flex justify-between items-end">
           <div className="flex items-center gap-1">
-            {/* Audio Status */}
-            <div className={cn(
-              "p-1 rounded",
-              participant.isAudioEnabled ? "bg-green-600/80" : "bg-red-600/80"
-            )}>
-              {participant.isAudioEnabled ? (
-                <Mic className="w-3 h-3 text-white" />
-              ) : (
-                <MicOff className="w-3 h-3 text-white" />
-              )}
-            </div>
-
-            {/* Video Status */}
-            <div className={cn(
-              "p-1 rounded",
-              participant.isVideoEnabled ? "bg-green-600/80" : "bg-red-600/80"
-            )}>
-              {participant.isVideoEnabled ? (
-                <Video className="w-3 h-3 text-white" />
-              ) : (
-                <VideoOff className="w-3 h-3 text-white" />
-              )}
-            </div>
+            {participant.isAudioEnabled ? (
+              <Mic className="w-4 h-4 text-white" />
+            ) : (
+              <MicOff className="w-4 h-4 text-red-400" />
+            )}
+            
+            {!participant.isVideoEnabled && (
+              <VideoOff className="w-4 h-4 text-red-400" />
+            )}
           </div>
-
-          {/* Audio Level Indicator */}
-          {participant.isSpeaking && (
-            <div className="bg-green-600/80 rounded px-2 py-1 flex items-center gap-1">
-              <Volume2 className="w-3 h-3 text-white" />
-              <div className="flex gap-0.5">
-                {[1, 2, 3].map(i => (
-                  <div
-                    key={i}
-                    className="w-1 h-3 bg-white rounded animate-pulse"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Local video indicator */}
+      {isLocal && (
+        <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+          You
+        </div>
+      )}
     </div>
   );
 };

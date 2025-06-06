@@ -2,46 +2,29 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  PhoneOff, 
-  Hand, 
-  UserX, 
-  Settings, 
-  Monitor,
-  Camera,
-  Volume2,
-  Wifi
+  Mic, MicOff, Video, VideoOff, PhoneOff, Hand, UserX, 
+  Monitor, MonitorOff, Settings, Users, MessageCircle,
+  MoreVertical, Volume2, VolumeX
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface EnhancedStageControlsProps {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
-  userRole: 'speaker' | 'audience';
-  onToggleAudio: () => void;
-  onToggleVideo: () => void;
+  userRole: 'speaker' | 'audience' | 'moderator';
+  onToggleAudio: () => Promise<void>;
+  onToggleVideo: () => Promise<void>;
   onLeave: () => void;
   onEndStage?: () => void;
   onRaiseHand?: () => void;
   onStartScreenShare?: () => void;
-  onSwitchCamera?: () => void;
   isHandRaised?: boolean;
   isScreenSharing?: boolean;
   connectionQuality?: 'excellent' | 'good' | 'fair' | 'poor';
@@ -66,7 +49,6 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
   onEndStage,
   onRaiseHand,
   onStartScreenShare,
-  onSwitchCamera,
   isHandRaised = false,
   isScreenSharing = false,
   connectionQuality = 'good',
@@ -76,155 +58,145 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
   onVideoDeviceChange,
   networkStats
 }) => {
-  const [showSettings, setShowSettings] = useState(false);
-  const canSpeak = userRole === 'speaker';
+  const [showDeviceSettings, setShowDeviceSettings] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const getConnectionColor = () => {
+  const canSpeak = userRole === 'speaker' || userRole === 'moderator';
+  const canModerate = userRole === 'moderator';
+
+  const getQualityColor = () => {
     switch (connectionQuality) {
       case 'excellent': return 'text-green-400';
-      case 'good': return 'text-green-400';
+      case 'good': return 'text-blue-400';
       case 'fair': return 'text-yellow-400';
       case 'poor': return 'text-red-400';
       default: return 'text-gray-400';
     }
   };
 
+  const handleToggleAudio = async () => {
+    await onToggleAudio();
+  };
+
+  const handleToggleVideo = async () => {
+    await onToggleVideo();
+  };
+
   return (
-    <div className="p-4 bg-black/20 backdrop-blur-sm border-t border-white/10">
-      <div className="flex items-center justify-between">
-        {/* Connection Quality Indicator */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Wifi className={cn("h-4 w-4", getConnectionColor())} />
-            <span className={cn("text-xs", getConnectionColor())}>
-              {connectionQuality}
+    <div className="relative">
+      {/* Network Stats Overlay */}
+      {networkStats && (
+        <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm rounded-lg px-4 py-2 text-xs text-white/80 border border-white/10">
+          <div className="flex items-center gap-4">
+            <span className={getQualityColor()}>
+              ● {connectionQuality.toUpperCase()}
             </span>
+            <span>{networkStats.ping}ms</span>
+            <span>{Math.round(networkStats.bandwidth)}kbps</span>
+            <span>{networkStats.participantCount} participants</span>
           </div>
-          
-          {networkStats && (
-            <div className="text-xs text-white/70 space-y-1">
-              <div>Ping: {networkStats.ping.toFixed(0)}ms</div>
-              <div>Bandwidth: {(networkStats.bandwidth / 1000).toFixed(1)}Mbps</div>
-              <div>Participants: {networkStats.participantCount}</div>
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Main Controls */}
-        <div className="flex items-center gap-4">
-          {/* Audio Control with Device Selector */}
-          <DropdownMenu>
-            <div className="flex items-center gap-1">
-              <Button
-                onClick={onToggleAudio}
-                disabled={!canSpeak}
-                size="lg"
-                className={cn(
-                  "rounded-full w-12 h-12 p-0 transition-all duration-200",
-                  isAudioEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600 text-white shadow-lg" 
-                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg",
-                  !canSpeak && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                {isAudioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-              </Button>
-              
-              {audioDevices.length > 1 && (
+      <div className="p-6 bg-black/40 backdrop-blur-md border-t border-white/10">
+        <div className="flex items-center justify-center gap-3">
+          {/* Audio Control */}
+          <div className="relative">
+            <Button
+              onClick={handleToggleAudio}
+              disabled={!canSpeak}
+              size="lg"
+              className={cn(
+                "rounded-full w-14 h-14 p-0 transition-all duration-200",
+                isAudioEnabled 
+                  ? "bg-gray-700/80 hover:bg-gray-600 text-white" 
+                  : "bg-red-600/90 hover:bg-red-700 text-white",
+                !canSpeak && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isAudioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+            </Button>
+            
+            {/* Audio device selector */}
+            {canSpeak && audioDevices.length > 0 && (
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 text-white hover:bg-white/20 transition-colors"
+                    className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-blue-600 hover:bg-blue-700 rounded-full"
                   >
                     <Settings className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-              )}
-            </div>
-            
-            <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
-              {audioDevices.map((device) => (
-                <DropdownMenuItem
-                  key={device.deviceId}
-                  onClick={() => onAudioDeviceChange?.(device.deviceId)}
-                  className="hover:bg-gray-700 cursor-pointer"
-                >
-                  <Volume2 className="h-4 w-4 mr-2" />
-                  {device.label || 'Unknown Device'}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuContent align="center" className="w-56">
+                  {audioDevices.map((device) => (
+                    <DropdownMenuItem 
+                      key={device.deviceId}
+                      onClick={() => onAudioDeviceChange?.(device.deviceId)}
+                    >
+                      <Mic className="mr-2 h-4 w-4" />
+                      {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
-          {/* Video Control with Device Selector */}
-          <DropdownMenu>
-            <div className="flex items-center gap-1">
-              <Button
-                onClick={onToggleVideo}
-                size="lg"
-                className={cn(
-                  "rounded-full w-12 h-12 p-0 transition-all duration-200",
-                  isVideoEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600 text-white shadow-lg" 
-                    : "bg-red-600 hover:bg-red-700 text-white shadow-lg"
-                )}
-              >
-                {isVideoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-              </Button>
-              
-              {videoDevices.length > 1 && (
+          {/* Video Control */}
+          <div className="relative">
+            <Button
+              onClick={handleToggleVideo}
+              size="lg"
+              className={cn(
+                "rounded-full w-14 h-14 p-0 transition-all duration-200",
+                isVideoEnabled 
+                  ? "bg-gray-700/80 hover:bg-gray-600 text-white" 
+                  : "bg-red-600/90 hover:bg-red-700 text-white"
+              )}
+            >
+              {isVideoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
+            </Button>
+
+            {/* Video device selector */}
+            {videoDevices.length > 0 && (
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 text-white hover:bg-white/20 transition-colors"
+                    className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-blue-600 hover:bg-blue-700 rounded-full"
                   >
                     <Settings className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-              )}
-            </div>
-            
-            <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
-              {videoDevices.map((device) => (
-                <DropdownMenuItem
-                  key={device.deviceId}
-                  onClick={() => onVideoDeviceChange?.(device.deviceId)}
-                  className="hover:bg-gray-700 cursor-pointer"
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  {device.label || 'Unknown Device'}
-                </DropdownMenuItem>
-              ))}
-              {onSwitchCamera && (
-                <>
-                  <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuItem
-                    onClick={onSwitchCamera}
-                    className="hover:bg-gray-700 cursor-pointer"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Switch Camera
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuContent align="center" className="w-56">
+                  {videoDevices.map((device) => (
+                    <DropdownMenuItem 
+                      key={device.deviceId}
+                      onClick={() => onVideoDeviceChange?.(device.deviceId)}
+                    >
+                      <Video className="mr-2 h-4 w-4" />
+                      {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
-          {/* Screen Share */}
+          {/* Screen Share (for speakers) */}
           {canSpeak && onStartScreenShare && (
             <Button
               onClick={onStartScreenShare}
               size="lg"
               className={cn(
-                "rounded-full w-12 h-12 p-0 transition-all duration-200",
-                isScreenSharing
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg animate-pulse"
-                  : "bg-gray-700 hover:bg-gray-600 text-white shadow-lg"
+                "rounded-full w-14 h-14 p-0 transition-all duration-200",
+                isScreenSharing 
+                  ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                  : "bg-gray-700/80 hover:bg-gray-600 text-white"
               )}
             >
-              <Monitor className="h-6 w-6" />
+              {isScreenSharing ? <MonitorOff className="h-6 w-6" /> : <Monitor className="h-6 w-6" />}
             </Button>
           )}
 
@@ -234,138 +206,84 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
               onClick={onRaiseHand}
               size="lg"
               className={cn(
-                "rounded-full w-12 h-12 p-0 transition-all duration-200",
+                "rounded-full w-14 h-14 p-0 transition-all duration-200",
                 isHandRaised 
-                  ? "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg animate-bounce" 
-                  : "bg-gray-700 hover:bg-gray-600 text-white shadow-lg"
+                  ? "bg-yellow-600 hover:bg-yellow-700 text-white animate-pulse" 
+                  : "bg-gray-700/80 hover:bg-gray-600 text-white"
               )}
             >
               <Hand className="h-6 w-6" />
             </Button>
           )}
 
-          {/* Advanced Settings Dialog */}
-          <Dialog open={showSettings} onOpenChange={setShowSettings}>
-            <DialogTrigger asChild>
+          {/* Speaker Volume Control */}
+          <Button
+            onClick={() => setIsMuted(!isMuted)}
+            size="lg"
+            className={cn(
+              "rounded-full w-14 h-14 p-0 transition-all duration-200",
+              isMuted 
+                ? "bg-red-600/90 hover:bg-red-700 text-white" 
+                : "bg-gray-700/80 hover:bg-gray-600 text-white"
+            )}
+          >
+            {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+          </Button>
+
+          {/* More Options */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 size="lg"
-                className="rounded-full w-12 h-12 p-0 bg-gray-700 hover:bg-gray-600 text-white shadow-lg transition-all duration-200"
+                className="rounded-full w-14 h-14 p-0 bg-gray-700/80 hover:bg-gray-600 text-white"
               >
-                <Settings className="h-6 w-6" />
+                <MoreVertical className="h-6 w-6" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Advanced Stage Settings</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6">
-                {/* Audio Devices Section */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-3 text-blue-400">Audio Devices</h4>
-                  <div className="space-y-2">
-                    {audioDevices.map((device) => (
-                      <div key={device.deviceId} className="flex items-center justify-between p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Volume2 className="h-5 w-5 text-blue-400" />
-                          <span className="text-sm font-medium">{device.label || 'Unknown Device'}</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onAudioDeviceChange?.(device.deviceId)}
-                          className="bg-blue-600 hover:bg-blue-700 border-blue-500"
-                        >
-                          Select
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Video Devices Section */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-3 text-green-400">Video Devices</h4>
-                  <div className="space-y-2">
-                    {videoDevices.map((device) => (
-                      <div key={device.deviceId} className="flex items-center justify-between p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Camera className="h-5 w-5 text-green-400" />
-                          <span className="text-sm font-medium">{device.label || 'Unknown Device'}</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onVideoDeviceChange?.(device.deviceId)}
-                          className="bg-green-600 hover:bg-green-700 border-green-500"
-                        >
-                          Select
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem>
+                <Users className="mr-2 h-4 w-4" />
+                Participants
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {canModerate && onEndStage && (
+                <DropdownMenuItem onClick={onEndStage} className="text-red-400">
+                  <UserX className="mr-2 h-4 w-4" />
+                  End Stage
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                {/* Network Quality Section */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-3 text-purple-400">Network Quality</h4>
-                  <div className="p-4 rounded-lg bg-gray-700 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Wifi className={cn("h-5 w-5", getConnectionColor())} />
-                      <span className="text-sm font-medium capitalize">{connectionQuality} Connection</span>
-                    </div>
-                    {networkStats && (
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-400">{networkStats.ping.toFixed(0)}</div>
-                          <div className="text-gray-400">Ping (ms)</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-400">{(networkStats.bandwidth / 1000).toFixed(1)}</div>
-                          <div className="text-gray-400">Bandwidth (Mbps)</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-purple-400">{networkStats.participantCount}</div>
-                          <div className="text-gray-400">Participants</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* End Stage (for moderators) */}
-          {onEndStage && (
-            <Button
-              onClick={onEndStage}
-              size="lg"
-              className="rounded-full w-12 h-12 p-0 bg-orange-600 hover:bg-orange-700 text-white shadow-lg transition-all duration-200"
-            >
-              <UserX className="h-6 w-6" />
-            </Button>
-          )}
-
-          {/* Leave Stage */}
+          {/* Leave Button */}
           <Button
             onClick={onLeave}
             size="lg"
-            className="rounded-full w-12 h-12 p-0 bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all duration-200 hover:scale-105"
+            className="rounded-full w-14 h-14 p-0 bg-red-600 hover:bg-red-700 text-white ml-6"
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
         </div>
 
-        {/* Role Indicator */}
-        <div className="flex items-center gap-2">
-          <span className={cn(
-            "text-xs px-3 py-1 rounded-full font-medium transition-all duration-200",
-            userRole === 'speaker' 
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-lg" 
-              : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-          )}>
-            {userRole === 'speaker' ? '🎤 Speaker' : '👥 Audience'}
-          </span>
+        {/* Connection Quality Indicator */}
+        <div className="flex items-center justify-center mt-4">
+          <div className="flex items-center gap-2 text-xs text-white/60">
+            <div className={cn("w-2 h-2 rounded-full", 
+              connectionQuality === 'excellent' && "bg-green-400",
+              connectionQuality === 'good' && "bg-blue-400",
+              connectionQuality === 'fair' && "bg-yellow-400",
+              connectionQuality === 'poor' && "bg-red-400"
+            )} />
+            <span className="capitalize">{connectionQuality} connection</span>
+          </div>
         </div>
       </div>
     </div>

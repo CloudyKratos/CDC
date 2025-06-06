@@ -1,176 +1,133 @@
 
-import React, { useRef, useEffect } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mic, MicOff, Video, VideoOff } from 'lucide-react';
-
-interface Participant {
-  id: string;
-  name: string;
-  role: string;
-  isAudioEnabled: boolean;
-  isVideoEnabled: boolean;
-  avatarUrl?: string;
-  stream?: MediaStream;
-  connectionState?: RTCPeerConnectionState;
-}
+import React from 'react';
+import { ParticipantVideo } from './ParticipantVideo';
+import { StageParticipant } from '@/services/core/types/StageTypes';
+import { cn } from '@/lib/utils';
+import { Users, Crown, Volume2 } from 'lucide-react';
 
 interface ParticipantGridProps {
-  participants: Participant[];
-  localStream: MediaStream | null;
-  userRole: string;
-  isVideoEnabled: boolean;
-  isAudioEnabled: boolean;
+  participants: StageParticipant[];
+  localStream?: MediaStream | null;
+  remoteStreams?: Map<string, MediaStream>;
+  currentUserId?: string;
+  userRole?: 'speaker' | 'audience' | 'moderator';
+  onPromoteToSpeaker?: (participantId: string) => void;
+  className?: string;
 }
 
 export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   participants,
   localStream,
+  remoteStreams = new Map(),
+  currentUserId,
   userRole,
-  isVideoEnabled,
-  isAudioEnabled
+  onPromoteToSpeaker,
+  className
 }) => {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-
-  // Set up local video stream
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
-  const RemoteParticipantVideo: React.FC<{ participant: Participant }> = ({ participant }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-
-    useEffect(() => {
-      if (videoRef.current && participant.stream) {
-        videoRef.current.srcObject = participant.stream;
-      }
-    }, [participant.stream]);
-
-    return (
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className="w-full h-full object-cover"
-      />
-    );
+  // Separate participants by role
+  const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
+  const audience = participants.filter(p => p.role === 'audience');
+  
+  // Add local participant
+  const localParticipant: StageParticipant = {
+    id: 'local',
+    name: 'You',
+    role: userRole || 'audience',
+    isAudioEnabled: true, // This should come from actual state
+    isVideoEnabled: true, // This should come from actual state
+    isHandRaised: false,
+    isSpeaking: false
   };
 
-  const renderParticipantTile = (participant: Participant, isLocal = false) => (
-    <div
-      key={participant.id}
-      className="relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-white/10"
-    >
-      {/* Video/Avatar Display */}
-      <div className="aspect-video w-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-        {participant.isVideoEnabled || (isLocal && isVideoEnabled) ? (
-          isLocal ? (
-            <video
-              ref={localVideoRef}
-              className="w-full h-full object-cover"
-              autoPlay
-              muted
-              playsInline
-            />
-          ) : (
-            <RemoteParticipantVideo participant={participant} />
-          )
-        ) : (
-          <Avatar className="w-16 h-16">
-            <AvatarImage src={participant.avatarUrl} />
-            <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-lg">
-              {participant.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        )}
-      </div>
+  const getGridLayout = (count: number) => {
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-1 md:grid-cols-2';
+    if (count <= 4) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2';
+    if (count <= 6) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+    return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  };
 
-      {/* Participant Info Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-medium text-sm truncate">
-              {participant.name} {isLocal && '(You)'}
-            </span>
-            {participant.role === 'speaker' && (
-              <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
-                Speaker
-              </span>
-            )}
-            {participant.connectionState && !isLocal && (
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                participant.connectionState === 'connected' ? 'bg-green-500/20 text-green-400' :
-                participant.connectionState === 'connecting' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-red-500/20 text-red-400'
-              }`}>
-                {participant.connectionState}
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-1">
-            {(participant.isAudioEnabled && !isLocal) || (isLocal && isAudioEnabled) ? (
-              <Mic className="h-4 w-4 text-green-400" />
-            ) : (
-              <MicOff className="h-4 w-4 text-red-400" />
-            )}
-            {!(participant.isVideoEnabled || (isLocal && isVideoEnabled)) && (
-              <VideoOff className="h-4 w-4 text-red-400" />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Speaking Indicator */}
-      {(participant.isAudioEnabled && !isLocal) || (isLocal && isAudioEnabled) && (
-        <div className="absolute inset-0 border-2 border-green-400 rounded-xl animate-pulse pointer-events-none" />
-      )}
-
-      {/* Connection Quality Indicator */}
-      {!isLocal && participant.connectionState && (
-        <div className="absolute top-2 right-2">
-          <div className={`w-3 h-3 rounded-full ${
-            participant.connectionState === 'connected' ? 'bg-green-400' :
-            participant.connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
-            'bg-red-400'
-          }`}></div>
-        </div>
-      )}
-    </div>
-  );
-
-  const allParticipants = [
-    {
-      id: 'local',
-      name: 'You',
-      role: userRole,
-      isAudioEnabled,
-      isVideoEnabled,
-      avatarUrl: undefined
-    },
-    ...participants
-  ];
-
-  const getGridColumns = (count: number) => {
-    if (count <= 2) return 'grid-cols-1 md:grid-cols-2';
-    if (count <= 4) return 'grid-cols-2 md:grid-cols-2';
-    if (count <= 6) return 'grid-cols-2 md:grid-cols-3';
-    return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+  const getAspectRatio = (count: number) => {
+    if (count === 1) return 'aspect-video';
+    if (count <= 4) return 'aspect-video';
+    return 'aspect-square';
   };
 
   return (
-    <div className="flex-1 p-6 overflow-auto">
-      <div className={`grid gap-4 h-full ${getGridColumns(allParticipants.length)}`}>
-        {allParticipants.map((participant, index) => 
-          renderParticipantTile(participant, index === 0)
-        )}
+    <div className={cn("flex flex-col h-full gap-4", className)}>
+      {/* Speakers Section - Main Stage */}
+      {speakers.length > 0 && (
+        <div className="flex-1">
+          <div className="mb-2 flex items-center gap-2 text-white/80 text-sm">
+            <Volume2 className="w-4 h-4" />
+            <span>Speakers ({speakers.length})</span>
+          </div>
+          
+          <div className={cn(
+            "grid gap-3 h-full",
+            getGridLayout(speakers.length)
+          )}>
+            {speakers.map(participant => (
+              <ParticipantVideo
+                key={participant.id}
+                participant={participant}
+                stream={remoteStreams.get(participant.id)}
+                isActiveSpeaker={participant.isSpeaking}
+                className={getAspectRatio(speakers.length)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Local User + Audience Section */}
+      <div className="h-48 border-t border-white/10 pt-4">
+        <div className="mb-2 flex items-center gap-2 text-white/80 text-sm">
+          <Users className="w-4 h-4" />
+          <span>Participants ({audience.length + 1})</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 h-full">
+          {/* Local Video */}
+          <ParticipantVideo
+            participant={localParticipant}
+            stream={localStream}
+            isLocal={true}
+            className="aspect-video"
+          />
+
+          {/* Audience Members */}
+          {audience.map(participant => (
+            <div key={participant.id} className="relative group">
+              <ParticipantVideo
+                participant={participant}
+                stream={remoteStreams.get(participant.id)}
+                className="aspect-video"
+              />
+              
+              {/* Promote to Speaker Button (for moderators) */}
+              {userRole === 'moderator' && onPromoteToSpeaker && (
+                <button
+                  onClick={() => onPromoteToSpeaker(participant.id)}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 hover:bg-blue-700 text-white p-1 rounded text-xs flex items-center gap-1"
+                >
+                  <Crown className="w-3 h-3" />
+                  Promote
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      
-      {/* Debug info */}
-      {participants.length > 0 && (
-        <div className="absolute bottom-20 left-4 text-xs text-white/50">
-          Remote participants: {participants.length}
+
+      {/* Empty State */}
+      {participants.length === 0 && (
+        <div className="flex-1 flex items-center justify-center text-white/60">
+          <div className="text-center">
+            <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-semibold mb-2">Welcome to the Stage!</h3>
+            <p>You're the first one here. Others will join soon.</p>
+          </div>
         </div>
       )}
     </div>
