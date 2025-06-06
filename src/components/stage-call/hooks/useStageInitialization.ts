@@ -38,15 +38,11 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
           description: 'Setting up audio, video and real-time features'
         });
 
-        // Clean up any existing sessions first
-        await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, user.id);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Enhanced cleanup with multiple attempts
+        await performCleanupWithRetry(stageId, user.id);
 
-        // Initialize WebRTC first
-        const stream = await WebRTCStageService.initializeMedia({
-          audio: true,
-          video: true
-        });
+        // Initialize WebRTC first with error handling
+        const stream = await initializeMediaWithFallback();
         setLocalStream(stream);
 
         // Set up WebRTC event handlers
@@ -54,32 +50,13 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
           setRemoteStreams(prev => new Map(prev.set(userId, stream)));
         });
 
-        // Join real-time stage with retry logic
-        let joined = false;
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        while (!joined && retryCount < maxRetries) {
-          try {
-            joined = await RealTimeStageService.joinStage(stageId, user.id, 'audience');
-            if (!joined) {
-              throw new Error('Failed to join real-time stage');
-            }
-          } catch (error: any) {
-            retryCount++;
-            console.warn(`Join attempt ${retryCount} failed:`, error);
-            
-            if (error?.message?.includes('duplicate key') && retryCount < maxRetries) {
-              console.log('Duplicate key detected, cleaning up and retrying...');
-              await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, user.id);
-              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Exponential backoff
-            } else if (retryCount >= maxRetries) {
-              throw error;
-            }
-          }
+        // Enhanced join logic with exponential backoff
+        const joined = await joinStageWithRetry(stageId, user.id);
+        if (!joined) {
+          throw new Error('Failed to join real-time stage after all retry attempts');
         }
 
-        // Initialize stage orchestrator
+        // Initialize stage orchestrator with enhanced config
         const result = await initializeStage({
           stageId,
           userId: user.id,
@@ -92,7 +69,9 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
             maxBitrate: 2500000,
             adaptiveStreaming: true,
             lowLatencyMode: true
-          }
+          },
+          enableSecurity: true,
+          enableCompliance: true
         });
 
         if (!result.success) {
@@ -100,26 +79,21 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
         }
 
         toast.success('Connected to stage!', {
-          description: 'All features are now active'
+          description: 'All features are now active',
+          duration: 3000
         });
       } catch (error) {
         console.error('Failed to initialize stage room:', error);
         
-        let errorMessage = 'Please try again';
-        if (error instanceof Error) {
-          if (error.message.includes('duplicate key')) {
-            errorMessage = 'Session conflict detected. Please try force reconnecting.';
-          } else {
-            errorMessage = error.message;
-          }
-        }
+        const errorMessage = getErrorMessage(error);
         
         toast.error('Connection failed', {
           description: errorMessage,
           action: {
             label: 'Retry',
             onClick: () => initializeStageRoom()
-          }
+          },
+          duration: 5000
         });
       } finally {
         setIsJoining(false);
@@ -133,6 +107,103 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
     };
   }, [stageId, user]);
 
+  const performCleanupWithRetry = async (stageId: string, userId: string, maxAttempts = 3) => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`Cleanup attempt ${attempt}/${maxAttempts}`);
+        await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, userId);
+        
+        // Wait longer between attempts
+        const delay = Math.min(1000 * attempt, 3000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        console.log(`Cleanup attempt ${attempt} completed`);
+        break;
+      } catch (error) {
+        console.warn(`Cleanup attempt ${attempt} failed:`, error);
+        if (attempt === maxAttempts) {
+          console.warn('All cleanup attempts failed, proceeding anyway...');
+        }
+      }
+    }
+  };
+
+  const initializeMediaWithFallback = async (): Promise<MediaStream> => {
+    try {
+      // Try with full video/audio first
+      return await WebRTCStageService.initializeMedia({
+        audio: true,
+        video: { width: 1280, height: 720, frameRate: 30 }
+      });
+    } catch (error) {
+      console.warn('Failed to initialize with high quality, trying fallback:', error);
+      
+      try {
+        // Fallback to basic video/audio
+        return await WebRTCStageService.initializeMedia({
+          audio: true,
+          video: true
+        });
+      } catch (fallbackError) {
+        console.warn('Failed to initialize with video, trying audio only:', fallbackError);
+        
+        // Final fallback to audio only
+        return await WebRTCStageService.initializeMedia({
+          audio: true,
+          video: false
+        });
+      }
+    }
+  };
+
+  const joinStageWithRetry = async (stageId: string, userId: string, maxRetries = 3): Promise<boolean> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Join attempt ${attempt}/${maxRetries}`);
+        
+        const success = await RealTimeStageService.joinStage(stageId, userId, 'audience');
+        if (success) {
+          console.log(`Successfully joined on attempt ${attempt}`);
+          return true;
+        }
+        
+        throw new Error('Join returned false');
+      } catch (error: any) {
+        console.warn(`Join attempt ${attempt} failed:`, error);
+        
+        if (error?.message?.includes('duplicate key') && attempt < maxRetries) {
+          console.log('Duplicate key detected, performing additional cleanup...');
+          await performCleanupWithRetry(stageId, userId, 2);
+          
+          // Exponential backoff with jitter
+          const baseDelay = 2000 * Math.pow(2, attempt - 1);
+          const jitter = Math.random() * 1000;
+          await new Promise(resolve => setTimeout(resolve, baseDelay + jitter));
+        } else if (attempt >= maxRetries) {
+          console.error('All join attempts failed');
+          return false;
+        }
+      }
+    }
+    
+    return false;
+  };
+
+  const getErrorMessage = (error: any): string => {
+    if (error instanceof Error) {
+      if (error.message.includes('duplicate key')) {
+        return 'Session conflict detected. The system will automatically retry with cleanup.';
+      } else if (error.message.includes('Circuit breaker')) {
+        return 'Service temporarily unavailable. Please try again in a few moments.';
+      } else if (error.message.includes('Media access')) {
+        return 'Camera/microphone access denied. Please check your browser permissions.';
+      } else {
+        return error.message;
+      }
+    }
+    return 'An unexpected error occurred. Please try again.';
+  };
+
   const handleLeave = async () => {
     try {
       toast.info('Leaving stage...', { duration: 1000 });
@@ -144,11 +215,15 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
       WebRTCStageService.cleanup();
       await leaveStage();
       
+      // Clean up local state
+      setLocalStream(null);
+      setRemoteStreams(new Map());
+      
       toast.success('Left the stage', { duration: 2000 });
       onLeave();
     } catch (error) {
       console.error('Error leaving stage:', error);
-      toast.error('Error leaving stage');
+      toast.error('Error leaving stage, but you have been disconnected');
       onLeave();
     }
   };

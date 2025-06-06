@@ -8,12 +8,13 @@ import { ComplianceFrameworkService } from '../compliance/ComplianceFrameworkSer
 
 export class StageConnectionManager {
   private circuitBreakerInitialized = false;
+  private circuitBreakerService = CircuitBreakerService.getInstance();
 
   private async initializeCircuitBreakers(): Promise<void> {
     if (this.circuitBreakerInitialized) return;
 
-    // Create circuit breakers for critical services
-    CircuitBreakerService.createCircuit('signaling-service', {
+    // Create circuit breakers for critical services using the instance
+    this.circuitBreakerService.createCircuit('signaling-service', {
       failureThreshold: 3,
       recoveryTimeout: 30000,
       monitoringPeriod: 5000,
@@ -52,7 +53,7 @@ export class StageConnectionManager {
       }
 
       // Join signaling with circuit breaker protection and fallback
-      const signalingSuccess = await CircuitBreakerService.getInstance().execute(
+      const signalingSuccess = await this.circuitBreakerService.execute(
         'signaling-service',
         () => StageSignalingService.joinStage(config.stageId, config.userId),
         () => this.fallbackSignaling(config.stageId, config.userId)
