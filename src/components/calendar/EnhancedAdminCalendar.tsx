@@ -247,6 +247,10 @@ export const EnhancedAdminCalendar: React.FC = () => {
     }
   };
 
+  // Fixed accessor functions for react-big-calendar
+  const startAccessor = (event: CalendarEvent) => event.start;
+  const endAccessor = (event: CalendarEvent) => event.end;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -409,8 +413,8 @@ export const EnhancedAdminCalendar: React.FC = () => {
               <Calendar
                 localizer={localizer}
                 events={filteredEvents}
-                startAccessor="start"
-                endAccessor="end"
+                startAccessor={startAccessor}
+                endAccessor={endAccessor}
                 style={{ height: 600 }}
                 view={view}
                 onView={setView}
