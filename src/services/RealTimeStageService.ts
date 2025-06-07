@@ -132,16 +132,16 @@ class RealTimeStageService {
     }
   }
 
-  getConnectedUsers(): any[] {
+  getConnectedUsers(): StagePresence[] {
     if (!this.currentChannel) return [];
     
     const presenceState = this.currentChannel.presenceState();
-    const users: any[] = [];
+    const users: StagePresence[] = [];
     
     Object.values(presenceState).forEach((presence: any) => {
       if (Array.isArray(presence)) {
-        users.push(...presence);
-      } else {
+        users.push(...presence.filter(p => this.isValidPresence(p)));
+      } else if (this.isValidPresence(presence)) {
         users.push(presence);
       }
     });
@@ -149,20 +149,35 @@ class RealTimeStageService {
     return users;
   }
 
-  updatePresence(updates: Partial<StagePresence>): Promise<'ok' | 'error' | 'timed_out'> {
+  private isValidPresence(presence: any): presence is StagePresence {
+    return presence && 
+           typeof presence.userId === 'string' &&
+           typeof presence.userName === 'string' &&
+           typeof presence.role === 'string' &&
+           typeof presence.isAudioEnabled === 'boolean' &&
+           typeof presence.isVideoEnabled === 'boolean' &&
+           typeof presence.joinedAt === 'string';
+  }
+
+  async updatePresence(updates: Partial<StagePresence>): Promise<'ok' | 'error' | 'timed_out'> {
     if (!this.currentChannel || !this.isConnected) {
-      return Promise.resolve('error');
+      return 'error';
     }
 
     const currentPresence = this.currentChannel.presenceState();
     const myPresence = Object.values(currentPresence)[0] as StagePresence[];
     
-    if (myPresence && myPresence[0]) {
+    if (myPresence && myPresence[0] && this.isValidPresence(myPresence[0])) {
       const updatedPresence = { ...myPresence[0], ...updates };
-      return this.currentChannel.track(updatedPresence);
+      const result = await this.currentChannel.track(updatedPresence);
+      
+      // Map the response to the expected return type
+      if (result === 'ok') return 'ok';
+      if (result === 'timed out') return 'timed_out';
+      return 'error';
     }
     
-    return Promise.resolve('error');
+    return 'error';
   }
 
   isConnectedToStage(): boolean {

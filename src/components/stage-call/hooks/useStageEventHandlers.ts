@@ -1,14 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import RealTimeStageService from '@/services/RealTimeStageService';
-
-interface ChatMessage {
-  id: string;
-  userId: string;
-  userName: string;
-  message: string;
-  timestamp: Date;
-}
+import { ChatMessage } from '@/services/core/types/StageTypes';
 
 export const useStageEventHandlers = () => {
   const [participants, setParticipants] = useState<any[]>([]);

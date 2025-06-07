@@ -22,6 +22,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface NetworkStats {
+  ping: number;
+  bandwidth: number;
+  participantCount: number;
+}
+
 interface EnhancedStageControlsProps {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
@@ -38,6 +44,7 @@ interface EnhancedStageControlsProps {
   videoDevices?: MediaDeviceInfo[];
   onAudioDeviceChange?: (deviceId: string) => void;
   onVideoDeviceChange?: (deviceId: string) => void;
+  networkStats?: NetworkStats;
 }
 
 export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
@@ -55,7 +62,8 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
   audioDevices = [],
   videoDevices = [],
   onAudioDeviceChange,
-  onVideoDeviceChange
+  onVideoDeviceChange,
+  networkStats
 }) => {
   const [isHandRaised, setIsHandRaised] = useState(false);
 
@@ -90,6 +98,11 @@ export const EnhancedStageControls: React.FC<EnhancedStageControlsProps> = ({
             <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
             <span className="text-xs font-medium capitalize">{connectionQuality}</span>
           </div>
+          {networkStats && (
+            <div className="text-xs text-white/60">
+              {networkStats.ping}ms • {networkStats.participantCount} users
+            </div>
+          )}
         </div>
 
         {/* Center: Main Controls */}
