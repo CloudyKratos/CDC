@@ -1,19 +1,21 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { StageParticipant, ChatMessage } from '@/services/core/types/StageTypes';
+import { supabase } from "@/integrations/supabase/client";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
-interface StageEvent {
-  type: 'recording_started' | 'recording_stopped' | 'stage_ended' | 'user_promoted' | 'user_demoted';
-  data?: any;
-  timestamp: string;
+interface StagePresence {
+  userId: string;
+  userName: string;
+  role: 'speaker' | 'audience' | 'moderator';
+  isAudioEnabled: boolean;
+  isVideoEnabled: boolean;
+  joinedAt: string;
 }
 
 class RealTimeStageService {
   private static instance: RealTimeStageService;
-  private channel: RealtimeChannel | null = null;
-  private stageId: string | null = null;
-  private userId: string | null = null;
+  private currentChannel: RealtimeChannel | null = null;
+  private currentStageId: string | null = null;
+  private isConnected = false;
 
   static getInstance(): RealTimeStageService {
     if (!RealTimeStageService.instance) {
@@ -22,242 +24,159 @@ class RealTimeStageService {
     return RealTimeStageService.instance;
   }
 
-  async joinStage(stageId: string, userId: string, role: 'speaker' | 'audience' | 'moderator'): Promise<boolean> {
+  async joinStage(
+    stageId: string, 
+    userId: string, 
+    role: 'speaker' | 'audience' | 'moderator' = 'audience'
+  ): Promise<boolean> {
     try {
-      this.stageId = stageId;
-      this.userId = userId;
+      console.log('Joining real-time stage:', { stageId, userId, role });
 
-      // Create channel for this stage
-      this.channel = supabase.channel(`stage-realtime-${stageId}`, {
-        config: {
-          broadcast: { self: false },
-          presence: { key: userId }
-        }
-      });
-
-      // Track user presence
-      await this.channel.track({
-        user_id: userId,
-        role,
-        joined_at: new Date().toISOString(),
-        is_speaking: false,
-        is_hand_raised: false
-      });
-
-      await this.channel.subscribe();
-      
-      // Insert participant record
-      const { error } = await supabase
-        .from('stage_participants')
-        .insert({
-          stage_id: stageId,
-          user_id: userId,
-          role,
-          joined_at: new Date().toISOString()
-        });
-
-      if (error && !error.message.includes('duplicate key')) {
-        throw error;
+      // Leave existing channel if any
+      if (this.currentChannel) {
+        await this.leaveStage(userId);
       }
 
+      // Create new channel
+      this.currentChannel = supabase.channel(`stage-realtime-${stageId}`, {
+        config: {
+          presence: {
+            key: userId,
+          },
+        },
+      });
+
+      // Set up presence tracking
+      const presenceData: StagePresence = {
+        userId,
+        userName: 'User', // This would come from user profile
+        role,
+        isAudioEnabled: role !== 'audience',
+        isVideoEnabled: false,
+        joinedAt: new Date().toISOString(),
+      };
+
+      // Subscribe to the channel first, then track presence
+      const subscriptionPromise = new Promise<boolean>((resolve, reject) => {
+        if (!this.currentChannel) {
+          reject(new Error('Channel not available'));
+          return;
+        }
+
+        this.currentChannel.subscribe(async (status) => {
+          console.log('Channel subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            try {
+              // Now that we're subscribed, we can track our presence
+              const trackResult = await this.currentChannel!.track(presenceData);
+              console.log('Presence track result:', trackResult);
+              
+              this.isConnected = true;
+              this.currentStageId = stageId;
+              resolve(true);
+            } catch (error) {
+              console.error('Error tracking presence:', error);
+              reject(error);
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            reject(new Error(`Subscription failed with status: ${status}`));
+          }
+        });
+      });
+
+      // Set up event listeners
+      this.currentChannel
+        .on('presence', { event: 'sync' }, () => {
+          console.log('Presence sync');
+        })
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          console.log('User joined:', key, newPresences);
+        })
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          console.log('User left:', key, leftPresences);
+        });
+
+      // Wait for subscription to complete
+      await subscriptionPromise;
       return true;
+
     } catch (error) {
       console.error('Failed to join stage:', error);
+      this.cleanup();
       return false;
     }
   }
 
   async leaveStage(userId: string): Promise<void> {
     try {
-      if (this.channel) {
-        await this.channel.untrack();
-        await this.channel.unsubscribe();
-        this.channel = null;
+      console.log('Leaving real-time stage:', userId);
+
+      if (this.currentChannel) {
+        // Untrack presence first
+        await this.currentChannel.untrack();
+        
+        // Unsubscribe from channel
+        await this.currentChannel.unsubscribe();
+        
+        // Remove the channel
+        supabase.removeChannel(this.currentChannel);
       }
 
-      // Update participant record
-      if (this.stageId) {
-        await supabase
-          .from('stage_participants')
-          .update({ left_at: new Date().toISOString() })
-          .eq('stage_id', this.stageId)
-          .eq('user_id', userId);
-      }
-
-      this.stageId = null;
-      this.userId = null;
+      this.cleanup();
+      console.log('Successfully left real-time stage');
     } catch (error) {
       console.error('Error leaving stage:', error);
+      // Force cleanup even if there's an error
+      this.cleanup();
     }
   }
 
-  async sendChatMessage(userId: string, userName: string, message: string): Promise<void> {
-    if (!this.channel || !this.stageId) return;
-
-    const chatMessage: ChatMessage = {
-      id: `${userId}-${Date.now()}`,
-      message,
-      userId,
-      userName,
-      timestamp: new Date().toISOString(),
-      type: 'text'
-    };
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'chat_message',
-      payload: chatMessage
-    });
-
-    // Store in community_messages table as a workaround since stage_chat_messages doesn't exist
-    try {
-      const { data: channels } = await supabase
-        .from('channels')
-        .select('id')
-        .eq('name', `stage-${this.stageId}`)
-        .single();
-
-      if (channels) {
-        await supabase
-          .from('community_messages')
-          .insert({
-            channel_id: channels.id,
-            sender_id: userId,
-            content: message,
-            created_at: new Date().toISOString()
-          });
+  getConnectedUsers(): any[] {
+    if (!this.currentChannel) return [];
+    
+    const presenceState = this.currentChannel.presenceState();
+    const users: any[] = [];
+    
+    Object.values(presenceState).forEach((presence: any) => {
+      if (Array.isArray(presence)) {
+        users.push(...presence);
+      } else {
+        users.push(presence);
       }
-    } catch (error) {
-      console.warn('Failed to store chat message:', error);
+    });
+    
+    return users;
+  }
+
+  updatePresence(updates: Partial<StagePresence>): Promise<'ok' | 'error' | 'timed_out'> {
+    if (!this.currentChannel || !this.isConnected) {
+      return Promise.resolve('error');
     }
+
+    const currentPresence = this.currentChannel.presenceState();
+    const myPresence = Object.values(currentPresence)[0] as StagePresence[];
+    
+    if (myPresence && myPresence[0]) {
+      const updatedPresence = { ...myPresence[0], ...updates };
+      return this.currentChannel.track(updatedPresence);
+    }
+    
+    return Promise.resolve('error');
   }
 
-  async toggleMute(userId: string, isMuted: boolean): Promise<void> {
-    if (!this.channel) return;
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'participant_update',
-      payload: {
-        userId,
-        updates: { isAudioEnabled: !isMuted }
-      }
-    });
+  isConnectedToStage(): boolean {
+    return this.isConnected && this.currentChannel !== null;
   }
 
-  async toggleVideo(userId: string, isVideoEnabled: boolean): Promise<void> {
-    if (!this.channel) return;
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'participant_update',
-      payload: {
-        userId,
-        updates: { isVideoEnabled }
-      }
-    });
+  getCurrentStageId(): string | null {
+    return this.currentStageId;
   }
 
-  async raiseHand(userId: string, isRaised: boolean): Promise<void> {
-    if (!this.channel) return;
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'participant_update',
-      payload: {
-        userId,
-        updates: { isHandRaised: isRaised }
-      }
-    });
-  }
-
-  async startRecording(): Promise<void> {
-    if (!this.channel || !this.stageId) return;
-
-    const event: StageEvent = {
-      type: 'recording_started',
-      timestamp: new Date().toISOString()
-    };
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'stage_event',
-      payload: event
-    });
-  }
-
-  async stopRecording(recordingUrl?: string): Promise<void> {
-    if (!this.channel) return;
-
-    const event: StageEvent = {
-      type: 'recording_stopped',
-      data: { url: recordingUrl },
-      timestamp: new Date().toISOString()
-    };
-
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'stage_event',
-      payload: event
-    });
-  }
-
-  onParticipantUpdate(callback: (participant: Partial<StageParticipant>) => void): () => void {
-    if (!this.channel) return () => {};
-
-    const subscription = this.channel.on('broadcast', { event: 'participant_update' }, ({ payload }) => {
-      callback(payload);
-    });
-
-    return () => {
-      if (this.channel) {
-        this.channel.unsubscribe();
-      }
-    };
-  }
-
-  onParticipantLeft(callback: (userId: string) => void): () => void {
-    if (!this.channel) return () => {};
-
-    const subscription = this.channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-      leftPresences.forEach((presence: any) => {
-        callback(presence.user_id);
-      });
-    });
-
-    return () => {
-      if (this.channel) {
-        this.channel.unsubscribe();
-      }
-    };
-  }
-
-  onChatMessage(callback: (message: ChatMessage) => void): () => void {
-    if (!this.channel) return () => {};
-
-    const subscription = this.channel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
-      callback(payload);
-    });
-
-    return () => {
-      if (this.channel) {
-        this.channel.unsubscribe();
-      }
-    };
-  }
-
-  onStageEvent(callback: (event: StageEvent) => void): () => void {
-    if (!this.channel) return () => {};
-
-    const subscription = this.channel.on('broadcast', { event: 'stage_event' }, ({ payload }) => {
-      callback(payload);
-    });
-
-    return () => {
-      if (this.channel) {
-        this.channel.unsubscribe();
-      }
-    };
+  private cleanup(): void {
+    this.currentChannel = null;
+    this.currentStageId = null;
+    this.isConnected = false;
   }
 }
 

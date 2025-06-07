@@ -50,7 +50,7 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
           setRemoteStreams(prev => new Map(prev.set(userId, stream)));
         });
 
-        // Enhanced join logic with exponential backoff
+        // Enhanced join logic with proper subscription
         const joined = await joinStageWithRetry(stageId, user.id);
         if (!joined) {
           throw new Error('Failed to join real-time stage after all retry attempts');
@@ -161,6 +161,7 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
       try {
         console.log(`Join attempt ${attempt}/${maxRetries}`);
         
+        // Use the proper real-time service with fixed subscription timing
         const success = await RealTimeStageService.joinStage(stageId, userId, 'audience');
         if (success) {
           console.log(`Successfully joined on attempt ${attempt}`);

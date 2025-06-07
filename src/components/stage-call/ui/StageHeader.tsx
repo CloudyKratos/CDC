@@ -2,10 +2,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Users, Wifi, WifiOff } from 'lucide-react';
+import { X, Users, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 
 interface StageHeaderProps {
-  status: 'connecting' | 'connected' | 'disconnected';
+  status: 'connected' | 'connecting' | 'disconnected';
   participantCount: number;
   onLeave: () => void;
 }
@@ -15,55 +15,70 @@ export const StageHeader: React.FC<StageHeaderProps> = ({
   participantCount,
   onLeave
 }) => {
-  const getStatusBadge = () => {
+  const getStatusIcon = () => {
     switch (status) {
       case 'connected':
-        return (
-          <Badge variant="default" className="bg-green-500 text-white gap-2">
-            <Wifi className="h-3 w-3" />
-            Connected
-          </Badge>
-        );
+        return <Wifi className="w-4 h-4 text-green-400" />;
       case 'connecting':
-        return (
-          <Badge variant="secondary" className="gap-2">
-            <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse" />
-            Connecting...
-          </Badge>
-        );
+        return <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />;
+      case 'disconnected':
+        return <WifiOff className="w-4 h-4 text-red-400" />;
       default:
-        return (
-          <Badge variant="destructive" className="gap-2">
-            <WifiOff className="h-3 w-3" />
-            Disconnected
-          </Badge>
-        );
+        return <AlertCircle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getStatusText = () => {
+    switch (status) {
+      case 'connected':
+        return 'Connected';
+      case 'connecting':
+        return 'Connecting...';
+      case 'disconnected':
+        return 'Disconnected';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'connected':
+        return 'bg-green-500/20 text-green-300 border-green-500/30';
+      case 'connecting':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'disconnected':
+        return 'bg-red-500/20 text-red-300 border-red-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
 
   return (
     <div className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm border-b border-white/10">
       <div className="flex items-center gap-4">
-        <h1 className="text-white text-xl font-semibold">Stage Call</h1>
-        {getStatusBadge()}
-      </div>
-      
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-white/80">
-          <Users className="h-4 w-4" />
-          <span className="text-sm">{participantCount} participant{participantCount !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2">
+          {getStatusIcon()}
+          <Badge variant="outline" className={getStatusColor()}>
+            {getStatusText()}
+          </Badge>
         </div>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onLeave}
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Leave
-        </Button>
+        <div className="flex items-center gap-2 text-white/80">
+          <Users className="w-4 h-4" />
+          <span className="text-sm font-medium">{participantCount} participants</span>
+        </div>
       </div>
+
+      <Button
+        onClick={onLeave}
+        variant="destructive"
+        size="sm"
+        className="bg-red-600 hover:bg-red-700"
+      >
+        <X className="w-4 h-4 mr-2" />
+        Leave
+      </Button>
     </div>
   );
 };
