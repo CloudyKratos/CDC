@@ -100,7 +100,7 @@ class RealTimeStageService {
       userId,
       userName,
       timestamp: new Date().toISOString(),
-      type: 'user'
+      type: 'text'
     };
 
     await this.channel.send({
@@ -109,15 +109,27 @@ class RealTimeStageService {
       payload: chatMessage
     });
 
-    // Store in database for persistence
-    await supabase
-      .from('stage_chat_messages')
-      .insert({
-        stage_id: this.stageId,
-        user_id: userId,
-        message,
-        created_at: new Date().toISOString()
-      });
+    // Store in community_messages table as a workaround since stage_chat_messages doesn't exist
+    try {
+      const { data: channels } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('name', `stage-${this.stageId}`)
+        .single();
+
+      if (channels) {
+        await supabase
+          .from('community_messages')
+          .insert({
+            channel_id: channels.id,
+            sender_id: userId,
+            content: message,
+            created_at: new Date().toISOString()
+          });
+      }
+    } catch (error) {
+      console.warn('Failed to store chat message:', error);
+    }
   }
 
   async toggleMute(userId: string, isMuted: boolean): Promise<void> {
@@ -193,13 +205,13 @@ class RealTimeStageService {
   onParticipantUpdate(callback: (participant: Partial<StageParticipant>) => void): () => void {
     if (!this.channel) return () => {};
 
-    this.channel.on('broadcast', { event: 'participant_update' }, ({ payload }) => {
+    const subscription = this.channel.on('broadcast', { event: 'participant_update' }, ({ payload }) => {
       callback(payload);
     });
 
     return () => {
       if (this.channel) {
-        this.channel.off('broadcast', { event: 'participant_update' });
+        this.channel.unsubscribe();
       }
     };
   }
@@ -207,7 +219,7 @@ class RealTimeStageService {
   onParticipantLeft(callback: (userId: string) => void): () => void {
     if (!this.channel) return () => {};
 
-    this.channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+    const subscription = this.channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
       leftPresences.forEach((presence: any) => {
         callback(presence.user_id);
       });
@@ -215,7 +227,7 @@ class RealTimeStageService {
 
     return () => {
       if (this.channel) {
-        this.channel.off('presence', { event: 'leave' });
+        this.channel.unsubscribe();
       }
     };
   }
@@ -223,13 +235,13 @@ class RealTimeStageService {
   onChatMessage(callback: (message: ChatMessage) => void): () => void {
     if (!this.channel) return () => {};
 
-    this.channel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+    const subscription = this.channel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
       callback(payload);
     });
 
     return () => {
       if (this.channel) {
-        this.channel.off('broadcast', { event: 'chat_message' });
+        this.channel.unsubscribe();
       }
     };
   }
@@ -237,13 +249,13 @@ class RealTimeStageService {
   onStageEvent(callback: (event: StageEvent) => void): () => void {
     if (!this.channel) return () => {};
 
-    this.channel.on('broadcast', { event: 'stage_event' }, ({ payload }) => {
+    const subscription = this.channel.on('broadcast', { event: 'stage_event' }, ({ payload }) => {
       callback(payload);
     });
 
     return () => {
       if (this.channel) {
-        this.channel.off('broadcast', { event: 'stage_event' });
+        this.channel.unsubscribe();
       }
     };
   }

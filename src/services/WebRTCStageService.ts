@@ -10,6 +10,7 @@ interface WebRTCEventHandlers {
   onRemoteStream?: (userId: string, stream: MediaStream) => void;
   onConnectionStateChange?: (userId: string, state: RTCPeerConnectionState) => void;
   onUserDisconnected?: (userId: string) => void;
+  remoteStream?: (userId: string, stream: MediaStream) => void;
 }
 
 class WebRTCStageService {
@@ -41,6 +42,7 @@ class WebRTCStageService {
       RefactoredStageWebRTCService.onRemoteStream((userId, remoteStream) => {
         this.remoteStreams.set(userId, remoteStream);
         this.eventHandlers.onRemoteStream?.(userId, remoteStream);
+        this.eventHandlers.remoteStream?.(userId, remoteStream);
       });
 
       RefactoredStageWebRTCService.onConnectionStateChange((userId, state) => {

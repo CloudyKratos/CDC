@@ -111,6 +111,84 @@ class StageCleanupService {
       console.error('Failed to cleanup expired stages:', error);
     }
   }
+
+  async cleanupGhostParticipants(stageId: string): Promise<void> {
+    try {
+      console.log(`Cleaning up ghost participants for stage ${stageId}`);
+      
+      // Remove participants who joined more than 10 minutes ago but never updated
+      const { error } = await supabase
+        .from('stage_participants')
+        .delete()
+        .eq('stage_id', stageId)
+        .is('left_at', null)
+        .lt('joined_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
+
+      if (error) {
+        console.warn('Error cleaning up ghost participants:', error);
+      }
+    } catch (error) {
+      console.error('Ghost participant cleanup failed:', error);
+    }
+  }
+
+  async safeJoinStage(stageId: string, userId: string, role: 'speaker' | 'audience' | 'moderator'): Promise<{ success: boolean; error?: string }> {
+    try {
+      // First cleanup any existing participation
+      await this.forceCleanupUserParticipation(stageId, userId);
+      
+      // Wait a moment for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Insert new participation record
+      const { error } = await supabase
+        .from('stage_participants')
+        .insert({
+          stage_id: stageId,
+          user_id: userId,
+          role,
+          joined_at: new Date().toISOString()
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Safe join failed:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Join failed' 
+      };
+    }
+  }
+
+  async cleanupCompletedStages(): Promise<void> {
+    try {
+      console.log('Cleaning up completed stages');
+      
+      // Find stages that ended more than 1 hour ago
+      const { data: completedStages } = await supabase
+        .from('stages')
+        .select('id')
+        .eq('status', 'ended')
+        .lt('end_time', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+      if (completedStages) {
+        for (const stage of completedStages) {
+          // Clean up any remaining participants
+          await supabase
+            .from('stage_participants')
+            .update({ left_at: new Date().toISOString() })
+            .eq('stage_id', stage.id)
+            .is('left_at', null);
+        }
+      }
+    } catch (error) {
+      console.error('Completed stage cleanup failed:', error);
+    }
+  }
 }
 
 export default StageCleanupService.getInstance();

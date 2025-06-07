@@ -6,16 +6,14 @@ export const cleanupStageResources = async (stageId: string, userId: string): Pr
   console.log('Cleaning up stage resources for:', { stageId, userId });
   
   try {
-    const cleanupService = StageCleanupService.getInstance();
-    
     // Force disconnect user from any existing sessions
-    await cleanupService.forceCleanupUserParticipation(stageId, userId);
+    await StageCleanupService.forceCleanupUserParticipation(stageId, userId);
     
     // Clean up ghost participants
-    await cleanupService.cleanupGhostParticipants(stageId);
+    await StageCleanupService.cleanupGhostParticipants(stageId);
     
     // Clean up completed stages
-    await cleanupService.cleanupCompletedStages();
+    await StageCleanupService.cleanupCompletedStages();
     
     console.log('Stage resources cleaned up successfully');
   } catch (error) {
@@ -27,8 +25,7 @@ export const cleanupStageResources = async (stageId: string, userId: string): Pr
 export const cleanupCompletedCalls = async (): Promise<void> => {
   try {
     console.log('Cleaning up completed calls...');
-    const cleanupService = StageCleanupService.getInstance();
-    await cleanupService.cleanupCompletedStages();
+    await StageCleanupService.cleanupCompletedStages();
   } catch (error) {
     console.error('Error cleaning up completed calls:', error);
   }
@@ -62,8 +59,7 @@ export const destroyPeerConnections = (peerConnections: Map<string, any>): void 
 export const performPeriodicCleanup = async (): Promise<void> => {
   try {
     console.log('Performing periodic cleanup...');
-    const cleanupService = StageCleanupService.getInstance();
-    await cleanupService.cleanupCompletedStages();
+    await StageCleanupService.cleanupCompletedStages();
     console.log('Periodic cleanup completed');
   } catch (error) {
     console.error('Error in periodic cleanup:', error);

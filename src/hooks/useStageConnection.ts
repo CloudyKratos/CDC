@@ -23,8 +23,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   
   const { user } = useAuth();
-  const connectionService = useRef(StageConnectionService.getInstance());
-  const cleanupService = useRef(StageCleanupService.getInstance());
+  const connectionService = useRef(StageConnectionService);
   const retryCount = useRef(0);
   const maxRetries = 2; // Reduced retries
 
@@ -65,7 +64,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
       console.log('Attempting to connect to stage:', stageId);
       
       // Aggressive cleanup first
-      await cleanupService.current.forceCleanupUserParticipation(stageId, user.id);
+      await StageCleanupService.forceCleanupUserParticipation(stageId, user.id);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const result = await connectionService.current.connectToStage(stageId, user.id);
@@ -122,7 +121,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
       console.log('Force reconnecting to stage:', stageId);
       
       // Aggressive cleanup
-      await cleanupService.current.forceCleanupUserParticipation(stageId, user.id);
+      await StageCleanupService.forceCleanupUserParticipation(stageId, user.id);
       
       // Disconnect first
       await disconnect();
