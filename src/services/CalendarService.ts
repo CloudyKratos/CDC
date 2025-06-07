@@ -41,6 +41,7 @@ export interface EventComment {
 class CalendarService {
   async getEvents(): Promise<EnhancedEventData[]> {
     try {
+      console.log('Fetching events...');
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -51,78 +52,67 @@ class CalendarService {
         return [];
       }
 
+      console.log('Events fetched successfully:', data?.length || 0);
       return data || [];
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error('Error in getEvents:', error);
       return [];
-    }
-  }
-
-  async getEventsByWorkspaceId(workspaceId: string): Promise<EnhancedEventData[]> {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('start_time', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching events:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      return [];
-    }
-  }
-
-  async getEventWithStats(eventId: string) {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_event_with_stats', { event_id_param: eventId });
-
-      if (error) {
-        console.error('Error fetching event with stats:', error);
-        return null;
-      }
-
-      return data?.[0] || null;
-    } catch (error) {
-      console.error('Error fetching event with stats:', error);
-      return null;
     }
   }
 
   async createEvent(eventData: EnhancedEventData): Promise<EnhancedEventData | null> {
     try {
+      console.log('Creating event with data:', eventData);
+      
+      // Get current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        console.error('User not authenticated:', userError);
+        throw new Error('User not authenticated');
+      }
+
+      // Prepare event data without workspace_id to avoid RLS issues
+      const eventToCreate = {
+        title: eventData.title,
+        description: eventData.description || '',
+        start_time: eventData.start_time,
+        end_time: eventData.end_time,
+        event_type: eventData.event_type || 'mission_call',
+        status: eventData.status || 'scheduled',
+        visibility_level: eventData.visibility_level || 'public',
+        xp_reward: eventData.xp_reward || 10,
+        max_attendees: eventData.max_attendees,
+        is_recurring: eventData.is_recurring || false,
+        tags: eventData.tags || [],
+        meeting_url: eventData.meeting_url || '',
+        created_by: userData.user.id
+      };
+
+      console.log('Prepared event data:', eventToCreate);
+
       const { data, error } = await supabase
         .from('events')
-        .insert({
-          ...eventData,
-          event_type: eventData.event_type || 'mission_call',
-          status: eventData.status || 'scheduled',
-          visibility_level: eventData.visibility_level || 'public',
-          xp_reward: eventData.xp_reward || 10
-        })
+        .insert(eventToCreate)
         .select()
         .single();
 
       if (error) {
         console.error('Error creating calendar event:', error);
-        return null;
+        throw error;
       }
 
+      console.log('Event created successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error creating calendar event:', error);
-      return null;
+      console.error('Error in createEvent:', error);
+      throw error;
     }
   }
 
   async updateEvent(id: string, updates: Partial<EnhancedEventData>): Promise<EnhancedEventData | null> {
     try {
+      console.log('Updating event:', id, updates);
+      
       const { data, error } = await supabase
         .from('events')
         .update(updates)
@@ -132,18 +122,21 @@ class CalendarService {
 
       if (error) {
         console.error('Error updating calendar event:', error);
-        return null;
+        throw error;
       }
 
+      console.log('Event updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error updating calendar event:', error);
-      return null;
+      console.error('Error in updateEvent:', error);
+      throw error;
     }
   }
 
   async deleteEvent(id: string): Promise<boolean> {
     try {
+      console.log('Deleting event:', id);
+      
       const { error } = await supabase
         .from('events')
         .delete()
@@ -151,24 +144,30 @@ class CalendarService {
 
       if (error) {
         console.error('Error deleting calendar event:', error);
-        return false;
+        throw error;
       }
 
+      console.log('Event deleted successfully');
       return true;
     } catch (error) {
-      console.error('Error deleting calendar event:', error);
-      return false;
+      console.error('Error in deleteEvent:', error);
+      throw error;
     }
   }
 
   // RSVP Management
   async createRSVP(eventId: string, status: 'going' | 'maybe' | 'not_going'): Promise<EventRSVP | null> {
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('event_rsvps')
         .upsert({
           event_id: eventId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userData.user.id,
           status
         }, {
           onConflict: 'event_id,user_id'
@@ -210,11 +209,16 @@ class CalendarService {
   // Comment Management
   async createComment(eventId: string, content: string, commentType: string = 'general'): Promise<EventComment | null> {
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('event_comments')
         .insert({
           event_id: eventId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userData.user.id,
           content,
           comment_type: commentType
         })
@@ -256,11 +260,16 @@ class CalendarService {
   // Attendance Management
   async recordAttendance(eventId: string): Promise<boolean> {
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('event_attendance')
         .insert({
           event_id: eventId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userData.user.id,
           joined_at: new Date().toISOString()
         });
 
@@ -278,14 +287,14 @@ class CalendarService {
 
   async endAttendance(eventId: string): Promise<boolean> {
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) return false;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) return false;
 
       const { data: attendance, error: fetchError } = await supabase
         .from('event_attendance')
         .select('*')
         .eq('event_id', eventId)
-        .eq('user_id', user.id)
+        .eq('user_id', userData.user.id)
         .is('left_at', null)
         .single();
 
@@ -369,12 +378,17 @@ class CalendarService {
 
   async createCohort(name: string, description?: string): Promise<any | null> {
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('cohorts')
         .insert({
           name,
           description,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: userData.user.id
         })
         .select()
         .single();

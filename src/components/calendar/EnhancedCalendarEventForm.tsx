@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, X, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { EventData } from '@/services/SupabaseService';
+import { toast } from 'sonner';
 
 interface EnhancedCalendarEventFormProps {
   event?: Partial<EventData>;
@@ -63,10 +64,10 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   });
 
   const [startDate, setStartDate] = useState<Date | undefined>(
-    event?.start_time ? new Date(event.start_time) : undefined
+    event?.start_time ? new Date(event.start_time) : new Date()
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    event?.end_time ? new Date(event.end_time) : undefined
+    event?.end_time ? new Date(event.end_time) : new Date()
   );
   const [startTime, setStartTime] = useState(
     event?.start_time ? format(new Date(event.start_time), 'HH:mm') : '09:00'
@@ -77,6 +78,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   const [newTag, setNewTag] = useState('');
 
   const handleInputChange = (field: keyof EventData, value: any) => {
+    console.log('Form field changed:', field, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -90,6 +92,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       const newDate = new Date(date);
       newDate.setHours(parseInt(hours), parseInt(minutes));
       
+      console.log('DateTime changed:', field, newDate.toISOString());
       handleInputChange(field, newDate.toISOString());
       
       if (field === 'start_time') {
@@ -111,14 +114,48 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     handleInputChange('tags', formData.tags?.filter(tag => tag !== tagToRemove) || []);
   };
 
+  const validateForm = (): boolean => {
+    if (!formData.title || !formData.title.trim()) {
+      toast.error('Event title is required');
+      return false;
+    }
+
+    if (!formData.start_time) {
+      toast.error('Start date and time are required');
+      return false;
+    }
+
+    if (!formData.end_time) {
+      toast.error('End date and time are required');
+      return false;
+    }
+
+    const startDateTime = new Date(formData.start_time);
+    const endDateTime = new Date(formData.end_time);
+
+    if (endDateTime <= startDateTime) {
+      toast.error('End time must be after start time');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.start_time || !formData.end_time) {
+    console.log('Form submission attempted with data:', formData);
+
+    if (!validateForm()) {
       return;
     }
 
-    onSubmit(formData as EventData);
+    try {
+      onSubmit(formData as EventData);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to submit form');
+    }
   };
 
   return (

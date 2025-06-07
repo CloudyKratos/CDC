@@ -53,13 +53,16 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   const loadEvents = async () => {
     try {
       setIsLoading(true);
+      console.log('Loading events...');
       const eventsData = await CalendarService.getEvents();
+      console.log('Events loaded:', eventsData);
       const formattedEvents = eventsData.map(event => ({
         ...event,
         start: new Date(event.start_time),
         end: new Date(event.end_time),
       }));
       setEvents(formattedEvents);
+      toast.success(`Loaded ${formattedEvents.length} events`);
     } catch (error) {
       console.error('Error loading events:', error);
       toast.error('Failed to load events');
@@ -70,6 +73,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
 
   const handleCreateEvent = async (eventData: EventData) => {
     try {
+      console.log('Creating event:', eventData);
       const createdEvent = await CalendarService.createEvent(eventData);
       if (createdEvent) {
         toast.success('Event created successfully');
@@ -88,6 +92,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
     if (!selectedEvent?.id) return;
     
     try {
+      console.log('Updating event:', selectedEvent.id, eventData);
       const updatedEvent = await CalendarService.updateEvent(selectedEvent.id, eventData);
       if (updatedEvent) {
         toast.success('Event updated successfully');
@@ -105,6 +110,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
+      console.log('Deleting event:', eventId);
       const success = await CalendarService.deleteEvent(eventId);
       if (success) {
         toast.success('Event deleted successfully');
@@ -210,25 +216,23 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
           </div>
 
           {/* Add Event Button */}
-          <RoleBasedComponent allowedRoles={['admin']}>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Event
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Event</DialogTitle>
-                </DialogHeader>
-                <EnhancedCalendarEventForm
-                  onSubmit={handleCreateEvent}
-                  onCancel={() => setIsCreateDialogOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
-          </RoleBasedComponent>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Event</DialogTitle>
+              </DialogHeader>
+              <EnhancedCalendarEventForm
+                onSubmit={handleCreateEvent}
+                onCancel={() => setIsCreateDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -246,9 +250,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
                       ? 'You have full calendar management access' 
                       : 'You can view calendar events'}
                 </p>
-                <p className="text-sm text-blue-600">
-                  Current role: <Badge className="ml-1 capitalize">{currentRole}</Badge>
-                </p>
+                <div className="text-sm text-blue-600 flex items-center gap-2">
+                  <span>Current role:</span>
+                  <Badge className="capitalize">{currentRole}</Badge>
+                </div>
               </div>
             </div>
             
@@ -339,38 +344,36 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
                   </Button>
                 )}
                 
-                <RoleBasedComponent allowedRoles={['admin']}>
-                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Edit Event</DialogTitle>
-                      </DialogHeader>
-                      <EnhancedCalendarEventForm
-                        event={selectedEvent}
-                        onSubmit={handleUpdateEvent}
-                        onCancel={() => setIsEditDialogOpen(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this event?')) {
-                        handleDeleteEvent(selectedEvent.id!);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </RoleBasedComponent>
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Edit Event</DialogTitle>
+                    </DialogHeader>
+                    <EnhancedCalendarEventForm
+                      event={selectedEvent}
+                      onSubmit={handleUpdateEvent}
+                      onCancel={() => setIsEditDialogOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this event?')) {
+                      handleDeleteEvent(selectedEvent.id!);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
               </div>
             </div>
           </DialogContent>
