@@ -107,8 +107,8 @@ class StageService {
 
   async cleanupGhostParticipants(stageId: string): Promise<boolean> {
     try {
-      const success = await this.cleanupService.cleanupGhostParticipants(stageId);
-      return success !== false; // Convert any non-false result to true
+      await this.cleanupService.cleanupGhostParticipants(stageId);
+      return true;
     } catch (error) {
       console.error('Error in cleanupGhostParticipants:', error);
       return false;
