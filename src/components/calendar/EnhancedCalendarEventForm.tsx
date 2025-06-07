@@ -1,18 +1,20 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, X, Plus, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { EventData } from '@/services/SupabaseService';
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { EventTypeSelector } from './form/EventTypeSelector';
+import { VisibilitySelector } from './form/VisibilitySelector';
+import { DateTimeSelector } from './form/DateTimeSelector';
+import { TagManager } from './form/TagManager';
+import { validateEventForm } from './form/FormValidation';
 
 interface EnhancedCalendarEventFormProps {
   event?: Partial<EventData>;
@@ -20,27 +22,6 @@ interface EnhancedCalendarEventFormProps {
   onCancel: () => void;
   isLoading?: boolean;
 }
-
-const EVENT_TYPES = [
-  { value: 'mission_call', label: 'Mission Call', description: 'Strategic planning session' },
-  { value: 'reflection_hour', label: 'Reflection Hour', description: 'Personal development time' },
-  { value: 'wisdom_drop', label: 'Wisdom Drop', description: 'Knowledge sharing session' },
-  { value: 'tribe_meetup', label: 'Tribe Meetup', description: 'Community gathering' },
-  { value: 'office_hours', label: 'Office Hours', description: 'Open Q&A session' },
-  { value: 'accountability_circle', label: 'Accountability Circle', description: 'Progress check-in' },
-  { value: 'solo_ritual', label: 'Solo Ritual', description: 'Individual practice time' },
-  { value: 'workshop', label: 'Workshop', description: 'Interactive learning session' },
-  { value: 'course_drop', label: 'Course Drop', description: 'New course announcement' },
-  { value: 'challenge_sprint', label: 'Challenge Sprint', description: 'Focused challenge session' },
-  { value: 'deep_work_day', label: 'Deep Work Day', description: 'Concentrated work session' }
-];
-
-const VISIBILITY_LEVELS = [
-  { value: 'public', label: 'Public', description: 'Visible to everyone' },
-  { value: 'members_only', label: 'Members Only', description: 'Only community members' },
-  { value: 'cohort_only', label: 'Cohort Only', description: 'Restricted to cohort' },
-  { value: 'private', label: 'Private', description: 'Only you can see this' }
-];
 
 const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   event,
@@ -75,7 +56,6 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   const [endTime, setEndTime] = useState(
     event?.end_time ? format(new Date(event.end_time), 'HH:mm') : '10:00'
   );
-  const [newTag, setNewTag] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleInputChange = (field: keyof EventData, value: any) => {
@@ -115,105 +95,17 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     }
   };
 
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
-      handleInputChange('tags', [...(formData.tags || []), newTag.trim()]);
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    handleInputChange('tags', formData.tags?.filter(tag => tag !== tagToRemove) || []);
-  };
-
-  const validateForm = (): boolean => {
-    console.log('🔍 Form: Validating form with data:', formData);
-    const errors: string[] = [];
-
-    // Required field validation
-    if (!formData.title || !formData.title.trim()) {
-      errors.push('Event title is required');
-    }
-
-    if (!formData.start_time) {
-      errors.push('Start date and time are required');
-    }
-
-    if (!formData.end_time) {
-      errors.push('End date and time are required');
-    }
-
-    // Date validation
-    if (formData.start_time && formData.end_time) {
-      const startDateTime = new Date(formData.start_time);
-      const endDateTime = new Date(formData.end_time);
-
-      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-        errors.push('Invalid date/time format');
-      } else {
-        if (endDateTime <= startDateTime) {
-          errors.push('End time must be after start time');
-        }
-
-        // Check if event is in the past (with 5 minute grace period)
-        const now = new Date();
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        if (startDateTime < fiveMinutesAgo && !event?.id) {
-          errors.push('Cannot create events in the past');
-        }
-
-        // Check duration
-        const durationHours = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
-        if (durationHours > 8) {
-          errors.push('Event duration cannot exceed 8 hours');
-        }
-        if (durationHours < 0.25) {
-          errors.push('Event must be at least 15 minutes long');
-        }
-      }
-    }
-
-    // Additional validation
-    if (formData.max_attendees && formData.max_attendees < 1) {
-      errors.push('Maximum attendees must be at least 1');
-    }
-
-    if (formData.xp_reward && (formData.xp_reward < 0 || formData.xp_reward > 100)) {
-      errors.push('XP reward must be between 0 and 100');
-    }
-
-    if (formData.meeting_url && formData.meeting_url.trim() && !isValidUrl(formData.meeting_url.trim())) {
-      errors.push('Please enter a valid meeting URL');
-    }
-
-    setValidationErrors(errors);
-
-    if (errors.length > 0) {
-      console.log('❌ Form: Validation errors:', errors);
-      errors.forEach(error => toast.error(error));
-      return false;
-    }
-
-    console.log('✅ Form: Validation passed');
-    return true;
-  };
-
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('🔄 Form: Submit attempt with data:', formData);
 
-    if (!validateForm()) {
+    const errors = validateEventForm(formData);
+    setValidationErrors(errors);
+
+    if (errors.length > 0) {
       console.log('❌ Form: Validation failed, aborting submit');
+      errors.forEach(error => toast.error(error));
       return;
     }
 
@@ -227,9 +119,6 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       toast.error(errorMessage);
     }
   };
-
-  const selectedEventType = EVENT_TYPES.find(type => type.value === formData.event_type);
-  const selectedVisibility = VISIBILITY_LEVELS.find(level => level.value === formData.visibility_level);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -259,30 +148,10 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="event_type">Event Type</Label>
-        <Select 
-          value={formData.event_type} 
-          onValueChange={(value) => handleInputChange('event_type', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select event type" />
-          </SelectTrigger>
-          <SelectContent>
-            {EVENT_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                <div>
-                  <div className="font-medium">{type.label}</div>
-                  <div className="text-sm text-gray-500">{type.description}</div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedEventType && (
-          <p className="text-sm text-gray-600">{selectedEventType.description}</p>
-        )}
-      </div>
+      <EventTypeSelector
+        value={formData.event_type || 'mission_call'}
+        onChange={(value) => handleInputChange('event_type', value)}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
@@ -297,73 +166,29 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Start Date & Time *</Label>
-          <div className="space-y-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP") : "Pick start date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={(date) => handleDateTimeChange('start_time', date, startTime)}
-                  initialFocus
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </PopoverContent>
-            </Popover>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => {
-                setStartTime(e.target.value);
-                handleDateTimeChange('start_time', startDate, e.target.value);
-              }}
-            />
-          </div>
-        </div>
+        <DateTimeSelector
+          label="Start Date & Time"
+          date={startDate}
+          time={startTime}
+          onDateChange={(date) => handleDateTimeChange('start_time', date, startTime)}
+          onTimeChange={(time) => {
+            setStartTime(time);
+            handleDateTimeChange('start_time', startDate, time);
+          }}
+          isRequired
+        />
 
-        <div className="space-y-2">
-          <Label>End Date & Time *</Label>
-          <div className="space-y-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : "Pick end date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={(date) => handleDateTimeChange('end_time', date, endTime)}
-                  initialFocus
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </PopoverContent>
-            </Popover>
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => {
-                setEndTime(e.target.value);
-                handleDateTimeChange('end_time', endDate, e.target.value);
-              }}
-            />
-          </div>
-        </div>
+        <DateTimeSelector
+          label="End Date & Time"
+          date={endDate}
+          time={endTime}
+          onDateChange={(date) => handleDateTimeChange('end_time', date, endTime)}
+          onTimeChange={(time) => {
+            setEndTime(time);
+            handleDateTimeChange('end_time', endDate, time);
+          }}
+          isRequired
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -393,30 +218,10 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="visibility_level">Visibility</Label>
-        <Select 
-          value={formData.visibility_level} 
-          onValueChange={(value) => handleInputChange('visibility_level', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select visibility level" />
-          </SelectTrigger>
-          <SelectContent>
-            {VISIBILITY_LEVELS.map((level) => (
-              <SelectItem key={level.value} value={level.value}>
-                <div>
-                  <div className="font-medium">{level.label}</div>
-                  <div className="text-sm text-gray-500">{level.description}</div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedVisibility && (
-          <p className="text-sm text-gray-600">{selectedVisibility.description}</p>
-        )}
-      </div>
+      <VisibilitySelector
+        value={formData.visibility_level || 'public'}
+        onChange={(value) => handleInputChange('visibility_level', value)}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="meeting_url">Meeting URL</Label>
@@ -429,32 +234,10 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Tags</Label>
-        <div className="flex gap-2 mb-2">
-          <Input
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Add a tag..."
-            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-            maxLength={20}
-          />
-          <Button type="button" onClick={addTag} variant="outline" size="sm">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {formData.tags?.map((tag) => (
-            <Badge key={tag} variant="secondary" className="gap-1">
-              {tag}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => removeTag(tag)} 
-              />
-            </Badge>
-          ))}
-        </div>
-      </div>
+      <TagManager
+        tags={formData.tags || []}
+        onTagsChange={(tags) => handleInputChange('tags', tags)}
+      />
 
       <div className="flex items-center space-x-2">
         <Switch
