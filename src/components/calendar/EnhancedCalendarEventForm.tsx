@@ -9,10 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, X, Plus } from 'lucide-react';
+import { CalendarIcon, X, Plus, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { EventData } from '@/services/SupabaseService';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EnhancedCalendarEventFormProps {
   event?: Partial<EventData>;
@@ -22,24 +23,24 @@ interface EnhancedCalendarEventFormProps {
 }
 
 const EVENT_TYPES = [
-  { value: 'mission_call', label: 'Mission Call' },
-  { value: 'reflection_hour', label: 'Reflection Hour' },
-  { value: 'wisdom_drop', label: 'Wisdom Drop' },
-  { value: 'tribe_meetup', label: 'Tribe Meetup' },
-  { value: 'office_hours', label: 'Office Hours' },
-  { value: 'accountability_circle', label: 'Accountability Circle' },
-  { value: 'solo_ritual', label: 'Solo Ritual' },
-  { value: 'workshop', label: 'Workshop' },
-  { value: 'course_drop', label: 'Course Drop' },
-  { value: 'challenge_sprint', label: 'Challenge Sprint' },
-  { value: 'deep_work_day', label: 'Deep Work Day' }
+  { value: 'mission_call', label: 'Mission Call', description: 'Strategic planning session' },
+  { value: 'reflection_hour', label: 'Reflection Hour', description: 'Personal development time' },
+  { value: 'wisdom_drop', label: 'Wisdom Drop', description: 'Knowledge sharing session' },
+  { value: 'tribe_meetup', label: 'Tribe Meetup', description: 'Community gathering' },
+  { value: 'office_hours', label: 'Office Hours', description: 'Open Q&A session' },
+  { value: 'accountability_circle', label: 'Accountability Circle', description: 'Progress check-in' },
+  { value: 'solo_ritual', label: 'Solo Ritual', description: 'Individual practice time' },
+  { value: 'workshop', label: 'Workshop', description: 'Interactive learning session' },
+  { value: 'course_drop', label: 'Course Drop', description: 'New course announcement' },
+  { value: 'challenge_sprint', label: 'Challenge Sprint', description: 'Focused challenge session' },
+  { value: 'deep_work_day', label: 'Deep Work Day', description: 'Concentrated work session' }
 ];
 
 const VISIBILITY_LEVELS = [
-  { value: 'public', label: 'Public' },
-  { value: 'members_only', label: 'Members Only' },
-  { value: 'cohort_only', label: 'Cohort Only' },
-  { value: 'private', label: 'Private' }
+  { value: 'public', label: 'Public', description: 'Visible to everyone' },
+  { value: 'members_only', label: 'Members Only', description: 'Only community members' },
+  { value: 'cohort_only', label: 'Cohort Only', description: 'Restricted to cohort' },
+  { value: 'private', label: 'Private', description: 'Only you can see this' }
 ];
 
 const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
@@ -76,6 +77,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     event?.end_time ? format(new Date(event.end_time), 'HH:mm') : '10:00'
   );
   const [newTag, setNewTag] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleInputChange = (field: keyof EventData, value: any) => {
     console.log('Form field changed:', field, value);
@@ -83,6 +85,11 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       ...prev,
       [field]: value
     }));
+    
+    // Clear validation errors when user makes changes
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
   };
 
   const handleDateTimeChange = (field: 'start_time' | 'end_time', date: Date | undefined, time?: string) => {
@@ -97,6 +104,12 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       
       if (field === 'start_time') {
         setStartDate(newDate);
+        // Auto-adjust end time to be 1 hour later if it's before start time
+        if (endDate && newDate >= endDate) {
+          const autoEndDate = new Date(newDate.getTime() + 60 * 60 * 1000);
+          setEndDate(autoEndDate);
+          handleInputChange('end_time', autoEndDate.toISOString());
+        }
       } else {
         setEndDate(newDate);
       }
@@ -116,36 +129,81 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
 
   const validateForm = (): boolean => {
     console.log('Validating form with data:', formData);
+    const errors: string[] = [];
 
+    // Required field validation
     if (!formData.title || !formData.title.trim()) {
-      toast.error('Event title is required');
-      return false;
+      errors.push('Event title is required');
     }
 
     if (!formData.start_time) {
-      toast.error('Start date and time are required');
-      return false;
+      errors.push('Start date and time are required');
     }
 
     if (!formData.end_time) {
-      toast.error('End date and time are required');
-      return false;
+      errors.push('End date and time are required');
     }
 
-    const startDateTime = new Date(formData.start_time);
-    const endDateTime = new Date(formData.end_time);
+    // Date validation
+    if (formData.start_time && formData.end_time) {
+      const startDateTime = new Date(formData.start_time);
+      const endDateTime = new Date(formData.end_time);
 
-    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-      toast.error('Invalid date/time format');
-      return false;
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        errors.push('Invalid date/time format');
+      } else {
+        if (endDateTime <= startDateTime) {
+          errors.push('End time must be after start time');
+        }
+
+        // Check if event is in the past (with 5 minute grace period)
+        const now = new Date();
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        if (startDateTime < fiveMinutesAgo && !event?.id) {
+          errors.push('Cannot create events in the past');
+        }
+
+        // Check duration
+        const durationHours = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
+        if (durationHours > 8) {
+          errors.push('Event duration cannot exceed 8 hours');
+        }
+        if (durationHours < 0.25) {
+          errors.push('Event must be at least 15 minutes long');
+        }
+      }
     }
 
-    if (endDateTime <= startDateTime) {
-      toast.error('End time must be after start time');
+    // Additional validation
+    if (formData.max_attendees && formData.max_attendees < 1) {
+      errors.push('Maximum attendees must be at least 1');
+    }
+
+    if (formData.xp_reward && (formData.xp_reward < 0 || formData.xp_reward > 100)) {
+      errors.push('XP reward must be between 0 and 100');
+    }
+
+    if (formData.meeting_url && formData.meeting_url.trim() && !isValidUrl(formData.meeting_url.trim())) {
+      errors.push('Please enter a valid meeting URL');
+    }
+
+    setValidationErrors(errors);
+
+    if (errors.length > 0) {
+      errors.forEach(error => toast.error(error));
       return false;
     }
 
     return true;
+  };
+
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,8 +224,25 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     }
   };
 
+  const selectedEventType = EVENT_TYPES.find(type => type.value === formData.event_type);
+  const selectedVisibility = VISIBILITY_LEVELS.find(level => level.value === formData.visibility_level);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {validationErrors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Please fix the following issues:
+            <ul className="list-disc list-inside mt-2">
+              {validationErrors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="title">Event Title *</Label>
         <Input
@@ -176,6 +251,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
           onChange={(e) => handleInputChange('title', e.target.value)}
           placeholder="Enter event title..."
           required
+          maxLength={100}
         />
       </div>
 
@@ -191,11 +267,17 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
           <SelectContent>
             {EVENT_TYPES.map((type) => (
               <SelectItem key={type.value} value={type.value}>
-                {type.label}
+                <div>
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-sm text-gray-500">{type.description}</div>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {selectedEventType && (
+          <p className="text-sm text-gray-600">{selectedEventType.description}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -206,6 +288,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
           onChange={(e) => handleInputChange('description', e.target.value)}
           placeholder="Describe the event..."
           rows={3}
+          maxLength={500}
         />
       </div>
 
@@ -229,6 +312,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
                   selected={startDate}
                   onSelect={(date) => handleDateTimeChange('start_time', date, startTime)}
                   initialFocus
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
               </PopoverContent>
             </Popover>
@@ -262,6 +346,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
                   selected={endDate}
                   onSelect={(date) => handleDateTimeChange('end_time', date, endTime)}
                   initialFocus
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
               </PopoverContent>
             </Popover>
@@ -286,6 +371,8 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
             value={formData.max_attendees || ''}
             onChange={(e) => handleInputChange('max_attendees', e.target.value ? parseInt(e.target.value) : undefined)}
             placeholder="No limit"
+            min={1}
+            max={1000}
           />
         </div>
 
@@ -314,11 +401,17 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
           <SelectContent>
             {VISIBILITY_LEVELS.map((level) => (
               <SelectItem key={level.value} value={level.value}>
-                {level.label}
+                <div>
+                  <div className="font-medium">{level.label}</div>
+                  <div className="text-sm text-gray-500">{level.description}</div>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {selectedVisibility && (
+          <p className="text-sm text-gray-600">{selectedVisibility.description}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -340,6 +433,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
             onChange={(e) => setNewTag(e.target.value)}
             placeholder="Add a tag..."
             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+            maxLength={20}
           />
           <Button type="button" onClick={addTag} variant="outline" size="sm">
             <Plus className="h-4 w-4" />
@@ -368,7 +462,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
         <Button type="submit" disabled={isLoading}>

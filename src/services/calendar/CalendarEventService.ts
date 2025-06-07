@@ -68,11 +68,25 @@ class CalendarEventService {
       const startTime = new Date(eventData.start_time).toISOString();
       const endTime = new Date(eventData.end_time).toISOString();
 
+      // Validate date logic
       if (new Date(endTime) <= new Date(startTime)) {
         throw new Error('End time must be after start time');
       }
 
-      // Prepare clean event data - only include fields that exist in the database
+      // Validate event is not in the past (allow 5 minutes grace period)
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      if (new Date(startTime) < fiveMinutesAgo) {
+        throw new Error('Cannot create events in the past');
+      }
+
+      // Validate duration is reasonable (max 8 hours)
+      const durationHours = (new Date(endTime).getTime() - new Date(startTime).getTime()) / (1000 * 60 * 60);
+      if (durationHours > 8) {
+        throw new Error('Event duration cannot exceed 8 hours');
+      }
+
+      // Prepare clean event data - workspace_id set to null for personal events
       const cleanEventData = {
         title: eventData.title.trim(),
         description: eventData.description?.trim() || '',
@@ -81,12 +95,13 @@ class CalendarEventService {
         event_type: eventData.event_type || 'mission_call',
         status: eventData.status || 'scheduled',
         visibility_level: eventData.visibility_level || 'public',
-        xp_reward: eventData.xp_reward || 10,
-        max_attendees: eventData.max_attendees || null,
+        xp_reward: Math.min(Math.max(eventData.xp_reward || 10, 0), 100), // Clamp between 0-100
+        max_attendees: eventData.max_attendees && eventData.max_attendees > 0 ? eventData.max_attendees : null,
         is_recurring: eventData.is_recurring || false,
-        tags: eventData.tags || [],
+        tags: Array.isArray(eventData.tags) ? eventData.tags.filter(tag => tag.trim()) : [],
         meeting_url: eventData.meeting_url?.trim() || '',
-        created_by: userData.user.id
+        created_by: userData.user.id,
+        workspace_id: null // Set to null for personal events to avoid workspace dependency issues
       };
 
       console.log('Prepared clean event data:', cleanEventData);
@@ -114,9 +129,34 @@ class CalendarEventService {
     try {
       console.log('Updating event:', id, updates);
       
+      // Validate updates if they include time changes
+      if (updates.start_time && updates.end_time) {
+        const startTime = new Date(updates.start_time);
+        const endTime = new Date(updates.end_time);
+        
+        if (endTime <= startTime) {
+          throw new Error('End time must be after start time');
+        }
+        
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        if (durationHours > 8) {
+          throw new Error('Event duration cannot exceed 8 hours');
+        }
+      }
+
+      // Clean the updates data
+      const cleanUpdates = {
+        ...updates,
+        title: updates.title?.trim(),
+        description: updates.description?.trim(),
+        meeting_url: updates.meeting_url?.trim(),
+        tags: Array.isArray(updates.tags) ? updates.tags.filter(tag => tag.trim()) : updates.tags,
+        xp_reward: updates.xp_reward ? Math.min(Math.max(updates.xp_reward, 0), 100) : updates.xp_reward
+      };
+
       const { data, error } = await supabase
         .from('events')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -180,6 +220,32 @@ class CalendarEventService {
     } catch (error) {
       console.error('Error updating event status:', error);
       return false;
+    }
+  }
+
+  // New method to check for overlapping events
+  async checkForOverlappingEvents(startTime: string, endTime: string, excludeEventId?: string): Promise<EnhancedEventData[]> {
+    try {
+      let query = supabase
+        .from('events')
+        .select('*')
+        .or(`and(start_time.lte.${endTime},end_time.gte.${startTime})`);
+
+      if (excludeEventId) {
+        query = query.neq('id', excludeEventId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error checking for overlapping events:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in checkForOverlappingEvents:', error);
+      return [];
     }
   }
 }

@@ -886,6 +886,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_workspace_role: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -898,8 +902,16 @@ export type Database = {
         Args: { workspace_id: string }
         Returns: boolean
       }
+      is_workspace_member_safe: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       is_workspace_owner: {
         Args: { workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_owner_safe: {
+        Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
       setup_cdc_account: {

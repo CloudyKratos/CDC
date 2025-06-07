@@ -11,6 +11,8 @@ import { Plus, Calendar as CalendarIcon, Clock, Users, Tag, Edit, Trash2 } from 
 import { toast } from 'sonner';
 import CalendarService from '@/services/CalendarService';
 import EnhancedCalendarEventForm from './EnhancedCalendarEventForm';
+import CalendarLoadingState from './CalendarLoadingState';
+import CalendarErrorState from './CalendarErrorState';
 import { EventData } from '@/services/SupabaseService';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -39,6 +41,7 @@ const UserCalendarPanel = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -47,16 +50,31 @@ const UserCalendarPanel = () => {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      console.log('Loading events...');
+      
       const eventsData = await CalendarService.getEvents();
+      console.log('Raw events data:', eventsData);
+      
       const formattedEvents = eventsData.map(event => ({
         ...event,
         start: new Date(event.start_time),
         end: new Date(event.end_time),
       }));
+      
+      console.log('Formatted events:', formattedEvents);
       setEvents(formattedEvents);
+      
+      if (formattedEvents.length === 0) {
+        toast.info('No events found. Create your first event!');
+      } else {
+        toast.success(`Loaded ${formattedEvents.length} events`);
+      }
     } catch (error) {
       console.error('Error loading events:', error);
-      toast.error('Failed to load events');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load events';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -164,14 +182,11 @@ const UserCalendarPanel = () => {
   const endAccessor = (event: CalendarEvent) => event.end;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading calendar...</p>
-        </div>
-      </div>
-    );
+    return <CalendarLoadingState />;
+  }
+
+  if (error) {
+    return <CalendarErrorState error={error} onRetry={loadEvents} />;
   }
 
   return (
@@ -180,7 +195,7 @@ const UserCalendarPanel = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">My Calendar</h2>
-          <p className="text-gray-600">Manage your events and schedule</p>
+          <p className="text-gray-600">Manage your events and schedule ({events.length} events)</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -235,6 +250,10 @@ const UserCalendarPanel = () => {
             onSelectEvent={setSelectedEvent}
             eventPropGetter={eventStyleGetter}
             className="p-4"
+            messages={{
+              noEventsInRange: 'No events in this time range. Create your first event!',
+              showMore: (total) => `+${total} more`,
+            }}
           />
         </CardContent>
       </Card>
