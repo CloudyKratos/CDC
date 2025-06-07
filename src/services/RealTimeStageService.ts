@@ -138,11 +138,15 @@ class RealTimeStageService {
     const presenceState = this.currentChannel.presenceState();
     const users: StagePresence[] = [];
     
-    Object.values(presenceState).forEach((presence: any) => {
-      if (Array.isArray(presence)) {
-        users.push(...presence.filter(p => this.isValidPresence(p)));
-      } else if (this.isValidPresence(presence)) {
-        users.push(presence);
+    // Supabase presence state structure: { [key]: [presenceData, ...] }
+    Object.entries(presenceState).forEach(([key, presences]) => {
+      if (Array.isArray(presences)) {
+        presences.forEach((presence: any) => {
+          // The actual presence data is stored directly in the presence object
+          if (this.isValidPresence(presence)) {
+            users.push(presence);
+          }
+        });
       }
     });
     
@@ -165,16 +169,19 @@ class RealTimeStageService {
     }
 
     const currentPresence = this.currentChannel.presenceState();
-    const myPresence = Object.values(currentPresence)[0] as StagePresence[];
+    const myPresenceEntries = Object.values(currentPresence);
     
-    if (myPresence && myPresence[0] && this.isValidPresence(myPresence[0])) {
-      const updatedPresence = { ...myPresence[0], ...updates };
-      const result = await this.currentChannel.track(updatedPresence);
-      
-      // Map the response to the expected return type
-      if (result === 'ok') return 'ok';
-      if (result === 'timed out') return 'timed_out';
-      return 'error';
+    if (myPresenceEntries.length > 0 && Array.isArray(myPresenceEntries[0])) {
+      const myPresence = myPresenceEntries[0][0];
+      if (this.isValidPresence(myPresence)) {
+        const updatedPresence = { ...myPresence, ...updates };
+        const result = await this.currentChannel.track(updatedPresence);
+        
+        // Map the response to the expected return type
+        if (result === 'ok') return 'ok';
+        if (result === 'timed out') return 'timed_out';
+        return 'error';
+      }
     }
     
     return 'error';
