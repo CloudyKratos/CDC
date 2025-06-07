@@ -6,7 +6,7 @@ import CalendarAttendanceService from './calendar/CalendarAttendanceService';
 import CalendarCohortService from './calendar/CalendarCohortService';
 
 // Re-export types for backward compatibility
-export { EnhancedEventData, EventRSVP, EventComment };
+export type { EnhancedEventData, EventRSVP, EventComment };
 
 class CalendarService {
   // Event Management
