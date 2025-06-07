@@ -1,4 +1,5 @@
 
+import { supabase } from "@/integrations/supabase/client";
 import StageCleanupService from "./StageCleanupService";
 import StageCoreService, { StageStatus } from "./stage/StageCoreService";
 import StageParticipantService from "./stage/StageParticipantService";
