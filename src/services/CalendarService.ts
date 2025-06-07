@@ -71,34 +71,55 @@ class CalendarService {
         throw new Error('User not authenticated');
       }
 
-      // Prepare event data without workspace_id to avoid RLS issues
-      const eventToCreate = {
-        title: eventData.title,
-        description: eventData.description || '',
-        start_time: eventData.start_time,
-        end_time: eventData.end_time,
+      // Validate required fields
+      if (!eventData.title?.trim()) {
+        throw new Error('Event title is required');
+      }
+
+      if (!eventData.start_time) {
+        throw new Error('Start time is required');
+      }
+
+      if (!eventData.end_time) {
+        throw new Error('End time is required');
+      }
+
+      // Ensure dates are properly formatted
+      const startTime = new Date(eventData.start_time).toISOString();
+      const endTime = new Date(eventData.end_time).toISOString();
+
+      if (new Date(endTime) <= new Date(startTime)) {
+        throw new Error('End time must be after start time');
+      }
+
+      // Prepare clean event data
+      const cleanEventData = {
+        title: eventData.title.trim(),
+        description: eventData.description?.trim() || '',
+        start_time: startTime,
+        end_time: endTime,
         event_type: eventData.event_type || 'mission_call',
         status: eventData.status || 'scheduled',
         visibility_level: eventData.visibility_level || 'public',
         xp_reward: eventData.xp_reward || 10,
-        max_attendees: eventData.max_attendees,
+        max_attendees: eventData.max_attendees || null,
         is_recurring: eventData.is_recurring || false,
         tags: eventData.tags || [],
-        meeting_url: eventData.meeting_url || '',
+        meeting_url: eventData.meeting_url?.trim() || '',
         created_by: userData.user.id
       };
 
-      console.log('Prepared event data:', eventToCreate);
+      console.log('Prepared clean event data:', cleanEventData);
 
       const { data, error } = await supabase
         .from('events')
-        .insert(eventToCreate)
+        .insert(cleanEventData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating calendar event:', error);
-        throw error;
+        console.error('Supabase error creating event:', error);
+        throw new Error(`Failed to create event: ${error.message}`);
       }
 
       console.log('Event created successfully:', data);

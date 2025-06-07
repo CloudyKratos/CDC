@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -78,13 +77,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       if (createdEvent) {
         toast.success('Event created successfully');
         setIsCreateDialogOpen(false);
-        loadEvents();
-      } else {
-        toast.error('Failed to create event');
+        await loadEvents(); // Refresh events
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      toast.error('Failed to create event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      toast.error(errorMessage);
     }
   };
 
@@ -98,13 +96,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
         toast.success('Event updated successfully');
         setIsEditDialogOpen(false);
         setSelectedEvent(null);
-        loadEvents();
-      } else {
-        toast.error('Failed to update event');
+        await loadEvents(); // Refresh events
       }
     } catch (error) {
       console.error('Error updating event:', error);
-      toast.error('Failed to update event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update event';
+      toast.error(errorMessage);
     }
   };
 

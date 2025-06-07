@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,7 @@ import { toast } from 'sonner';
 
 interface EnhancedCalendarEventFormProps {
   event?: Partial<EventData>;
-  onSubmit: (eventData: EventData) => void;
+  onSubmit: (eventData: EventData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -115,6 +114,8 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   };
 
   const validateForm = (): boolean => {
+    console.log('Validating form with data:', formData);
+
     if (!formData.title || !formData.title.trim()) {
       toast.error('Event title is required');
       return false;
@@ -133,6 +134,11 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     const startDateTime = new Date(formData.start_time);
     const endDateTime = new Date(formData.end_time);
 
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      toast.error('Invalid date/time format');
+      return false;
+    }
+
     if (endDateTime <= startDateTime) {
       toast.error('End time must be after start time');
       return false;
@@ -141,7 +147,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('Form submission attempted with data:', formData);
@@ -151,10 +157,11 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     }
 
     try {
-      onSubmit(formData as EventData);
+      await onSubmit(formData as EventData);
     } catch (error) {
       console.error('Error submitting form:', error);
-      toast.error('Failed to submit form');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      toast.error(errorMessage);
     }
   };
 
