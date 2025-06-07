@@ -1,4 +1,5 @@
-
+import { CalendarServiceCore } from './CalendarServiceCore';
+import { CalendarEventData, CalendarServiceResponse } from '@/types/calendar-events';
 import { EventValidationService } from './EventValidationService';
 import { EventDataProcessor } from './EventDataProcessor';
 import { AuthService } from './AuthService';
