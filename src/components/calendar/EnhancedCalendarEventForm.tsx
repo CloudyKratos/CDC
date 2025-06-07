@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,7 +79,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleInputChange = (field: keyof EventData, value: any) => {
-    console.log('Form field changed:', field, value);
+    console.log('🔄 Form: Field changed:', field, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -99,7 +98,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       const newDate = new Date(date);
       newDate.setHours(parseInt(hours), parseInt(minutes));
       
-      console.log('DateTime changed:', field, newDate.toISOString());
+      console.log('📅 Form: DateTime changed:', field, newDate.toISOString());
       handleInputChange(field, newDate.toISOString());
       
       if (field === 'start_time') {
@@ -128,7 +127,7 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   };
 
   const validateForm = (): boolean => {
-    console.log('Validating form with data:', formData);
+    console.log('🔍 Form: Validating form with data:', formData);
     const errors: string[] = [];
 
     // Required field validation
@@ -190,10 +189,12 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
     setValidationErrors(errors);
 
     if (errors.length > 0) {
+      console.log('❌ Form: Validation errors:', errors);
       errors.forEach(error => toast.error(error));
       return false;
     }
 
+    console.log('✅ Form: Validation passed');
     return true;
   };
 
@@ -209,17 +210,20 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Form submission attempted with data:', formData);
+    console.log('🔄 Form: Submit attempt with data:', formData);
 
     if (!validateForm()) {
+      console.log('❌ Form: Validation failed, aborting submit');
       return;
     }
 
     try {
+      console.log('🔄 Form: Calling onSubmit with validated data');
       await onSubmit(formData as EventData);
+      console.log('✅ Form: Submit completed successfully');
     } catch (error) {
-      console.error('Error submitting form:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      console.error('💥 Form: Submit error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save event';
       toast.error(errorMessage);
     }
   };

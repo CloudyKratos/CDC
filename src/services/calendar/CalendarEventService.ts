@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EventData } from '../SupabaseService';
 
@@ -21,72 +20,98 @@ export interface EnhancedEventData extends EventData {
 class CalendarEventService {
   async getEvents(): Promise<EnhancedEventData[]> {
     try {
-      console.log('Fetching events...');
+      console.log('🔄 CalendarEventService: Fetching events...');
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .order('start_time', { ascending: true });
 
       if (error) {
-        console.error('Error fetching events:', error);
+        console.error('❌ CalendarEventService: Error fetching events:', error);
         return [];
       }
 
-      console.log('Events fetched successfully:', data?.length || 0);
+      console.log('✅ CalendarEventService: Events fetched successfully:', data?.length || 0);
       return data || [];
     } catch (error) {
-      console.error('Error in getEvents:', error);
+      console.error('💥 CalendarEventService: Exception in getEvents:', error);
       return [];
     }
   }
 
   async createEvent(eventData: EnhancedEventData): Promise<EnhancedEventData | null> {
     try {
-      console.log('Creating event with data:', eventData);
+      console.log('🔄 CalendarEventService: Starting event creation...');
+      console.log('📝 CalendarEventService: Input data:', eventData);
       
-      // Get current user
+      // Get current user with detailed logging
+      console.log('🔍 CalendarEventService: Getting current user...');
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        console.error('User not authenticated:', userError);
+      
+      if (userError) {
+        console.error('❌ CalendarEventService: User auth error:', userError);
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      if (!userData.user) {
+        console.error('❌ CalendarEventService: No user found');
         throw new Error('User not authenticated');
       }
+      
+      console.log('✅ CalendarEventService: User authenticated:', userData.user.id);
 
-      // Validate required fields
+      // Validate required fields with detailed logging
+      console.log('🔍 CalendarEventService: Validating required fields...');
+      
       if (!eventData.title?.trim()) {
+        console.error('❌ CalendarEventService: Missing title');
         throw new Error('Event title is required');
       }
 
       if (!eventData.start_time) {
+        console.error('❌ CalendarEventService: Missing start_time');
         throw new Error('Start time is required');
       }
 
       if (!eventData.end_time) {
+        console.error('❌ CalendarEventService: Missing end_time');
         throw new Error('End time is required');
       }
 
-      // Ensure dates are properly formatted
+      console.log('✅ CalendarEventService: Basic validation passed');
+
+      // Date processing and validation
+      console.log('🔍 CalendarEventService: Processing dates...');
       const startTime = new Date(eventData.start_time).toISOString();
       const endTime = new Date(eventData.end_time).toISOString();
+      
+      console.log('📅 CalendarEventService: Processed dates:', { startTime, endTime });
 
       // Validate date logic
       if (new Date(endTime) <= new Date(startTime)) {
+        console.error('❌ CalendarEventService: Invalid date range');
         throw new Error('End time must be after start time');
       }
 
-      // Validate event is not in the past (allow 5 minutes grace period)
+      // Check for past events (with grace period)
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
       if (new Date(startTime) < fiveMinutesAgo) {
+        console.error('❌ CalendarEventService: Event in the past');
         throw new Error('Cannot create events in the past');
       }
 
-      // Validate duration is reasonable (max 8 hours)
+      // Validate duration
       const durationHours = (new Date(endTime).getTime() - new Date(startTime).getTime()) / (1000 * 60 * 60);
       if (durationHours > 8) {
+        console.error('❌ CalendarEventService: Duration too long:', durationHours);
         throw new Error('Event duration cannot exceed 8 hours');
       }
 
-      // Prepare clean event data - workspace_id set to null for personal events
+      console.log('✅ CalendarEventService: Date validation passed');
+
+      // Prepare clean event data
+      console.log('🔍 CalendarEventService: Preparing event data...');
       const cleanEventData = {
         title: eventData.title.trim(),
         description: eventData.description?.trim() || '',
@@ -95,17 +120,19 @@ class CalendarEventService {
         event_type: eventData.event_type || 'mission_call',
         status: eventData.status || 'scheduled',
         visibility_level: eventData.visibility_level || 'public',
-        xp_reward: Math.min(Math.max(eventData.xp_reward || 10, 0), 100), // Clamp between 0-100
+        xp_reward: Math.min(Math.max(eventData.xp_reward || 10, 0), 100),
         max_attendees: eventData.max_attendees && eventData.max_attendees > 0 ? eventData.max_attendees : null,
         is_recurring: eventData.is_recurring || false,
         tags: Array.isArray(eventData.tags) ? eventData.tags.filter(tag => tag.trim()) : [],
         meeting_url: eventData.meeting_url?.trim() || '',
         created_by: userData.user.id,
-        workspace_id: null // Set to null for personal events to avoid workspace dependency issues
+        workspace_id: null // Keep as null to avoid workspace issues
       };
 
-      console.log('Prepared clean event data:', cleanEventData);
+      console.log('📋 CalendarEventService: Final event data:', cleanEventData);
 
+      // Attempt database insertion
+      console.log('🔍 CalendarEventService: Inserting into database...');
       const { data, error } = await supabase
         .from('events')
         .insert(cleanEventData)
@@ -113,14 +140,25 @@ class CalendarEventService {
         .single();
 
       if (error) {
-        console.error('Supabase error creating event:', error);
-        throw new Error(`Failed to create event: ${error.message}`);
+        console.error('❌ CalendarEventService: Database insertion error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
       }
 
-      console.log('Event created successfully:', data);
+      if (!data) {
+        console.error('❌ CalendarEventService: No data returned from insertion');
+        throw new Error('No data returned from database');
+      }
+
+      console.log('✅ CalendarEventService: Event created successfully:', data);
       return data;
+      
     } catch (error) {
-      console.error('Error in createEvent:', error);
+      console.error('💥 CalendarEventService: Exception in createEvent:', error);
       throw error;
     }
   }
@@ -223,7 +261,6 @@ class CalendarEventService {
     }
   }
 
-  // New method to check for overlapping events
   async checkForOverlappingEvents(startTime: string, endTime: string, excludeEventId?: string): Promise<EnhancedEventData[]> {
     try {
       let query = supabase
