@@ -12,7 +12,7 @@ export type StageRole = 'moderator' | 'speaker' | 'audience';
 class StageService {
   private retryDelay = 1000;
   private maxRetries = 3;
-  private cleanupService = StageCleanupService.getInstance();
+  private cleanupService = StageCleanupService;
 
   private async retryOperation<T>(
     operation: () => Promise<T>,
