@@ -23,6 +23,8 @@ export interface LearningItem {
   description: string;
   modules?: number;
   duration?: string;
+  youtubeId?: string;
+  youtubeUrl?: string;
 }
 
 interface LearningCardProps {
@@ -60,6 +62,39 @@ const LearningCard: React.FC<LearningCardProps> = ({ item, onFavorite, onClick }
     }
   };
 
+  const getThumbnailContent = () => {
+    if (item.youtubeId) {
+      return (
+        <div className="relative w-full h-full">
+          <img 
+            src={`https://img.youtube.com/vi/${item.youtubeId}/maxresdefault.jpg`}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to default thumbnail if maxres fails
+              e.currentTarget.src = `https://img.youtube.com/vi/${item.youtubeId}/hqdefault.jpg`;
+            }}
+          />
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+              <Icons.Play className="h-6 w-6 text-white ml-1" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (item.thumbnail) {
+      return <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />;
+    }
+
+    return (
+      <div className="w-16 h-16 rounded-full bg-white/80 dark:bg-gray-800/80 flex items-center justify-center backdrop-blur-sm">
+        {getTypeIcon()}
+      </div>
+    );
+  };
+
   return (
     <Card 
       className="group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30 overflow-hidden"
@@ -67,13 +102,7 @@ const LearningCard: React.FC<LearningCardProps> = ({ item, onFavorite, onClick }
     >
       {/* Thumbnail or Icon Header */}
       <div className="relative h-48 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 flex items-center justify-center">
-        {item.thumbnail ? (
-          <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-white/80 dark:bg-gray-800/80 flex items-center justify-center backdrop-blur-sm">
-            {getTypeIcon()}
-          </div>
-        )}
+        {getThumbnailContent()}
         
         {/* Status Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
@@ -82,6 +111,12 @@ const LearningCard: React.FC<LearningCardProps> = ({ item, onFavorite, onClick }
           )}
           {item.isPrivate && (
             <Badge className="bg-gray-500/90 text-white text-xs">Private</Badge>
+          )}
+          {item.youtubeId && (
+            <Badge className="bg-red-500/90 text-white text-xs flex items-center gap-1">
+              <Icons.Video className="h-3 w-3" />
+              YouTube
+            </Badge>
           )}
         </div>
 
@@ -112,8 +147,8 @@ const LearningCard: React.FC<LearningCardProps> = ({ item, onFavorite, onClick }
           </p>
         </div>
 
-        {/* Progress Bar for Courses */}
-        {item.type === 'course' && item.progress !== undefined && (
+        {/* Progress Bar for Courses and Videos */}
+        {(item.type === 'course' || item.youtubeId) && item.progress !== undefined && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">Progress</span>

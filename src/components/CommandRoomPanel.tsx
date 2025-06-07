@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,8 @@ import Icons from '@/utils/IconUtils';
 import LearningCard, { LearningItem } from './command-room/LearningCard';
 import LearningFilters, { FilterState } from './command-room/LearningFilters';
 import LearningDetailModal from './command-room/LearningDetailModal';
+import AddYouTubeVideoModal from './command-room/AddYouTubeVideoModal';
+import VideoViewerModal from './command-room/VideoViewerModal';
 
 const CommandRoomPanel = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +18,8 @@ const CommandRoomPanel = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LearningItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   
   const [filters, setFilters] = useState<FilterState>({
     category: 'all',
@@ -25,7 +28,7 @@ const CommandRoomPanel = () => {
     format: 'all'
   });
 
-  // Sample learning content data
+  // Sample learning content data with YouTube videos
   const [learningItems, setLearningItems] = useState<LearningItem[]>([
     {
       id: '1',
@@ -60,66 +63,40 @@ const CommandRoomPanel = () => {
       duration: '45 min read'
     },
     {
-      id: '3',
-      title: 'Weekly Mission Review Live Call',
+      id: '7',
+      title: 'The Power of Now - Eckhart Tolle',
       type: 'replay',
-      category: 'strategy',
-      level: 'advanced',
-      coach: 'Jordan Blake',
-      format: 'video',
-      lastReviewed: '3 days ago',
-      isPrivate: false,
-      isPremium: true,
-      isFavorited: false,
-      description: 'Deep dive into effective weekly planning and mission alignment with Q&A session.',
-      duration: '1.2 hours'
-    },
-    {
-      id: '4',
-      title: 'Energy Management Protocol',
-      type: 'template',
-      category: 'productivity',
-      level: 'intermediate',
-      coach: 'Alex Chen',
-      format: 'checklist',
-      lastReviewed: '5 days ago',
-      isPrivate: true,
-      isPremium: false,
-      isFavorited: true,
-      description: 'Practical checklist for optimizing your daily energy cycles and peak performance windows.',
-      duration: '30 min setup'
-    },
-    {
-      id: '5',
-      title: 'Mindful Leadership Workshop',
-      type: 'course',
       category: 'mindset',
-      level: 'advanced',
-      coach: 'Maya Singh',
+      level: 'intermediate',
+      coach: 'Eckhart Tolle',
       format: 'video',
-      lastReviewed: '1 week ago',
-      progress: 20,
-      isPrivate: false,
-      isPremium: true,
-      isFavorited: false,
-      description: 'Develop conscious leadership skills rooted in mindfulness and emotional intelligence.',
-      modules: 12,
-      duration: '4 hours'
-    },
-    {
-      id: '6',
-      title: 'Wellness Optimization Guide',
-      type: 'vault',
-      category: 'wellness',
-      level: 'beginner',
-      coach: 'Jordan Blake',
-      format: 'pdf',
-      lastReviewed: '2 weeks ago',
+      lastReviewed: 'Just added',
+      progress: 30,
       isPrivate: false,
       isPremium: false,
+      isFavorited: false,
+      description: 'A profound spiritual teaching about living in the present moment and finding peace within.',
+      duration: '1.5 hours',
+      youtubeId: 'qgVyVZE7lfw',
+      youtubeUrl: 'https://youtube.com/watch?v=qgVyVZE7lfw'
+    },
+    {
+      id: '8',
+      title: 'Atomic Habits Masterclass',
+      type: 'replay',
+      category: 'productivity',
+      level: 'beginner',
+      coach: 'James Clear',
+      format: 'video',
+      lastReviewed: '2 days ago',
+      progress: 85,
+      isPrivate: false,
+      isPremium: true,
       isFavorited: true,
-      description: 'Complete guide to physical, mental, and spiritual wellness practices for modern warriors.',
-      duration: '1 hour read'
+      description: 'Learn the science of habit formation and how tiny changes lead to remarkable results.',
+      duration: '45 minutes',
+      youtubeId: 'YT7tQzmGRLA',
+      youtubeUrl: 'https://youtube.com/watch?v=YT7tQzmGRLA'
     }
   ]);
 
@@ -154,21 +131,47 @@ const CommandRoomPanel = () => {
 
   const handleItemClick = (item: LearningItem) => {
     setSelectedItem(item);
-    setShowDetailModal(true);
+    if (item.youtubeId) {
+      setShowVideoModal(true);
+    } else {
+      setShowDetailModal(true);
+    }
   };
 
   const handleStartLearning = (item: LearningItem) => {
-    toast.success(`Starting: ${item.title}`, {
-      description: "Your learning journey begins now!"
-    });
-    setShowDetailModal(false);
+    if (item.youtubeId) {
+      setShowDetailModal(false);
+      setShowVideoModal(true);
+    } else {
+      toast.success(`Starting: ${item.title}`, {
+        description: "Your learning journey begins now!"
+      });
+      setShowDetailModal(false);
+    }
   };
 
   const handleCreateNew = (type: string) => {
-    toast.success(`New ${type} created!`, {
-      description: "Ready to add your wisdom to the sanctuary."
-    });
-    setShowCreateDialog(false);
+    if (type === 'youtube-video') {
+      setShowYouTubeModal(true);
+      setShowCreateDialog(false);
+    } else {
+      toast.success(`New ${type} created!`, {
+        description: "Ready to add your wisdom to the sanctuary."
+      });
+      setShowCreateDialog(false);
+    }
+  };
+
+  const handleAddYouTubeVideo = (newItem: LearningItem) => {
+    setLearningItems(prev => [newItem, ...prev]);
+  };
+
+  const handleProgressUpdate = (id: string, progress: number) => {
+    setLearningItems(items =>
+      items.map(item =>
+        item.id === id ? { ...item, progress } : item
+      )
+    );
   };
 
   // Filter logic
@@ -182,7 +185,8 @@ const CommandRoomPanel = () => {
                       (activeTab === 'vault' && item.type === 'vault') ||
                       (activeTab === 'replays' && item.type === 'replay') ||
                       (activeTab === 'templates' && item.type === 'template') ||
-                      (activeTab === 'favorites' && item.isFavorited);
+                      (activeTab === 'favorites' && item.isFavorited) ||
+                      (activeTab === 'videos' && item.youtubeId);
     
     const matchesFilters = (filters.category === 'all' || item.category === filters.category) &&
                           (filters.level === 'all' || item.level === filters.level) &&
@@ -193,6 +197,7 @@ const CommandRoomPanel = () => {
   });
 
   const CREATE_OPTIONS = [
+    { id: 'youtube-video', name: 'Add YouTube Video', icon: <Icons.Video size={20} className="text-red-500" /> },
     { id: 'course', name: 'New Course', icon: <Icons.BookOpen size={20} className="text-purple-500" /> },
     { id: 'vault', name: 'Vault Item', icon: <Icons.FileText size={20} className="text-amber-500" /> },
     { id: 'replay', name: 'Upload Replay', icon: <Icons.Video size={20} className="text-blue-500" /> },
@@ -271,6 +276,7 @@ const CommandRoomPanel = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-purple-200/30 dark:border-purple-800/30 p-1">
             <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">All</TabsTrigger>
+            <TabsTrigger value="videos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Videos</TabsTrigger>
             <TabsTrigger value="courses" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Courses</TabsTrigger>
             <TabsTrigger value="vault" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Vault</TabsTrigger>
             <TabsTrigger value="replays" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">Replays</TabsTrigger>
@@ -318,12 +324,25 @@ const CommandRoomPanel = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Detail Modal */}
+        {/* Modals */}
         <LearningDetailModal
           item={selectedItem}
           isOpen={showDetailModal}
           onClose={() => setShowDetailModal(false)}
           onStartLearning={handleStartLearning}
+        />
+
+        <VideoViewerModal
+          item={selectedItem}
+          isOpen={showVideoModal}
+          onClose={() => setShowVideoModal(false)}
+          onProgressUpdate={handleProgressUpdate}
+        />
+
+        <AddYouTubeVideoModal
+          isOpen={showYouTubeModal}
+          onClose={() => setShowYouTubeModal(false)}
+          onAdd={handleAddYouTubeVideo}
         />
       </div>
     </div>
