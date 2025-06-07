@@ -72,7 +72,7 @@ class CalendarEventService {
         throw new Error('End time must be after start time');
       }
 
-      // Prepare clean event data
+      // Prepare clean event data - only include fields that exist in the database
       const cleanEventData = {
         title: eventData.title.trim(),
         description: eventData.description?.trim() || '',

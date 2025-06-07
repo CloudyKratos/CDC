@@ -38,6 +38,7 @@ const UserCalendarPanel = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -63,17 +64,23 @@ const UserCalendarPanel = () => {
 
   const handleCreateEvent = async (eventData: EventData) => {
     try {
+      setIsSubmitting(true);
+      console.log('Creating event with data:', eventData);
+      
       const createdEvent = await CalendarService.createEvent(eventData);
       if (createdEvent) {
         toast.success('Event created successfully');
         setIsCreateDialogOpen(false);
-        loadEvents();
+        await loadEvents();
       } else {
-        toast.error('Failed to create event');
+        toast.error('Failed to create event - no data returned');
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      toast.error('Failed to create event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -81,18 +88,22 @@ const UserCalendarPanel = () => {
     if (!selectedEvent?.id) return;
     
     try {
+      setIsSubmitting(true);
       const updatedEvent = await CalendarService.updateEvent(selectedEvent.id, eventData);
       if (updatedEvent) {
         toast.success('Event updated successfully');
         setIsEditDialogOpen(false);
         setSelectedEvent(null);
-        loadEvents();
+        await loadEvents();
       } else {
         toast.error('Failed to update event');
       }
     } catch (error) {
       console.error('Error updating event:', error);
-      toast.error('Failed to update event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update event';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -102,7 +113,7 @@ const UserCalendarPanel = () => {
       if (success) {
         toast.success('Event deleted successfully');
         setSelectedEvent(null);
-        loadEvents();
+        await loadEvents();
       } else {
         toast.error('Failed to delete event');
       }
@@ -203,6 +214,7 @@ const UserCalendarPanel = () => {
               <EnhancedCalendarEventForm
                 onSubmit={handleCreateEvent}
                 onCancel={() => setIsCreateDialogOpen(false)}
+                isLoading={isSubmitting}
               />
             </DialogContent>
           </Dialog>
@@ -330,6 +342,7 @@ const UserCalendarPanel = () => {
                       event={selectedEvent}
                       onSubmit={handleUpdateEvent}
                       onCancel={() => setIsEditDialogOpen(false)}
+                      isLoading={isSubmitting}
                     />
                   </DialogContent>
                 </Dialog>
