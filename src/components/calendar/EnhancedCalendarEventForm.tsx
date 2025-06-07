@@ -68,6 +68,12 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
   const [endDate, setEndDate] = useState<Date | undefined>(
     event?.end_time ? new Date(event.end_time) : undefined
   );
+  const [startTime, setStartTime] = useState(
+    event?.start_time ? format(new Date(event.start_time), 'HH:mm') : '09:00'
+  );
+  const [endTime, setEndTime] = useState(
+    event?.end_time ? format(new Date(event.end_time), 'HH:mm') : '10:00'
+  );
   const [newTag, setNewTag] = useState('');
 
   const handleInputChange = (field: keyof EventData, value: any) => {
@@ -79,8 +85,8 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
 
   const handleDateTimeChange = (field: 'start_time' | 'end_time', date: Date | undefined, time?: string) => {
     if (date) {
-      const currentTime = time || '09:00';
-      const [hours, minutes] = currentTime.split(':');
+      const timeToUse = time || (field === 'start_time' ? startTime : endTime);
+      const [hours, minutes] = timeToUse.split(':');
       const newDate = new Date(date);
       newDate.setHours(parseInt(hours), parseInt(minutes));
       
@@ -161,48 +167,68 @@ const EnhancedCalendarEventForm: React.FC<EnhancedCalendarEventFormProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Start Date & Time *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP p") : "Pick start date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(date) => handleDateTimeChange('start_time', date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="space-y-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : "Pick start date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => handleDateTimeChange('start_time', date, startTime)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => {
+                setStartTime(e.target.value);
+                handleDateTimeChange('start_time', startDate, e.target.value);
+              }}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label>End Date & Time *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP p") : "Pick end date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(date) => handleDateTimeChange('end_time', date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="space-y-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : "Pick end date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => handleDateTimeChange('end_time', date, endTime)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => {
+                setEndTime(e.target.value);
+                handleDateTimeChange('end_time', endDate, e.target.value);
+              }}
+            />
+          </div>
         </div>
       </div>
 
