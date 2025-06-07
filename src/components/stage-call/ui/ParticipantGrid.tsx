@@ -32,6 +32,14 @@ const ParticipantCard: React.FC<{
 }> = ({ participant, stream, isLocal = false, userRole, onPromoteToSpeaker }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Add safety checks for participant data
+  if (!participant) {
+    return null;
+  }
+
+  const participantName = participant.name || 'Unknown';
+  const participantId = participant.id || '';
+
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
@@ -75,7 +83,7 @@ const ParticipantCard: React.FC<{
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
           <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center">
             <span className="text-xl font-semibold text-white">
-              {participant.name.charAt(0).toUpperCase()}
+              {participantName.charAt(0).toUpperCase()}
             </span>
           </div>
         </div>
@@ -123,7 +131,7 @@ const ParticipantCard: React.FC<{
 
         {/* Bottom name */}
         <div className="absolute bottom-2 left-2 right-2">
-          <p className="text-white text-sm font-medium truncate">{participant.name}</p>
+          <p className="text-white text-sm font-medium truncate">{participantName}</p>
         </div>
 
         {/* Hand raised indicator */}
@@ -137,7 +145,7 @@ const ParticipantCard: React.FC<{
         {userRole === 'moderator' && participant.role === 'audience' && onPromoteToSpeaker && (
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
             <button
-              onClick={() => onPromoteToSpeaker(participant.id)}
+              onClick={() => onPromoteToSpeaker(participantId)}
               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
             >
               Promote to Speaker
@@ -157,9 +165,10 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   onPromoteToSpeaker,
   className
 }) => {
-  // Filter participants by role for better layout
-  const speakers = participants.filter(p => ['speaker', 'moderator'].includes(p.role));
-  const audience = participants.filter(p => p.role === 'audience');
+  // Filter participants by role for better layout and add safety checks
+  const validParticipants = participants.filter(p => p && p.id && p.name);
+  const speakers = validParticipants.filter(p => ['speaker', 'moderator'].includes(p.role));
+  const audience = validParticipants.filter(p => p.role === 'audience');
 
   // Create a local participant entry
   const localParticipant: Participant = {
