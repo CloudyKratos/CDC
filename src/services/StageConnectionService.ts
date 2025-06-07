@@ -18,7 +18,6 @@ interface ConnectionState {
 
 class StageConnectionService {
   private static instance: StageConnectionService;
-  private cleanupService = StageCleanupService.getInstance();
   private state: ConnectionState = {
     isConnected: false,
     isConnecting: false,
@@ -102,7 +101,7 @@ class StageConnectionService {
       try {
         await StageService.leaveStage(this.state.stageId);
         // Additional cleanup
-        await this.cleanupService.forceCleanupUserParticipation(this.state.stageId, this.state.userId);
+        await StageCleanupService.forceCleanupUserParticipation(this.state.stageId, this.state.userId);
       } catch (error) {
         console.error('Error during stage leave:', error);
       }
@@ -117,10 +116,10 @@ class StageConnectionService {
     
     try {
       // Use the improved cleanup service
-      await this.cleanupService.forceCleanupUserParticipation(stageId, userId);
+      await StageCleanupService.forceCleanupUserParticipation(stageId, userId);
       
       // Clean up ghost participants
-      await this.cleanupService.cleanupGhostParticipants(stageId);
+      await StageCleanupService.cleanupGhostParticipants(stageId);
       
     } catch (error) {
       console.error('Cleanup error (non-fatal):', error);
@@ -130,7 +129,7 @@ class StageConnectionService {
   private async attemptStageJoin(stageId: string, userId: string): Promise<ConnectionResult> {
     try {
       // Use the safe join method from cleanup service
-      const result = await this.cleanupService.safeJoinStage(stageId, userId, 'audience');
+      const result = await StageCleanupService.safeJoinStage(stageId, userId, 'audience');
       return result;
     } catch (error) {
       console.error('Join attempt failed:', error);
@@ -189,4 +188,4 @@ class StageConnectionService {
   }
 }
 
-export default StageConnectionService;
+export default StageConnectionService.getInstance();

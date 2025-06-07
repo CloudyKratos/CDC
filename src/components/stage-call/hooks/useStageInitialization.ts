@@ -111,7 +111,7 @@ export const useStageInitialization = ({ stageId, onLeave }: UseStageInitializat
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         console.log(`Cleanup attempt ${attempt}/${maxAttempts}`);
-        await StageCleanupService.getInstance().forceCleanupUserParticipation(stageId, userId);
+        await StageCleanupService.forceCleanupUserParticipation(stageId, userId);
         
         // Wait longer between attempts
         const delay = Math.min(1000 * attempt, 3000);

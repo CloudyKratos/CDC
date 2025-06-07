@@ -23,14 +23,13 @@ export const useStageConnection = (): UseStageConnectionReturn => {
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   
   const { user } = useAuth();
-  const connectionService = useRef(StageConnectionService);
   const retryCount = useRef(0);
   const maxRetries = 2; // Reduced retries
 
   // Monitor connection state changes
   useEffect(() => {
     const checkInterval = setInterval(() => {
-      const state = connectionService.current.getConnectionState();
+      const state = StageConnectionService.getConnectionState();
       setIsConnected(state.isConnected);
       setIsConnecting(state.isConnecting);
       
@@ -67,7 +66,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
       await StageCleanupService.forceCleanupUserParticipation(stageId, user.id);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const result = await connectionService.current.connectToStage(stageId, user.id);
+      const result = await StageConnectionService.connectToStage(stageId, user.id);
       
       if (result.success) {
         setIsConnected(true);
@@ -93,7 +92,7 @@ export const useStageConnection = (): UseStageConnectionReturn => {
   const disconnect = useCallback(async () => {
     try {
       console.log('Disconnecting from stage');
-      await connectionService.current.disconnectFromStage();
+      await StageConnectionService.disconnectFromStage();
       
       setIsConnected(false);
       setConnectionError(null);

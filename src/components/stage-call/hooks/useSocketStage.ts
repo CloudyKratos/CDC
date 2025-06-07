@@ -17,7 +17,6 @@ export const useSocketStage = (stageId: string, userId: string) => {
   const socketRef = useRef<any>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnection>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const cleanupService = StageCleanupService.getInstance();
 
   const connect = useCallback(async () => {
     try {
@@ -31,10 +30,10 @@ export const useSocketStage = (stageId: string, userId: string) => {
       }
 
       // Clean up any ghost participants first
-      await cleanupService.cleanupGhostParticipants(stageId);
+      await StageCleanupService.cleanupGhostParticipants(stageId);
       
       // Use the safe join method with aggressive cleanup
-      const joinResult = await cleanupService.safeJoinStage(stageId, userId, 'audience');
+      const joinResult = await StageCleanupService.safeJoinStage(stageId, userId, 'audience');
       if (!joinResult.success) {
         throw new Error(joinResult.error || 'Failed to join stage');
       }
@@ -75,7 +74,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
       setIsConnected(false);
       throw error;
     }
-  }, [stageId, userId, cleanupService]);
+  }, [stageId, userId]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -97,7 +96,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
       await StageService.leaveStage(stageId);
       
       // Additional cleanup
-      await cleanupService.forceCleanupUserParticipation(stageId, userId);
+      await StageCleanupService.forceCleanupUserParticipation(stageId, userId);
       
       setIsConnected(false);
       setParticipants([]);
@@ -107,13 +106,13 @@ export const useSocketStage = (stageId: string, userId: string) => {
       // Force reset state even if disconnect fails
       setIsConnected(false);
     }
-  }, [stageId, userId, cleanupService]);
+  }, [stageId, userId]);
 
   const forceReconnect = useCallback(async () => {
     console.log('Force reconnecting...');
     
     // Aggressive cleanup first
-    await cleanupService.forceCleanupUserParticipation(stageId, userId);
+    await StageCleanupService.forceCleanupUserParticipation(stageId, userId);
     
     // Disconnect first
     await disconnect();
@@ -123,7 +122,7 @@ export const useSocketStage = (stageId: string, userId: string) => {
     
     // Reconnect
     await connect();
-  }, [disconnect, connect, cleanupService, stageId, userId]);
+  }, [disconnect, connect, stageId, userId]);
 
   // Cleanup on unmount
   useEffect(() => {
