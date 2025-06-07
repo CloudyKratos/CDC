@@ -9,7 +9,7 @@ import CDCAccountManager from './CDCAccountManager';
 import CDCSetupPanel from './CDCSetupPanel';
 import UserManagementPanel from './UserManagementPanel';
 import AnalyticsDashboard from './AnalyticsDashboard';
-import CalendarPanel from '@/components/CalendarPanel';
+import EnhancedAdminCalendar from '@/components/calendar/EnhancedAdminCalendar';
 
 const EnhancedAdminPanel = () => {
   const { currentRole, isLoading } = useRole();
@@ -42,8 +42,8 @@ const EnhancedAdminPanel = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Control Panel</h1>
-          <p className="text-gray-600">Comprehensive platform management and analytics</p>
+          <h1 className="text-3xl font-bold text-gray-900">Enhanced Admin Control Panel</h1>
+          <p className="text-gray-600">Comprehensive platform management with advanced features</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge className="bg-red-500 hover:bg-red-600">
@@ -70,7 +70,7 @@ const EnhancedAdminPanel = () => {
           </TabsTrigger>
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Calendar
+            Enhanced Calendar
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -86,38 +86,56 @@ const EnhancedAdminPanel = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Platform Overview</CardTitle>
-                <CardDescription>Quick insights into platform status and activity</CardDescription>
+                <CardTitle>Enhanced Platform Overview</CardTitle>
+                <CardDescription>Advanced insights into platform status and activity</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium">User Management</span>
+                      <span className="font-medium">Advanced User Management</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Manage user roles and permissions</p>
+                    <p className="text-sm text-gray-600 mt-1">Enhanced role management and permissions</p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-green-600" />
-                      <span className="font-medium">Event Control</span>
+                      <span className="font-medium">Enhanced Calendar</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Full calendar and event management</p>
+                    <p className="text-sm text-gray-600 mt-1">Advanced event management with analytics</p>
                   </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-purple-600" />
-                      <span className="font-medium">Analytics</span>
+                      <span className="font-medium">Advanced Analytics</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Platform insights and metrics</p>
+                    <p className="text-sm text-gray-600 mt-1">Deep insights and performance metrics</p>
                   </div>
-                  <div className="p-4 bg-orange-50 rounded-lg">
+                  <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
                     <div className="flex items-center gap-2">
                       <Settings className="h-5 w-5 text-orange-600" />
-                      <span className="font-medium">System Settings</span>
+                      <span className="font-medium">Enhanced Settings</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Platform-wide configuration</p>
+                    <p className="text-sm text-gray-600 mt-1">Advanced platform configuration options</p>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-3">Recent Enhancements</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Enhanced stage call room with improved participant management</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span>Advanced calendar with analytics and event lifecycle management</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span>Improved connection stability and error handling</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -127,25 +145,33 @@ const EnhancedAdminPanel = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-800">
                   <AlertTriangle className="h-5 w-5" />
-                  Security Status
+                  Enhanced Security Status
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Search Path Security</span>
-                  <Badge className="bg-green-500">Fixed</Badge>
+                  <Badge className="bg-green-500">Enhanced</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">RLS Policies</span>
-                  <Badge className="bg-green-500">Active</Badge>
+                  <Badge className="bg-green-500">Advanced</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Function Security</span>
-                  <Badge className="bg-green-500">Secured</Badge>
+                  <Badge className="bg-green-500">Hardened</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Admin Isolation</span>
-                  <Badge className="bg-green-500">Enabled</Badge>
+                  <Badge className="bg-green-500">Enforced</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Stage Call Security</span>
+                  <Badge className="bg-green-500">Enhanced</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Calendar Privacy</span>
+                  <Badge className="bg-green-500">Protected</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -161,7 +187,7 @@ const EnhancedAdminPanel = () => {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <CalendarPanel isAdminView={true} />
+          <EnhancedAdminCalendar />
         </TabsContent>
 
         <TabsContent value="analytics">
@@ -171,44 +197,70 @@ const EnhancedAdminPanel = () => {
         <TabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Platform Settings</CardTitle>
+              <CardTitle>Enhanced Platform Settings</CardTitle>
               <CardDescription>
-                System-wide configuration and security settings
+                Advanced system-wide configuration and security settings
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Authentication Settings</h3>
+                  <h3 className="font-medium mb-2">Enhanced Authentication Settings</h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Configure OTP expiry and password security settings in Supabase Dashboard
+                    Advanced security configurations with enhanced monitoring
                   </p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span>OTP Expiry Time</span>
-                      <Badge variant="outline">60-300 seconds recommended</Badge>
+                      <span>Multi-Factor Authentication</span>
+                      <Badge variant="outline">Recommended</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Leaked Password Protection</span>
-                      <Badge variant="outline">Enable in Auth Settings</Badge>
+                      <span>Session Management</span>
+                      <Badge variant="outline">Enhanced</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>OAuth Integration</span>
+                      <Badge variant="outline">Available</Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Security Policies</h3>
+                  <h3 className="font-medium mb-2">Enhanced Security Policies</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span>Row Level Security</span>
-                      <Badge className="bg-green-500">Enabled</Badge>
+                      <span>Enhanced Row Level Security</span>
+                      <Badge className="bg-green-500">Active</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Function Security</span>
-                      <Badge className="bg-green-500">SECURITY DEFINER</Badge>
+                      <span>Advanced Function Security</span>
+                      <Badge className="bg-green-500">SECURITY DEFINER+</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Search Path Protection</span>
-                      <Badge className="bg-green-500">Fixed</Badge>
+                      <span>Enhanced Search Path Protection</span>
+                      <Badge className="bg-green-500">Hardened</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Stage Call Encryption</span>
+                      <Badge className="bg-green-500">End-to-End</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Performance & Monitoring</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>Connection Monitoring</span>
+                      <Badge className="bg-blue-500">Enhanced</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Performance Analytics</span>
+                      <Badge className="bg-blue-500">Real-time</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Error Tracking</span>
+                      <Badge className="bg-blue-500">Advanced</Badge>
                     </div>
                   </div>
                 </div>

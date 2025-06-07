@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import StageCleanupService from "./StageCleanupService";
@@ -106,7 +107,7 @@ class StageService {
 
   async cleanupGhostParticipants(stageId: string): Promise<boolean> {
     try {
-      await this.cleanupService.cleanupGhostParticipants(stageId);
+      const result = await this.cleanupService.cleanupGhostParticipants(stageId);
       return true;
     } catch (error) {
       console.error('Error in cleanupGhostParticipants:', error);
