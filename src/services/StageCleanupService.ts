@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 class StageCleanupService {
   private static instance: StageCleanupService;
@@ -11,182 +11,74 @@ class StageCleanupService {
     return StageCleanupService.instance;
   }
 
-  async forceCleanupUserParticipation(stageId: string, userId: string): Promise<boolean> {
+  async forceCleanupUserParticipation(stageId: string, userId: string): Promise<void> {
     try {
-      console.log('Force cleaning up user participation:', { stageId, userId });
-      
-      // Hard delete any existing records for this user in this stage
+      console.log(`Force cleaning up user ${userId} from stage ${stageId}`);
+
+      // Update any existing participant records to mark as left
+      const { error: updateError } = await supabase
+        .from('stage_participants')
+        .update({ 
+          left_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('stage_id', stageId)
+        .eq('user_id', userId)
+        .is('left_at', null);
+
+      if (updateError) {
+        console.warn('Error updating participant records:', updateError);
+      }
+
+      // Clean up any orphaned records
       const { error: deleteError } = await supabase
         .from('stage_participants')
         .delete()
         .eq('stage_id', stageId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()); // Older than 5 minutes
 
       if (deleteError) {
-        console.error('Error deleting existing participation:', deleteError);
-        // Continue anyway - might not exist
+        console.warn('Error deleting orphaned records:', deleteError);
       }
 
-      // Wait for deletion to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log('User participation forcefully cleaned up');
-      return true;
-    } catch (error) {
-      console.error('Error in forceCleanupUserParticipation:', error);
-      return false;
-    }
-  }
-
-  async safeJoinStage(stageId: string, userId: string, role: 'speaker' | 'audience' | 'moderator' = 'audience'): Promise<{ success: boolean; error?: string }> {
-    try {
-      console.log('Attempting safe stage join:', { stageId, userId, role });
-
-      // First, aggressive cleanup - delete any existing records
-      await this.forceCleanupUserParticipation(stageId, userId);
-
-      // Wait for database consistency
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Now try to insert new participation
-      const { data, error } = await supabase
-        .from('stage_participants')
-        .insert({
-          stage_id: stageId,
-          user_id: userId,
-          role: role,
-          is_muted: role === 'audience',
-          is_video_enabled: false,
-          is_hand_raised: false,
-          joined_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error inserting new participation:', error);
-        
-        // If still getting duplicate key error, try using UPSERT approach
-        if (error.code === '23505') {
-          console.log('Duplicate key detected, trying UPSERT approach...');
-          
-          const { error: upsertError } = await supabase
-            .from('stage_participants')
-            .upsert({
-              stage_id: stageId,
-              user_id: userId,
-              role: role,
-              is_muted: role === 'audience',
-              is_video_enabled: false,
-              is_hand_raised: false,
-              joined_at: new Date().toISOString(),
-              left_at: null
-            }, {
-              onConflict: 'stage_id,user_id',
-              ignoreDuplicates: false
-            });
-            
-          if (upsertError) {
-            throw new Error(`Failed to join stage with UPSERT: ${upsertError.message}`);
-          }
-        } else {
-          throw new Error(`Failed to join stage: ${error.message}`);
-        }
-      }
-
-      console.log('Successfully joined stage');
-      return { success: true };
-    } catch (error) {
-      console.error('Error in safeJoinStage:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to join stage safely' 
-      };
-    }
-  }
-
-  async cleanupGhostParticipants(stageId: string): Promise<void> {
-    try {
-      console.log('Cleaning up ghost participants for stage:', stageId);
-      
-      // Delete participants who joined more than 10 minutes ago without recent activity
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      
-      const { error } = await supabase
-        .from('stage_participants')
-        .delete()
-        .eq('stage_id', stageId)
-        .is('left_at', null)
-        .lt('joined_at', tenMinutesAgo);
-
-      if (error) {
-        console.error('Error cleaning up ghost participants:', error);
-      } else {
-        console.log('Ghost participants cleanup completed');
-      }
-    } catch (error) {
-      console.error('Error in cleanupGhostParticipants:', error);
-    }
-  }
-
-  async cleanupCompletedStages(): Promise<void> {
-    try {
-      console.log('Cleaning up completed stages...');
-      
-      // Get stages that ended more than 2 hours ago
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      
-      // First, get the IDs of ended stages
-      const { data: endedStages, error: stagesError } = await supabase
-        .from('stages')
-        .select('id')
-        .eq('status', 'ended')
-        .lt('end_time', twoHoursAgo);
-
-      if (stagesError) {
-        console.error('Error fetching ended stages:', stagesError);
-        return;
-      }
-
-      if (!endedStages || endedStages.length === 0) {
-        console.log('No ended stages to clean up');
-        return;
-      }
-
-      const stageIds = endedStages.map(stage => stage.id);
-
-      // Delete all participants from ended stages
-      const { error: participantsError } = await supabase
-        .from('stage_participants')
-        .delete()
-        .in('stage_id', stageIds);
-
-      if (participantsError) {
-        console.error('Error cleaning up stage participants:', participantsError);
-      }
-
-      // Delete speaker requests from ended stages
-      const { error: requestsError } = await supabase
+      // Clean up speaker requests
+      const { error: requestError } = await supabase
         .from('speaker_requests')
         .delete()
-        .in('stage_id', stageIds);
+        .eq('stage_id', stageId)
+        .eq('user_id', userId);
 
-      if (requestsError) {
-        console.error('Error cleaning up speaker requests:', requestsError);
+      if (requestError) {
+        console.warn('Error cleaning up speaker requests:', requestError);
       }
 
-      console.log('Completed stages cleanup finished');
+      console.log('Cleanup completed successfully');
     } catch (error) {
-      console.error('Error in cleanupCompletedStages:', error);
+      console.error('Force cleanup failed:', error);
+      throw error;
     }
   }
 
-  async endStageAndCleanup(stageId: string): Promise<boolean> {
+  async cleanupStage(stageId: string): Promise<void> {
     try {
-      console.log('Ending stage and cleaning up:', stageId);
+      console.log(`Cleaning up stage ${stageId}`);
 
-      // Mark stage as ended
-      const { error: stageError } = await supabase
+      // Mark all participants as left
+      await supabase
+        .from('stage_participants')
+        .update({ left_at: new Date().toISOString() })
+        .eq('stage_id', stageId)
+        .is('left_at', null);
+
+      // Clean up speaker requests
+      await supabase
+        .from('speaker_requests')
+        .delete()
+        .eq('stage_id', stageId);
+
+      // Update stage status
+      await supabase
         .from('stages')
         .update({ 
           status: 'ended',
@@ -194,34 +86,31 @@ class StageCleanupService {
         })
         .eq('id', stageId);
 
-      if (stageError) {
-        console.error('Error ending stage:', stageError);
-        return false;
-      }
-
-      // Mark all participants as left
-      const { error: participantsError } = await supabase
-        .from('stage_participants')
-        .update({ 
-          left_at: new Date().toISOString(),
-          is_muted: true,
-          is_video_enabled: false,
-          is_hand_raised: false
-        })
-        .eq('stage_id', stageId)
-        .is('left_at', null);
-
-      if (participantsError) {
-        console.error('Error updating participants:', participantsError);
-      }
-
-      console.log('Stage ended and cleanup completed');
-      return true;
+      console.log('Stage cleanup completed');
     } catch (error) {
-      console.error('Error in endStageAndCleanup:', error);
-      return false;
+      console.error('Stage cleanup failed:', error);
+      throw error;
+    }
+  }
+
+  async cleanupExpiredStages(): Promise<void> {
+    try {
+      // Find stages that have been running for more than 8 hours
+      const { data: expiredStages } = await supabase
+        .from('stages')
+        .select('id')
+        .eq('status', 'live')
+        .lt('actual_start_time', new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString());
+
+      if (expiredStages) {
+        for (const stage of expiredStages) {
+          await this.cleanupStage(stage.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to cleanup expired stages:', error);
     }
   }
 }
 
-export default StageCleanupService;
+export default StageCleanupService.getInstance();

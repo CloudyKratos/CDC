@@ -1,13 +1,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { StageParticipant, ChatMessage } from './core/types/StageTypes';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { StageParticipant, ChatMessage } from '@/services/core/types/StageTypes';
 
-export class RealTimeStageService {
+interface StageEvent {
+  type: 'recording_started' | 'recording_stopped' | 'stage_ended' | 'user_promoted' | 'user_demoted';
+  data?: any;
+  timestamp: string;
+}
+
+class RealTimeStageService {
   private static instance: RealTimeStageService;
+  private channel: RealtimeChannel | null = null;
   private stageId: string | null = null;
-  private participants: Map<string, StageParticipant> = new Map();
-  private chatMessages: ChatMessage[] = [];
-  private eventHandlers: Map<string, Function[]> = new Map();
+  private userId: string | null = null;
 
   static getInstance(): RealTimeStageService {
     if (!RealTimeStageService.instance) {
@@ -16,49 +22,44 @@ export class RealTimeStageService {
     return RealTimeStageService.instance;
   }
 
-  async joinStage(stageId: string, userId: string, userRole: 'speaker' | 'audience' | 'moderator'): Promise<boolean> {
+  async joinStage(stageId: string, userId: string, role: 'speaker' | 'audience' | 'moderator'): Promise<boolean> {
     try {
       this.stageId = stageId;
+      this.userId = userId;
+
+      // Create channel for this stage
+      this.channel = supabase.channel(`stage-realtime-${stageId}`, {
+        config: {
+          broadcast: { self: false },
+          presence: { key: userId }
+        }
+      });
+
+      // Track user presence
+      await this.channel.track({
+        user_id: userId,
+        role,
+        joined_at: new Date().toISOString(),
+        is_speaking: false,
+        is_hand_raised: false
+      });
+
+      await this.channel.subscribe();
       
-      // Subscribe to participant updates
-      const participantChannel = supabase
-        .channel(`stage-participants-${stageId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'stage_participants',
-            filter: `stage_id=eq.${stageId}`
-          },
-          (payload) => this.handleParticipantUpdate(payload)
-        )
-        .subscribe();
-
-      // Subscribe to chat messages
-      const chatChannel = supabase
-        .channel(`stage-chat-${stageId}`)
-        .on('broadcast', { event: 'chat-message' }, (payload) => {
-          this.handleChatMessage(payload.payload);
-        })
-        .subscribe();
-
-      // Join as participant
+      // Insert participant record
       const { error } = await supabase
         .from('stage_participants')
-        .upsert({
+        .insert({
           stage_id: stageId,
           user_id: userId,
-          role: userRole,
-          joined_at: new Date().toISOString(),
-          is_muted: false,
-          is_video_enabled: true,
-          is_hand_raised: false
+          role,
+          joined_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error && !error.message.includes('duplicate key')) {
+        throw error;
+      }
 
-      console.log('Successfully joined stage:', stageId);
       return true;
     } catch (error) {
       console.error('Failed to join stage:', error);
@@ -67,108 +68,184 @@ export class RealTimeStageService {
   }
 
   async leaveStage(userId: string): Promise<void> {
-    if (!this.stageId) return;
-
     try {
-      await supabase
-        .from('stage_participants')
-        .update({ left_at: new Date().toISOString() })
-        .eq('stage_id', this.stageId)
-        .eq('user_id', userId);
+      if (this.channel) {
+        await this.channel.untrack();
+        await this.channel.unsubscribe();
+        this.channel = null;
+      }
 
-      this.participants.clear();
-      this.chatMessages = [];
+      // Update participant record
+      if (this.stageId) {
+        await supabase
+          .from('stage_participants')
+          .update({ left_at: new Date().toISOString() })
+          .eq('stage_id', this.stageId)
+          .eq('user_id', userId);
+      }
+
       this.stageId = null;
+      this.userId = null;
     } catch (error) {
-      console.error('Failed to leave stage:', error);
+      console.error('Error leaving stage:', error);
     }
   }
 
   async sendChatMessage(userId: string, userName: string, message: string): Promise<void> {
-    if (!this.stageId) return;
+    if (!this.channel || !this.stageId) return;
 
     const chatMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: `${userId}-${Date.now()}`,
+      message,
       userId,
       userName,
-      message,
       timestamp: new Date().toISOString(),
-      type: 'text'
+      type: 'user'
     };
 
-    const channel = supabase.channel(`stage-chat-${this.stageId}`);
-    await channel.send({
+    await this.channel.send({
       type: 'broadcast',
-      event: 'chat-message',
+      event: 'chat_message',
       payload: chatMessage
+    });
+
+    // Store in database for persistence
+    await supabase
+      .from('stage_chat_messages')
+      .insert({
+        stage_id: this.stageId,
+        user_id: userId,
+        message,
+        created_at: new Date().toISOString()
+      });
+  }
+
+  async toggleMute(userId: string, isMuted: boolean): Promise<void> {
+    if (!this.channel) return;
+
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'participant_update',
+      payload: {
+        userId,
+        updates: { isAudioEnabled: !isMuted }
+      }
     });
   }
 
-  async toggleMute(userId: string, muted: boolean): Promise<void> {
-    if (!this.stageId) return;
+  async toggleVideo(userId: string, isVideoEnabled: boolean): Promise<void> {
+    if (!this.channel) return;
 
-    await supabase
-      .from('stage_participants')
-      .update({ is_muted: muted })
-      .eq('stage_id', this.stageId)
-      .eq('user_id', userId);
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'participant_update',
+      payload: {
+        userId,
+        updates: { isVideoEnabled }
+      }
+    });
   }
 
-  async toggleVideo(userId: string, videoEnabled: boolean): Promise<void> {
-    if (!this.stageId) return;
+  async raiseHand(userId: string, isRaised: boolean): Promise<void> {
+    if (!this.channel) return;
 
-    await supabase
-      .from('stage_participants')
-      .update({ is_video_enabled: videoEnabled })
-      .eq('stage_id', this.stageId)
-      .eq('user_id', userId);
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'participant_update',
+      payload: {
+        userId,
+        updates: { isHandRaised: isRaised }
+      }
+    });
   }
 
-  async raiseHand(userId: string, handRaised: boolean): Promise<void> {
-    if (!this.stageId) return;
+  async startRecording(): Promise<void> {
+    if (!this.channel || !this.stageId) return;
 
-    await supabase
-      .from('stage_participants')
-      .update({ is_hand_raised: handRaised })
-      .eq('stage_id', this.stageId)
-      .eq('user_id', userId);
+    const event: StageEvent = {
+      type: 'recording_started',
+      timestamp: new Date().toISOString()
+    };
+
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'stage_event',
+      payload: event
+    });
   }
 
-  private handleParticipantUpdate(payload: any): void {
-    this.emit('participantUpdate', payload);
+  async stopRecording(recordingUrl?: string): Promise<void> {
+    if (!this.channel) return;
+
+    const event: StageEvent = {
+      type: 'recording_stopped',
+      data: { url: recordingUrl },
+      timestamp: new Date().toISOString()
+    };
+
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'stage_event',
+      payload: event
+    });
   }
 
-  private handleChatMessage(message: ChatMessage): void {
-    this.chatMessages.push(message);
-    this.emit('chatMessage', message);
+  onParticipantUpdate(callback: (participant: Partial<StageParticipant>) => void): () => void {
+    if (!this.channel) return () => {};
+
+    this.channel.on('broadcast', { event: 'participant_update' }, ({ payload }) => {
+      callback(payload);
+    });
+
+    return () => {
+      if (this.channel) {
+        this.channel.off('broadcast', { event: 'participant_update' });
+      }
+    };
   }
 
-  on(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event) || [];
-    handlers.push(handler);
-    this.eventHandlers.set(event, handlers);
+  onParticipantLeft(callback: (userId: string) => void): () => void {
+    if (!this.channel) return () => {};
+
+    this.channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+      leftPresences.forEach((presence: any) => {
+        callback(presence.user_id);
+      });
+    });
+
+    return () => {
+      if (this.channel) {
+        this.channel.off('presence', { event: 'leave' });
+      }
+    };
   }
 
-  off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event) || [];
-    const index = handlers.indexOf(handler);
-    if (index > -1) {
-      handlers.splice(index, 1);
-      this.eventHandlers.set(event, handlers);
-    }
+  onChatMessage(callback: (message: ChatMessage) => void): () => void {
+    if (!this.channel) return () => {};
+
+    this.channel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+      callback(payload);
+    });
+
+    return () => {
+      if (this.channel) {
+        this.channel.off('broadcast', { event: 'chat_message' });
+      }
+    };
   }
 
-  private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event) || [];
-    handlers.forEach(handler => handler(data));
-  }
+  onStageEvent(callback: (event: StageEvent) => void): () => void {
+    if (!this.channel) return () => {};
 
-  getParticipants(): StageParticipant[] {
-    return Array.from(this.participants.values());
-  }
+    this.channel.on('broadcast', { event: 'stage_event' }, ({ payload }) => {
+      callback(payload);
+    });
 
-  getChatMessages(): ChatMessage[] {
-    return [...this.chatMessages];
+    return () => {
+      if (this.channel) {
+        this.channel.off('broadcast', { event: 'stage_event' });
+      }
+    };
   }
 }
 

@@ -1,489 +1,454 @@
-import React from 'react';
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import Icons from '@/utils/IconUtils';
-import ComingSoonBanner from './ComingSoonBanner';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  Sword, Shield, Target, Trophy, Users, BookOpen, 
+  Calendar, MessageSquare, Video, Zap, ArrowRight,
+  TrendingUp, Award, Clock, CheckCircle2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const DOCUMENT_TYPES = [
-  { id: 'doc', name: 'Document', icon: <Icons.FileText size={20} className="text-blue-500" /> },
-  { id: 'sheet', name: 'Spreadsheet', icon: <Icons.BarChart size={20} className="text-green-500" /> },
-  { id: 'slide', name: 'Presentation', icon: <Icons.LayoutDashboard size={20} className="text-orange-500" /> },
-  { id: 'draw', name: 'Drawing', icon: <Icons.Cpu size={20} className="text-purple-500" /> },
-  { id: 'form', name: 'Form', icon: <Icons.CheckCircle size={20} className="text-red-500" /> },
-];
-
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  lastEdited: string;
-  sharedWith: number;
-  starred: boolean;
-  size?: string;
+interface WorkspacePanelProps {
+  className?: string;
 }
 
-const WorkspacePanel = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [documents, setDocuments] = useState<Document[]>([
-    { id: '1', name: 'Project Roadmap', type: 'doc', lastEdited: '2 hours ago', sharedWith: 3, starred: true },
-    { id: '2', name: 'Financial Analysis', type: 'sheet', lastEdited: '1 day ago', sharedWith: 2, starred: false },
-    { id: '3', name: 'Team Presentation', type: 'slide', lastEdited: '3 days ago', sharedWith: 5, starred: true },
-    { id: '4', name: 'Marketing Strategy', type: 'doc', lastEdited: '4 days ago', sharedWith: 1, starred: false },
-    { id: '5', name: 'Product Mockups', type: 'draw', lastEdited: '1 week ago', sharedWith: 2, starred: false },
-    { id: '6', name: 'User Feedback', type: 'form', lastEdited: '2 weeks ago', sharedWith: 0, starred: true },
-  ]);
-  
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ className }) => {
+  const [activeSection, setActiveSection] = useState<'overview' | 'training' | 'missions' | 'community'>('overview');
+
+  const warriorStats = {
+    level: 12,
+    xp: 2850,
+    nextLevelXp: 3000,
+    completedMissions: 47,
+    activeMissions: 3,
+    totalPoints: 15420,
+    rank: 'Elite Warrior',
+    streak: 14
   };
-  
-  const handleCreateDocument = (type: string) => {
-    const newDoc: Document = {
-      id: (documents.length + 1).toString(),
-      name: `Untitled ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-      type,
-      lastEdited: 'Just now',
-      sharedWith: 0,
-      starred: false
-    };
-    
-    setDocuments([newDoc, ...documents]);
-    setShowCreateDialog(false);
-    
-    toast.success(`New ${type} created!`, {
-      description: "You can now start editing your document."
-    });
+
+  const activeMissions = [
+    {
+      id: 1,
+      title: 'Master the Art of Public Speaking',
+      description: 'Complete 5 stage presentations and receive positive feedback',
+      progress: 60,
+      difficulty: 'Hard',
+      xpReward: 500,
+      deadline: '2024-01-15',
+      type: 'skill'
+    },
+    {
+      id: 2,
+      title: 'Build Your Network',
+      description: 'Connect with 10 new warriors and engage in meaningful conversations',
+      progress: 80,
+      difficulty: 'Medium',
+      xpReward: 300,
+      deadline: '2024-01-20',
+      type: 'social'
+    },
+    {
+      id: 3,
+      title: 'Leadership Challenge',
+      description: 'Lead a team project and deliver results within timeline',
+      progress: 25,
+      difficulty: 'Expert',
+      xpReward: 800,
+      deadline: '2024-02-01',
+      type: 'leadership'
+    }
+  ];
+
+  const trainingModules = [
+    {
+      id: 1,
+      title: 'Communication Mastery',
+      description: 'Advanced techniques for effective communication',
+      lessons: 12,
+      duration: '6 hours',
+      difficulty: 'Intermediate',
+      completed: false,
+      thumbnail: '🗣️'
+    },
+    {
+      id: 2,
+      title: 'Strategic Thinking',
+      description: 'Develop strategic mindset and decision-making skills',
+      lessons: 8,
+      duration: '4 hours',
+      difficulty: 'Advanced',
+      completed: true,
+      thumbnail: '🧠'
+    },
+    {
+      id: 3,
+      title: 'Team Leadership',
+      description: 'Lead teams effectively and inspire excellence',
+      lessons: 15,
+      duration: '8 hours',
+      difficulty: 'Expert',
+      completed: false,
+      thumbnail: '👑'
+    }
+  ];
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case 'easy': return 'bg-green-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'hard': return 'bg-orange-500';
+      case 'expert': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
   };
-  
-  const toggleStar = (id: string) => {
-    setDocuments(docs => 
-      docs.map(doc => 
-        doc.id === id ? { ...doc, starred: !doc.starred } : doc
-      )
-    );
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'skill': return <Target className="w-4 h-4" />;
+      case 'social': return <Users className="w-4 h-4" />;
+      case 'leadership': return <Trophy className="w-4 h-4" />;
+      default: return <Zap className="w-4 h-4" />;
+    }
   };
-  
-  const handleUpload = () => {
-    // Simulate upload progress
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev !== null && prev < 100) {
-          const newProgress = prev + 10;
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setUploadProgress(null);
-              const newDoc: Document = {
-                id: (documents.length + 1).toString(),
-                name: `Uploaded File ${Math.floor(Math.random() * 1000)}`,
-                type: 'doc',
-                lastEdited: 'Just now',
-                sharedWith: 0,
-                starred: false,
-                size: '1.2 MB'
-              };
-              setDocuments([newDoc, ...documents]);
-              
-              toast.success('File uploaded successfully!');
-            }, 500);
-          }
-          return newProgress;
-        }
-        return prev;
-      });
-    }, 300);
-  };
-  
-  const filteredDocuments = documents.filter(doc => 
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const getDocumentIcon = (type: string) => {
-    const docType = DOCUMENT_TYPES.find(dt => dt.id === type);
-    return docType?.icon || <Icons.FileText size={20} className="text-primary" />;
-  };
-  
+
+  const progressPercentage = (warriorStats.xp / warriorStats.nextLevelXp) * 100;
+
   return (
-    <div className="p-6 h-full relative overflow-hidden">
-      {/* Celestial background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 dark:opacity-30">
-        <img 
-          src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
-          alt="Celestial whales background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80"></div>
+    <div className={cn("space-y-6", className)}>
+      {/* Warrior Status Header */}
+      <Card className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-500/20">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold text-white flex items-center gap-2">
+                <Sword className="w-6 h-6 text-yellow-400" />
+                Warrior's Space
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Level {warriorStats.level} • {warriorStats.rank}
+              </CardDescription>
+            </div>
+            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+              🔥 {warriorStats.streak} Day Streak
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-5 h-5 text-blue-400" />
+                <span className="text-sm text-gray-300">Experience</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white">{warriorStats.xp} XP</span>
+                  <span className="text-gray-400">{warriorStats.nextLevelXp} XP</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <span className="text-sm text-gray-300">Completed</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{warriorStats.completedMissions}</div>
+              <div className="text-xs text-gray-400">Missions</div>
+            </div>
+
+            <div className="bg-purple-500/10 rounded-lg p-4 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-5 h-5 text-purple-400" />
+                <span className="text-sm text-gray-300">Active</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{warriorStats.activeMissions}</div>
+              <div className="text-xs text-gray-400">Missions</div>
+            </div>
+
+            <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="w-5 h-5 text-yellow-400" />
+                <span className="text-sm text-gray-300">Total Points</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{warriorStats.totalPoints.toLocaleString()}</div>
+              <div className="text-xs text-gray-400">Earned</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Navigation Tabs */}
+      <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+        {[
+          { id: 'overview', label: 'Overview', icon: TrendingUp },
+          { id: 'training', label: 'Training', icon: BookOpen },
+          { id: 'missions', label: 'Missions', icon: Target },
+          { id: 'community', label: 'Community', icon: Users }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSection(tab.id as any)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all",
+              activeSection === tab.id 
+                ? "bg-blue-600 text-white shadow-md" 
+                : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+            )}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
       </div>
-      
-      <div className="relative z-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">My Workspace</h2>
-            <p className="text-sm text-muted-foreground">Organize and manage your documents</p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="relative w-full md:w-60">
-              <Input 
-                placeholder="Search files..."
-                className="pl-9 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"
-                value={searchQuery}
-                onChange={handleSearch}
-              />
-              <Icons.Search size={16} className="absolute top-1/2 transform -translate-y-1/2 left-3 text-muted-foreground" />
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="hidden md:flex"
-              >
-                {viewMode === 'grid' ? <Icons.LayoutGrid size={18} /> : <Icons.LineChart size={18} />}
-              </Button>
-              
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-1">
-                    <Icons.Plus size={16} />
-                    <span className="hidden sm:inline">New</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Create new document</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                    {DOCUMENT_TYPES.map((type) => (
-                      <button
-                        key={type.id}
-                        className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
-                        onClick={() => handleCreateDocument(type.id)}
-                      >
-                        <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
-                          {type.icon}
-                        </div>
-                        <span className="text-sm font-medium">{type.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-              
-              <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={handleUpload}>
-                <Icons.Upload size={16} />
-                <span className="hidden sm:inline">Upload</span>
-              </Button>
-              
-              <Button size="sm" className="flex items-center gap-1">
-                <Icons.Plus size={16} />
-                <span className="hidden sm:inline">Create</span>
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {uploadProgress !== null && (
-          <div className="mb-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Uploading file...</span>
-              <span className="text-xs text-muted-foreground">{uploadProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-primary h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        <Tabs defaultValue="recent" className="w-full">
-          <TabsList className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-            <TabsTrigger value="recent">Recent</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="shared">Shared</TabsTrigger>
-            <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="drive">Drive Integration</TabsTrigger>
-          </TabsList>
-          <TabsContent value="recent" className="space-y-4 mt-4">
-            <ScrollArea className="h-[calc(100vh-260px)]">
-              {searchQuery && filteredDocuments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Icons.Search size={48} className="mb-2 text-muted-foreground opacity-20" />
-                  <h3 className="text-lg font-medium">No results found</h3>
-                  <p className="text-sm text-muted-foreground">Try a different search term</p>
-                </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredDocuments.map((doc) => (
-                    <Card key={doc.id} className="p-4 cursor-pointer hover:shadow-md transition-shadow backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 hover:translate-y-[-2px] duration-200">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded flex items-center justify-center">
-                          {getDocumentIcon(doc.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-medium truncate">{doc.name}</h3>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => toggleStar(doc.id)}
-                            >
-                              <Icons.Star 
-                                size={16} 
-                                className={doc.starred ? "text-yellow-400 fill-yellow-400" : "text-gray-400"} 
-                              />
-                            </Button>
-                          </div>
-                          <p className="text-sm text-gray-500 truncate">Last edited {doc.lastEdited}</p>
-                          <div className="flex items-center mt-2 text-xs text-gray-500 justify-between">
-                            <div className="flex items-center">
-                              <Icons.Users size={14} className="mr-1" />
-                              <span>{doc.sharedWith > 0 ? `You and ${doc.sharedWith} others` : 'Only you'}</span>
-                            </div>
-                            {doc.size && <span>{doc.size}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredDocuments.map((doc) => (
-                    <div 
-                      key={doc.id} 
-                      className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer backdrop-blur-sm bg-white/60 dark:bg-gray-800/60"
+      {/* Content Sections */}
+      {activeSection === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-400" />
+                Active Missions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {activeMissions.slice(0, 3).map((mission) => (
+                <div key={mission.id} className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getTypeIcon(mission.type)}
+                      <h4 className="font-medium text-white">{mission.title}</h4>
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className={cn("text-xs", getDifficultyColor(mission.difficulty))}
                     >
-                      <div className="mr-3">
-                        {getDocumentIcon(doc.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate">{doc.name}</h4>
-                        <p className="text-xs text-gray-500">Last edited {doc.lastEdited}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {doc.sharedWith > 0 && (
-                          <div className="flex -space-x-2">
-                            {Array.from({ length: Math.min(doc.sharedWith, 3) }).map((_, i) => (
-                              <Avatar key={i} className="h-6 w-6 border-2 border-background">
-                                <AvatarFallback>U{i+1}</AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {doc.sharedWith > 3 && (
-                              <div className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-background text-xs">
-                                +{doc.sharedWith - 3}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => toggleStar(doc.id)}
-                        >
-                          <Icons.Star 
-                            size={16} 
-                            className={doc.starred ? "text-yellow-400 fill-yellow-400" : "text-gray-400"} 
-                          />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Icons.MoreHorizontal size={16} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Icons.FileText size={14} className="mr-2" />
-                              Open
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Icons.Share2 size={14} className="mr-2" />
-                              Share
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Icons.Download size={14} className="mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-500">
-                              <Icons.Trash size={14} className="mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {mission.difficulty}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-400 mb-3">{mission.description}</p>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">Progress</span>
+                      <span className="text-white">{mission.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${mission.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="text-xs text-yellow-400">+{mission.xpReward} XP</span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {mission.deadline}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-green-400" />
+                Recent Training
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {trainingModules.slice(0, 3).map((module) => (
+                <div key={module.id} className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{module.thumbnail}</div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-white mb-1">{module.title}</h4>
+                      <p className="text-sm text-gray-400 mb-2">{module.description}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>{module.lessons} lessons</span>
+                        <span>{module.duration}</span>
+                        <Badge variant="outline" size="sm" className="text-xs">
+                          {module.difficulty}
+                        </Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="favorites" className="space-y-4 mt-4">
-            <ScrollArea className="h-[calc(100vh-260px)]">
-              {documents.filter(doc => doc.starred).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-                  <div className="w-24 h-24 mb-4 opacity-20">
-                    <img 
-                      src="/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png" 
-                      alt="Whale illustration" 
-                      className="w-full h-full object-contain"
-                    />
+                    {module.completed && (
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    )}
                   </div>
-                  <h3 className="text-lg font-medium mb-2">No favorites yet</h3>
-                  <p className="text-sm text-gray-500 max-w-md">Star your most important documents to access them quickly</p>
                 </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {documents
-                    .filter(doc => doc.starred)
-                    .map((doc) => (
-                      <Card key={doc.id} className="p-4 cursor-pointer hover:shadow-md transition-shadow backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded">
-                            {getDocumentIcon(doc.type)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              <h3 className="font-medium truncate">{doc.name}</h3>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8"
-                                onClick={() => toggleStar(doc.id)}
-                              >
-                                <Icons.Star size={16} className="text-yellow-400 fill-yellow-400" />
-                              </Button>
-                            </div>
-                            <p className="text-sm text-gray-500 truncate">Last edited {doc.lastEdited}</p>
-                            <div className="flex items-center mt-2 text-xs text-gray-500">
-                              <Icons.Users size={14} className="mr-1" />
-                              <span>{doc.sharedWith > 0 ? `You and ${doc.sharedWith} others` : 'Only you'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {documents
-                    .filter(doc => doc.starred)
-                    .map((doc) => (
-                      <div 
-                        key={doc.id} 
-                        className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer backdrop-blur-sm bg-white/60 dark:bg-gray-800/60"
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeSection === 'missions' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {activeMissions.map((mission) => (
+              <Card key={mission.id} className="bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-colors">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      {getTypeIcon(mission.type)}
+                      <Badge 
+                        variant="secondary" 
+                        className={cn("text-xs", getDifficultyColor(mission.difficulty))}
                       >
-                        <div className="mr-3">
-                          {getDocumentIcon(doc.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium truncate">{doc.name}</h4>
-                          <p className="text-xs text-gray-500">Last edited {doc.lastEdited}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {doc.sharedWith > 0 && (
-                            <Badge variant="outline">{doc.sharedWith} users</Badge>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => toggleStar(doc.id)}
-                          >
-                            <Icons.Star 
-                              size={16} 
-                              className="text-yellow-400 fill-yellow-400"
-                            />
-                          </Button>
-                        </div>
+                        {mission.difficulty}
+                      </Badge>
+                    </div>
+                    <span className="text-yellow-400 text-sm font-medium">+{mission.xpReward} XP</span>
+                  </div>
+                  <CardTitle className="text-white text-lg">{mission.title}</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    {mission.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-400">Progress</span>
+                        <span className="text-white">{mission.progress}%</span>
                       </div>
-                    ))}
+                      <div className="w-full bg-gray-600 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${mission.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Due: {mission.deadline}
+                      </span>
+                      <Button size="sm" variant="outline" className="text-xs">
+                        Continue <ArrowRight className="w-3 h-3 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'training' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {trainingModules.map((module) => (
+            <Card key={module.id} className="bg-gray-800/50 border-gray-700 hover:border-green-500/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="text-3xl mb-2">{module.thumbnail}</div>
+                  {module.completed && (
+                    <CheckCircle2 className="w-6 h-6 text-green-400" />
+                  )}
                 </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="shared" className="space-y-4 mt-4">
-            <div className="flex flex-col items-center justify-center py-16 text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-              <div className="w-24 h-24 mb-4 opacity-20">
-                <img 
-                  src="/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png" 
-                  alt="Whale illustration" 
-                  className="w-full h-full object-contain"
-                />
+                <CardTitle className="text-white text-lg">{module.title}</CardTitle>
+                <CardDescription className="text-gray-400">
+                  {module.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">{module.lessons} lessons</span>
+                    <span className="text-gray-400">{module.duration}</span>
+                  </div>
+                  
+                  <Badge variant="outline" className="w-fit">
+                    {module.difficulty}
+                  </Badge>
+                  
+                  <Button 
+                    className="w-full" 
+                    variant={module.completed ? "outline" : "default"}
+                  >
+                    {module.completed ? 'Review' : 'Start Training'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {activeSection === 'community' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-400" />
+                Warrior Network
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                      A
+                    </div>
+                    <div>
+                      <div className="text-white font-medium">Alex Warrior</div>
+                      <div className="text-xs text-gray-400">Level 15 • Elite</div>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline">Connect</Button>
+                </div>
               </div>
-              <h3 className="text-lg font-medium mb-2">No shared documents</h3>
-              <p className="text-sm text-gray-500 max-w-md">Documents shared with you will appear here</p>
-            </div>
-          </TabsContent>
-          <TabsContent value="templates" className="space-y-4 mt-4">
-            <div className="flex flex-col items-center justify-center py-16 text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-              <div className="w-24 h-24 mb-4 opacity-20">
-                <img 
-                  src="/lovable-uploads/be262162-c56d-43d0-8722-602aa9fa0cba.png" 
-                  alt="Whale illustration" 
-                  className="w-full h-full object-contain"
-                />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-blue-400" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  Join Stage
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Schedule
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  Chat
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Leaderboard
+                </Button>
               </div>
-              <h3 className="text-lg font-medium mb-2">No templates available</h3>
-              <p className="text-sm text-gray-500 max-w-md">Create and save templates to streamline your workflow</p>
-              
-              <ComingSoonBanner 
-                title="Templates Feature Coming Soon"
-                description="We're working on bringing you customizable templates to help streamline your work."
-                className="mt-8"
-              />
-            </div>
-          </TabsContent>
-          <TabsContent value="drive" className="space-y-4 mt-4">
-            <div className="flex flex-col items-center justify-center py-16 text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-              <div className="w-24 h-24 mb-4">
-                <Icons.Cpu size={96} className="text-primary opacity-20" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">Connect to Google Drive</h3>
-              <p className="text-sm text-gray-500 max-w-md mb-4">
-                Seamlessly integrate with Google Drive to access all your documents in one place
-              </p>
-              
-              <Button size="sm" className="flex items-center gap-2">
-                <Icons.GitBranch size={16} />
-                Connect to Google Drive
-              </Button>
-              
-              <ComingSoonBanner 
-                title="Advanced Drive Integration Coming Soon"
-                description="We're enhancing our Google Drive integration with advanced sync features and collaborative editing."
-                className="mt-8"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
