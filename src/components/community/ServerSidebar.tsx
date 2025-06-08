@@ -16,13 +16,15 @@ interface ServerSidebarProps {
   onChannelSelect: (channelId: string) => void;
   collapsed?: boolean;
   channels?: ChatChannel[];
+  isLoading?: boolean;
 }
 
 const ServerSidebar: React.FC<ServerSidebarProps> = ({
   activeChannel,
   onChannelSelect,
   collapsed = false,
-  channels = []
+  channels = [],
+  isLoading = false
 }) => {
   const [textChannelsExpanded, setTextChannelsExpanded] = React.useState(true);
 
@@ -56,9 +58,13 @@ const ServerSidebar: React.FC<ServerSidebarProps> = ({
 
             {textChannelsExpanded && (
               <div className="space-y-1">
-                {channels.length === 0 ? (
+                {isLoading ? (
                   <div className="text-xs text-gray-500 dark:text-gray-400 p-2">
                     Loading channels...
+                  </div>
+                ) : channels.length === 0 ? (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 p-2">
+                    No channels available
                   </div>
                 ) : (
                   channels.map((channel) => (

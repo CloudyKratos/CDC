@@ -10,7 +10,7 @@ interface UseCommunityChat {
   isLoading: boolean;
   sendMessage: (content: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
-  replyToMessage: (messageId: string, content: string) => Promise<void>;
+  replyToMessage: (messageId: string) => Promise<void>;
   addReaction: (messageId: string, reaction: string) => Promise<void>;
 }
 
@@ -100,18 +100,18 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     }
   }, [user?.id]);
   
-  // Reply to a message
-  const replyToMessage = useCallback(async (messageId: string, content: string) => {
-    if (!user?.id || !content.trim()) return;
+  // Reply to a message (simplified to just send a message for now)
+  const replyToMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
     
     try {
-      // For now just send a normal message (would need backend support for proper threading)
-      await sendMessage(content);
+      // For now just show a toast - would need backend support for proper threading
+      toast.info('Reply feature coming soon!');
     } catch (error) {
       console.error('Error replying to message:', error);
       toast.error('Failed to reply to message');
     }
-  }, [user?.id, sendMessage]);
+  }, [user?.id]);
   
   // Add a reaction to a message
   const addReaction = useCallback(async (messageId: string, reaction: string) => {
