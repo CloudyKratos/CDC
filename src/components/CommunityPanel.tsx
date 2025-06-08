@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Wifi, WifiOff, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import EnhancedCommunityPanel from './community/EnhancedCommunityPanel';
+import RealtimeCommunityPanel from './community/RealtimeCommunityPanel';
 import CommunityErrorBoundary from './community/CommunityErrorBoundary';
 
 interface CommunityPanelProps {
@@ -68,14 +68,15 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       }
 
       if (!user) {
-        throw new Error('Please log in to access the community');
+        console.log('⚠️ No authenticated user for community');
+        // Allow access to community even without login for viewing
       }
 
-      console.log('✅ Community initialization: User authenticated:', user.id);
+      console.log('✅ Community initialization: User check completed');
 
       // Test basic connectivity to Supabase
       const { error: testError } = await supabase
-        .from('profiles')
+        .from('channels')
         .select('id')
         .limit(1);
 
@@ -136,7 +137,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Community</h3>
-            <p className="text-gray-600">Connecting to the community chat...</p>
+            <p className="text-gray-600">Connecting to the real-time community chat...</p>
             {retryCount > 0 && (
               <p className="text-sm text-gray-500 mt-2">Retry attempt #{retryCount}</p>
             )}
@@ -181,11 +182,11 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       <div className="absolute top-4 right-4 z-10">
         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1">
           <Wifi className="h-3 w-3 text-green-500" />
-          <span className="text-xs text-gray-600">Online</span>
+          <span className="text-xs text-gray-600">Real-time</span>
         </div>
       </div>
       <CommunityErrorBoundary>
-        <EnhancedCommunityPanel defaultChannel={channelName} />
+        <RealtimeCommunityPanel defaultChannel={channelName} />
       </CommunityErrorBoundary>
     </div>
   );
