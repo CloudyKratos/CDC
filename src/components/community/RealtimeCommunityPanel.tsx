@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRealtimeChat } from './hooks/useRealtimeChat';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
+import { ChannelType } from '@/types/chat';
 import ConnectionStatusIndicator from './ConnectionStatusIndicator';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
@@ -42,12 +43,12 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
 
   // Mock channels data for the sidebar
   const mockChannels = [
-    { id: 'general', name: 'general', type: 'public' as const, members: [], description: 'General discussion' },
-    { id: 'announcements', name: 'announcements', type: 'public' as const, members: [], description: 'Important announcements' },
-    { id: 'entrepreneurs', name: 'entrepreneurs', type: 'public' as const, members: [], description: 'Entrepreneurial discussions' },
-    { id: 'tech-talk', name: 'tech-talk', type: 'public' as const, members: [], description: 'Technology discussions' },
-    { id: 'motivation', name: 'motivation', type: 'public' as const, members: [], description: 'Daily motivation' },
-    { id: 'resources', name: 'resources', type: 'public' as const, members: [], description: 'Useful resources' }
+    { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
+    { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
+    { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
+    { id: 'tech-talk', name: 'tech-talk', type: ChannelType.PUBLIC, members: [], description: 'Technology discussions' },
+    { id: 'motivation', name: 'motivation', type: ChannelType.PUBLIC, members: [], description: 'Daily motivation' },
+    { id: 'resources', name: 'resources', type: ChannelType.PUBLIC, members: [], description: 'Useful resources' }
   ];
 
   const handleChannelSelect = useCallback((channelId: string) => {
