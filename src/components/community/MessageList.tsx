@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Message } from '@/types/chat';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { MessageSquare, Users } from 'lucide-react';
 
 interface MessageListProps {
   messages: Message[];
@@ -93,34 +94,52 @@ const MessageList: React.FC<MessageListProps> = ({
       <ScrollArea className="flex-1 px-0">
         <div className="py-4">
           {isLoading ? (
-            <div className="flex items-center justify-center h-24">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading messages...</p>
+              </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <p className="text-lg font-medium">Welcome to the beginning of this channel!</p>
-              <p className="text-sm mt-2">Be the first one to send a message</p>
+            <div className="text-center py-16 px-8">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <MessageSquare className="w-12 h-12 text-blue-500 opacity-60" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Welcome to the beginning!
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-4">
+                This is the start of your conversation in this channel. Say hello and introduce yourself to the community!
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Users className="w-4 h-4" />
+                <span>Be the first to share your thoughts</span>
+              </div>
             </div>
           ) : (
             <>
               {sortedDates.map(dateKey => (
                 <div key={dateKey}>
-                  <div className="flex items-center justify-center my-4">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10">
+                  <div className="flex items-center justify-center my-6">
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+                    <Badge variant="outline" className="mx-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 px-3 py-1">
                       {getDateLabel(dateKey)}
                     </Badge>
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
                   </div>
                   
-                  {groupedMessages[dateKey].map((message, index) => (
-                    <ChatMessage
-                      key={message.id}
-                      message={message}
-                      onDelete={handleDelete}
-                      onReaction={handleReaction}
-                      onReply={handleReply}
-                      isLast={index === groupedMessages[dateKey].length - 1}
-                    />
-                  ))}
+                  <div className="space-y-1">
+                    {groupedMessages[dateKey].map((message, index) => (
+                      <ChatMessage
+                        key={message.id}
+                        message={message}
+                        onDelete={handleDelete}
+                        onReaction={handleReaction}
+                        onReply={handleReply}
+                        isLast={index === groupedMessages[dateKey].length - 1}
+                      />
+                    ))}
+                  </div>
                 </div>
               ))}
             </>
@@ -131,16 +150,16 @@ const MessageList: React.FC<MessageListProps> = ({
       </ScrollArea>
       
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-gray-800">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Message</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-gray-900 dark:text-white">Delete Message</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
               Are you sure you want to delete this message? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel className="bg-gray-100 dark:bg-gray-700">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -10,7 +10,8 @@ import {
   AtSign,
   Gift,
   Mic,
-  Paperclip
+  Paperclip,
+  Hash
 } from "lucide-react";
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { 
@@ -18,6 +19,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from 'sonner';
 
 interface MessageInputProps {
@@ -35,24 +42,33 @@ const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Focus textarea on mount
+  // Focus textarea on mount and auto-resize
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
+      // Auto-resize textarea
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
-  }, [channelName]);
+  }, [channelName, message]);
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!message.trim() || isLoading) return;
     
+    setIsTyping(false);
+    
     try {
       await onSendMessage(message);
       setMessage("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
@@ -64,6 +80,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
       e.preventDefault();
       handleSendMessage(e as unknown as React.FormEvent);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    setIsTyping(e.target.value.length > 0);
   };
   
   const handleEmojiSelect = (emoji: string) => {
@@ -99,113 +120,174 @@ const MessageInput: React.FC<MessageInputProps> = ({
       } else {
         // Fallback if no attachment handler provided
         const fileNames = Array.from(files).map(file => file.name).join(', ');
-        toast.info(`Selected files: ${fileNames}`);
+        toast.success(`Files selected: ${fileNames}`, {
+          description: "File sharing feature coming soon!"
+        });
       }
     }
     // Reset the file input
     if (e.target) e.target.value = '';
   };
+
+  const getChannelDisplayName = () => {
+    return channelName.replace(/-/g, ' ');
+  };
   
   return (
-    <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-      <form onSubmit={handleSendMessage} className="relative">
-        <div className="flex gap-2">
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="icon" 
-            className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            onClick={handleFileUpload}
-          >
-            <Paperclip size={20} />
-          </Button>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            multiple
-            onChange={handleFileChange}
-          />
-          
-          <div className="relative flex-1 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={`Message #${channelName}`}
-              className="min-h-[40px] max-h-[200px] py-2.5 pl-3 pr-10 bg-transparent border-none focus:ring-0 resize-none w-full"
-              disabled={isLoading}
+    <TooltipProvider>
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <form onSubmit={handleSendMessage} className="space-y-3">
+          {/* Main input area */}
+          <div className="flex gap-3">
+            {/* File upload button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  size="icon" 
+                  className="flex-shrink-0 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  onClick={handleFileUpload}
+                >
+                  <Paperclip size={20} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Attach files</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+              onChange={handleFileChange}
             />
             
-            <div className="absolute bottom-2 right-2 flex items-center space-x-1">
-              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-full"
-                  >
-                    <Smile size={18} className="text-gray-500 dark:text-gray-400" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="end" alignOffset={-40}>
-                  <EmojiPicker
-                    emojis={['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋']}
-                    onSelectEmoji={handleEmojiSelect}
-                    onClose={() => setShowEmojiPicker(false)}
-                  />
-                </PopoverContent>
-              </Popover>
+            {/* Message input */}
+            <div className="relative flex-1">
+              <Textarea
+                ref={textareaRef}
+                value={message}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyPress}
+                placeholder={`Message #${getChannelDisplayName()}`}
+                className="min-h-[44px] max-h-[120px] py-3 pl-4 pr-32 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none rounded-lg"
+                disabled={isLoading}
+              />
               
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full"
-              >
-                <AtSign size={18} className="text-gray-500 dark:text-gray-400" />
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full"
-              >
-                <Gift size={18} className="text-gray-500 dark:text-gray-400" />
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full"
-              >
-                <Image size={18} className="text-gray-500 dark:text-gray-400" />
-              </Button>
+              {/* Action buttons in input */}
+              <div className="absolute bottom-2 right-2 flex items-center space-x-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                        >
+                          <Smile size={18} className="text-gray-500 dark:text-gray-400" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="end" alignOffset={-40}>
+                        <EmojiPicker
+                          emojis={['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋', '✅', '⭐', '💡', '📈', '🙌', '💪', '🌟', '🎯', '💯', '🏆']}
+                          onSelectEmoji={handleEmojiSelect}
+                          onClose={() => setShowEmojiPicker(false)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add emoji</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                      onClick={() => toast.info("Mention feature coming soon!")}
+                    >
+                      <AtSign size={18} className="text-gray-500 dark:text-gray-400" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Mention someone</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                      onClick={() => toast.info("GIF feature coming soon!")}
+                    >
+                      <Gift size={18} className="text-gray-500 dark:text-gray-400" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Send GIF</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
+            
+            {/* Send button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white h-11 w-11"
+                  disabled={!message.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : message.trim() ? (
+                    <Send size={20} />
+                  ) : (
+                    <Mic size={20} />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{message.trim() ? 'Send message' : 'Voice message'}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           
-          <Button
-            type="submit"
-            size="icon"
-            className="flex-shrink-0"
-            disabled={!message.trim() || isLoading}
-          >
-            {isLoading ? (
-              <span className="animate-spin">⏳</span>
-            ) : message.trim() ? (
-              <Send size={20} />
-            ) : (
-              <Mic size={20} />
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
+          {/* Typing indicator and quick actions */}
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              {isTyping && (
+                <span className="flex items-center gap-1">
+                  <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
+                  Typing...
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              <span>Use Shift + Enter for new line</span>
+              <span className="flex items-center gap-1">
+                <Hash size={12} />
+                {getChannelDisplayName()}
+              </span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </TooltipProvider>
   );
 };
 
