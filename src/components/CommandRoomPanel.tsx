@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import LearningCard, { LearningItem } from './command-room/LearningCard';
@@ -27,77 +26,8 @@ const CommandRoomPanel = () => {
     format: 'all'
   });
 
-  // Sample learning content data with YouTube videos
-  const [learningItems, setLearningItems] = useState<LearningItem[]>([
-    {
-      id: '1',
-      title: 'Morning Ritual Mastery Course',
-      type: 'course',
-      category: 'rituals',
-      level: 'beginner',
-      coach: 'Alex Chen',
-      format: 'video',
-      lastReviewed: '2 hours ago',
-      progress: 65,
-      isPrivate: false,
-      isPremium: true,
-      isFavorited: true,
-      description: 'Transform your mornings with proven rituals that set the foundation for extraordinary days.',
-      modules: 7,
-      duration: '2.5 hours'
-    },
-    {
-      id: '2',
-      title: 'Stoic Decision Framework',
-      type: 'vault',
-      category: 'wisdom',
-      level: 'intermediate',
-      coach: 'Maya Singh',
-      format: 'pdf',
-      lastReviewed: '1 day ago',
-      isPrivate: false,
-      isPremium: false,
-      isFavorited: false,
-      description: 'Ancient wisdom meets modern decision-making. A comprehensive framework for clear thinking.',
-      duration: '45 min read'
-    },
-    {
-      id: '7',
-      title: 'The Power of Now - Eckhart Tolle',
-      type: 'replay',
-      category: 'mindset',
-      level: 'intermediate',
-      coach: 'Eckhart Tolle',
-      format: 'video',
-      lastReviewed: 'Just added',
-      progress: 30,
-      isPrivate: false,
-      isPremium: false,
-      isFavorited: false,
-      description: 'A profound spiritual teaching about living in the present moment and finding peace within.',
-      duration: '1.5 hours',
-      youtubeId: 'qgVyVZE7lfw',
-      youtubeUrl: 'https://youtube.com/watch?v=qgVyVZE7lfw'
-    },
-    {
-      id: '8',
-      title: 'Atomic Habits Masterclass',
-      type: 'replay',
-      category: 'productivity',
-      level: 'beginner',
-      coach: 'James Clear',
-      format: 'video',
-      lastReviewed: '2 days ago',
-      progress: 85,
-      isPrivate: false,
-      isPremium: true,
-      isFavorited: true,
-      description: 'Learn the science of habit formation and how tiny changes lead to remarkable results.',
-      duration: '45 minutes',
-      youtubeId: 'YT7tQzmGRLA',
-      youtubeUrl: 'https://youtube.com/watch?v=YT7tQzmGRLA'
-    }
-  ]);
+  // Start with empty learning items array
+  const [learningItems, setLearningItems] = useState<LearningItem[]>([]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
