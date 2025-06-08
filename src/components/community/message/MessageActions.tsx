@@ -21,6 +21,7 @@ interface MessageActionsProps {
   onReply?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReaction?: (messageId: string, reaction: string) => void;
+  isOwnMessage?: boolean;
 }
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -31,7 +32,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   setShowReactions,
   onReply,
   onDelete,
-  onReaction
+  onReaction,
+  isOwnMessage = false
 }) => {
   const handleReaction = (reaction: string) => {
     if (onReaction) {
@@ -61,7 +63,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   if (!showActions) return null;
 
   return (
-    <div className="absolute -top-3 right-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl flex items-center border border-gray-200 dark:border-gray-700 z-10 overflow-hidden">
+    <div className={`absolute -top-3 ${isOwnMessage ? 'left-4' : 'right-6'} bg-white dark:bg-gray-800 shadow-xl rounded-xl flex items-center border border-gray-200 dark:border-gray-700 z-10 overflow-hidden`}>
       <MessageReactionPicker
         showReactions={showReactions}
         setShowReactions={setShowReactions}
@@ -106,13 +108,17 @@ const MessageActions: React.FC<MessageActionsProps> = ({
             Report Message
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-orange-600 cursor-pointer">
-            <Edit3 className="mr-3 h-4 w-4" />
-            Edit Message
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600 cursor-pointer" onSelect={() => onDelete?.(messageId)}>
-            Delete Message
-          </DropdownMenuItem>
+          {isOwnMessage && (
+            <>
+              <DropdownMenuItem className="text-orange-600 cursor-pointer">
+                <Edit3 className="mr-3 h-4 w-4" />
+                Edit Message
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600 cursor-pointer" onSelect={() => onDelete?.(messageId)}>
+                Delete Message
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

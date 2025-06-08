@@ -1,44 +1,49 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Smile } from "lucide-react";
+import { Plus } from 'lucide-react';
 
 interface MessageReactionDisplayProps {
   reactions: Record<string, number>;
   onReactionClick: (reaction: string) => void;
   onAddReaction: () => void;
+  isOwnMessage?: boolean;
 }
 
 const MessageReactionDisplay: React.FC<MessageReactionDisplayProps> = ({
   reactions,
   onReactionClick,
-  onAddReaction
+  onAddReaction,
+  isOwnMessage = false
 }) => {
-  const visibleReactions = Object.entries(reactions).filter(([_, count]) => count > 0);
-  
-  if (visibleReactions.length === 0) return null;
+  const hasReactions = Object.values(reactions).some(count => count > 0);
+
+  if (!hasReactions) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mt-4 ml-16">
-      {visibleReactions.map(([emoji, count]) => (
-        <Button
-          key={emoji} 
-          variant="outline" 
-          size="sm"
-          className="h-8 px-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 shadow-sm transition-all duration-200 hover:scale-105"
-          onClick={() => onReactionClick(emoji)}
-        >
-          <span className="mr-2 text-sm">{emoji}</span>
-          <span className="text-xs font-semibold">{count}</span>
-        </Button>
+    <div className={`flex flex-wrap gap-1 mt-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+      {Object.entries(reactions).map(([emoji, count]) => (
+        count > 0 && (
+          <Button
+            key={emoji}
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-full text-xs transition-all duration-200 hover:scale-105"
+            onClick={() => onReactionClick(emoji)}
+          >
+            <span className="mr-1">{emoji}</span>
+            <span className="text-gray-600 dark:text-gray-400 font-medium">{count}</span>
+          </Button>
+        )
       ))}
+      
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
-        className="h-8 px-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+        className="h-7 w-7 p-0 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-full transition-all duration-200 hover:scale-105"
         onClick={onAddReaction}
       >
-        <Smile size={14} />
+        <Plus size={12} className="text-gray-500 dark:text-gray-400" />
       </Button>
     </div>
   );

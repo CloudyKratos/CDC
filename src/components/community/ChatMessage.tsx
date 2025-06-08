@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Message } from "@/types/chat";
 import MessageHeader from './message/MessageHeader';
 import MessageContent from './message/MessageContent';
@@ -13,6 +14,7 @@ interface ChatMessageProps {
   onReaction?: (messageId: string, reaction: string) => void;
   onDelete?: (messageId: string) => void;
   isLast?: boolean;
+  previousMessage?: Message;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -20,7 +22,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onReply,
   onReaction,
   onDelete,
-  isLast = false
+  isLast = false,
+  previousMessage
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -30,11 +33,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     '😂': Math.floor(Math.random() * 2),
     '🔥': Math.floor(Math.random() * 3)
   });
+
+  const { user } = useAuth();
+  
+  // Check if this message should be grouped with the previous one
+  const shouldGroup = previousMessage && 
+    previousMessage.sender_id === message.sender_id &&
+    new Date(message.created_at).getTime() - new Date(previousMessage.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
+
+  // Check if this is the current user's message
+  const isOwnMessage = user?.id === message.sender_id;
   
   const handleReaction = (reaction: string) => {
     if (onReaction) {
       onReaction(message.id, reaction);
-      // Update local state for immediate feedback
       setReactions(prev => ({
         ...prev,
         [reaction]: (prev[reaction] || 0) + 1
@@ -45,19 +57,39 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   
   return (
     <div 
-      className={`relative px-6 py-4 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 group transition-all duration-200 ${isLast ? 'mb-4' : ''} rounded-lg mx-2`}
+      className={`group px-4 py-1 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-all duration-200 relative ${
+        isLast ? 'mb-4' : ''
+      } ${shouldGroup ? 'mt-0.5' : 'mt-4'}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <MessageHeader message={message} />
-      
-      <MessageContent content={message.content} />
-      
-      <MessageReactionDisplay 
-        reactions={reactions}
-        onReactionClick={handleReaction}
-        onAddReaction={() => setShowReactions(!showReactions)}
-      />
+      <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+        <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+          {!shouldGroup && (
+            <MessageHeader 
+              message={message} 
+              isOwnMessage={isOwnMessage}
+              showAvatar={!isOwnMessage}
+            />
+          )}
+          
+          <div className={`${shouldGroup ? (isOwnMessage ? 'ml-0' : 'ml-16') : (isOwnMessage ? 'ml-0' : 'ml-16')}`}>
+            <MessageContent 
+              content={message.content} 
+              isOwnMessage={isOwnMessage}
+              showTimestamp={shouldGroup}
+              timestamp={message.created_at}
+            />
+            
+            <MessageReactionDisplay 
+              reactions={reactions}
+              onReactionClick={handleReaction}
+              onAddReaction={() => setShowReactions(!showReactions)}
+              isOwnMessage={isOwnMessage}
+            />
+          </div>
+        </div>
+      </div>
       
       <MessageActions
         messageId={message.id}
@@ -68,6 +100,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         onReply={onReply}
         onDelete={onDelete}
         onReaction={onReaction}
+        isOwnMessage={isOwnMessage}
       />
     </div>
   );

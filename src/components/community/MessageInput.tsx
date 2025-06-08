@@ -1,6 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Send, Smile, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import FormattingToolbar from './input/FormattingToolbar';
 import FileUploadMenu from './input/FileUploadMenu';
@@ -27,6 +29,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Focus management and typing detection
   useEffect(() => {
@@ -65,6 +68,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
     try {
       await onSendMessage(message);
       setMessage("");
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
@@ -80,14 +87,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleInputChange = (value: string) => {
     setMessage(value);
+    
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
   };
   
   const handleEmojiSelect = (emoji: string) => {
     setMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
   const insertFormatting = (format: string) => {
-    // Simplified formatting for better UX
     let formattedText = '';
     switch (format) {
       case 'bold':
@@ -124,48 +137,71 @@ const MessageInput: React.FC<MessageInputProps> = ({
   
   return (
     <TooltipProvider>
-      <div className={`p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-200 ${isFocused ? 'shadow-lg' : ''}`}>
-        <form onSubmit={handleSendMessage} className="space-y-4">
-          {/* Formatting toolbar */}
-          {isFocused && message.length > 0 && (
-            <FormattingToolbar 
-              onFormatting={insertFormatting}
-              messageLength={message.length}
-            />
-          )}
-          
-          {/* Main input area */}
-          <div className="flex gap-4">
-            {/* File upload menu */}
-            <FileUploadMenu onFileUpload={handleFileUpload} />
+      <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <form onSubmit={handleSendMessage} className="space-y-2">
+          {/* Main input area with Discord-like styling */}
+          <div className="flex items-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200">
+            {/* File upload button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.onchange = (e) => {
+                  const files = (e.target as HTMLInputElement).files;
+                  if (files) handleFileUpload(files);
+                };
+                input.click();
+              }}
+            >
+              <Plus size={18} />
+            </Button>
             
             {/* Message input */}
-            <div className="relative flex-1">
-              <MessageInputField
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
                 value={message}
-                onChange={handleInputChange}
+                onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyPress}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={`Message #${getChannelDisplayName()}...`}
+                className="w-full bg-transparent border-0 outline-none resize-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm leading-relaxed min-h-[20px] max-h-[120px] overflow-y-auto"
                 disabled={isLoading}
-                isFocused={isFocused}
-              />
-              
-              {/* Action buttons in input */}
-              <InputActions 
-                showEmojiPicker={showEmojiPicker}
-                setShowEmojiPicker={setShowEmojiPicker}
-                onEmojiSelect={handleEmojiSelect}
+                maxLength={2000}
+                rows={1}
               />
             </div>
             
+            {/* Emoji picker button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <Smile size={18} />
+            </Button>
+            
             {/* Send button */}
-            <SendButton 
-              hasMessage={!!message.trim()}
-              isLoading={isLoading}
-              onClick={() => {}}
-            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!message.trim() || isLoading}
+              className={`h-8 w-8 p-0 shrink-0 transition-all duration-200 ${
+                message.trim() && !isLoading
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                  : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Send size={16} />
+            </Button>
           </div>
           
           {/* Enhanced status bar with typing indicator */}
@@ -173,6 +209,24 @@ const MessageInput: React.FC<MessageInputProps> = ({
             channelName={channelName}
             isTyping={isTyping}
           />
+          
+          {/* Simple emoji picker */}
+          {showEmojiPicker && (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg">
+              <div className="grid grid-cols-8 gap-2">
+                {['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉', '😎', '🤝', '💪', '🙌', '👏', '✨'].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-2 transition-colors duration-150"
+                    onClick={() => handleEmojiSelect(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </TooltipProvider>
