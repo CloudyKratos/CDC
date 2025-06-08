@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import CommunityService from '@/services/CommunityService';
+import CommunityService from '@/services/community/CommunityService';
 import { Message } from '@/types/chat';
 import { toast } from 'sonner';
 

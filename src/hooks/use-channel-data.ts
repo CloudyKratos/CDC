@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChatChannel } from '@/types/chat';
-import CommunityService from '@/services/CommunityService';
+import CommunityService from '@/services/community/CommunityService';
 import { toast } from 'sonner';
 
 interface UseChannelData {
