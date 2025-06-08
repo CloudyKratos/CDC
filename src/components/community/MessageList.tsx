@@ -1,81 +1,86 @@
 
-import React, { useRef, useEffect } from 'react';
-import { ScrollArea } from "@/components/ui/scroll-area";
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2, AlertCircle, Users, MessageSquare } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import type { Message } from "@/types/chat";
 import ChatMessage from './ChatMessage';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { Message } from '@/types/chat';
-import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Users, Sparkles, Coffee } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 interface MessageListProps {
   messages: Message[];
-  isLoading?: boolean;
+  isLoading: boolean;
   onDeleteMessage?: (messageId: string) => void;
+  onReplyMessage?: (messageId: string) => void;
+  onReactionAdd?: (messageId: string, reaction: string) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
   messages,
-  isLoading = false,
-  onDeleteMessage
+  isLoading,
+  onDeleteMessage,
+  onReplyMessage,
+  onReactionAdd
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-  const [selectedMessageId, setSelectedMessageId] = React.useState<string | null>(null);
-  
-  // Auto-scroll to bottom when new messages are added
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+
+  // Auto-scroll to bottom when new messages arrive (if user isn't scrolling)
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (!isUserScrolling && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      setNewMessagesCount(0);
+    } else if (isUserScrolling) {
+      setNewMessagesCount(prev => prev + 1);
     }
-  }, [messages]);
-  
-  const handleDelete = (messageId: string) => {
-    setSelectedMessageId(messageId);
-    setShowDeleteDialog(true);
+  }, [messages.length, isUserScrolling]);
+
+  // Handle scroll events to detect if user is scrolling
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      setIsUserScrolling(!isNearBottom);
+      setShowScrollToBottom(!isNearBottom);
+      
+      if (isNearBottom) {
+        setNewMessagesCount(0);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setIsUserScrolling(false);
+    setShowScrollToBottom(false);
+    setNewMessagesCount(0);
   };
-  
-  const confirmDelete = () => {
-    if (selectedMessageId && onDeleteMessage) {
-      onDeleteMessage(selectedMessageId);
-      toast.success('Message deleted successfully');
-    }
-    setShowDeleteDialog(false);
-    setSelectedMessageId(null);
-  };
-  
-  const handleReaction = (messageId: string, reaction: string) => {
-    toast.success(`Added reaction ${reaction} to message`);
-  };
-  
-  const handleReply = (messageId: string) => {
-    toast.info(`Replying to message ${messageId}`);
-  };
-  
-  // Group messages by date
+
   const groupMessagesByDate = (messages: Message[]) => {
     const groups: { [key: string]: Message[] } = {};
     
     messages.forEach(message => {
-      const date = new Date(message.created_at);
-      const dateKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
-      
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
+      const date = new Date(message.created_at).toDateString();
+      if (!groups[date]) {
+        groups[date] = [];
       }
-      
-      groups[dateKey].push(message);
+      groups[date].push(message);
     });
     
     return groups;
   };
-  
-  const groupedMessages = groupMessagesByDate(messages);
-  const sortedDates = Object.keys(groupedMessages).sort();
-  
-  const getDateLabel = (dateStr: string) => {
-    const date = new Date(dateStr);
+
+  const formatDateHeader = (dateString: string) => {
+    const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -85,107 +90,115 @@ const MessageList: React.FC<MessageListProps> = ({
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     } else {
-      return date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
     }
   };
-  
-  return (
-    <>
-      <ScrollArea className="flex-1 px-0">
-        <div className="py-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <div className="relative">
-                  <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-blue-500" />
-                </div>
-                <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Loading messages...</p>
-                <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Connecting to the community</p>
-              </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-20 px-8">
-              <div className="relative mb-8">
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                  <MessageSquare className="w-16 h-16 text-blue-500 opacity-70" />
-                </div>
-                <div className="absolute -top-2 -right-8 transform rotate-12">
-                  <Coffee className="w-8 h-8 text-yellow-500 opacity-60" />
-                </div>
-                <div className="absolute -bottom-4 -left-6 transform -rotate-12">
-                  <Sparkles className="w-6 h-6 text-purple-500 opacity-60" />
-                </div>
-              </div>
-              
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                Welcome to the beginning!
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto mb-6 leading-relaxed">
-                This is the start of your conversation in this channel. Say hello, introduce yourself, and start building connections with the amazing warrior community!
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-full">
-                  <Users className="w-4 h-4" />
-                  <span>Be the first to share your thoughts</span>
-                </div>
-                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full text-blue-600 dark:text-blue-400">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Start the conversation</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {sortedDates.map(dateKey => (
-                <div key={dateKey}>
-                  <div className="flex items-center justify-center my-8">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
-                    <Badge variant="outline" className="mx-6 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 px-4 py-2 shadow-sm font-medium">
-                      {getDateLabel(dateKey)}
-                    </Badge>
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {groupedMessages[dateKey].map((message, index) => (
-                      <ChatMessage
-                        key={message.id}
-                        message={message}
-                        onDelete={handleDelete}
-                        onReaction={handleReaction}
-                        onReply={handleReply}
-                        isLast={index === groupedMessages[dateKey].length - 1}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-          
-          <div ref={scrollRef} />
+
+  if (isLoading && messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">Loading messages...</p>
         </div>
-      </ScrollArea>
-      
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-white">Delete Message</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete this message? This action cannot be undone and the message will be permanently removed from the conversation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
-              Delete Message
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      </div>
+    );
+  }
+
+  if (!isLoading && messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <MessageSquare className="w-8 h-8 text-blue-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Start the Conversation
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Be the first to share your thoughts and connect with the community.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const messageGroups = groupMessagesByDate(messages);
+
+  return (
+    <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto scroll-smooth"
+      >
+        <div className="p-4 space-y-6">
+          {Object.entries(messageGroups).map(([date, dayMessages]) => (
+            <div key={date}>
+              {/* Date separator */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+                <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {formatDateHeader(date)}
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+              </div>
+              
+              {/* Messages for this date */}
+              <div className="space-y-1">
+                {dayMessages.map((message, index) => (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    onReply={onReplyMessage}
+                    onReaction={onReactionAdd}
+                    onDelete={onDeleteMessage}
+                    isLast={index === dayMessages.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Loading indicator for new messages */}
+        {isLoading && messages.length > 0 && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollToBottom && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <Button
+            onClick={scrollToBottom}
+            size="sm"
+            className={cn(
+              "rounded-full shadow-lg transition-all duration-200",
+              "bg-blue-600 hover:bg-blue-700 text-white",
+              newMessagesCount > 0 && "animate-pulse"
+            )}
+          >
+            {newMessagesCount > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 mr-2 min-w-[20px] text-center">
+                {newMessagesCount > 99 ? '99+' : newMessagesCount}
+              </span>
+            )}
+            ↓
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
