@@ -1,124 +1,137 @@
 
 import { CalendarEventData, CalendarServiceResponse } from '@/types/calendar-events';
-import { CalendarErrorHandler } from './CalendarErrorHandler';
+import { DatabaseService } from './DatabaseService';
 import { EventValidationService } from './EventValidationService';
 import { EventDataProcessor } from './EventDataProcessor';
 import { AuthService } from './AuthService';
-import { DatabaseService } from './DatabaseService';
 
 export class CalendarServiceCore {
-  private static retryAttempts = 3;
-  private static retryDelay = 1000;
-
-  static async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    context: string,
-    maxRetries = this.retryAttempts
-  ): Promise<CalendarServiceResponse<T>> {
-    let lastError: any;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 Calendar: ${context} (attempt ${attempt}/${maxRetries})`);
-        const result = await operation();
-        console.log(`✅ Calendar: ${context} succeeded`);
-        return { success: true, data: result };
-      } catch (error) {
-        lastError = error;
-        console.warn(`⚠️ Calendar: ${context} failed (attempt ${attempt}/${maxRetries})`, error);
-        
-        if (attempt < maxRetries && this.isRetryableError(error)) {
-          await this.delay(this.retryDelay * attempt);
-          continue;
+  static async getEvents(): Promise<CalendarServiceResponse<CalendarEventData[]>> {
+    try {
+      console.log('🔄 CalendarServiceCore: Starting event fetch...');
+      
+      const events = await DatabaseService.getEvents();
+      
+      return {
+        success: true,
+        data: events
+      };
+    } catch (error) {
+      console.error('💥 CalendarServiceCore: Error in getEvents:', error);
+      
+      // Handle specific RLS/policy errors
+      if (error instanceof Error) {
+        if (error.message.includes('infinite recursion') || 
+            error.message.includes('policy') ||
+            error.message.includes('workspace_members')) {
+          return {
+            success: false,
+            error: 'Database permissions issue. Please check your workspace access.',
+            code: 'RLS_ERROR'
+          };
         }
-        break;
+        
+        if (error.message.includes('Authentication')) {
+          return {
+            success: false,
+            error: 'Please log in to access calendar events.',
+            code: 'AUTH_ERROR'
+          };
+        }
       }
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        code: 'UNKNOWN_ERROR'
+      };
     }
-    
-    const calendarError = CalendarErrorHandler.handleError(lastError, context);
-    return { 
-      success: false, 
-      error: calendarError.message, 
-      code: calendarError.code 
-    };
   }
-  
-  private static isRetryableError(error: any): boolean {
-    // Network errors, temporary database issues, etc.
-    const retryableCodes = ['NETWORK_ERROR', 'TIMEOUT', 'TEMPORARY_FAILURE'];
-    return retryableCodes.includes(error.code) || 
-           error.message?.includes('network') ||
-           error.message?.includes('timeout');
-  }
-  
-  private static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-  
+
   static async createEvent(eventData: CalendarEventData): Promise<CalendarServiceResponse<CalendarEventData>> {
-    return this.executeWithRetry(async () => {
-      console.log('🎯 CalendarServiceCore: Starting event creation process');
+    try {
+      console.log('🔄 CalendarServiceCore: Starting event creation...');
       
-      // Step 1: Authentication
+      // Get current user
       const userId = await AuthService.getCurrentUser();
-      console.log('👤 CalendarServiceCore: User authenticated:', userId);
       
-      // Step 2: Validation
+      // Validate required fields
       EventValidationService.validateEventData(eventData);
-      console.log('✅ CalendarServiceCore: Event data validated');
       
-      // Step 3: Date validation
+      // Date processing and validation
       const startTime = new Date(eventData.start_time).toISOString();
       const endTime = new Date(eventData.end_time).toISOString();
+      
       EventValidationService.validateDateLogic(startTime, endTime);
-      console.log('📅 CalendarServiceCore: Date logic validated');
       
-      // Step 4: Process data
-      const processedData = EventDataProcessor.processEventData(eventData, userId);
-      console.log('🔧 CalendarServiceCore: Data processed');
+      // Prepare clean event data
+      const cleanEventData = EventDataProcessor.processEventData(eventData, userId);
       
-      // Step 5: Database insertion
-      const result = await DatabaseService.insertEvent(processedData);
-      console.log('💾 CalendarServiceCore: Event saved to database');
+      // Insert into database
+      const result = await DatabaseService.insertEvent(cleanEventData);
       
-      return result;
-    }, 'create');
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      console.error('💥 CalendarServiceCore: Error in createEvent:', error);
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create event',
+        code: 'CREATE_ERROR'
+      };
+    }
   }
-  
+
   static async updateEvent(id: string, updates: Partial<CalendarEventData>): Promise<CalendarServiceResponse<CalendarEventData>> {
-    return this.executeWithRetry(async () => {
-      console.log('🔄 CalendarServiceCore: Starting event update');
+    try {
+      console.log('🔄 CalendarServiceCore: Starting event update...');
       
       // Validate updates if they include time changes
       if (updates.start_time && updates.end_time) {
         EventValidationService.validateDateLogic(updates.start_time, updates.end_time);
       }
-      
+
       // Clean the updates data
       const cleanUpdates = EventDataProcessor.processUpdateData(updates);
-      
+
       const result = await DatabaseService.updateEvent(id, cleanUpdates);
-      console.log('✅ CalendarServiceCore: Event updated successfully');
       
-      return result;
-    }, 'update');
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      console.error('💥 CalendarServiceCore: Error in updateEvent:', error);
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update event',
+        code: 'UPDATE_ERROR'
+      };
+    }
   }
-  
+
   static async deleteEvent(id: string): Promise<CalendarServiceResponse<boolean>> {
-    return this.executeWithRetry(async () => {
-      console.log('🗑️ CalendarServiceCore: Starting event deletion');
-      const result = await DatabaseService.deleteEvent(id);
-      console.log('✅ CalendarServiceCore: Event deleted successfully');
-      return result;
-    }, 'delete');
-  }
-  
-  static async getEvents(): Promise<CalendarServiceResponse<CalendarEventData[]>> {
-    return this.executeWithRetry(async () => {
-      console.log('📋 CalendarServiceCore: Loading events');
-      const result = await DatabaseService.getEvents();
-      console.log(`✅ CalendarServiceCore: Loaded ${result.length} events`);
-      return result;
-    }, 'load');
+    try {
+      console.log('🔄 CalendarServiceCore: Starting event deletion...');
+      
+      const success = await DatabaseService.deleteEvent(id);
+      
+      return {
+        success: true,
+        data: success
+      };
+    } catch (error) {
+      console.error('💥 CalendarServiceCore: Error in deleteEvent:', error);
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete event',
+        code: 'DELETE_ERROR'
+      };
+    }
   }
 }

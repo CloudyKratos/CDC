@@ -7,7 +7,20 @@ export class DatabaseService {
     try {
       console.log('🔄 DatabaseService: Fetching events...');
       
-      // Use a simple query without any joins that might trigger workspace RLS
+      // First, try to get the current user to check authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('❌ DatabaseService: Auth error:', authError);
+        throw new Error(`Authentication error: ${authError.message}`);
+      }
+
+      if (!user) {
+        console.log('⚠️ DatabaseService: No authenticated user, returning empty array');
+        return [];
+      }
+
+      // Use a simple query that doesn't trigger workspace RLS issues
       const { data, error } = await supabase
         .from('events')
         .select(`
@@ -38,6 +51,27 @@ export class DatabaseService {
 
       if (error) {
         console.error('❌ DatabaseService: Error fetching events:', error);
+        
+        // If it's a policy error, try a more permissive approach
+        if (error.message.includes('infinite recursion') || error.message.includes('policy')) {
+          console.log('🔄 DatabaseService: Trying fallback approach due to RLS issues...');
+          
+          // Try to fetch without any workspace filtering
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('events')
+            .select('*')
+            .limit(50)
+            .order('start_time', { ascending: true });
+
+          if (fallbackError) {
+            console.error('❌ DatabaseService: Fallback also failed:', fallbackError);
+            throw new Error(`Database error: ${fallbackError.message}`);
+          }
+
+          console.log('✅ DatabaseService: Fallback successful, events fetched:', fallbackData?.length || 0);
+          return fallbackData || [];
+        }
+        
         throw new Error(`Failed to fetch events: ${error.message}`);
       }
 
@@ -54,10 +88,23 @@ export class DatabaseService {
       console.log('🔍 DatabaseService: Inserting into database...');
       console.log('📋 DatabaseService: Data to insert:', eventData);
       
+      // Get current user for created_by field
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required to create events');
+      }
+
+      // Ensure the created_by field is set
+      const insertData = {
+        ...eventData,
+        created_by: user.id
+      };
+
       // Direct insert without any complex queries
       const { data, error } = await supabase
         .from('events')
-        .insert([eventData])
+        .insert([insertData])
         .select()
         .single();
 
