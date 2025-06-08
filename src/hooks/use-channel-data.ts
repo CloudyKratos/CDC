@@ -30,7 +30,7 @@ export function useChannelData(serverId: string, activeChannel: string): UseChan
         console.error('Error loading channels:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to load channels';
         setError(errorMessage);
-        toast.error('Failed to load community channels');
+        toast.error('Failed to load community channels: ' + errorMessage);
       } finally {
         setIsLoading(false);
       }

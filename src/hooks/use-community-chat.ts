@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 interface UseCommunityChat {
   messages: Message[];
   isLoading: boolean;
+  error: string | null;
   sendMessage: (content: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   replyToMessage: (messageId: string) => void;
@@ -17,6 +18,7 @@ interface UseCommunityChat {
 export function useCommunityChat(channelName: string): UseCommunityChat {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const { user } = useAuth();
   
@@ -25,13 +27,18 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     let unsubscribe: (() => void) | null = null;
     
     const initializeChat = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        setError('Please log in to access chat');
+        return;
+      }
+
       setIsLoading(true);
+      setError(null);
       
       try {
         // Join the channel if user is authenticated
-        if (user?.id) {
-          await CommunityService.joinChannel(channelName, user.id);
-        }
+        await CommunityService.joinChannel(channelName, user.id);
         
         // Load existing messages
         const messagesData = await CommunityService.getMessages(channelName);
@@ -54,7 +61,9 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
         );
       } catch (error) {
         console.error('Error initializing chat:', error);
-        toast.error('Failed to load messages');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load messages';
+        setError(errorMessage);
+        toast.error('Failed to load chat: ' + errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -78,11 +87,14 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     }
     
     try {
+      setError(null);
       await CommunityService.sendMessage(content.trim(), channelName);
       // Don't add to local state - let the subscription handle it
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      setError(errorMessage);
+      toast.error('Failed to send message: ' + errorMessage);
       throw error;
     }
   }, [user?.id, channelName]);
@@ -92,6 +104,7 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     if (!user?.id) return;
     
     try {
+      setError(null);
       await CommunityService.deleteMessage(messageId);
       
       // Remove the message from the UI
@@ -99,7 +112,9 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete message';
+      setError(errorMessage);
+      toast.error('Failed to delete message: ' + errorMessage);
     }
   }, [user?.id]);
   
@@ -128,6 +143,7 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
   return {
     messages,
     isLoading,
+    error,
     sendMessage,
     deleteMessage,
     replyToMessage,

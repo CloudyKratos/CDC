@@ -34,7 +34,6 @@ class CommunityService {
     console.log('🔄 CommunityService: Fetching channels...');
     
     try {
-      // First try to get channels from the database
       const { data: channels, error } = await supabase
         .from('channels')
         .select('*')
@@ -43,13 +42,7 @@ class CommunityService {
 
       if (error) {
         console.error('❌ CommunityService: Error fetching channels:', error);
-        
-        // If table doesn't exist, create default channels
-        if (error.code === '42P01') { // relation does not exist
-          console.log('📝 CommunityService: Channels table not found, creating default channels...');
-          return this.createDefaultChannels();
-        }
-        throw error;
+        throw new Error(`Failed to fetch channels: ${error.message}`);
       }
 
       console.log('✅ CommunityService: Channels fetched successfully:', channels);
@@ -68,7 +61,6 @@ class CommunityService {
       }));
     } catch (error) {
       console.error('💥 CommunityService: Exception in getChannels:', error);
-      // Return default channels as fallback
       return this.createDefaultChannels();
     }
   }
@@ -106,7 +98,6 @@ class CommunityService {
     console.log('🔄 CommunityService: Fetching messages for channel:', channelName);
     
     try {
-      // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
@@ -129,31 +120,30 @@ class CommunityService {
       if (channelError) {
         console.error('❌ CommunityService: Error finding channel:', channelError);
         
-        // If table doesn't exist, return empty array
-        if (channelError.code === '42P01') {
-          console.log('📝 CommunityService: Channels table not found');
-          return [];
-        }
-        
-        // If channel doesn't exist, try to create it
         if (channelError.code === 'PGRST116') {
           console.log('📝 CommunityService: Channel not found, will create when first message is sent');
           return [];
         }
         
-        throw channelError;
+        throw new Error(`Channel not found: ${channelError.message}`);
       }
 
       console.log('✅ CommunityService: Found channel:', channel);
 
-      // Get messages
+      // Get messages with sender details
       const { data: messages, error } = await supabase
         .from('community_messages')
         .select(`
           id,
           content,
           created_at,
-          sender_id
+          sender_id,
+          profiles!community_messages_sender_id_fkey (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
         `)
         .eq('channel_id', channel.id)
         .eq('is_deleted', false)
@@ -161,14 +151,7 @@ class CommunityService {
 
       if (error) {
         console.error('❌ CommunityService: Error fetching messages:', error);
-        
-        // If table doesn't exist, return empty array
-        if (error.code === '42P01') {
-          console.log('📝 CommunityService: Messages table not found');
-          return [];
-        }
-        
-        throw error;
+        throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
       console.log('✅ CommunityService: Messages fetched:', messages?.length || 0);
@@ -177,29 +160,12 @@ class CommunityService {
         return [];
       }
 
-      // Get sender details separately
-      const senderIds = [...new Set(messages.map(msg => msg.sender_id))];
-      const { data: senders } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', senderIds);
-
-      console.log('✅ CommunityService: Senders fetched:', senders?.length || 0);
-
-      // Create a map of senders for quick lookup
-      const sendersMap = new Map();
-      if (senders) {
-        senders.forEach(sender => {
-          sendersMap.set(sender.id, sender);
-        });
-      }
-
       return messages.map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: sendersMap.get(msg.sender_id) || {
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
           username: 'Unknown User',
           full_name: 'Unknown User',
@@ -208,7 +174,7 @@ class CommunityService {
       }));
     } catch (error) {
       console.error('💥 CommunityService: Exception in getMessages:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -216,86 +182,91 @@ class CommunityService {
   async sendMessage(content: string, channelName: string = 'general'): Promise<Message> {
     console.log('🔄 CommunityService: Sending message:', { content, channelName });
     
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error('❌ CommunityService: No authenticated user found');
-      throw new Error('User must be authenticated to send messages');
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('❌ CommunityService: No authenticated user found');
+        throw new Error('User must be authenticated to send messages');
+      }
 
-    console.log('✅ CommunityService: Authenticated user:', user.id);
+      console.log('✅ CommunityService: Authenticated user:', user.id);
 
-    // Get or create channel
-    let { data: channel, error: channelError } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('name', channelName)
-      .single();
-
-    if (channelError || !channel) {
-      console.log('📝 CommunityService: Channel not found, creating it...');
-      // Create the channel if it doesn't exist
-      const { data: newChannel, error: createError } = await supabase
+      // Get or create channel
+      let { data: channel, error: channelError } = await supabase
         .from('channels')
-        .insert({
-          name: channelName,
-          type: 'public',
-          description: `${channelName} channel`
-        })
         .select('id')
+        .eq('name', channelName)
         .single();
 
-      if (createError) {
-        console.error('❌ CommunityService: Error creating channel:', createError);
-        throw createError;
+      if (channelError || !channel) {
+        console.log('📝 CommunityService: Channel not found, creating it...');
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: channelName,
+            type: 'public',
+            description: `${channelName} channel`,
+            created_by: user.id
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          console.error('❌ CommunityService: Error creating channel:', createError);
+          throw new Error(`Failed to create channel: ${createError.message}`);
+        }
+        
+        channel = newChannel;
       }
-      
-      channel = newChannel;
-    }
 
-    console.log('✅ CommunityService: Using channel:', channel);
+      console.log('✅ CommunityService: Using channel:', channel);
 
-    // Auto-join the user to the channel if not already a member
-    await this.joinChannel(channelName, user.id);
+      // Auto-join the user to the channel if not already a member
+      await this.joinChannel(channelName, user.id);
 
-    const { data: message, error } = await supabase
-      .from('community_messages')
-      .insert({
-        channel_id: channel.id,
-        sender_id: user.id,
-        content: content.trim()
-      })
-      .select('id, content, created_at, sender_id')
-      .single();
+      const { data: message, error } = await supabase
+        .from('community_messages')
+        .insert({
+          channel_id: channel.id,
+          sender_id: user.id,
+          content: content.trim()
+        })
+        .select('id, content, created_at, sender_id')
+        .single();
 
-    if (error) {
-      console.error('❌ CommunityService: Error sending message:', error);
+      if (error) {
+        console.error('❌ CommunityService: Error sending message:', error);
+        throw new Error(`Failed to send message: ${error.message}`);
+      }
+
+      console.log('✅ CommunityService: Message sent:', message);
+
+      // Get sender details
+      const { data: sender } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      console.log('✅ CommunityService: Sender details:', sender);
+
+      return {
+        id: message.id,
+        content: message.content,
+        created_at: message.created_at,
+        sender_id: message.sender_id,
+        sender: sender || {
+          id: user.id,
+          username: user.email?.split('@')[0] || 'User',
+          full_name: user.email?.split('@')[0] || 'User',
+          avatar_url: null
+        }
+      };
+    } catch (error) {
+      console.error('💥 CommunityService: Exception in sendMessage:', error);
       throw error;
     }
-
-    console.log('✅ CommunityService: Message sent:', message);
-
-    // Get sender details
-    const { data: sender } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    console.log('✅ CommunityService: Sender details:', sender);
-
-    return {
-      id: message.id,
-      content: message.content,
-      created_at: message.created_at,
-      sender_id: message.sender_id,
-      sender: sender || {
-        id: user.id,
-        username: user.email?.split('@')[0] || 'User',
-        full_name: user.email?.split('@')[0] || 'User',
-        avatar_url: null
-      }
-    };
   }
 
   // Join a channel
@@ -340,7 +311,8 @@ class CommunityService {
   subscribeToMessages(channelName: string, callback: (message: Message) => void): () => void {
     console.log('🔄 CommunityService: Setting up subscription for channel:', channelName);
     
-    // First get the channel ID
+    let subscription: any = null;
+    
     const setupSubscription = async () => {
       try {
         const { data: channel, error } = await supabase
@@ -356,7 +328,7 @@ class CommunityService {
         
         console.log('✅ CommunityService: Channel found for subscription:', channel);
         
-        const subscription = supabase
+        subscription = supabase
           .channel(`community_messages_${channel.id}`)
           .on(
             'postgres_changes',
@@ -404,7 +376,9 @@ class CommunityService {
 
     return () => {
       console.log('🧹 CommunityService: Cleaning up subscription');
-      // This will be handled by the effect cleanup
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }
 
@@ -418,7 +392,7 @@ class CommunityService {
 
       if (error) {
         console.error('❌ CommunityService: Error deleting message:', error);
-        throw error;
+        throw new Error(`Failed to delete message: ${error.message}`);
       }
     } catch (error) {
       console.error('💥 CommunityService: Exception in deleteMessage:', error);
