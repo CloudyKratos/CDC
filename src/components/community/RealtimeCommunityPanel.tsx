@@ -110,11 +110,14 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     );
   }
 
+  // Calculate if we should show reconnecting state
+  const isReconnecting = reconnecting || (!isConnected && !!user?.id);
+
   return (
     <div className="flex h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-800/50 relative">
       <ConnectionStatusIndicator 
         isOnline={isOnline && isConnected}
-        reconnecting={reconnecting || (!isConnected && user?.id)}
+        reconnecting={isReconnecting}
         connectionAttempts={connectionAttempts}
       />
 
@@ -133,7 +136,7 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
         <ChatHeader
           activeChannel={activeChannel}
           isOnline={isOnline && (isConnected || !user?.id)}
-          reconnecting={reconnecting || (!isConnected && user?.id)}
+          reconnecting={isReconnecting}
           isMobile={isMobile}
           showChannelList={showChannelList}
           setShowChannelList={setShowChannelList}
@@ -156,11 +159,11 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
                 
                 <MessageInput 
                   onSendMessage={handleSendMessage} 
-                  isLoading={isLoading || (!isConnected && user?.id)} 
+                  isLoading={isLoading || (!isConnected && !!user?.id)} 
                   channelName={activeChannel}
                   placeholder={
                     !isOnline ? "You're offline - message will be sent when connection is restored" :
-                    (!isConnected && user?.id) ? "Connecting to real-time chat..." :
+                    (!isConnected && !!user?.id) ? "Connecting to real-time chat..." :
                     undefined
                   }
                 />
