@@ -10,7 +10,7 @@ interface UseCommunityChat {
   isLoading: boolean;
   sendMessage: (content: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
-  replyToMessage: (messageId: string) => Promise<void>;
+  replyToMessage: (messageId: string) => void;
   addReaction: (messageId: string, reaction: string) => Promise<void>;
 }
 
@@ -46,7 +46,9 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
               const exists = prev.some(m => m.id === newMessage.id);
               if (exists) return prev;
               
-              return [...prev, newMessage];
+              return [...prev, newMessage].sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
             });
           }
         );
@@ -76,7 +78,8 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     }
     
     try {
-      await CommunityService.sendMessage(content, channelName);
+      await CommunityService.sendMessage(content.trim(), channelName);
+      // Don't add to local state - let the subscription handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -93,24 +96,19 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
       
       // Remove the message from the UI
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
-      toast.success('Message deleted successfully');
+      toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
       toast.error('Failed to delete message');
     }
   }, [user?.id]);
   
-  // Reply to a message (simplified to just send a message for now)
-  const replyToMessage = useCallback(async (messageId: string) => {
+  // Reply to a message (simplified implementation)
+  const replyToMessage = useCallback((messageId: string) => {
     if (!user?.id) return;
     
-    try {
-      // For now just show a toast - would need backend support for proper threading
-      toast.info('Reply feature coming soon!');
-    } catch (error) {
-      console.error('Error replying to message:', error);
-      toast.error('Failed to reply to message');
-    }
+    // For now just show a toast - would need backend support for proper threading
+    toast.info('Reply feature coming soon!');
   }, [user?.id]);
   
   // Add a reaction to a message
@@ -119,7 +117,8 @@ export function useCommunityChat(channelName: string): UseCommunityChat {
     
     try {
       // This would need backend support for reactions
-      toast.success(`Added reaction ${reaction}`);
+      console.log(`Adding reaction ${reaction} to message ${messageId}`);
+      // Don't show automatic toast here - let the UI component handle it
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');

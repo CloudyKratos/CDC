@@ -21,12 +21,12 @@ const MessageContent: React.FC<MessageContentProps> = ({
     <div className={`group/content relative ${isOwnMessage ? 'flex justify-end' : ''}`}>
       <div className={`relative max-w-full ${
         isOwnMessage 
-          ? 'bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2 shadow-lg' 
-          : 'text-gray-800 dark:text-gray-200'
+          ? 'bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm border border-blue-700' 
+          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700'
       }`}>
         <p className={`whitespace-pre-line break-words ${
-          isOwnMessage ? 'text-white' : 'text-gray-800 dark:text-gray-200'
-        } ${isOwnMessage ? 'text-sm' : 'text-base'} leading-relaxed`}>
+          isOwnMessage ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+        } text-sm leading-relaxed`}>
           {content}
         </p>
         

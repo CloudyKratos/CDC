@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Reply, MoreHorizontal, Copy, Share, Pin, Flag, Edit3 } from 'lucide-react';
+import { Reply, MoreHorizontal, Copy, Share, Pin, Flag, Edit3, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   const handleReaction = (reaction: string) => {
     if (onReaction) {
       onReaction(messageId, reaction);
-      toast.success(`Added ${reaction} reaction`);
+      setShowReactions(false);
+      // Remove automatic toast - let parent handle feedback
     }
   };
 
@@ -60,6 +61,12 @@ const MessageActions: React.FC<MessageActionsProps> = ({
     }
   };
 
+  const handleDeleteMessage = () => {
+    if (onDelete) {
+      onDelete(messageId);
+    }
+  };
+
   if (!showActions) return null;
 
   return (
@@ -73,7 +80,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       <Button
         variant="ghost" 
         size="sm"
-        className="h-10 px-3 text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-none"
+        className="h-10 px-3 text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-none border-r border-gray-200 dark:border-gray-700"
         onClick={() => onReply?.(messageId)}
       >
         <Reply size={16} />
@@ -114,7 +121,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
                 <Edit3 className="mr-3 h-4 w-4" />
                 Edit Message
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600 cursor-pointer" onSelect={() => onDelete?.(messageId)}>
+              <DropdownMenuItem className="text-red-600 cursor-pointer" onSelect={handleDeleteMessage}>
+                <Trash2 className="mr-3 h-4 w-4" />
                 Delete Message
               </DropdownMenuItem>
             </>

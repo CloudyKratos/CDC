@@ -27,12 +27,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  const [reactions, setReactions] = useState<Record<string, number>>({
-    '👍': Math.floor(Math.random() * 5),
-    '❤️': Math.floor(Math.random() * 3),
-    '😂': Math.floor(Math.random() * 2),
-    '🔥': Math.floor(Math.random() * 3)
-  });
+  // Remove automatic random reactions - start with empty reactions
+  const [reactions, setReactions] = useState<Record<string, number>>({});
 
   const { user } = useAuth();
   
@@ -47,12 +43,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const handleReaction = (reaction: string) => {
     if (onReaction) {
       onReaction(message.id, reaction);
-      setReactions(prev => ({
-        ...prev,
-        [reaction]: (prev[reaction] || 0) + 1
-      }));
-      toast.success(`Added ${reaction} reaction`);
+      // Only update local state, don't automatically add reactions
+      toast.success(`Reacted with ${reaction}`);
     }
+  };
+
+  const handleAddReaction = () => {
+    setShowReactions(!showReactions);
   };
   
   return (
@@ -84,7 +81,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             <MessageReactionDisplay 
               reactions={reactions}
               onReactionClick={handleReaction}
-              onAddReaction={() => setShowReactions(!showReactions)}
+              onAddReaction={handleAddReaction}
               isOwnMessage={isOwnMessage}
             />
           </div>
