@@ -341,12 +341,14 @@ class CommunityService {
     console.log('🔄 CommunityService: Setting up subscription for channel:', channelName);
     
     // First get the channel ID
-    supabase
-      .from('channels')
-      .select('id')
-      .eq('name', channelName)
-      .single()
-      .then(({ data: channel, error }) => {
+    const setupSubscription = async () => {
+      try {
+        const { data: channel, error } = await supabase
+          .from('channels')
+          .select('id')
+          .eq('name', channelName)
+          .single();
+
         if (error || !channel) {
           console.error('❌ CommunityService: Error finding channel for subscription:', error);
           return;
@@ -392,10 +394,13 @@ class CommunityService {
           .subscribe();
 
         console.log('✅ CommunityService: Subscription created:', subscription);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('💥 CommunityService: Exception setting up subscription:', error);
-      });
+      }
+    };
+
+    // Execute the async setup
+    setupSubscription();
 
     return () => {
       console.log('🧹 CommunityService: Cleaning up subscription');
