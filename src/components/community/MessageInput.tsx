@@ -1,35 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  PlusCircle, 
-  Smile, 
-  Send,
-  Image,
-  AtSign,
-  Gift,
-  Mic,
-  Paperclip,
-  Hash,
-  Bold,
-  Italic,
-  Link,
-  Code
-} from "lucide-react";
-import { EmojiPicker } from '@/components/EmojiPicker';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from 'sonner';
+import FormattingToolbar from './input/FormattingToolbar';
+import FileUploadMenu from './input/FileUploadMenu';
+import InputActions from './input/InputActions';
+import SendButton from './input/SendButton';
+import StatusBar from './input/StatusBar';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
@@ -48,7 +26,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Focus textarea on mount and auto-resize
@@ -112,27 +89,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setMessage(prev => prev + emoji);
     }
   };
-  
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
-  };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      if (onAttachmentUpload) {
-        onAttachmentUpload(files);
-      } else {
-        // Fallback if no attachment handler provided
-        const fileNames = Array.from(files).map(file => file.name).join(', ');
-        toast.success(`Files selected: ${fileNames}`, {
-          description: "File sharing feature coming soon!"
-        });
-      }
-    }
-    // Reset the file input
-    if (e.target) e.target.value = '';
-  };
 
   const insertFormatting = (format: string) => {
     if (!textareaRef.current) return;
@@ -174,6 +130,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const getChannelDisplayName = () => {
     return channelName.replace(/-/g, ' ');
   };
+
+  const handleFileUpload = (files: FileList) => {
+    if (onAttachmentUpload) {
+      onAttachmentUpload(files);
+    } else {
+      const fileNames = Array.from(files).map(file => file.name).join(', ');
+      toast.success(`Files selected: ${fileNames}`, {
+        description: "File sharing feature coming soon!"
+      });
+    }
+  };
   
   return (
     <TooltipProvider>
@@ -181,132 +148,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <form onSubmit={handleSendMessage} className="space-y-4">
           {/* Formatting toolbar */}
           {isFocused && message.length > 0 && (
-            <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertFormatting('bold')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Bold size={14} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Bold</p></TooltipContent>
-                </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertFormatting('italic')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Italic size={14} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Italic</p></TooltipContent>
-                </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertFormatting('code')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Code size={14} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Inline code</p></TooltipContent>
-                </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertFormatting('link')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Link size={14} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Add link</p></TooltipContent>
-                </Tooltip>
-              </div>
-              
-              <div className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                {message.length}/2000
-              </div>
-            </div>
+            <FormattingToolbar 
+              onFormatting={insertFormatting}
+              messageLength={message.length}
+            />
           )}
           
           {/* Main input area */}
           <div className="flex gap-4">
-            {/* Enhanced file upload button */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  type="button"
-                  variant="ghost" 
-                  size="icon" 
-                  className="flex-shrink-0 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 h-12 w-12 rounded-full"
-                >
-                  <PlusCircle size={22} />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-2" align="start">
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={handleFileUpload}
-                  >
-                    <Paperclip className="mr-2 h-4 w-4" />
-                    Upload File
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => toast.info("Image upload coming soon!")}
-                  >
-                    <Image className="mr-2 h-4 w-4" />
-                    Upload Image
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => toast.info("GIF feature coming soon!")}
-                  >
-                    <Gift className="mr-2 h-4 w-4" />
-                    Add GIF
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* File upload menu */}
+            <FileUploadMenu onFileUpload={handleFileUpload} />
             
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              multiple
-              accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-              onChange={handleFileChange}
-            />
-            
-            {/* Enhanced message input */}
+            {/* Message input */}
             <div className="relative flex-1">
               <Textarea
                 ref={textareaRef}
@@ -321,106 +174,27 @@ const MessageInput: React.FC<MessageInputProps> = ({
               />
               
               {/* Action buttons in input */}
-              <div className="absolute bottom-3 right-3 flex items-center space-x-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                        >
-                          <Smile size={18} className="text-gray-500 dark:text-gray-400" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="end" alignOffset={-40}>
-                        <EmojiPicker
-                          emojis={['😊', '👍', '🎉', '❤️', '🚀', '🔥', '👏', '😂', '🤔', '👋', '✅', '⭐', '💡', '📈', '🙌', '💪', '🌟', '🎯', '💯', '🏆', '✨', '🤝', '💎', '⚡', '🎨']}
-                          onSelectEmoji={handleEmojiSelect}
-                          onClose={() => setShowEmojiPicker(false)}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add emoji</p>
-                  </TooltipContent>
-                </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                      onClick={() => toast.info("Mention feature coming soon!")}
-                    >
-                      <AtSign size={18} className="text-gray-500 dark:text-gray-400" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mention someone</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+              <InputActions 
+                showEmojiPicker={showEmojiPicker}
+                setShowEmojiPicker={setShowEmojiPicker}
+                onEmojiSelect={handleEmojiSelect}
+              />
             </div>
             
-            {/* Enhanced send button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={`flex-shrink-0 h-12 w-12 rounded-full transition-all duration-200 ${
-                    message.trim() 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-105' 
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                  }`}
-                  disabled={!message.trim() || isLoading}
-                >
-                  {isLoading ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                  ) : message.trim() ? (
-                    <Send size={20} />
-                  ) : (
-                    <Mic size={20} />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{message.trim() ? 'Send message (Enter)' : 'Voice message'}</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Send button */}
+            <SendButton 
+              hasMessage={!!message.trim()}
+              isLoading={isLoading}
+              onClick={() => {}}
+            />
           </div>
           
-          {/* Enhanced typing indicator and quick actions */}
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-4">
-              {isTyping && (
-                <span className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                  <div className="flex space-x-1">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                  Typing...
-                </span>
-              )}
-              <span className="flex items-center gap-2">
-                <Hash size={12} />
-                {getChannelDisplayName()}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span>Shift + Enter for new line</span>
-              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                {message.length > 0 ? `${message.length}/2000` : 'Start typing...'}
-              </span>
-            </div>
-          </div>
+          {/* Status bar */}
+          <StatusBar 
+            isTyping={isTyping}
+            channelName={channelName}
+            messageLength={message.length}
+          />
         </form>
       </div>
     </TooltipProvider>
