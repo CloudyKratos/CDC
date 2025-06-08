@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import CommunityService from '@/services/CommunityService';
+import CommunityService from '@/services/community/CommunityService';
 import { Message, ChatChannel } from '@/types/chat';
 import ServerSidebar from './ServerSidebar';
 import ChannelHeader from './ChannelHeader';
