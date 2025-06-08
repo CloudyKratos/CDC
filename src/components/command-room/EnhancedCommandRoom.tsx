@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +20,7 @@ import {
   Bookmark,
   Share2
 } from 'lucide-react';
-import { CommandRoomBackground } from './CommandRoomBackground';
+import CommandRoomBackground from './CommandRoomBackground';
 
 interface Resource {
   id: string;
