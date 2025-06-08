@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import EnhancedCommunityPanel from './community/EnhancedCommunityPanel';
@@ -53,12 +53,38 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       setHasError(false);
       setErrorMessage('');
 
-      // Simulate connection check and initialization
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      // Check if user is online
       if (!navigator.onLine) {
         throw new Error('No internet connection');
       }
+
+      // Check authentication
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Auth error in community initialization:', authError);
+        throw new Error('Authentication required');
+      }
+
+      if (!user) {
+        throw new Error('Please log in to access the community');
+      }
+
+      console.log('✅ Community initialization: User authenticated:', user.id);
+
+      // Test basic connectivity to Supabase
+      const { error: testError } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+
+      if (testError) {
+        console.error('Supabase connectivity test failed:', testError);
+        throw new Error('Unable to connect to community services');
+      }
+
+      console.log('✅ Community initialization: Supabase connection successful');
 
       // Community initialization successful
       setIsLoading(false);
@@ -67,10 +93,12 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
         toast.success('Community loaded successfully');
       }
     } catch (error) {
-      console.error('Community initialization failed:', error);
+      console.error('💥 Community initialization failed:', error);
       setIsLoading(false);
       setHasError(true);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load community');
+      
+      const message = error instanceof Error ? error.message : 'Failed to load community';
+      setErrorMessage(message);
       
       if (retryCount === 0) {
         toast.error('Failed to load community');

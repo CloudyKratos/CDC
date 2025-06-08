@@ -1,47 +1,47 @@
 
 import { useState, useEffect } from 'react';
-import { ChatChannel, ChannelType } from '@/types/chat';
+import { ChatChannel } from '@/types/chat';
 import CommunityService from '@/services/CommunityService';
+import { toast } from 'sonner';
 
-interface UseChannelDataResult {
+interface UseChannelData {
   channels: ChatChannel[];
-  activeChannel: string;
   isLoading: boolean;
-  error: Error | null;
-  setActiveChannel: (channelId: string) => void;
+  error: string | null;
 }
 
-export function useChannelData(serverId: string, initialChannel: string = 'general'): UseChannelDataResult {
+export function useChannelData(serverId: string, activeChannel: string): UseChannelData {
   const [channels, setChannels] = useState<ChatChannel[]>([]);
-  const [activeChannel, setActiveChannel] = useState(initialChannel);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const fetchChannels = async () => {
-      setIsLoading(true);
-      
+    const loadChannels = async () => {
       try {
-        const channelsData = await CommunityService.getChannels();
-        // Filter public channels only - fixed comparison by using string literal
-        setChannels(channelsData.filter(channel => channel.type === ChannelType.PUBLIC));
+        setIsLoading(true);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching channels:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch channels'));
+        
+        console.log('Loading channels for server:', serverId);
+        const channelsData = await CommunityService.getChannels();
+        console.log('Channels loaded:', channelsData);
+        
+        setChannels(channelsData);
+      } catch (error) {
+        console.error('Error loading channels:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load channels';
+        setError(errorMessage);
+        toast.error('Failed to load community channels');
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchChannels();
-  }, [serverId]);
-  
+
+    loadChannels();
+  }, [serverId, activeChannel]);
+
   return {
     channels,
-    activeChannel,
     isLoading,
-    error,
-    setActiveChannel
+    error
   };
 }
