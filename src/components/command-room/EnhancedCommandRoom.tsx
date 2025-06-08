@@ -1,26 +1,13 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BookOpen, 
-  Video, 
-  FileText, 
-  Search, 
-  Filter, 
-  Plus,
-  Calendar,
-  Clock,
-  User,
-  Star,
-  Download,
-  ExternalLink,
-  Bookmark,
-  Share2
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import CommandRoomBackground from './CommandRoomBackground';
+import CommandRoomFilters from './CommandRoomFilters';
+import CommandRoomResourceCard from './CommandRoomResourceCard';
+import CommandRoomStats from './CommandRoomStats';
 
 interface Resource {
   id: string;
@@ -94,6 +81,19 @@ const mockResources: Resource[] = [
     isBookmarked: true,
     downloadCount: 987,
     createdAt: '2024-01-05'
+  },
+  {
+    id: '5',
+    title: 'Cryptocurrency Investment Guide',
+    type: 'article',
+    description: 'A comprehensive guide to understanding and investing in cryptocurrency markets.',
+    author: 'John Smith',
+    rating: 4.4,
+    tags: ['Cryptocurrency', 'Investment', 'Finance'],
+    url: 'https://example.com/article1',
+    isBookmarked: false,
+    downloadCount: 1789,
+    createdAt: '2024-01-12'
   }
 ];
 
@@ -132,26 +132,6 @@ const EnhancedCommandRoom: React.FC = () => {
     ));
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video': return <Video className="w-4 h-4" />;
-      case 'course': return <BookOpen className="w-4 h-4" />;
-      case 'document': return <FileText className="w-4 h-4" />;
-      case 'webinar': return <Calendar className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'video': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'course': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'document': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'webinar': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
   return (
     <div className="relative min-h-screen overflow-hidden">
       <CommandRoomBackground />
@@ -171,122 +151,24 @@ const EnhancedCommandRoom: React.FC = () => {
           </TabsList>
 
           <TabsContent value="resources" className="space-y-6">
-            {/* Search and Filters */}
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Find Resources
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search resources..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={selectedType}
-                      onChange={(e) => setSelectedType(e.target.value)}
-                      className="px-4 py-2 rounded-md bg-white/20 border-white/30 text-white"
-                    >
-                      {resourceTypes.map(type => (
-                        <option key={type.value} value={type.value} className="text-black">
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={selectedTag}
-                      onChange={(e) => setSelectedTag(e.target.value)}
-                      className="px-4 py-2 rounded-md bg-white/20 border-white/30 text-white"
-                    >
-                      <option value="all" className="text-black">All Tags</option>
-                      {allTags.map(tag => (
-                        <option key={tag} value={tag} className="text-black">{tag}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <CommandRoomFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              selectedTag={selectedTag}
+              onTagChange={setSelectedTag}
+              resourceTypes={resourceTypes}
+              allTags={allTags}
+            />
 
-            {/* Resource Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredResources.map((resource) => (
-                <Card key={resource.id} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <Badge className={`${getTypeColor(resource.type)} flex items-center gap-1`}>
-                        {getTypeIcon(resource.type)}
-                        {resource.type}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleBookmark(resource.id)}
-                        className="text-white hover:bg-white/20"
-                      >
-                        <Bookmark className={`w-4 h-4 ${resource.isBookmarked ? 'fill-current' : ''}`} />
-                      </Button>
-                    </div>
-                    <CardTitle className="text-white text-lg leading-tight">
-                      {resource.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <CardDescription className="text-white/80 text-sm">
-                      {resource.description}
-                    </CardDescription>
-                    
-                    <div className="flex items-center gap-4 text-sm text-white/70">
-                      <div className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {resource.author}
-                      </div>
-                      {resource.duration && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {resource.duration}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-white/80 text-sm">{resource.rating}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-white/60 text-sm">
-                        <Download className="w-3 h-3" />
-                        {resource.downloadCount.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {resource.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs text-white/70 border-white/30">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        Open
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-white border-white/30 hover:bg-white/20">
-                        <Share2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CommandRoomResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  onToggleBookmark={toggleBookmark}
+                />
               ))}
             </div>
 
@@ -308,60 +190,59 @@ const EnhancedCommandRoom: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {resources.filter(r => r.isBookmarked).map((resource) => (
-                    <div key={resource.id} className="p-4 rounded-lg bg-white/5 border border-white/20">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-white font-medium">{resource.title}</h3>
-                        <Badge className={getTypeColor(resource.type)}>
-                          {resource.type}
-                        </Badge>
-                      </div>
-                      <p className="text-white/70 text-sm mb-3">{resource.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/60 text-sm">{resource.author}</span>
-                        <Button size="sm" variant="outline" className="text-white border-white/30">
-                          Open
-                        </Button>
-                      </div>
-                    </div>
+                    <CommandRoomResourceCard
+                      key={resource.id}
+                      resource={resource}
+                      onToggleBookmark={toggleBookmark}
+                    />
                   ))}
                 </div>
+                {resources.filter(r => r.isBookmarked).length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-white/80">No bookmarked resources yet.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="progress">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Learning Progress</CardTitle>
-                <CardDescription className="text-white/80">
-                  Track your learning journey
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-white/5 border border-white/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-white font-medium">Advanced Trading Strategies</h3>
-                      <span className="text-white/80 text-sm">75% Complete</span>
+            <div className="space-y-6">
+              <CommandRoomStats />
+              
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+                <CardHeader>
+                  <CardTitle className="text-white">Learning Progress</CardTitle>
+                  <CardDescription className="text-white/80">
+                    Track your learning journey
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-white/5 border border-white/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-white font-medium">Advanced Trading Strategies</h3>
+                        <span className="text-white/80 text-sm">75% Complete</span>
+                      </div>
+                      <div className="w-full bg-white/20 rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full w-3/4"></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full w-3/4"></div>
+                    <div className="p-4 rounded-lg bg-white/5 border border-white/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-white font-medium">Leadership Masterclass</h3>
+                        <span className="text-white/80 text-sm">30% Complete</span>
+                      </div>
+                      <div className="w-full bg-white/20 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full w-1/3"></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-4 rounded-lg bg-white/5 border border-white/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-white font-medium">Leadership Masterclass</h3>
-                      <span className="text-white/80 text-sm">30% Complete</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full w-1/3"></div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="upload">
