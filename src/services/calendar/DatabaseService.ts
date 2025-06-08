@@ -1,11 +1,10 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EnhancedEventData } from './CalendarEventService';
 
 export class DatabaseService {
   static async getEvents(): Promise<EnhancedEventData[]> {
     try {
-      console.log('🔄 DatabaseService: Fetching events...');
+      console.log('🔄 DatabaseService: Fetching events using security definer function...');
       
       // First, try to get the current user to check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -20,62 +19,56 @@ export class DatabaseService {
         return [];
       }
 
-      // Use a simple query that doesn't trigger workspace RLS issues
+      // Use the new security definer function to avoid RLS infinite recursion
       const { data, error } = await supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          description,
-          start_time,
-          end_time,
-          event_type,
-          status,
-          max_attendees,
-          is_recurring,
-          recurrence_pattern,
-          tags,
-          cohort_id,
-          coach_id,
-          replay_url,
-          meeting_url,
-          resources,
-          visibility_level,
-          xp_reward,
-          created_by,
-          workspace_id,
-          created_at,
-          updated_at
-        `)
-        .order('start_time', { ascending: true });
+        .rpc('get_user_events', { _user_id: user.id });
 
       if (error) {
-        console.error('❌ DatabaseService: Error fetching events:', error);
+        console.error('❌ DatabaseService: Error fetching events via RPC:', error);
         
-        // If it's a policy error, try a more permissive approach
-        if (error.message.includes('infinite recursion') || error.message.includes('policy')) {
-          console.log('🔄 DatabaseService: Trying fallback approach due to RLS issues...');
-          
-          // Try to fetch without any workspace filtering
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('events')
-            .select('*')
-            .limit(50)
-            .order('start_time', { ascending: true });
+        // Fallback to direct query without workspace filtering
+        console.log('🔄 DatabaseService: Trying fallback direct query...');
+        
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('events')
+          .select(`
+            id,
+            title,
+            description,
+            start_time,
+            end_time,
+            event_type,
+            status,
+            max_attendees,
+            is_recurring,
+            recurrence_pattern,
+            tags,
+            cohort_id,
+            coach_id,
+            replay_url,
+            meeting_url,
+            resources,
+            visibility_level,
+            xp_reward,
+            created_by,
+            workspace_id,
+            created_at,
+            updated_at
+          `)
+          .eq('visibility_level', 'public')
+          .order('start_time', { ascending: true })
+          .limit(50);
 
-          if (fallbackError) {
-            console.error('❌ DatabaseService: Fallback also failed:', fallbackError);
-            throw new Error(`Database error: ${fallbackError.message}`);
-          }
-
-          console.log('✅ DatabaseService: Fallback successful, events fetched:', fallbackData?.length || 0);
-          return fallbackData || [];
+        if (fallbackError) {
+          console.error('❌ DatabaseService: Fallback also failed:', fallbackError);
+          throw new Error(`Database error: ${fallbackError.message}`);
         }
-        
-        throw new Error(`Failed to fetch events: ${error.message}`);
+
+        console.log('✅ DatabaseService: Fallback successful, events fetched:', fallbackData?.length || 0);
+        return fallbackData || [];
       }
 
-      console.log('✅ DatabaseService: Events fetched successfully:', data?.length || 0);
+      console.log('✅ DatabaseService: Events fetched successfully via RPC:', data?.length || 0);
       return data || [];
     } catch (error) {
       console.error('💥 DatabaseService: Exception in getEvents:', error);

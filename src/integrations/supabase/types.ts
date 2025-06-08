@@ -815,6 +815,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_user_access_events: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       create_admin_account: {
         Args: {
           admin_email: string
@@ -880,6 +884,33 @@ export type Database = {
           speaker_count: number
           audience_count: number
           pending_requests_count: number
+        }[]
+      }
+      get_user_events: {
+        Args: { _user_id: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          start_time: string
+          end_time: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          status: Database["public"]["Enums"]["event_status"]
+          max_attendees: number
+          is_recurring: boolean
+          recurrence_pattern: Json
+          tags: string[]
+          cohort_id: string
+          coach_id: string
+          replay_url: string
+          meeting_url: string
+          resources: Json
+          visibility_level: string
+          xp_reward: number
+          created_by: string
+          workspace_id: string
+          created_at: string
+          updated_at: string
         }[]
       }
       get_user_role: {

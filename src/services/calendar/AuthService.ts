@@ -3,21 +3,32 @@ import { supabase } from "@/integrations/supabase/client";
 
 export class AuthService {
   static async getCurrentUser(): Promise<string> {
-    console.log('🔍 AuthService: Getting current user...');
-    
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error) {
-      console.error('❌ AuthService: Auth error:', error);
-      throw new Error(`Authentication failed: ${error.message}`);
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('❌ AuthService: Error getting current user:', error);
+        throw new Error(`Authentication error: ${error.message}`);
+      }
+      
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+      
+      return user.id;
+    } catch (error) {
+      console.error('💥 AuthService: Exception in getCurrentUser:', error);
+      throw error;
     }
-    
-    if (!user) {
-      console.error('❌ AuthService: No user found');
-      throw new Error('No authenticated user found');
+  }
+
+  static async isAuthenticated(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return !!user;
+    } catch (error) {
+      console.error('💥 AuthService: Exception in isAuthenticated:', error);
+      return false;
     }
-    
-    console.log('✅ AuthService: User authenticated:', user.id);
-    return user.id;
   }
 }
