@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Message } from '@/types/chat';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Users } from 'lucide-react';
+import { MessageSquare, Users, Sparkles, Coffee } from 'lucide-react';
 
 interface MessageListProps {
   messages: Message[];
@@ -96,39 +96,59 @@ const MessageList: React.FC<MessageListProps> = ({
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading messages...</p>
+                <div className="relative">
+                  <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-blue-500" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Loading messages...</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Connecting to the community</p>
               </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center py-16 px-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <MessageSquare className="w-12 h-12 text-blue-500 opacity-60" />
+            <div className="text-center py-20 px-8">
+              <div className="relative mb-8">
+                <div className="w-32 h-32 bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <MessageSquare className="w-16 h-16 text-blue-500 opacity-70" />
+                </div>
+                <div className="absolute -top-2 -right-8 transform rotate-12">
+                  <Coffee className="w-8 h-8 text-yellow-500 opacity-60" />
+                </div>
+                <div className="absolute -bottom-4 -left-6 transform -rotate-12">
+                  <Sparkles className="w-6 h-6 text-purple-500 opacity-60" />
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                 Welcome to the beginning!
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-4">
-                This is the start of your conversation in this channel. Say hello and introduce yourself to the community!
+              <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto mb-6 leading-relaxed">
+                This is the start of your conversation in this channel. Say hello, introduce yourself, and start building connections with the amazing warrior community!
               </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <Users className="w-4 h-4" />
-                <span>Be the first to share your thoughts</span>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-full">
+                  <Users className="w-4 h-4" />
+                  <span>Be the first to share your thoughts</span>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full text-blue-600 dark:text-blue-400">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Start the conversation</span>
+                </div>
               </div>
             </div>
           ) : (
             <>
               {sortedDates.map(dateKey => (
                 <div key={dateKey}>
-                  <div className="flex items-center justify-center my-6">
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-                    <Badge variant="outline" className="mx-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 px-3 py-1">
+                  <div className="flex items-center justify-center my-8">
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
+                    <Badge variant="outline" className="mx-6 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 px-4 py-2 shadow-sm font-medium">
                       {getDateLabel(dateKey)}
                     </Badge>
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
                   </div>
                   
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {groupedMessages[dateKey].map((message, index) => (
                       <ChatMessage
                         key={message.id}
@@ -150,17 +170,17 @@ const MessageList: React.FC<MessageListProps> = ({
       </ScrollArea>
       
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white dark:bg-gray-800">
+        <AlertDialogContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900 dark:text-white">Delete Message</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete this message? This action cannot be undone.
+              Are you sure you want to delete this message? This action cannot be undone and the message will be permanently removed from the conversation.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-100 dark:bg-gray-700">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
-              Delete
+              Delete Message
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
