@@ -13,6 +13,7 @@ interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
   isLoading?: boolean;
   channelName?: string;
+  placeholder?: string;
   onAttachmentUpload?: (files: FileList) => void;
 }
 
