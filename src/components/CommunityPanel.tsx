@@ -58,23 +58,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
         throw new Error('No internet connection');
       }
 
-      // Check authentication
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Auth error in community initialization:', authError);
-        throw new Error('Authentication required');
-      }
-
-      if (!user) {
-        console.log('⚠️ No authenticated user for community');
-        // Allow access to community even without login for viewing
-      }
-
-      console.log('✅ Community initialization: User check completed');
-
       // Test basic connectivity to Supabase
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Simple connectivity test - try to get channels
       const { error: testError } = await supabase
         .from('channels')
         .select('id')

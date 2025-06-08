@@ -31,7 +31,7 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
   const { user } = useAuth();
   const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
 
-  // Use the new realtime chat hook
+  // Use the realtime chat hook
   const {
     messages,
     isLoading,
@@ -69,18 +69,13 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
       return;
     }
 
-    if (!isConnected) {
-      toast.error("Real-time connection not established. Please wait...");
-      return;
-    }
-
     try {
       await sendMessage(content);
     } catch (error) {
       console.error("Error sending message:", error);
       // Error handling is done in the hook
     }
-  }, [user?.id, isOnline, isConnected, sendMessage]);
+  }, [user?.id, isOnline, sendMessage]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
@@ -97,8 +92,8 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     window.location.reload();
   };
 
-  // Error state
-  if (chatError && !isLoading) {
+  // Show error state only for severe errors, not for authentication issues
+  if (chatError && chatError !== 'Please log in to access chat' && !isLoading) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <Alert className="max-w-md border-red-200 bg-red-50">
@@ -119,7 +114,7 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     <div className="flex h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-800/50 relative">
       <ConnectionStatusIndicator 
         isOnline={isOnline && isConnected}
-        reconnecting={reconnecting || !isConnected}
+        reconnecting={reconnecting || (!isConnected && user?.id)}
         connectionAttempts={connectionAttempts}
       />
 
@@ -137,8 +132,8 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <ChatHeader
           activeChannel={activeChannel}
-          isOnline={isOnline && isConnected}
-          reconnecting={reconnecting || !isConnected}
+          isOnline={isOnline && (isConnected || !user?.id)}
+          reconnecting={reconnecting || (!isConnected && user?.id)}
           isMobile={isMobile}
           showChannelList={showChannelList}
           setShowChannelList={setShowChannelList}
@@ -161,11 +156,11 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
                 
                 <MessageInput 
                   onSendMessage={handleSendMessage} 
-                  isLoading={isLoading || !isConnected} 
+                  isLoading={isLoading || (!isConnected && user?.id)} 
                   channelName={activeChannel}
                   placeholder={
                     !isOnline ? "You're offline - message will be sent when connection is restored" :
-                    !isConnected ? "Connecting to real-time chat..." :
+                    (!isConnected && user?.id) ? "Connecting to real-time chat..." :
                     undefined
                   }
                 />

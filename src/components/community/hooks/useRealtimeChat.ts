@@ -65,17 +65,17 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
       console.log('✅ Channel ready:', channel);
       setChannelId(channel.id);
       
-      // Auto-join the user to the channel
-      const { error: joinError } = await supabase
-        .from('channel_members')
-        .insert({
-          channel_id: channel.id,
-          user_id: user.id
-        });
-
-      // Ignore unique constraint violations (user already in channel)
-      if (joinError && !joinError.message.includes('duplicate key')) {
-        console.error('❌ Error joining channel:', joinError);
+      // Auto-join the user to the channel (ignore errors if already joined)
+      try {
+        await supabase
+          .from('channel_members')
+          .insert({
+            channel_id: channel.id,
+            user_id: user.id
+          });
+      } catch (joinError) {
+        // Ignore duplicate key errors
+        console.log('User already in channel or other join error:', joinError);
       }
 
       return channel.id;
@@ -204,11 +204,9 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
         
         if (status === 'SUBSCRIBED') {
           console.log('✅ Realtime connection established');
-          toast.success('Connected to real-time chat');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Realtime connection error');
           setError('Real-time connection failed');
-          toast.error('Real-time connection failed');
         }
       });
 
@@ -222,7 +220,7 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
     const initializeChat = async () => {
       if (!user?.id) {
         setIsLoading(false);
-        setError('Please log in to access chat');
+        setError(null); // Don't treat "not logged in" as an error
         return;
       }
 
@@ -235,6 +233,7 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
 
         await loadMessages(channelId);
         subscription = setupRealtimeSubscription(channelId);
+        setError(null); // Clear any previous errors on success
       } catch (error) {
         console.error('💥 Chat initialization failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to initialize chat';
@@ -301,7 +300,7 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
         .from('community_messages')
         .update({ is_deleted: true })
         .eq('id', messageId)
-        .eq('sender_id', user.id); // Ensure user can only delete their own messages
+        .eq('sender_id', user.id);
 
       if (error) {
         console.error('❌ Error deleting message:', error);

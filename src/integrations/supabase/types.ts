@@ -929,6 +929,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_public_channel: {
+        Args: { channel_id_param: string }
+        Returns: boolean
+      }
       is_workspace_member: {
         Args: { workspace_id: string }
         Returns: boolean
@@ -952,6 +956,14 @@ export type Database = {
       update_user_online_status: {
         Args: { is_online_param: boolean }
         Returns: undefined
+      }
+      user_can_access_channel: {
+        Args: { channel_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      user_is_channel_member: {
+        Args: { channel_id_param: string; user_id_param: string }
+        Returns: boolean
       }
     }
     Enums: {
