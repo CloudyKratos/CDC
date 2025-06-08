@@ -58,27 +58,29 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
         throw new Error('No internet connection');
       }
 
-      // Test basic connectivity to Supabase
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      // Simple connectivity test - try to get channels
-      const { error: testError } = await supabase
-        .from('channels')
-        .select('id')
-        .limit(1);
+      // Test basic connectivity
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Simple health check - try to authenticate
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError && authError.message !== 'Auth session missing!') {
+          console.error('Authentication error:', authError);
+          throw new Error('Authentication failed');
+        }
 
-      if (testError) {
-        console.error('Supabase connectivity test failed:', testError);
+        console.log('✅ Community initialization: Connection successful');
+        
+        // Community initialization successful
+        setIsLoading(false);
+        
+        if (retryCount > 0) {
+          toast.success('Community loaded successfully');
+        }
+      } catch (connectError) {
+        console.error('Connection test failed:', connectError);
         throw new Error('Unable to connect to community services');
-      }
-
-      console.log('✅ Community initialization: Supabase connection successful');
-
-      // Community initialization successful
-      setIsLoading(false);
-      
-      if (retryCount > 0) {
-        toast.success('Community loaded successfully');
       }
     } catch (error) {
       console.error('💥 Community initialization failed:', error);
