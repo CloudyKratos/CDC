@@ -11,7 +11,7 @@ import ChannelHeader from './ChannelHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import { Button } from '@/components/ui/button';
-import { Users, Hash, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { Users, Hash, AlertTriangle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -27,6 +27,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
   const [showMembersList, setShowMembersList] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [reconnecting, setReconnecting] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -47,29 +48,44 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     error: channelsError
   } = useChannelData('warrior-community', activeChannel);
 
-  // Network status monitoring
+  // Network status monitoring with retry logic
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       setReconnecting(false);
+      setConnectionAttempts(0);
       toast.success('Connection restored');
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.error('Connection lost');
+      setReconnecting(true);
+      toast.error('Connection lost - attempting to reconnect...');
+    };
+
+    // Connection retry logic
+    const retryConnection = () => {
+      if (!navigator.onLine && connectionAttempts < 5) {
+        setConnectionAttempts(prev => prev + 1);
+        setTimeout(retryConnection, 5000); // Retry every 5 seconds
+      }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Start retry logic if offline
+    if (!navigator.onLine) {
+      retryConnection();
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [connectionAttempts]);
 
-  // Enhanced message sending with optimistic updates
+  // Enhanced message sending with optimistic updates and retry logic
   const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
@@ -77,13 +93,12 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     }
 
     if (!isOnline) {
-      toast.error("Cannot send message while offline");
+      toast.error("Cannot send message while offline. Message will be sent when connection is restored.");
       return;
     }
 
     try {
       await sendMessage(content);
-      toast.success("Message sent successfully");
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
@@ -97,6 +112,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
 
     try {
       await deleteMessage(messageId);
+      toast.success("Message deleted");
     } catch (error) {
       console.error('Error deleting message:', error);
       toast.error('Failed to delete message');
@@ -110,13 +126,18 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
       return;
     }
 
+    if (!isOnline) {
+      toast.error("Cannot add reactions while offline");
+      return;
+    }
+
     try {
       await addReaction(messageId, reaction);
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
     }
-  }, [user?.id, addReaction]);
+  }, [user?.id, addReaction, isOnline]);
 
   const handleChannelSelect = useCallback((channelId: string) => {
     setActiveChannel(channelId);
@@ -129,14 +150,29 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     return channelName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Error state
+  const handleRetryConnection = () => {
+    setReconnecting(true);
+    setConnectionAttempts(0);
+    // Force a page refresh as last resort
+    setTimeout(() => {
+      if (!navigator.onLine) {
+        window.location.reload();
+      }
+    }, 3000);
+  };
+
+  // Error state with retry option
   if (channelsError) {
     return (
       <div className="h-full flex items-center justify-center p-8">
-        <Alert className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load community channels. Please try refreshing the page.
+        <Alert className="max-w-md border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800 space-y-3">
+            <div>Failed to load community channels. This might be due to connection issues.</div>
+            <Button onClick={handleRetryConnection} variant="outline" size="sm" className="w-full">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry Connection
+            </Button>
           </AlertDescription>
         </Alert>
       </div>
@@ -146,10 +182,15 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
   return (
     <div className="flex h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-800/50 relative">
       {/* Connection status indicator */}
-      {!isOnline && (
+      {(!isOnline || reconnecting) && (
         <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center py-2 text-sm font-medium z-50">
-          <WifiOff className="inline w-4 h-4 mr-2" />
-          You're offline. Messages will be sent when connection is restored.
+          <div className="flex items-center justify-center gap-2">
+            <WifiOff className="inline w-4 h-4" />
+            {reconnecting ? 
+              `Reconnecting... (Attempt ${connectionAttempts}/5)` : 
+              'You\'re offline. Messages will be sent when connection is restored.'
+            }
+          </div>
         </div>
       )}
 
@@ -188,12 +229,17 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
                   Offline
                 </Badge>
               )}
+              {reconnecting && (
+                <Badge variant="secondary" className="text-xs">
+                  Reconnecting...
+                </Badge>
+              )}
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              {isOnline ? (
+              {isOnline && !reconnecting ? (
                 <Wifi className="w-4 h-4 text-green-500" />
               ) : (
                 <WifiOff className="w-4 h-4 text-red-500" />
@@ -242,8 +288,9 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
                 
                 <MessageInput 
                   onSendMessage={handleSendMessage} 
-                  isLoading={chatLoading || !isOnline} 
+                  isLoading={chatLoading || (!isOnline && !reconnecting)} 
                   channelName={activeChannel}
+                  placeholder={!isOnline ? "You're offline - message will be sent when connection is restored" : undefined}
                 />
               </>
             )}
