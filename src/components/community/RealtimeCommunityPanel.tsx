@@ -1,10 +1,13 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useRealtimeChat } from './hooks/useRealtimeChat';
+import { useChannelInitialization } from './hooks/realtime/useChannelInitialization';
+import { useMessageLoader } from './hooks/realtime/useMessageLoader';
+import { useRealtimeSubscription } from './hooks/realtime/useRealtimeSubscription';
+import { useMessageActions } from './hooks/realtime/useMessageActions';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
-import { ChannelType } from '@/types/chat';
+import { ChannelType, Message } from '@/types/chat';
 import ConnectionStatusIndicator from './ConnectionStatusIndicator';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
@@ -26,20 +29,65 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [showChannelList, setShowChannelList] = useState(true);
   const [showMembersList, setShowMembersList] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
 
-  // Use the realtime chat hook
-  const {
-    messages,
-    isLoading,
-    error: chatError,
-    isConnected,
-    sendMessage,
-    deleteMessage
-  } = useRealtimeChat(activeChannel);
+  // Use the new refactored hooks
+  const { channelId, initializeChannel } = useChannelInitialization(activeChannel);
+  const { loadMessages } = useMessageLoader();
+  const { isConnected, setupRealtimeSubscription } = useRealtimeSubscription();
+  const { sendMessage, deleteMessage } = useMessageActions();
+
+  // Initialize channel and load messages
+  useEffect(() => {
+    if (!user?.id) {
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    const initChat = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('🔄 Initializing chat for channel:', activeChannel);
+        
+        const id = await initializeChannel();
+        if (id) {
+          const loadedMessages = await loadMessages(id);
+          setMessages(loadedMessages);
+        }
+      } catch (error) {
+        console.error('💥 Failed to initialize chat:', error);
+        setError(error instanceof Error ? error.message : 'Failed to initialize chat');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initChat();
+  }, [activeChannel, user?.id, initializeChannel, loadMessages]);
+
+  // Setup realtime subscription
+  useEffect(() => {
+    if (!channelId || !user?.id) return;
+
+    console.log('🔄 Setting up realtime subscription');
+    const subscription = setupRealtimeSubscription(channelId, setMessages);
+
+    return () => {
+      if (subscription) {
+        console.log('🧹 Cleaning up realtime subscription');
+        subscription.unsubscribe();
+      }
+    };
+  }, [channelId, user?.id, setupRealtimeSubscription]);
 
   // Mock channels data for the sidebar
   const mockChannels = [
@@ -70,18 +118,18 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     }
 
     try {
-      await sendMessage(content);
+      await sendMessage(content, channelId);
     } catch (error) {
       console.error("Error sending message:", error);
       // Error handling is done in the hook
     }
-  }, [user?.id, isOnline, sendMessage]);
+  }, [user?.id, isOnline, sendMessage, channelId]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
-      await deleteMessage(messageId);
+      await deleteMessage(messageId, setMessages);
     } catch (error) {
       console.error('Error deleting message:', error);
       // Error handling is done in the hook
@@ -93,13 +141,13 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
   };
 
   // Show error state only for severe errors, not for authentication issues
-  if (chatError && chatError !== 'Please log in to access chat' && !isLoading) {
+  if (error && error !== 'Please log in to access chat' && !isLoading) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <Alert className="max-w-md border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800 space-y-3">
-            <div>Failed to load community chat: {chatError}</div>
+            <div>Failed to load community chat: {error}</div>
             <Button onClick={handleRetry} variant="outline" size="sm" className="w-full">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
