@@ -2,19 +2,17 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCommunityData } from './hooks/useCommunityData';
 import { useSimpleChat } from './hooks/useSimpleChat';
-import { useNetworkStatus } from './hooks/useNetworkStatus';
-import ConnectionStatusIndicator from './ConnectionStatusIndicator';
+import { useCommunityData } from './hooks/useCommunityData';
+import { ChannelType } from '@/types/chat';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
 
 interface SimpleCommunityPanelProps {
   defaultChannel?: string;
@@ -29,25 +27,25 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
-
-  // Use the community data hook
-  const {
-    channels,
-    isLoading: channelsLoading,
-    error: channelsError,
-    refreshChannels
-  } = useCommunityData();
-
-  // Use the simple chat hook
-  const {
-    messages,
-    isLoading: chatLoading,
-    error: chatError,
-    isConnected,
-    sendMessage,
-    deleteMessage
+  const { channels, isLoading: channelsLoading } = useCommunityData();
+  const { 
+    messages, 
+    isLoading: chatLoading, 
+    error, 
+    isConnected, 
+    sendMessage, 
+    deleteMessage 
   } = useSimpleChat(activeChannel);
+
+  // Use default channels if none loaded
+  const displayChannels = channels.length > 0 ? channels : [
+    { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
+    { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
+    { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
+    { id: 'tech-talk', name: 'tech-talk', type: ChannelType.PUBLIC, members: [], description: 'Technology discussions' },
+    { id: 'motivation', name: 'motivation', type: ChannelType.PUBLIC, members: [], description: 'Daily motivation' },
+    { id: 'resources', name: 'resources', type: ChannelType.PUBLIC, members: [], description: 'Useful resources' }
+  ];
 
   const handleChannelSelect = useCallback((channelId: string) => {
     setActiveChannel(channelId);
@@ -58,12 +56,6 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim() || !user?.id) {
-      if (!user?.id) toast.error("You must be logged in to send messages");
-      return;
-    }
-
-    if (!isOnline) {
-      toast.error("Cannot send message while offline");
       return;
     }
 
@@ -72,7 +64,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     } catch (error) {
       console.error("Error sending message:", error);
     }
-  }, [user?.id, isOnline, sendMessage]);
+  }, [user?.id, sendMessage]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
@@ -85,17 +77,17 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   }, [user?.id, deleteMessage]);
 
   const handleRetry = () => {
-    refreshChannels();
+    window.location.reload();
   };
 
-  // Show error state for severe errors
-  if (channelsError || (chatError && chatError !== 'Please log in to access chat' && !chatLoading)) {
+  // Show error state for severe errors only
+  if (error && error.includes('infinite recursion')) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <Alert className="max-w-md border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800 space-y-3">
-            <div>Failed to load community: {channelsError || chatError}</div>
+            <div>Database policy error detected. Please contact support.</div>
             <Button onClick={handleRetry} variant="outline" size="sm" className="w-full">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
@@ -106,18 +98,10 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     );
   }
 
-  const isReconnecting = reconnecting || (!isConnected && !!user?.id);
-
   return (
     <div className="flex h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-800/50 relative">
-      <ConnectionStatusIndicator 
-        isOnline={isOnline && (isConnected || !user?.id)}
-        reconnecting={isReconnecting}
-        connectionAttempts={connectionAttempts}
-      />
-
       <ChannelSidebar
-        channels={channels}
+        channels={displayChannels}
         activeChannel={activeChannel}
         onChannelSelect={handleChannelSelect}
         isLoading={channelsLoading}
@@ -130,8 +114,8 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <ChatHeader
           activeChannel={activeChannel}
-          isOnline={isOnline && (isConnected || !user?.id)}
-          reconnecting={isReconnecting}
+          isOnline={isConnected}
+          reconnecting={false}
           isMobile={isMobile}
           showChannelList={showChannelList}
           setShowChannelList={setShowChannelList}
@@ -154,12 +138,10 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
                 
                 <MessageInput 
                   onSendMessage={handleSendMessage} 
-                  isLoading={chatLoading || (!isConnected && !!user?.id)} 
+                  isLoading={chatLoading || !isConnected} 
                   channelName={activeChannel}
                   placeholder={
-                    !isOnline ? "You're offline - message will be sent when connection is restored" :
-                    (!isConnected && !!user?.id) ? "Connecting to chat..." :
-                    undefined
+                    !isConnected ? "Connecting to chat..." : undefined
                   }
                 />
               </>

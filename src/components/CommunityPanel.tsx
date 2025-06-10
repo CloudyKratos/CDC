@@ -46,7 +46,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       setIsLoading(false);
       setHasError(false);
       setErrorMessage('');
-    }, 1000);
+    }, 500); // Reduced timeout
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -63,7 +63,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     
     setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
+    }, 500);
   };
 
   if (!isOnline) {
