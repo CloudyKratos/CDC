@@ -25,7 +25,10 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
 
   // Get or create channel
   const initializeChannel = useCallback(async () => {
-    if (!user?.id) return null;
+    if (!user?.id) {
+      console.log('⚠️ No authenticated user, skipping channel initialization');
+      return null;
+    }
 
     try {
       console.log('🔄 Initializing channel:', channelName);
@@ -75,7 +78,7 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
           });
       } catch (joinError) {
         // Ignore duplicate key errors
-        console.log('User already in channel or other join error:', joinError);
+        console.log('🔄 User already in channel or join error (ignored):', joinError);
       }
 
       return channel.id;
@@ -187,15 +190,17 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
       .on(
         'postgres_changes',
         {
-          event: 'DELETE',
+          event: 'UPDATE',
           schema: 'public',
           table: 'community_messages',
           filter: `channel_id=eq.${channelId}`
         },
         (payload) => {
-          console.log('🗑️ Message deleted:', payload);
-          const deletedMessage = payload.old as any;
-          setMessages(prev => prev.filter(m => m.id !== deletedMessage.id));
+          console.log('📝 Message updated:', payload);
+          const updatedMessage = payload.new as any;
+          if (updatedMessage.is_deleted) {
+            setMessages(prev => prev.filter(m => m.id !== updatedMessage.id));
+          }
         }
       )
       .subscribe((status) => {
@@ -219,8 +224,9 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
     
     const initializeChat = async () => {
       if (!user?.id) {
+        console.log('⚠️ No authenticated user, showing unauthenticated view');
         setIsLoading(false);
-        setError(null); // Don't treat "not logged in" as an error
+        setError(null);
         return;
       }
 
@@ -233,7 +239,7 @@ export function useRealtimeChat(channelName: string): UseRealtimeChat {
 
         await loadMessages(channelId);
         subscription = setupRealtimeSubscription(channelId);
-        setError(null); // Clear any previous errors on success
+        setError(null);
       } catch (error) {
         console.error('💥 Chat initialization failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to initialize chat';
