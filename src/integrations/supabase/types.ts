@@ -933,6 +933,10 @@ export type Database = {
         Args: { channel_id_param: string }
         Returns: boolean
       }
+      is_public_channel_safe: {
+        Args: { channel_id_param: string }
+        Returns: boolean
+      }
       is_workspace_member: {
         Args: { workspace_id: string }
         Returns: boolean
@@ -958,6 +962,10 @@ export type Database = {
         Returns: undefined
       }
       user_can_access_channel: {
+        Args: { channel_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      user_can_access_channel_safe: {
         Args: { channel_id_param: string; user_id_param: string }
         Returns: boolean
       }

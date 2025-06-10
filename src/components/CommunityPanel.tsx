@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff, AlertTriangle, MessageSquare } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import RealtimeCommunityPanel from './community/RealtimeCommunityPanel';
+import SimpleCommunityPanel from './community/SimpleCommunityPanel';
 import CommunityErrorBoundary from './community/CommunityErrorBoundary';
 
 interface CommunityPanelProps {
@@ -26,7 +26,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     const handleOnline = () => {
       setIsOnline(true);
       if (hasError && retryCount > 0) {
-        toast.success('Connection restored - retrying...');
+        toast.success('Connection restored');
         handleRetry();
       }
     };
@@ -41,58 +41,29 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initialize community loading
-    initializeCommunity();
+    // Simple initialization
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setHasError(false);
+      setErrorMessage('');
+    }, 1000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(timer);
     };
-  }, []);
-
-  const initializeCommunity = async () => {
-    try {
-      setIsLoading(true);
-      setHasError(false);
-      setErrorMessage('');
-
-      // Check if user is online
-      if (!navigator.onLine) {
-        throw new Error('No internet connection');
-      }
-
-      // Simple connectivity test
-      if (user) {
-        console.log('✅ Community initialization: User authenticated, loading community...');
-      } else {
-        console.log('⚠️ Community initialization: No authenticated user, showing unauthenticated view');
-      }
-      
-      // Simulate brief loading time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setIsLoading(false);
-      
-      if (retryCount > 0) {
-        toast.success('Community loaded successfully');
-      }
-    } catch (error) {
-      console.error('💥 Community initialization failed:', error);
-      setIsLoading(false);
-      setHasError(true);
-      
-      const message = error instanceof Error ? error.message : 'Failed to load community';
-      setErrorMessage(message);
-      
-      if (retryCount === 0) {
-        toast.error('Failed to load community');
-      }
-    }
-  };
+  }, [hasError, retryCount]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    initializeCommunity();
+    setIsLoading(true);
+    setHasError(false);
+    setErrorMessage('');
+    
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
   };
 
   if (!isOnline) {
@@ -120,40 +91,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Community</h3>
-            <p className="text-gray-600">Connecting to the community chat...</p>
+            <p className="text-gray-600">Setting up the community chat...</p>
             {retryCount > 0 && (
               <p className="text-sm text-gray-500 mt-2">Retry attempt #{retryCount}</p>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Connection Failed</h3>
-            <p className="text-gray-600 mb-4">
-              {errorMessage || 'Unable to connect to the community. Please try again.'}
-            </p>
-            <div className="space-y-2">
-              <Button onClick={handleRetry} className="flex items-center gap-2 w-full">
-                <RefreshCw className="h-4 w-4" />
-                Retry Connection
-              </Button>
-              {retryCount > 2 && (
-                <Alert className="text-left">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    If the issue persists, please check your network connection or try refreshing the page.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -169,7 +110,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
         </div>
       </div>
       <CommunityErrorBoundary>
-        <RealtimeCommunityPanel defaultChannel={channelName} />
+        <SimpleCommunityPanel defaultChannel={channelName} />
       </CommunityErrorBoundary>
     </div>
   );
