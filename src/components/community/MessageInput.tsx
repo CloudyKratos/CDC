@@ -21,25 +21,28 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   isLoading = false,
   channelName = "general",
+  placeholder,
   onAttachmentUpload
 }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   useEffect(() => {
     // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
   }, [message]);
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || isLoading || isSending) return;
     
+    setIsSending(true);
     try {
       await onSendMessage(message.trim());
       setMessage("");
@@ -50,6 +53,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
+    } finally {
+      setIsSending(false);
     }
   };
   
@@ -92,18 +97,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
     '💯', '🎉', '😎', '🤝', '💪', '🙌', '👏', '✨',
     '🚀', '⭐', '💡', '🎯', '🏆', '🌟', '💎', '🔮'
   ];
+
+  const defaultPlaceholder = placeholder || `Message #${getChannelDisplayName()}...`;
   
   return (
-    <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+    <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
       <form onSubmit={handleSendMessage} className="space-y-3">
         {/* Main input container */}
-        <div className="flex items-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 p-3">
+        <div className="flex items-end gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 p-3 shadow-sm">
           {/* File upload button */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
+            className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
             onClick={handleFileUpload}
           >
             <Paperclip size={18} />
@@ -116,9 +123,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={`Message #${getChannelDisplayName()}...`}
-              className="w-full bg-transparent border-0 outline-none resize-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm leading-relaxed min-h-[20px] max-h-[120px] overflow-y-auto"
-              disabled={isLoading}
+              placeholder={defaultPlaceholder}
+              className="w-full bg-transparent border-0 outline-none resize-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 text-sm leading-relaxed min-h-[24px] max-h-[120px] overflow-y-auto"
+              disabled={isLoading || isSending}
               maxLength={2000}
               rows={1}
             />
@@ -131,7 +138,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
+                className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
               >
                 <Smile size={18} />
               </Button>
@@ -142,7 +149,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   <button
                     key={emoji}
                     type="button"
-                    className="text-xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-2 transition-colors duration-150 hover:scale-110"
+                    className="text-xl hover:bg-slate-100 dark:hover:bg-slate-700 rounded p-2 transition-colors duration-150 hover:scale-110"
                     onClick={() => handleEmojiSelect(emoji)}
                   >
                     {emoji}
@@ -156,19 +163,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <Button
             type="submit"
             size="sm"
-            disabled={!message.trim() || isLoading}
-            className={`h-8 w-8 p-0 shrink-0 transition-all duration-200 ${
-              message.trim() && !isLoading
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+            disabled={!message.trim() || isLoading || isSending}
+            className={`h-8 w-8 p-0 shrink-0 transition-all duration-200 rounded-lg ${
+              message.trim() && !isLoading && !isSending
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+                : 'bg-slate-300 dark:bg-slate-600 text-slate-500 cursor-not-allowed'
             }`}
           >
-            <Send size={16} />
+            {isSending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Send size={16} />
+            )}
           </Button>
         </div>
         
-        {/* Character count */}
-        <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 px-1">
+        {/* Status and character count */}
+        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-1">
           <span>Press Enter to send, Shift+Enter for new line</span>
           <span className={message.length > 1800 ? 'text-orange-500' : ''}>
             {message.length}/2000

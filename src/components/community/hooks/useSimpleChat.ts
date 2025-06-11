@@ -74,19 +74,6 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
       console.log('✅ Channel ready:', channel);
       setChannelId(channel.id);
 
-      // Auto-join the user to the channel (ignore errors if already joined)
-      try {
-        await supabase
-          .from('channel_members')
-          .insert({
-            channel_id: channel.id,
-            user_id: user.id
-          });
-        console.log('✅ User auto-joined to channel');
-      } catch (joinError) {
-        console.log('🔄 User already in channel or join error (ignored):', joinError);
-      }
-
       // Load existing messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('community_messages')
@@ -197,8 +184,10 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
           console.log('📡 Subscription status:', status);
           if (status === 'SUBSCRIBED') {
             console.log('✅ Realtime connection established');
+            setIsConnected(true);
           } else if (status === 'CHANNEL_ERROR') {
             console.error('❌ Realtime connection error');
+            setIsConnected(false);
           }
         });
 

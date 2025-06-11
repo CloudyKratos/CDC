@@ -1,9 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Hash, Users, Search, Bell, Settings } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Hash, Users, Menu, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 
 interface ChatHeaderProps {
   activeChannel: string;
@@ -26,74 +24,69 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   showMembersList,
   setShowMembersList
 }) => {
-  const getChannelDisplayName = (channelName: string) => {
-    return channelName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const getChannelDisplayName = () => {
+    return activeChannel.replace(/-/g, ' ');
   };
 
-  const getChannelDescription = (channelName: string) => {
-    const descriptions = {
-      'general': "Welcome to the main community hub - Share ideas and connect",
-      'entrepreneurs': "Entrepreneurial discussions and business insights",
-      'tech-talk': "Technology discussions and development topics",
-      'motivation': "Daily motivation and success stories",
-      'resources': "Useful tools, links, and learning materials",
-      'announcements': "Important community updates and news"
-    };
-    return descriptions[channelName as keyof typeof descriptions] || `Discussion channel for ${channelName}`;
+  const getConnectionStatus = () => {
+    if (reconnecting) return { icon: AlertCircle, text: 'Reconnecting...', color: 'text-amber-500' };
+    if (isOnline) return { icon: Wifi, text: 'Connected', color: 'text-green-500' };
+    return { icon: WifiOff, text: 'Disconnected', color: 'text-red-500' };
   };
+
+  const status = getConnectionStatus();
+  const StatusIcon = status.icon;
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+    <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+      {/* Left side - Channel info */}
       <div className="flex items-center gap-3">
+        {/* Mobile menu button */}
         {isMobile && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowChannelList(!showChannelList)}
-            className="md:hidden"
+            className="h-8 w-8 p-0"
           >
-            <Hash size={16} />
+            <Menu size={18} />
           </Button>
         )}
+        
+        {/* Channel name */}
         <div className="flex items-center gap-2">
-          <Hash size={20} className="text-gray-500" />
-          <h2 className="font-semibold text-gray-900 dark:text-white text-lg">
-            {getChannelDisplayName(activeChannel)}
-          </h2>
-          {activeChannel === 'announcements' && (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
-              📢 Important
-            </Badge>
-          )}
-          {reconnecting && (
-            <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
-              Reconnecting...
-            </Badge>
-          )}
-          {!isOnline && !reconnecting && (
-            <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-              Offline
-            </Badge>
-          )}
+          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <Hash size={16} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100 capitalize">
+              {getChannelDisplayName()}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Community discussion
+            </p>
+          </div>
         </div>
-        <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
-        <p className="hidden sm:block text-sm text-gray-500 dark:text-gray-400 max-w-md truncate">
-          {getChannelDescription(activeChannel)}
-        </p>
       </div>
-      
-      <div className="flex items-center gap-2">
-        <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-          {isOnline ? 'Connected' : 'Disconnected'}
+
+      {/* Right side - Status and controls */}
+      <div className="flex items-center gap-3">
+        {/* Connection status */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-full">
+          <StatusIcon size={14} className={status.color} />
+          <span className={`text-xs font-medium ${status.color}`}>
+            {status.text}
+          </span>
         </div>
+
+        {/* Members button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowMembersList(!showMembersList)}
-          className="hidden lg:flex"
+          className="h-8 w-8 p-0 hidden md:flex"
         >
-          <Users size={16} />
+          <Users size={18} />
         </Button>
       </div>
     </div>

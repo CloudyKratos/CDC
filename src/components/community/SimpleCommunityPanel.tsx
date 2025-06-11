@@ -80,17 +80,18 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     window.location.reload();
   };
 
-  // Show error state for severe errors only
-  if (error && error.includes('infinite recursion')) {
+  // Show error state for database policy errors
+  if (error && (error.includes('infinite recursion') || error.includes('policy'))) {
     return (
-      <div className="h-full flex items-center justify-center p-8">
+      <div className="h-full flex items-center justify-center p-8 bg-gradient-to-br from-red-50 to-orange-50">
         <Alert className="max-w-md border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800 space-y-3">
-            <div>Database policy error detected. Please contact support.</div>
+            <div className="font-semibold">Chat Temporarily Unavailable</div>
+            <div className="text-sm">We're fixing a database issue. Please try refreshing the page.</div>
             <Button onClick={handleRetry} variant="outline" size="sm" className="w-full">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              Refresh Page
             </Button>
           </AlertDescription>
         </Alert>
@@ -99,7 +100,8 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   }
 
   return (
-    <div className="flex h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-800/50 relative">
+    <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
+      {/* Enhanced Channel Sidebar */}
       <ChannelSidebar
         channels={displayChannels}
         activeChannel={activeChannel}
@@ -110,8 +112,9 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
         setShowChannelList={setShowChannelList}
       />
 
-      {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+      {/* Main Chat Container */}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-slate-900 shadow-xl border-l border-slate-200 dark:border-slate-700">
+        {/* Enhanced Chat Header */}
         <ChatHeader
           activeChannel={activeChannel}
           isOnline={isConnected}
@@ -124,29 +127,59 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
         />
         
         {/* Messages and Input Area */}
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Main Chat Content */}
+          <div className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-slate-900">
             {!user ? (
               <UnauthenticatedView />
             ) : (
               <>
-                <MessageList 
-                  messages={messages} 
-                  isLoading={chatLoading}
-                  onDeleteMessage={handleDeleteMessage}
-                />
+                {/* Connection Status Indicator */}
+                {!isConnected && user && (
+                  <div className="bg-amber-100 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-2">
+                    <div className="flex items-center justify-center text-sm text-amber-800 dark:text-amber-200">
+                      <div className="animate-pulse mr-2">🔄</div>
+                      Connecting to real-time chat...
+                    </div>
+                  </div>
+                )}
                 
-                <MessageInput 
-                  onSendMessage={handleSendMessage} 
-                  isLoading={chatLoading || !isConnected} 
-                  channelName={activeChannel}
-                  placeholder={
-                    !isConnected ? "Connecting to chat..." : undefined
-                  }
-                />
+                {/* Messages Area */}
+                <div className="flex-1 overflow-hidden bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50">
+                  <MessageList 
+                    messages={messages} 
+                    isLoading={chatLoading}
+                    onDeleteMessage={handleDeleteMessage}
+                  />
+                </div>
+                
+                {/* Enhanced Message Input */}
+                <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                  <MessageInput 
+                    onSendMessage={handleSendMessage} 
+                    isLoading={chatLoading || !isConnected} 
+                    channelName={activeChannel}
+                    placeholder={
+                      !isConnected ? "Connecting to chat..." : 
+                      `Message #${activeChannel.replace(/-/g, ' ')}...`
+                    }
+                  />
+                </div>
               </>
             )}
           </div>
+
+          {/* Members List Sidebar (if needed) */}
+          {showMembersList && (
+            <div className="w-64 bg-slate-50 dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 p-4">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                Online Members
+              </h3>
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                Members list coming soon...
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
