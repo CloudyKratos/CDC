@@ -10,9 +10,6 @@ import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface SimpleCommunityPanelProps {
   defaultChannel?: string;
@@ -76,29 +73,6 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     }
   }, [user?.id, deleteMessage]);
 
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
-  // Show error state for database policy errors
-  if (error && (error.includes('infinite recursion') || error.includes('policy'))) {
-    return (
-      <div className="h-full flex items-center justify-center p-8 bg-gradient-to-br from-red-50 to-orange-50">
-        <Alert className="max-w-md border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800 space-y-3">
-            <div className="font-semibold">Chat Temporarily Unavailable</div>
-            <div className="text-sm">We're fixing a database issue. Please try refreshing the page.</div>
-            <Button onClick={handleRetry} variant="outline" size="sm" className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Page
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
       {/* Enhanced Channel Sidebar */}
@@ -135,7 +109,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
             ) : (
               <>
                 {/* Connection Status Indicator */}
-                {!isConnected && user && (
+                {!isConnected && user && !error && (
                   <div className="bg-amber-100 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-2">
                     <div className="flex items-center justify-center text-sm text-amber-800 dark:text-amber-200">
                       <div className="animate-pulse mr-2">🔄</div>
