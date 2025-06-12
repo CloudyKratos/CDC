@@ -48,30 +48,38 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
       if (!resolvedChannelId) {
         console.error('Failed to initialize channel');
         setError('Failed to initialize channel');
+        setIsLoading(false);
         return;
       }
 
+      console.log('✅ Channel initialized:', resolvedChannelId);
+
       // Load existing messages
       try {
+        console.log('🔄 Loading messages...');
         const messagesData = await loadMessages(resolvedChannelId);
+        console.log('✅ Messages loaded:', messagesData.length);
         setMessages(messagesData);
       } catch (error) {
         console.error('❌ Error loading messages:', error);
         setMessages([]);
+        // Don't set error state for message loading failures, just log them
       }
 
       // Set up realtime subscription
+      console.log('🔄 Setting up realtime subscription...');
       const cleanup = setupSubscription(
         resolvedChannelId,
         addMessage,
         removeMessage
       );
 
+      console.log('✅ Chat initialization complete');
       return cleanup;
       
     } catch (error) {
       console.error('💥 Chat initialization failed:', error);
-      setError(null); // Don't show error UI, just fallback to basic functionality
+      setError('Failed to initialize chat. Please refresh and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -91,18 +99,24 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
 
     if (!channelId) {
       toast.error("Channel not ready. Please wait and try again.");
+      console.error('Channel ID not available:', { channelId, channelName });
       return;
     }
     
     try {
-      console.log('📤 Attempting to send message:', { content, channelId });
+      console.log('📤 Attempting to send message:', { 
+        content: content.substring(0, 50) + '...', 
+        channelId, 
+        channelName,
+        userId: user.id 
+      });
       await sendMessageAction(content, channelId);
+      console.log('✅ Message sent successfully');
     } catch (error) {
       console.error('💥 Failed to send message:', error);
-      toast.error('Failed to send message');
-      throw error;
+      // Error is already handled in sendMessageAction with toast
     }
-  }, [user?.id, channelId, sendMessageAction]);
+  }, [user?.id, channelId, channelName, sendMessageAction]);
   
   // Delete message
   const deleteMessage = useCallback(async (messageId: string) => {
@@ -112,7 +126,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
       await deleteMessageAction(messageId, setMessages);
     } catch (error) {
       console.error('💥 Failed to delete message:', error);
-      toast.error('Failed to delete message');
+      // Error is already handled in deleteMessageAction with toast
     }
   }, [user?.id, deleteMessageAction, setMessages]);
 
@@ -124,6 +138,19 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
       }
     };
   }, [initializeChat]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 useSimpleChat Debug:', {
+      channelName,
+      channelId,
+      user: user?.id,
+      isConnected,
+      messagesCount: messages.length,
+      isLoading,
+      error
+    });
+  }, [channelName, channelId, user?.id, isConnected, messages.length, isLoading, error]);
   
   return {
     messages,

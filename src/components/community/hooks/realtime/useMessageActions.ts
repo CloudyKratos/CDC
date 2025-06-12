@@ -29,9 +29,10 @@ export function useMessageActions(): UseMessageActions {
     }
     
     try {
-      console.log('📤 Sending message:', { content, channelId, userId: user.id });
+      console.log('📤 Sending message:', { content: content.substring(0, 50) + '...', channelId, userId: user.id });
       
-      const { error } = await supabase
+      // Check if the community_messages table exists and we have permissions
+      const { error: insertError } = await supabase
         .from('community_messages')
         .insert({
           channel_id: channelId,
@@ -39,17 +40,31 @@ export function useMessageActions(): UseMessageActions {
           content: content.trim()
         });
 
-      if (error) {
-        console.error('❌ Error sending message:', error);
-        throw error;
+      if (insertError) {
+        console.error('❌ Error sending message:', insertError);
+        
+        // Handle specific error cases
+        if (insertError.code === '42P01') {
+          toast.error('Community messages feature is not yet set up');
+          throw new Error('Messages table does not exist');
+        } else if (insertError.code === '23503') {
+          toast.error('Invalid channel or user');
+          throw new Error('Foreign key constraint violation');
+        } else {
+          toast.error('Failed to send message: ' + insertError.message);
+          throw insertError;
+        }
       }
 
       console.log('✅ Message sent successfully');
+      toast.success('Message sent!');
     } catch (error) {
       console.error('💥 Failed to send message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
-      toast.error('Failed to send message: ' + errorMessage);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error('Failed to send message');
+      }
     }
   }, [user?.id]);
   
@@ -67,6 +82,7 @@ export function useMessageActions(): UseMessageActions {
 
       if (error) {
         console.error('❌ Error deleting message:', error);
+        toast.error('Failed to delete message: ' + error.message);
         throw error;
       }
 

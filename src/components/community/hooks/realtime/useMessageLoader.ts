@@ -17,6 +17,7 @@ export function useMessageLoader(): UseMessageLoader {
     try {
       console.log('🔄 Loading messages for channel:', channelId);
       
+      // First, let's try to get messages with a simpler query
       const { data: messages, error } = await supabase
         .from('community_messages')
         .select(`
@@ -24,7 +25,7 @@ export function useMessageLoader(): UseMessageLoader {
           content,
           created_at,
           sender_id,
-          profiles!community_messages_sender_id_fkey (
+          profiles (
             id,
             username,
             full_name,
@@ -37,6 +38,11 @@ export function useMessageLoader(): UseMessageLoader {
 
       if (error) {
         console.error('❌ Error loading messages:', error);
+        // If the table doesn't exist or there are permission issues, return empty array
+        if (error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('📝 Messages table not found or no permissions, returning empty array');
+          return [];
+        }
         throw error;
       }
 
@@ -51,7 +57,12 @@ export function useMessageLoader(): UseMessageLoader {
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+        sender: msg.profiles ? {
+          id: msg.profiles.id,
+          username: msg.profiles.username || 'Unknown User',
+          full_name: msg.profiles.full_name || 'Unknown User',
+          avatar_url: msg.profiles.avatar_url
+        } : {
           id: msg.sender_id,
           username: 'Unknown User',
           full_name: 'Unknown User',

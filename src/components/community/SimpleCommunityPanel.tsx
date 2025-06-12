@@ -66,11 +66,12 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     }
 
     try {
-      console.log('📤 Handling message send:', content);
+      console.log('📤 Handling message send:', content.substring(0, 50) + '...');
       await sendMessage(content);
       console.log('✅ Message sent successfully');
     } catch (error) {
       console.error("💥 Error in handleSendMessage:", error);
+      // Error is already handled in sendMessage with toast
     }
   }, [user?.id, sendMessage]);
 
@@ -81,6 +82,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       await deleteMessage(messageId);
     } catch (error) {
       console.error('Error deleting message:', error);
+      // Error is already handled in deleteMessage with toast
     }
   }, [user?.id, deleteMessage]);
 
@@ -95,6 +97,33 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       error
     });
   }, [activeChannel, user?.id, isConnected, messages.length, chatLoading, error]);
+
+  // Show error state if there's a critical error
+  if (error && user?.id) {
+    return (
+      <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Chat Temporarily Unavailable
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {error}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">

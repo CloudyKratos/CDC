@@ -13,16 +13,16 @@ export function useChannelManager(channelName: string): UseChannelManager {
   const { user } = useAuth();
 
   const initializeChannel = useCallback(async () => {
-    if (!user?.id) {
-      console.log('⚠️ No authenticated user, using channel name as fallback');
-      setChannelId(channelName);
-      return channelName;
-    }
-
     try {
       console.log('🔄 Initializing channel:', channelName);
       
-      // Get or create channel
+      if (!user?.id) {
+        console.log('⚠️ No authenticated user, using channel name as fallback');
+        setChannelId(channelName);
+        return channelName;
+      }
+
+      // First try to get existing channel
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
@@ -38,7 +38,7 @@ export function useChannelManager(channelName: string): UseChannelManager {
           .insert({
             name: channelName,
             type: 'public',
-            description: `${channelName} channel`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
             created_by: user.id
           })
           .select('id')
@@ -46,13 +46,16 @@ export function useChannelManager(channelName: string): UseChannelManager {
 
         if (createError) {
           console.error('❌ Error creating channel:', createError);
+          // Fall back to using channel name as ID
           setChannelId(channelName);
           return channelName;
         }
         
         channel = newChannel;
+        console.log('✅ Channel created:', channel);
       } else if (channelError) {
         console.error('❌ Error fetching channel:', channelError);
+        // Fall back to using channel name as ID
         setChannelId(channelName);
         return channelName;
       }
@@ -62,6 +65,7 @@ export function useChannelManager(channelName: string): UseChannelManager {
       return channel.id;
     } catch (error) {
       console.error('💥 Failed to initialize channel:', error);
+      // Always fall back to channel name to ensure chat works
       setChannelId(channelName);
       return channelName;
     }
