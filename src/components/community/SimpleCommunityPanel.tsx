@@ -1,10 +1,11 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSimpleChat } from './hooks/useSimpleChat';
 import { useCommunityData } from './hooks/useCommunityData';
 import { ChannelType } from '@/types/chat';
+import { toast } from 'sonner';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
