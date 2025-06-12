@@ -3,8 +3,17 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 
-export function useMessageLoader() {
+interface UseMessageLoader {
+  loadMessages: (channelId: string) => Promise<Message[]>;
+}
+
+export function useMessageLoader(): UseMessageLoader {
   const loadMessages = useCallback(async (channelId: string): Promise<Message[]> => {
+    if (!channelId) {
+      console.log('⚠️ No channel ID provided for loading messages');
+      return [];
+    }
+
     try {
       console.log('🔄 Loading messages for channel:', channelId);
       
@@ -31,9 +40,13 @@ export function useMessageLoader() {
         throw error;
       }
 
-      console.log('✅ Loaded messages:', messages?.length || 0);
+      console.log('✅ Messages loaded:', messages?.length || 0);
 
-      const formattedMessages: Message[] = (messages || []).map(msg => ({
+      if (!messages || messages.length === 0) {
+        return [];
+      }
+
+      return messages.map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
@@ -45,13 +58,13 @@ export function useMessageLoader() {
           avatar_url: null
         }
       }));
-
-      return formattedMessages;
     } catch (error) {
       console.error('💥 Failed to load messages:', error);
-      throw error;
+      return [];
     }
   }, []);
 
-  return { loadMessages };
+  return {
+    loadMessages
+  };
 }

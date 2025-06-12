@@ -45,6 +45,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   ];
 
   const handleChannelSelect = useCallback((channelId: string) => {
+    console.log('🔄 Switching to channel:', channelId);
     setActiveChannel(channelId);
     if (isMobile) {
       setShowChannelList(false);
@@ -52,14 +53,23 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   }, [isMobile]);
 
   const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || !user?.id) {
+    if (!content.trim()) {
+      console.log('⚠️ Empty message, not sending');
+      return;
+    }
+
+    if (!user?.id) {
+      console.log('⚠️ User not authenticated, cannot send message');
+      toast.error("You must be logged in to send messages");
       return;
     }
 
     try {
+      console.log('📤 Handling message send:', content);
       await sendMessage(content);
+      console.log('✅ Message sent successfully');
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("💥 Error in handleSendMessage:", error);
     }
   }, [user?.id, sendMessage]);
 
@@ -72,6 +82,18 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       console.error('Error deleting message:', error);
     }
   }, [user?.id, deleteMessage]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 SimpleCommunityPanel Debug:', {
+      activeChannel,
+      user: user?.id,
+      isConnected,
+      messagesCount: messages.length,
+      chatLoading,
+      error
+    });
+  }, [activeChannel, user?.id, isConnected, messages.length, chatLoading, error]);
 
   return (
     <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
@@ -131,12 +153,9 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
                 <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <MessageInput 
                     onSendMessage={handleSendMessage} 
-                    isLoading={chatLoading || !isConnected} 
+                    isLoading={chatLoading} 
                     channelName={activeChannel}
-                    placeholder={
-                      !isConnected ? "Connecting to chat..." : 
-                      `Message #${activeChannel.replace(/-/g, ' ')}...`
-                    }
+                    placeholder={`Message #${activeChannel.replace(/-/g, ' ')}...`}
                   />
                 </div>
               </>

@@ -44,8 +44,8 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
     try {
       console.log('🔄 Initializing chat for channel:', channelName);
       
-      const channelId = await initializeChannel();
-      if (!channelId) {
+      const resolvedChannelId = await initializeChannel();
+      if (!resolvedChannelId) {
         console.error('Failed to initialize channel');
         setError('Failed to initialize channel');
         return;
@@ -53,7 +53,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
 
       // Load existing messages
       try {
-        const messagesData = await loadMessages(channelId);
+        const messagesData = await loadMessages(resolvedChannelId);
         setMessages(messagesData);
       } catch (error) {
         console.error('❌ Error loading messages:', error);
@@ -62,7 +62,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
 
       // Set up realtime subscription
       const cleanup = setupSubscription(
-        channelId,
+        resolvedChannelId,
         addMessage,
         removeMessage
       );
@@ -79,12 +79,23 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
 
   // Send message
   const sendMessage = useCallback(async (content: string) => {
-    if (!user?.id || !content.trim()) {
-      if (!user?.id) toast.error("You must be logged in to send messages");
+    if (!user?.id) {
+      toast.error("You must be logged in to send messages");
+      return;
+    }
+    
+    if (!content.trim()) {
+      toast.error("Message cannot be empty");
+      return;
+    }
+
+    if (!channelId) {
+      toast.error("Channel not ready. Please wait and try again.");
       return;
     }
     
     try {
+      console.log('📤 Attempting to send message:', { content, channelId });
       await sendMessageAction(content, channelId);
     } catch (error) {
       console.error('💥 Failed to send message:', error);

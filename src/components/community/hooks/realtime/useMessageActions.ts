@@ -13,13 +13,23 @@ export function useMessageActions(): UseMessageActions {
   const { user } = useAuth();
 
   const sendMessage = useCallback(async (content: string, channelId: string | null) => {
-    if (!user?.id || !channelId || !content.trim()) {
-      if (!user?.id) toast.error("You must be logged in to send messages");
-      return;
+    if (!user?.id) {
+      toast.error("You must be logged in to send messages");
+      throw new Error("User not authenticated");
+    }
+
+    if (!channelId) {
+      toast.error("Channel not available");
+      throw new Error("Channel ID not available");
+    }
+
+    if (!content.trim()) {
+      toast.error("Message cannot be empty");
+      throw new Error("Message content is empty");
     }
     
     try {
-      console.log('📤 Sending message:', content);
+      console.log('📤 Sending message:', { content, channelId, userId: user.id });
       
       const { error } = await supabase
         .from('community_messages')
