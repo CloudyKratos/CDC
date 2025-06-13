@@ -5,16 +5,15 @@ import { Message } from '@/types/chat';
 
 interface UseRealtimeConnection {
   isConnected: boolean;
-  setupSubscription: (channelId: string, onMessage: (message: Message) => void, onMessageUpdate: (messageId: string) => void) => () => void;
+  setupRealtimeSubscription: (channelId: string, setMessages: React.Dispatch<React.SetStateAction<Message[]>>) => any;
 }
 
 export function useRealtimeConnection(): UseRealtimeConnection {
   const [isConnected, setIsConnected] = useState(false);
 
-  const setupSubscription = useCallback((
+  const setupRealtimeSubscription = useCallback((
     channelId: string, 
-    onMessage: (message: Message) => void,
-    onMessageUpdate: (messageId: string) => void
+    setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   ) => {
     console.log('🔄 Setting up realtime subscription for channel:', channelId);
     
@@ -52,7 +51,13 @@ export function useRealtimeConnection(): UseRealtimeConnection {
             }
           };
 
-          onMessage(message);
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === message.id)) return prev;
+            return [...prev, message].sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
         }
       )
       .on(
@@ -67,7 +72,7 @@ export function useRealtimeConnection(): UseRealtimeConnection {
           console.log('📝 Message updated:', payload);
           const updatedMessage = payload.new as any;
           if (updatedMessage.is_deleted) {
-            onMessageUpdate(updatedMessage.id);
+            setMessages(prev => prev.filter(m => m.id !== updatedMessage.id));
           }
         }
       )
@@ -83,15 +88,11 @@ export function useRealtimeConnection(): UseRealtimeConnection {
         }
       });
 
-    return () => {
-      console.log('🧹 Cleaning up realtime subscription');
-      subscription.unsubscribe();
-      setIsConnected(false);
-    };
+    return subscription;
   }, []);
 
   return {
     isConnected,
-    setupSubscription
+    setupRealtimeSubscription
   };
 }

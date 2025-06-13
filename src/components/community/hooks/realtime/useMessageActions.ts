@@ -4,10 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export function useMessageActions(channelId: string | null) {
+export function useMessageActions() {
   const { user } = useAuth();
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, channelId: string | null) => {
     if (!user?.id) {
       toast.error("You must be logged in to send messages");
       return;
@@ -46,9 +46,9 @@ export function useMessageActions(channelId: string | null) {
       console.error('💥 Failed to send message:', error);
       throw error;
     }
-  }, [user?.id, channelId]);
+  }, [user?.id]);
 
-  const deleteMessage = useCallback(async (messageId: string) => {
+  const deleteMessage = useCallback(async (messageId: string, setMessages: React.Dispatch<React.SetStateAction<any[]>>) => {
     if (!user?.id) return;
 
     try {
@@ -67,6 +67,7 @@ export function useMessageActions(channelId: string | null) {
       }
 
       console.log('✅ Message deleted successfully');
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
       toast.success('Message deleted');
     } catch (error) {
       console.error('💥 Failed to delete message:', error);

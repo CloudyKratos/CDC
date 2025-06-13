@@ -5,12 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 
 export function useMessageLoader() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const { user } = useAuth();
 
-  const loadMessages = useCallback(async (channelId: string) => {
+  const loadMessages = useCallback(async (channelId: string): Promise<Message[]> => {
     if (!user?.id || !channelId) {
-      return;
+      return [];
     }
 
     try {
@@ -29,7 +28,7 @@ export function useMessageLoader() {
 
       if (messagesError) {
         console.error('❌ Error loading messages:', messagesError);
-        setMessages([]);
+        return [];
       } else if (messagesData) {
         // Get sender profiles
         const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
@@ -67,18 +66,17 @@ export function useMessageLoader() {
           };
         });
 
-        setMessages(formattedMessages);
         console.log('✅ Messages loaded:', formattedMessages.length);
+        return formattedMessages;
       }
+      return [];
     } catch (error) {
       console.error('💥 Failed to load messages:', error);
-      setMessages([]);
+      return [];
     }
   }, [user?.id]);
 
   return {
-    messages,
-    setMessages,
     loadMessages
   };
 }
