@@ -4,35 +4,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface UseMessageActions {
-  sendMessage: (content: string, channelId: string | null) => Promise<void>;
-  deleteMessage: (messageId: string, setMessages: React.Dispatch<React.SetStateAction<any[]>>) => Promise<void>;
-}
-
-export function useMessageActions(): UseMessageActions {
+export function useMessageActions(channelId: string | null) {
   const { user } = useAuth();
 
-  const sendMessage = useCallback(async (content: string, channelId: string | null) => {
+  const sendMessage = useCallback(async (content: string) => {
     if (!user?.id) {
       toast.error("You must be logged in to send messages");
-      throw new Error("User not authenticated");
-    }
-
-    if (!channelId) {
-      toast.error("Channel not available");
-      throw new Error("Channel ID not available");
+      return;
     }
 
     if (!content.trim()) {
       toast.error("Message cannot be empty");
-      throw new Error("Message content is empty");
+      return;
     }
-    
+
+    if (!channelId) {
+      toast.error("Channel not ready. Please wait and try again.");
+      return;
+    }
+
     try {
-      console.log('📤 Sending message:', { content: content.substring(0, 50) + '...', channelId, userId: user.id });
+      console.log('📤 Sending message:', content.substring(0, 50) + '...');
       
-      // Check if the community_messages table exists and we have permissions
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from('community_messages')
         .insert({
           channel_id: channelId,
@@ -40,37 +34,23 @@ export function useMessageActions(): UseMessageActions {
           content: content.trim()
         });
 
-      if (insertError) {
-        console.error('❌ Error sending message:', insertError);
-        
-        // Handle specific error cases
-        if (insertError.code === '42P01') {
-          toast.error('Community messages feature is not yet set up');
-          throw new Error('Messages table does not exist');
-        } else if (insertError.code === '23503') {
-          toast.error('Invalid channel or user');
-          throw new Error('Foreign key constraint violation');
-        } else {
-          toast.error('Failed to send message: ' + insertError.message);
-          throw insertError;
-        }
+      if (error) {
+        console.error('❌ Error sending message:', error);
+        toast.error('Failed to send message: ' + error.message);
+        throw error;
       }
 
       console.log('✅ Message sent successfully');
       toast.success('Message sent!');
     } catch (error) {
       console.error('💥 Failed to send message:', error);
-      if (error instanceof Error) {
-        throw error;
-      } else {
-        throw new Error('Failed to send message');
-      }
+      throw error;
     }
-  }, [user?.id]);
-  
-  const deleteMessage = useCallback(async (messageId: string, setMessages: React.Dispatch<React.SetStateAction<any[]>>) => {
+  }, [user?.id, channelId]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
-    
+
     try {
       console.log('🗑️ Deleting message:', messageId);
       
@@ -87,13 +67,10 @@ export function useMessageActions(): UseMessageActions {
       }
 
       console.log('✅ Message deleted successfully');
-      // Remove from local state immediately for better UX
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
       toast.success('Message deleted');
     } catch (error) {
       console.error('💥 Failed to delete message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete message';
-      toast.error('Failed to delete message: ' + errorMessage);
+      throw error;
     }
   }, [user?.id]);
 

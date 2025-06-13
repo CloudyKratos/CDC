@@ -3,40 +3,36 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface UseChannelInitialization {
-  channelId: string | null;
-  initializeChannel: () => Promise<string | null>;
-}
-
-export function useChannelInitialization(channelName: string): UseChannelInitialization {
+export function useChannelInitialization() {
   const [channelId, setChannelId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
-  const initializeChannel = useCallback(async () => {
+  const initializeChannel = useCallback(async (channelName: string) => {
     if (!user?.id) {
-      console.log('⚠️ No authenticated user, skipping channel initialization');
+      setIsLoading(false);
       return null;
     }
 
     try {
       console.log('🔄 Initializing channel:', channelName);
       
-      // First try to get existing channel
+      // Get or create channel
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
         .eq('name', channelName)
+        .eq('type', 'public')
         .single();
 
       if (channelError && channelError.code === 'PGRST116') {
-        // Channel doesn't exist, create it
-        console.log('📝 Creating new channel:', channelName);
+        // Create channel if it doesn't exist
         const { data: newChannel, error: createError } = await supabase
           .from('channels')
           .insert({
             name: channelName,
             type: 'public',
-            description: `${channelName} channel`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
             created_by: user.id
           })
           .select('id')
@@ -44,40 +40,32 @@ export function useChannelInitialization(channelName: string): UseChannelInitial
 
         if (createError) {
           console.error('❌ Error creating channel:', createError);
-          throw createError;
+          setIsLoading(false);
+          return null;
         }
         
         channel = newChannel;
       } else if (channelError) {
         console.error('❌ Error fetching channel:', channelError);
-        throw channelError;
+        setIsLoading(false);
+        return null;
       }
 
-      console.log('✅ Channel ready:', channel);
       setChannelId(channel.id);
-      
-      // Auto-join the user to the channel (ignore errors if already joined)
-      try {
-        await supabase
-          .from('channel_members')
-          .insert({
-            channel_id: channel.id,
-            user_id: user.id
-          });
-      } catch (joinError) {
-        // Ignore duplicate key errors
-        console.log('🔄 User already in channel or join error (ignored):', joinError);
-      }
-
+      console.log('✅ Channel ready:', channel.id);
+      setIsLoading(false);
       return channel.id;
+      
     } catch (error) {
       console.error('💥 Failed to initialize channel:', error);
-      throw error;
+      setIsLoading(false);
+      return null;
     }
-  }, [channelName, user?.id]);
+  }, [user?.id]);
 
   return {
     channelId,
+    isLoading,
     initializeChannel
   };
 }

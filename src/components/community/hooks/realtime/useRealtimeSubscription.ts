@@ -1,18 +1,27 @@
 
-import { useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 
-interface UseRealtimeSubscription {
-  isConnected: boolean;
-  setupRealtimeSubscription: (channelId: string, setMessages: React.Dispatch<React.SetStateAction<Message[]>>) => any;
+interface UseRealtimeSubscriptionProps {
+  channelId: string | null;
+  onMessageReceived: (message: Message) => void;
+  onMessageUpdated: (messageId: string) => void;
 }
 
-export function useRealtimeSubscription(): UseRealtimeSubscription {
+export function useRealtimeSubscription({ 
+  channelId, 
+  onMessageReceived, 
+  onMessageUpdated 
+}: UseRealtimeSubscriptionProps) {
   const [isConnected, setIsConnected] = useState(false);
+  const { user } = useAuth();
 
-  const setupRealtimeSubscription = useCallback((channelId: string, setMessages: React.Dispatch<React.SetStateAction<Message[]>>) => {
-    console.log('🔄 Setting up realtime subscription for channel:', channelId);
+  useEffect(() => {
+    if (!channelId || !user?.id) return;
+
+    console.log('🔄 Setting up realtime subscription for:', channelId);
     
     const subscription = supabase
       .channel(`community_messages_${channelId}`)
@@ -28,7 +37,7 @@ export function useRealtimeSubscription(): UseRealtimeSubscription {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Fetch sender details
+          // Get sender profile
           const { data: sender } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
@@ -48,15 +57,7 @@ export function useRealtimeSubscription(): UseRealtimeSubscription {
             }
           };
 
-          setMessages(prev => {
-            // Check if message already exists
-            const exists = prev.some(m => m.id === message.id);
-            if (exists) return prev;
-            
-            return [...prev, message].sort((a, b) => 
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-          });
+          onMessageReceived(message);
         }
       )
       .on(
@@ -71,26 +72,21 @@ export function useRealtimeSubscription(): UseRealtimeSubscription {
           console.log('📝 Message updated:', payload);
           const updatedMessage = payload.new as any;
           if (updatedMessage.is_deleted) {
-            setMessages(prev => prev.filter(m => m.id !== updatedMessage.id));
+            onMessageUpdated(updatedMessage.id);
           }
         }
       )
       .subscribe((status) => {
         console.log('📡 Subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Realtime connection established');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Realtime connection error');
-        }
       });
 
-    return subscription;
-  }, []);
+    return () => {
+      console.log('🧹 Cleaning up realtime subscription');
+      subscription.unsubscribe();
+      setIsConnected(false);
+    };
+  }, [channelId, user?.id, onMessageReceived, onMessageUpdated]);
 
-  return {
-    isConnected,
-    setupRealtimeSubscription
-  };
+  return { isConnected };
 }
