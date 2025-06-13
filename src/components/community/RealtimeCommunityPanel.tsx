@@ -38,10 +38,29 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
   const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
 
   // Use the new refactored hooks
-  const { channelId, initializeChannel } = useChannelInitialization(activeChannel);
+  const { channelId, initializeChannel } = useChannelInitialization();
   const { loadMessages } = useMessageLoader();
-  const { isConnected, setupRealtimeSubscription } = useRealtimeSubscription();
   const { sendMessage, deleteMessage } = useMessageActions();
+
+  // Set up realtime subscription with callbacks
+  const handleMessageReceived = useCallback((message: Message) => {
+    setMessages(prev => {
+      if (prev.some(m => m.id === message.id)) return prev;
+      return [...prev, message].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    });
+  }, []);
+
+  const handleMessageUpdated = useCallback((messageId: string) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+  }, []);
+
+  const { isConnected } = useRealtimeSubscription({
+    channelId,
+    onMessageReceived: handleMessageReceived,
+    onMessageUpdated: handleMessageUpdated
+  });
 
   // Initialize channel and load messages
   useEffect(() => {
@@ -58,7 +77,7 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
         
         console.log('🔄 Initializing chat for channel:', activeChannel);
         
-        const id = await initializeChannel();
+        const id = await initializeChannel(activeChannel);
         if (id) {
           const loadedMessages = await loadMessages(id);
           setMessages(loadedMessages);
@@ -73,21 +92,6 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
 
     initChat();
   }, [activeChannel, user?.id, initializeChannel, loadMessages]);
-
-  // Setup realtime subscription
-  useEffect(() => {
-    if (!channelId || !user?.id) return;
-
-    console.log('🔄 Setting up realtime subscription');
-    const subscription = setupRealtimeSubscription(channelId, setMessages);
-
-    return () => {
-      if (subscription) {
-        console.log('🧹 Cleaning up realtime subscription');
-        subscription.unsubscribe();
-      }
-    };
-  }, [channelId, user?.id, setupRealtimeSubscription]);
 
   // Mock channels data for the sidebar
   const mockChannels = [

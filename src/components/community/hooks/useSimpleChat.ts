@@ -25,7 +25,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
   const { user } = useAuth();
   const { channelId, initializeChannel } = useChannelManager(channelName);
   const { messages, addMessage, removeMessage, setMessages } = useMessageState();
-  const { isConnected, setupSubscription } = useRealtimeConnection();
+  const { isConnected, setupRealtimeSubscription } = useRealtimeConnection();
   const { loadMessages } = useMessageLoader();
   const { sendMessage: sendMessageAction, deleteMessage: deleteMessageAction } = useMessageActions();
 
@@ -68,10 +68,9 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
 
       // Set up realtime subscription
       console.log('🔄 Setting up realtime subscription...');
-      const cleanup = setupSubscription(
+      const cleanup = setupRealtimeSubscription(
         resolvedChannelId,
-        addMessage,
-        removeMessage
+        setMessages
       );
 
       console.log('✅ Chat initialization complete');
@@ -83,7 +82,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, channelName, initializeChannel, loadMessages, setMessages, setupSubscription, addMessage, removeMessage]);
+  }, [user?.id, channelName, initializeChannel, loadMessages, setMessages, setupRealtimeSubscription]);
 
   // Send message
   const sendMessage = useCallback(async (content: string) => {
