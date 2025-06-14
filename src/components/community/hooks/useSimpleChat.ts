@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageLoader } from './realtime/useMessageLoader';
 import { useRealtimeSubscription } from './realtime/useRealtimeSubscription';
+import { useOptimizedMessageActions } from './realtime/useOptimizedMessageActions';
 import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,6 +16,7 @@ export function useSimpleChat(channelName: string) {
   
   const { user } = useAuth();
   const { loadMessages } = useMessageLoader();
+  const { sendMessage: sendMessageAction, deleteMessage: deleteMessageAction } = useOptimizedMessageActions();
   const messagesRef = useRef<Message[]>([]);
 
   // Update ref whenever messages change
@@ -153,11 +155,32 @@ export function useSimpleChat(channelName: string) {
     };
   }, [user?.id, channelName, getOrCreateChannel, loadMessages]);
 
+  // Wrapper functions for message actions
+  const sendMessage = useCallback(async (content: string) => {
+    try {
+      await sendMessageAction(content, channelName);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Error handling is done in the action hook
+    }
+  }, [sendMessageAction, channelName]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      await deleteMessageAction(messageId);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      // Error handling is done in the action hook
+    }
+  }, [deleteMessageAction]);
+
   return {
     messages,
     isLoading,
     error,
     isConnected,
-    channelId
+    channelId,
+    sendMessage,
+    deleteMessage
   };
 }
