@@ -7,58 +7,26 @@ import { toast } from 'sonner';
 export function useOptimizedMessageActions() {
   const { user } = useAuth();
 
-  const getOrCreateChannel = async (channelName: string): Promise<string> => {
+  const getChannelIdByName = async (channelName: string): Promise<string | null> => {
     try {
-      console.log('🔍 Looking for channel:', channelName);
+      console.log('🔍 Looking for channel by name:', channelName);
       
-      // First try to get existing channel
-      let { data: channel, error: channelError } = await supabase
+      const { data: channel, error } = await supabase
         .from('channels')
         .select('id')
         .eq('name', channelName)
         .eq('type', 'public')
         .single();
 
-      if (channelError && channelError.code === 'PGRST116') {
-        // Channel doesn't exist, create it
-        console.log('📝 Creating new channel:', channelName);
-        const { data: newChannel, error: createError } = await supabase
-          .from('channels')
-          .insert({
-            name: channelName,
-            type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
-            created_by: user?.id
-          })
-          .select('id')
-          .single();
-
-        if (createError) {
-          console.error('❌ Error creating channel:', createError);
-          throw new Error(`Failed to create channel: ${createError.message}`);
-        }
-        
-        channel = newChannel;
-        console.log('✅ Channel created:', channel);
-      } else if (channelError) {
-        console.error('❌ Error fetching channel:', channelError);
-        throw new Error(`Failed to access channel: ${channelError.message}`);
+      if (error) {
+        console.error('❌ Error finding channel:', error);
+        return null;
       }
 
-      // Ensure user is a member of the channel
-      await supabase
-        .from('channel_members')
-        .upsert({
-          channel_id: channel.id,
-          user_id: user!.id
-        }, {
-          onConflict: 'channel_id,user_id'
-        });
-
-      return channel.id;
+      return channel?.id || null;
     } catch (error) {
-      console.error('💥 Failed to get/create channel:', error);
-      throw error;
+      console.error('💥 Failed to get channel ID:', error);
+      return null;
     }
   };
 
@@ -81,8 +49,12 @@ export function useOptimizedMessageActions() {
     try {
       console.log('📤 Sending message to channel:', channelName);
       
-      // Get or create the channel and ensure membership
-      const channelId = await getOrCreateChannel(channelName);
+      // Get the channel ID by name
+      const channelId = await getChannelIdByName(channelName);
+      
+      if (!channelId) {
+        throw new Error(`Channel '${channelName}' not found`);
+      }
       
       const { data, error } = await supabase
         .from('community_messages')
@@ -111,7 +83,7 @@ export function useOptimizedMessageActions() {
         throw error;
       }
 
-      console.log('✅ Message sent successfully');
+      console.log('✅ Message sent successfully:', data);
       toast.success('Message sent!', { duration: 1000 });
       
       return {
@@ -129,14 +101,11 @@ export function useOptimizedMessageActions() {
     }
   }, [user?.id]);
 
-  const deleteMessage = useCallback(async (messageId: string, setMessages: React.Dispatch<React.SetStateAction<any[]>>) => {
+  const deleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
       console.log('🗑️ Deleting message:', messageId);
-      
-      // Optimistic update - remove message immediately
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
       const { error } = await supabase
         .from('community_messages')
@@ -146,8 +115,6 @@ export function useOptimizedMessageActions() {
 
       if (error) {
         console.error('❌ Error deleting message:', error);
-        // Rollback optimistic update
-        setMessages(prev => [...prev]);
         toast.error('Failed to delete message: ' + error.message);
         throw error;
       }

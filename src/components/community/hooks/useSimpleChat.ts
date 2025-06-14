@@ -1,162 +1,163 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Message } from '@/types/chat';
-import { toast } from 'sonner';
-import { useChannelManager } from './realtime/useChannelManager';
-import { useMessageState } from './realtime/useMessageState';
-import { useRealtimeConnection } from './realtime/useRealtimeConnection';
 import { useMessageLoader } from './realtime/useMessageLoader';
-import { useMessageActions } from './realtime/useMessageActions';
+import { useRealtimeSubscription } from './realtime/useRealtimeSubscription';
+import { Message } from '@/types/chat';
+import { supabase } from '@/integrations/supabase/client';
 
-interface UseSimpleChat {
-  messages: Message[];
-  isLoading: boolean;
-  error: string | null;
-  isConnected: boolean;
-  sendMessage: (content: string) => Promise<void>;
-  deleteMessage: (messageId: string) => Promise<void>;
-}
-
-export function useSimpleChat(channelName: string): UseSimpleChat {
+export function useSimpleChat(channelName: string) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [channelId, setChannelId] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   
   const { user } = useAuth();
-  const { channelId, initializeChannel } = useChannelManager(channelName);
-  const { messages, addMessage, removeMessage, setMessages } = useMessageState();
-  const { isConnected, setupRealtimeSubscription } = useRealtimeConnection();
   const { loadMessages } = useMessageLoader();
-  const { sendMessage: sendMessageAction, deleteMessage: deleteMessageAction } = useMessageActions();
+  const messagesRef = useRef<Message[]>([]);
 
-  // Initialize chat
-  const initializeChat = useCallback(async () => {
-    if (!user?.id) {
-      console.log('⚠️ No authenticated user, showing unauthenticated view');
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+  // Update ref whenever messages change
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
-    setIsLoading(true);
-    setError(null);
-    
+  // Get or create channel
+  const getOrCreateChannel = useCallback(async (name: string) => {
+    if (!user?.id) return null;
+
     try {
-      console.log('🔄 Initializing chat for channel:', channelName);
+      console.log('🔍 Getting/creating channel:', name);
       
-      const resolvedChannelId = await initializeChannel();
-      if (!resolvedChannelId) {
-        console.error('Failed to initialize channel');
-        setError('Failed to initialize channel');
+      // First try to get existing channel
+      let { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('name', name)
+        .eq('type', 'public')
+        .single();
+
+      if (channelError && channelError.code === 'PGRST116') {
+        // Channel doesn't exist, create it
+        console.log('📝 Creating new channel:', name);
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: name,
+            type: 'public',
+            description: `${name.charAt(0).toUpperCase() + name.slice(1)} channel`,
+            created_by: user.id
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        channel = newChannel;
+      } else if (channelError) {
+        throw channelError;
+      }
+
+      // Ensure user is a member
+      await supabase
+        .from('channel_members')
+        .upsert({
+          channel_id: channel.id,
+          user_id: user.id
+        }, {
+          onConflict: 'channel_id,user_id'
+        });
+
+      return channel.id;
+    } catch (err) {
+      console.error('❌ Error getting/creating channel:', err);
+      return null;
+    }
+  }, [user?.id]);
+
+  // Handle new message received
+  const handleMessageReceived = useCallback((newMessage: Message) => {
+    console.log('📨 New message received:', newMessage);
+    setMessages(prev => {
+      // Check if message already exists to avoid duplicates
+      const exists = prev.some(msg => msg.id === newMessage.id);
+      if (exists) return prev;
+      
+      return [...prev, newMessage];
+    });
+  }, []);
+
+  // Handle message updated (e.g., deleted)
+  const handleMessageUpdated = useCallback((messageId: string) => {
+    console.log('📝 Message updated/deleted:', messageId);
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+  }, []);
+
+  // Set up realtime subscription
+  const { isConnected: realtimeConnected } = useRealtimeSubscription({
+    channelId,
+    onMessageReceived: handleMessageReceived,
+    onMessageUpdated: handleMessageUpdated
+  });
+
+  useEffect(() => {
+    setIsConnected(realtimeConnected);
+  }, [realtimeConnected]);
+
+  // Initialize channel and load messages
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeChat = async () => {
+      if (!user?.id || !channelName) {
         setIsLoading(false);
         return;
       }
 
-      console.log('✅ Channel initialized:', resolvedChannelId);
-
-      // Load existing messages
       try {
-        console.log('🔄 Loading messages...');
-        const messagesData = await loadMessages(resolvedChannelId);
-        console.log('✅ Messages loaded:', messagesData.length);
-        setMessages(messagesData);
-      } catch (error) {
-        console.error('❌ Error loading messages:', error);
-        setMessages([]);
-        // Don't set error state for message loading failures, just log them
-      }
+        setIsLoading(true);
+        setError(null);
 
-      // Set up realtime subscription
-      console.log('🔄 Setting up realtime subscription...');
-      const cleanup = setupRealtimeSubscription(
-        resolvedChannelId,
-        setMessages
-      );
+        // Get or create channel
+        const id = await getOrCreateChannel(channelName);
+        if (!mounted) return;
 
-      console.log('✅ Chat initialization complete');
-      return cleanup;
-      
-    } catch (error) {
-      console.error('💥 Chat initialization failed:', error);
-      setError('Failed to initialize chat. Please refresh and try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, channelName, initializeChannel, loadMessages, setMessages, setupRealtimeSubscription]);
+        if (!id) {
+          throw new Error('Failed to get/create channel');
+        }
 
-  // Send message
-  const sendMessage = useCallback(async (content: string) => {
-    if (!user?.id) {
-      toast.error("You must be logged in to send messages");
-      return;
-    }
-    
-    if (!content.trim()) {
-      toast.error("Message cannot be empty");
-      return;
-    }
+        setChannelId(id);
 
-    if (!channelId) {
-      toast.error("Channel not ready. Please wait and try again.");
-      console.error('Channel ID not available:', { channelId, channelName });
-      return;
-    }
-    
-    try {
-      console.log('📤 Attempting to send message:', { 
-        content: content.substring(0, 50) + '...', 
-        channelId, 
-        channelName,
-        userId: user.id 
-      });
-      await sendMessageAction(content, channelId);
-      console.log('✅ Message sent successfully');
-    } catch (error) {
-      console.error('💥 Failed to send message:', error);
-      // Error is already handled in sendMessageAction with toast
-    }
-  }, [user?.id, channelId, channelName, sendMessageAction]);
-  
-  // Delete message
-  const deleteMessage = useCallback(async (messageId: string) => {
-    if (!user?.id) return;
-    
-    try {
-      await deleteMessageAction(messageId, setMessages);
-    } catch (error) {
-      console.error('💥 Failed to delete message:', error);
-      // Error is already handled in deleteMessageAction with toast
-    }
-  }, [user?.id, deleteMessageAction, setMessages]);
+        // Load existing messages
+        const existingMessages = await loadMessages(id);
+        if (!mounted) return;
 
-  useEffect(() => {
-    const cleanup = initializeChat();
-    return () => {
-      if (cleanup) {
-        cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+        setMessages(existingMessages);
+        console.log('✅ Chat initialized with', existingMessages.length, 'messages');
+
+      } catch (err) {
+        console.error('💥 Failed to initialize chat:', err);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
-  }, [initializeChat]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 useSimpleChat Debug:', {
-      channelName,
-      channelId,
-      user: user?.id,
-      isConnected,
-      messagesCount: messages.length,
-      isLoading,
-      error
-    });
-  }, [channelName, channelId, user?.id, isConnected, messages.length, isLoading, error]);
-  
+    initializeChat();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, channelName, getOrCreateChannel, loadMessages]);
+
   return {
     messages,
     isLoading,
     error,
     isConnected,
-    sendMessage,
-    deleteMessage
+    channelId
   };
 }

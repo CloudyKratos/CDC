@@ -1,8 +1,9 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface UseRealtimeSubscriptionProps {
   channelId: string | null;
@@ -17,12 +18,23 @@ export function useRealtimeSubscription({
 }: UseRealtimeSubscriptionProps) {
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuth();
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    if (!channelId || !user?.id) return;
+    if (!channelId || !user?.id) {
+      setIsConnected(false);
+      return;
+    }
 
     console.log('🔄 Setting up realtime subscription for:', channelId);
     
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
     const subscription = supabase
       .channel(`community_messages_${channelId}`)
       .on(
@@ -81,9 +93,14 @@ export function useRealtimeSubscription({
         setIsConnected(status === 'SUBSCRIBED');
       });
 
+    subscriptionRef.current = subscription;
+
     return () => {
       console.log('🧹 Cleaning up realtime subscription');
-      subscription.unsubscribe();
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
       setIsConnected(false);
     };
   }, [channelId, user?.id, onMessageReceived, onMessageUpdated]);

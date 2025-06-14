@@ -80,7 +80,7 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     if (!user?.id) return;
 
     try {
-      await deleteMessage(messageId, () => {}); // Message removal is handled optimistically
+      await deleteMessage(messageId);
     } catch (error) {
       console.error('Error deleting message:', error);
       // Error handling is done in the hook
