@@ -1,11 +1,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMessageLoader } from './realtime/useMessageLoader';
-import { useRealtimeSubscription } from './realtime/useRealtimeSubscription';
-import { useOptimizedMessageActions } from './realtime/useOptimizedMessageActions';
-import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
+import { Message } from '@/types/chat';
+import { toast } from 'sonner';
 
 export function useSimpleChat(channelName: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -15,21 +13,11 @@ export function useSimpleChat(channelName: string) {
   const [isConnected, setIsConnected] = useState(false);
   
   const { user } = useAuth();
-  const { loadMessages } = useMessageLoader();
-  const { sendMessage: sendMessageAction, deleteMessage: deleteMessageAction } = useOptimizedMessageActions();
-  const messagesRef = useRef<Message[]>([]);
+  const subscriptionRef = useRef<any>(null);
 
-  // Update ref whenever messages change
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  // Get or create channel with better error handling
+  // Get or create channel
   const getOrCreateChannel = useCallback(async (name: string) => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return null;
-    }
+    if (!user?.id) return null;
 
     try {
       console.log('🔍 Getting/creating channel:', name);
@@ -69,44 +57,219 @@ export function useSimpleChat(channelName: string) {
         channel = newChannel;
       }
 
-      // Don't try to insert membership - let RLS handle access
       console.log('✅ Channel ready:', channel.id);
       return channel.id;
     } catch (err) {
       console.error('💥 Error in getOrCreateChannel:', err);
-      setError(err instanceof Error ? err.message : 'Failed to setup channel');
-      return null;
+      throw err;
     }
   }, [user?.id]);
 
-  // Handle new message received
-  const handleMessageReceived = useCallback((newMessage: Message) => {
-    console.log('📨 New message received:', newMessage);
-    setMessages(prev => {
-      // Check if message already exists to avoid duplicates
-      const exists = prev.some(msg => msg.id === newMessage.id);
-      if (exists) return prev;
-      
-      return [...prev, newMessage];
-    });
-  }, []);
+  // Load messages for channel
+  const loadMessages = useCallback(async (channelId: string) => {
+    if (!user?.id || !channelId) return [];
 
-  // Handle message updated (e.g., deleted)
-  const handleMessageUpdated = useCallback((messageId: string) => {
-    console.log('📝 Message updated/deleted:', messageId);
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-  }, []);
+    try {
+      console.log('📖 Loading messages for channel:', channelId);
+      
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('community_messages')
+        .select(`
+          id,
+          content,
+          created_at,
+          sender_id
+        `)
+        .eq('channel_id', channelId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true });
+
+      if (messagesError) {
+        console.error('❌ Error loading messages:', messagesError);
+        return [];
+      }
+
+      if (!messagesData?.length) {
+        console.log('📭 No messages found');
+        return [];
+      }
+
+      // Get sender profiles
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .in('id', senderIds);
+
+      // Format messages with sender data
+      const formattedMessages = messagesData.map(msg => {
+        const senderProfile = profiles?.find(p => p.id === msg.sender_id);
+        
+        return {
+          id: msg.id,
+          content: msg.content,
+          created_at: msg.created_at,
+          sender_id: msg.sender_id,
+          sender: senderProfile ? {
+            id: senderProfile.id,
+            username: senderProfile.username || 'Unknown User',
+            full_name: senderProfile.full_name || 'Unknown User',
+            avatar_url: senderProfile.avatar_url
+          } : {
+            id: msg.sender_id,
+            username: 'Unknown User',
+            full_name: 'Unknown User',
+            avatar_url: null
+          }
+        };
+      });
+
+      console.log('✅ Messages loaded:', formattedMessages.length);
+      return formattedMessages;
+    } catch (error) {
+      console.error('💥 Failed to load messages:', error);
+      return [];
+    }
+  }, [user?.id]);
 
   // Set up realtime subscription
-  const { isConnected: realtimeConnected } = useRealtimeSubscription({
-    channelId,
-    onMessageReceived: handleMessageReceived,
-    onMessageUpdated: handleMessageUpdated
-  });
+  const setupRealtimeSubscription = useCallback((channelId: string) => {
+    if (!channelId || !user?.id) return;
 
-  useEffect(() => {
-    setIsConnected(realtimeConnected);
-  }, [realtimeConnected]);
+    console.log('🔄 Setting up realtime subscription for:', channelId);
+    
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    const subscription = supabase
+      .channel(`community_messages_${channelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        async (payload) => {
+          console.log('📨 New message received:', payload);
+          const newMessage = payload.new as any;
+          
+          // Get sender profile
+          const { data: sender } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', newMessage.sender_id)
+            .single();
+
+          const message: Message = {
+            id: newMessage.id,
+            content: newMessage.content,
+            created_at: newMessage.created_at,
+            sender_id: newMessage.sender_id,
+            sender: sender || {
+              id: newMessage.sender_id,
+              username: 'Unknown User',
+              full_name: 'Unknown User',
+              avatar_url: null
+            }
+          };
+
+          setMessages(prev => {
+            // Check if message already exists to avoid duplicates
+            const exists = prev.some(msg => msg.id === message.id);
+            if (exists) return prev;
+            
+            return [...prev, message];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        (payload) => {
+          console.log('📝 Message updated:', payload);
+          const updatedMessage = payload.new as any;
+          if (updatedMessage.is_deleted) {
+            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    subscriptionRef.current = subscription;
+  }, [user?.id]);
+
+  // Send message function
+  const sendMessage = useCallback(async (content: string) => {
+    if (!user?.id || !channelId || !content.trim()) {
+      toast.error("Cannot send message");
+      return;
+    }
+
+    try {
+      console.log('📤 Sending message to channel:', channelId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .insert({
+          channel_id: channelId,
+          sender_id: user.id,
+          content: content.trim()
+        });
+
+      if (error) {
+        console.error('❌ Error sending message:', error);
+        toast.error('Failed to send message');
+        throw error;
+      }
+
+      console.log('✅ Message sent successfully');
+      toast.success('Message sent!', { duration: 1000 });
+    } catch (error) {
+      console.error('💥 Failed to send message:', error);
+      throw error;
+    }
+  }, [user?.id, channelId]);
+
+  // Delete message function
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
+
+    try {
+      console.log('🗑️ Deleting message:', messageId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .update({ is_deleted: true })
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
+
+      if (error) {
+        console.error('❌ Error deleting message:', error);
+        toast.error('Failed to delete message');
+        throw error;
+      }
+
+      console.log('✅ Message deleted successfully');
+      toast.success('Message deleted', { duration: 1000 });
+    } catch (error) {
+      console.error('💥 Failed to delete message:', error);
+      throw error;
+    }
+  }, [user?.id]);
 
   // Initialize channel and load messages
   useEffect(() => {
@@ -137,6 +300,10 @@ export function useSimpleChat(channelName: string) {
         if (!mounted) return;
 
         setMessages(existingMessages);
+        
+        // Set up realtime subscription
+        setupRealtimeSubscription(id);
+
         console.log('✅ Chat initialized with', existingMessages.length, 'messages');
 
       } catch (err) {
@@ -155,32 +322,13 @@ export function useSimpleChat(channelName: string) {
 
     return () => {
       mounted = false;
+      if (subscriptionRef.current) {
+        console.log('🧹 Cleaning up subscription on unmount');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [user?.id, channelName, getOrCreateChannel, loadMessages]);
-
-  // Wrapper functions for message actions
-  const sendMessage = useCallback(async (content: string) => {
-    if (!channelId) {
-      setError('Channel not ready');
-      return;
-    }
-    
-    try {
-      await sendMessageAction(content, channelName);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setError('Failed to send message');
-    }
-  }, [sendMessageAction, channelName, channelId]);
-
-  const deleteMessage = useCallback(async (messageId: string) => {
-    try {
-      await deleteMessageAction(messageId);
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      setError('Failed to delete message');
-    }
-  }, [deleteMessageAction]);
+  }, [user?.id, channelName, getOrCreateChannel, loadMessages, setupRealtimeSubscription]);
 
   return {
     messages,

@@ -3,7 +3,6 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSimpleChat } from './hooks/useSimpleChat';
-import { useOptimizedMessageActions } from './hooks/realtime/useOptimizedMessageActions';
 import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
 import ChannelSidebar from './ChannelSidebar';
@@ -26,15 +25,15 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  // Use optimized chat hooks
+  // Use the simplified chat hook
   const { 
     messages, 
     isLoading, 
     error, 
-    isConnected 
+    isConnected,
+    sendMessage,
+    deleteMessage
   } = useSimpleChat(activeChannel);
-
-  const { sendMessage, deleteMessage } = useOptimizedMessageActions();
 
   // Default channels for the app
   const channels = [
@@ -63,16 +62,16 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     }
 
     if (!isConnected) {
-      toast.error("Not connected to chat. Trying to reconnect...");
+      toast.error("Not connected to chat. Please wait...");
       return;
     }
 
     try {
       console.log('📤 Attempting to send message to channel:', activeChannel);
-      await sendMessage(content, activeChannel);
+      await sendMessage(content);
     } catch (error) {
       console.error("Error sending message:", error);
-      // Error handling is done in the hook
+      toast.error("Failed to send message. Please try again.");
     }
   }, [user?.id, isConnected, sendMessage, activeChannel]);
 
@@ -83,7 +82,7 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
       await deleteMessage(messageId);
     } catch (error) {
       console.error('Error deleting message:', error);
-      // Error handling is done in the hook
+      toast.error("Failed to delete message");
     }
   }, [user?.id, deleteMessage]);
 

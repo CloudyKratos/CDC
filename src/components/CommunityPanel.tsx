@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import OptimizedCommunityPanel from './community/OptimizedCommunityPanel';
@@ -15,8 +14,6 @@ interface CommunityPanelProps {
 
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general' }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [retryCount, setRetryCount] = useState(0);
   
@@ -25,45 +22,36 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      if (hasError && retryCount > 0) {
-        toast.success('Connection restored');
-        handleRetry();
-      }
+      toast.success('Connection restored');
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      setHasError(true);
-      setErrorMessage('No internet connection');
       toast.error('Connection lost');
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Simple initialization
+    // Quick initialization for launch readiness
     const timer = setTimeout(() => {
       setIsLoading(false);
-      setHasError(false);
-      setErrorMessage('');
-    }, 500);
+    }, 200);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearTimeout(timer);
     };
-  }, [hasError, retryCount]);
+  }, []);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setIsLoading(true);
-    setHasError(false);
-    setErrorMessage('');
     
     setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 200);
   };
 
   if (!isOnline) {
@@ -91,7 +79,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Community</h3>
-            <p className="text-gray-600">Setting up the community chat...</p>
+            <p className="text-gray-600">Initializing real-time chat...</p>
             {retryCount > 0 && (
               <p className="text-sm text-gray-500 mt-2">Retry attempt #{retryCount}</p>
             )}
@@ -103,12 +91,14 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
 
   return (
     <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 relative">
+      {/* Online Status Indicator */}
       <div className="absolute top-4 right-4 z-10">
         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1">
           <Wifi className="h-3 w-3 text-green-500" />
-          <span className="text-xs text-gray-600">Online</span>
+          <span className="text-xs text-gray-600">Live Chat</span>
         </div>
       </div>
+      
       <CommunityErrorBoundary>
         <OptimizedCommunityPanel defaultChannel={channelName} />
       </CommunityErrorBoundary>
