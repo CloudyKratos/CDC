@@ -16,7 +16,7 @@ export function useOptimizedMessageActions() {
         .select('id')
         .eq('name', channelName)
         .eq('type', 'public')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('❌ Error finding channel:', error);
@@ -67,34 +67,20 @@ export function useOptimizedMessageActions() {
           id,
           content,
           created_at,
-          sender_id,
-          profiles!community_messages_sender_id_fkey (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
+          sender_id
         `)
         .single();
 
       if (error) {
         console.error('❌ Error sending message:', error);
-        toast.error('Failed to send message: ' + error.message);
+        toast.error('Failed to send message');
         throw error;
       }
 
       console.log('✅ Message sent successfully:', data);
       toast.success('Message sent!', { duration: 1000 });
       
-      return {
-        ...data,
-        sender: data.profiles || {
-          id: user.id,
-          username: user.email?.split('@')[0] || 'You',
-          full_name: user.email?.split('@')[0] || 'You',
-          avatar_url: null
-        }
-      };
+      return data;
     } catch (error) {
       console.error('💥 Failed to send message:', error);
       throw error;
@@ -115,7 +101,7 @@ export function useOptimizedMessageActions() {
 
       if (error) {
         console.error('❌ Error deleting message:', error);
-        toast.error('Failed to delete message: ' + error.message);
+        toast.error('Failed to delete message');
         throw error;
       }
 

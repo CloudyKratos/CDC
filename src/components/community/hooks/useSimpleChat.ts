@@ -24,9 +24,12 @@ export function useSimpleChat(channelName: string) {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Get or create channel
+  // Get or create channel with better error handling
   const getOrCreateChannel = useCallback(async (name: string) => {
-    if (!user?.id) return null;
+    if (!user?.id) {
+      setError('User not authenticated');
+      return null;
+    }
 
     try {
       console.log('🔍 Getting/creating channel:', name);
@@ -37,9 +40,14 @@ export function useSimpleChat(channelName: string) {
         .select('id')
         .eq('name', name)
         .eq('type', 'public')
-        .single();
+        .maybeSingle();
 
-      if (channelError && channelError.code === 'PGRST116') {
+      if (channelError) {
+        console.error('❌ Error checking for channel:', channelError);
+        throw channelError;
+      }
+
+      if (!channel) {
         // Channel doesn't exist, create it
         console.log('📝 Creating new channel:', name);
         const { data: newChannel, error: createError } = await supabase
@@ -53,25 +61,20 @@ export function useSimpleChat(channelName: string) {
           .select('id')
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error('❌ Error creating channel:', createError);
+          throw createError;
+        }
+        
         channel = newChannel;
-      } else if (channelError) {
-        throw channelError;
       }
 
-      // Ensure user is a member
-      await supabase
-        .from('channel_members')
-        .upsert({
-          channel_id: channel.id,
-          user_id: user.id
-        }, {
-          onConflict: 'channel_id,user_id'
-        });
-
+      // Don't try to insert membership - let RLS handle access
+      console.log('✅ Channel ready:', channel.id);
       return channel.id;
     } catch (err) {
-      console.error('❌ Error getting/creating channel:', err);
+      console.error('💥 Error in getOrCreateChannel:', err);
+      setError(err instanceof Error ? err.message : 'Failed to setup channel');
       return null;
     }
   }, [user?.id]);
@@ -157,20 +160,25 @@ export function useSimpleChat(channelName: string) {
 
   // Wrapper functions for message actions
   const sendMessage = useCallback(async (content: string) => {
+    if (!channelId) {
+      setError('Channel not ready');
+      return;
+    }
+    
     try {
       await sendMessageAction(content, channelName);
     } catch (error) {
       console.error('Error sending message:', error);
-      // Error handling is done in the action hook
+      setError('Failed to send message');
     }
-  }, [sendMessageAction, channelName]);
+  }, [sendMessageAction, channelName, channelId]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
       await deleteMessageAction(messageId);
     } catch (error) {
       console.error('Error deleting message:', error);
-      // Error handling is done in the action hook
+      setError('Failed to delete message');
     }
   }, [deleteMessageAction]);
 
