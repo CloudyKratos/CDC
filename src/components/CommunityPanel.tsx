@@ -6,7 +6,7 @@ import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import SimpleCommunityPanel from './community/SimpleCommunityPanel';
+import OptimizedCommunityPanel from './community/OptimizedCommunityPanel';
 import CommunityErrorBoundary from './community/CommunityErrorBoundary';
 
 interface CommunityPanelProps {
@@ -110,7 +110,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
         </div>
       </div>
       <CommunityErrorBoundary>
-        <SimpleCommunityPanel defaultChannel={channelName} />
+        <OptimizedCommunityPanel defaultChannel={channelName} />
       </CommunityErrorBoundary>
     </div>
   );

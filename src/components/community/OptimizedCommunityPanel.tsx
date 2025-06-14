@@ -68,10 +68,8 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     }
 
     try {
-      // This will be handled by the optimized hook with proper channel resolution
       console.log('📤 Attempting to send message to channel:', activeChannel);
-      // The hook will resolve channel name to ID internally
-      await sendMessage(content, null); // Will be resolved in the hook
+      await sendMessage(content, activeChannel);
     } catch (error) {
       console.error("Error sending message:", error);
       // Error handling is done in the hook

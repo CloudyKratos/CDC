@@ -7,7 +7,62 @@ import { toast } from 'sonner';
 export function useOptimizedMessageActions() {
   const { user } = useAuth();
 
-  const sendMessage = useCallback(async (content: string, channelId: string | null) => {
+  const getOrCreateChannel = async (channelName: string): Promise<string> => {
+    try {
+      console.log('🔍 Looking for channel:', channelName);
+      
+      // First try to get existing channel
+      let { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('name', channelName)
+        .eq('type', 'public')
+        .single();
+
+      if (channelError && channelError.code === 'PGRST116') {
+        // Channel doesn't exist, create it
+        console.log('📝 Creating new channel:', channelName);
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: channelName,
+            type: 'public',
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
+            created_by: user?.id
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          console.error('❌ Error creating channel:', createError);
+          throw new Error(`Failed to create channel: ${createError.message}`);
+        }
+        
+        channel = newChannel;
+        console.log('✅ Channel created:', channel);
+      } else if (channelError) {
+        console.error('❌ Error fetching channel:', channelError);
+        throw new Error(`Failed to access channel: ${channelError.message}`);
+      }
+
+      // Ensure user is a member of the channel
+      await supabase
+        .from('channel_members')
+        .upsert({
+          channel_id: channel.id,
+          user_id: user!.id
+        }, {
+          onConflict: 'channel_id,user_id'
+        });
+
+      return channel.id;
+    } catch (error) {
+      console.error('💥 Failed to get/create channel:', error);
+      throw error;
+    }
+  };
+
+  const sendMessage = useCallback(async (content: string, channelName: string) => {
     if (!user?.id) {
       toast.error("You must be logged in to send messages");
       throw new Error('User not authenticated');
@@ -18,29 +73,16 @@ export function useOptimizedMessageActions() {
       throw new Error('Empty message');
     }
 
-    if (!channelId) {
-      toast.error("Channel not ready. Please wait and try again.");
-      throw new Error('Channel not ready');
+    if (!channelName) {
+      toast.error("Channel not specified");
+      throw new Error('Channel not specified');
     }
 
-    // Optimistic update preparation
-    const tempId = `temp-${Date.now()}`;
-    const tempMessage = {
-      id: tempId,
-      content: content.trim(),
-      created_at: new Date().toISOString(),
-      sender_id: user.id,
-      channel_id: channelId,
-      sender: {
-        id: user.id,
-        username: user.email?.split('@')[0] || 'You',
-        full_name: user.email?.split('@')[0] || 'You',
-        avatar_url: null
-      }
-    };
-
     try {
-      console.log('📤 Sending message with optimistic update');
+      console.log('📤 Sending message to channel:', channelName);
+      
+      // Get or create the channel and ensure membership
+      const channelId = await getOrCreateChannel(channelName);
       
       const { data, error } = await supabase
         .from('community_messages')
@@ -74,7 +116,12 @@ export function useOptimizedMessageActions() {
       
       return {
         ...data,
-        sender: data.profiles || tempMessage.sender
+        sender: data.profiles || {
+          id: user.id,
+          username: user.email?.split('@')[0] || 'You',
+          full_name: user.email?.split('@')[0] || 'You',
+          avatar_url: null
+        }
       };
     } catch (error) {
       console.error('💥 Failed to send message:', error);
