@@ -1,45 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { 
-  Sword, 
-  Shield, 
-  Target, 
-  Trophy, 
-  Calendar, 
-  Users, 
-  MessageSquare, 
-  ChevronRight,
-  Star,
-  Flame,
-  Zap,
-  ArrowLeft,
-  Sparkles,
-  Crown,
-  Coins,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  Lock,
-  Search,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-  BookOpen,
-  Lightbulb,
-  BarChart3
-} from "lucide-react";
+import { Plus, Target, Users, Flame, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
 import OptionalAddOns from "@/components/home/OptionalAddOns";
+import WarriorHeader from "@/components/warrior/WarriorHeader";
+import WarriorStatsPanel from "@/components/warrior/WarriorStatsPanel";
+import QuickActionsPanel from "@/components/warrior/QuickActionsPanel";
+import QuestsList from "@/components/warrior/QuestsList";
+import WeeklyGoalsPanel from "@/components/warrior/WeeklyGoalsPanel";
+import AchievementsPanel from "@/components/warrior/AchievementsPanel";
+import ProgressPanel from "@/components/warrior/ProgressPanel";
+import WelcomeBanner from "@/components/warrior/WelcomeBanner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
@@ -286,181 +262,31 @@ const WarriorSpace = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Enhanced Header with Progress */}
-      <div className="border-b border-purple-800/30 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="icon" className="text-purple-300 hover:text-white">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                  <Sword className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Warrior's Space</h1>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-purple-300">
-                      <Flame className="h-4 w-4" />
-                      {stats.streak} day streak
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-purple-900 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-500"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
-                      <span className="text-purple-300">{completedQuestsToday}/{totalQuestsToday} today</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-yellow-500/20 px-3 py-1 rounded-full border border-yellow-500/30">
-                <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-yellow-400 font-semibold">{stats.totalCoins}</span>
-              </div>
-              <Badge className="bg-purple-600 text-white">
-                <Star className="h-3 w-3 mr-1" />
-                Level {stats.level}
-              </Badge>
-              <Avatar>
-                <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=warrior"} />
-                <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "W"}</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
-      </div>
+      <WarriorHeader 
+        stats={stats}
+        progressPercentage={progressPercentage}
+        completedQuestsToday={completedQuestsToday}
+        totalQuestsToday={totalQuestsToday}
+      />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Welcome Message for New Users */}
-        {isNewUser && (
-          <div className="mb-8">
-            <Card className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border-purple-700/30 text-white backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-6 w-6 text-yellow-400" />
-                  Welcome to Your Warrior Journey!
-                </CardTitle>
-                <CardDescription className="text-purple-200">
-                  You're about to embark on a transformative journey. Complete your first quest below to begin building your legacy.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        )}
+        {isNewUser && <WelcomeBanner />}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Collapsible Sections */}
           <div className="space-y-6">
-            {/* Collapsible Warrior Stats */}
-            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-purple-400" />
-                    Warrior Stats
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleSection('stats')}
-                    className="h-6 w-6 text-purple-300 hover:text-white"
-                  >
-                    {collapsedSections.stats ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </CardHeader>
-              {!collapsedSections.stats && (
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-purple-300">Rank</span>
-                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600">
-                      <Crown className="h-3 w-3 mr-1" />
-                      {stats.rank}
-                    </Badge>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-purple-300">XP Progress</span>
-                      <span>{stats.xp}/{stats.nextLevelXp}</span>
-                    </div>
-                    <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="h-2" />
-                    <div className="text-xs text-purple-400 mt-1">
-                      {stats.nextLevelXp - stats.xp} XP to next level
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="text-center p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                      <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
-                        <Flame className="h-5 w-5" />
-                        {stats.streak}
-                      </div>
-                      <div className="text-xs text-orange-300">Day Streak</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                      <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-1">
-                        <Trophy className="h-5 w-5" />
-                        {stats.completedQuests}
-                      </div>
-                      <div className="text-xs text-green-300">Total Quests</div>
-                    </div>
-                  </div>
+            <WarriorStatsPanel 
+              stats={stats}
+              isCollapsed={collapsedSections.stats}
+              onToggle={() => toggleSection('stats')}
+            />
 
-                  <div className="pt-2 border-t border-purple-800/30">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-purple-300">Weekly Progress</span>
-                      <span>{stats.weeklyProgress}%</span>
-                    </div>
-                    <Progress value={stats.weeklyProgress} className="h-2" />
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+            <QuickActionsPanel 
+              isCollapsed={collapsedSections.quickActions}
+              onToggle={() => toggleSection('quickActions')}
+            />
 
-            {/* Collapsible Quick Actions */}
-            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-yellow-400" />
-                    Quick Actions
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleSection('quickActions')}
-                    className="h-6 w-6 text-purple-300 hover:text-white"
-                  >
-                    {collapsedSections.quickActions ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </CardHeader>
-              {!collapsedSections.quickActions && (
-                <CardContent className="space-y-3">
-                  {quickActions.map((action, index) => (
-                    <Link key={index} to={action.path}>
-                      <Button className={`w-full justify-start bg-${action.color}-600/20 hover:bg-${action.color}-600/30 text-white border-${action.color}-600/30 transition-all duration-200 hover:scale-105`}>
-                        <action.icon className="h-4 w-4 mr-2" />
-                        {action.label}
-                        <ChevronRight className="h-4 w-4 ml-auto" />
-                      </Button>
-                    </Link>
-                  ))}
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Collapsible Optional Add-ons */}
+            {/* Optional Add-ons */}
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -488,7 +314,6 @@ const WarriorSpace = () => {
 
           {/* Center Column - Enhanced Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* CDC Morning Strategy Card */}
             <CDCMorningStrategyCard />
 
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
@@ -507,286 +332,29 @@ const WarriorSpace = () => {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Enhanced Daily Quests with Search and Filter */}
               <TabsContent value="daily-challenge" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Target className="h-5 w-5 text-green-400" />
-                          Today's Quests
-                          <Badge variant="secondary" className="ml-2">
-                            {completedQuestsToday}/{totalQuestsToday}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription className="text-purple-300 mt-1">
-                          Complete your daily challenges to earn XP, coins, and maintain your streak
-                        </CardDescription>
-                      </div>
-                    </div>
-                    
-                    {/* Search and Filter Controls */}
-                    <div className="flex gap-3 mb-4">
-                      <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-400" />
-                        <Input
-                          placeholder="Search quests..."
-                          value={questSearch}
-                          onChange={(e) => setQuestSearch(e.target.value)}
-                          className="pl-10 bg-purple-900/20 border-purple-700/30 text-white placeholder:text-purple-400"
-                        />
-                      </div>
-                      <select
-                        value={questFilter}
-                        onChange={(e) => setQuestFilter(e.target.value)}
-                        className="px-3 py-2 bg-purple-900/20 border border-purple-700/30 rounded-md text-white"
-                      >
-                        <option value="all">All Quests</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                        <option value="wellness">Wellness</option>
-                        <option value="productivity">Productivity</option>
-                        <option value="social">Social</option>
-                        <option value="learning">Learning</option>
-                      </select>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {filteredQuests.length === 0 ? (
-                      <div className="text-center py-8 text-purple-300">
-                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No quests found matching your criteria</p>
-                      </div>
-                    ) : (
-                      filteredQuests.map((quest) => (
-                        <div
-                          key={quest.id}
-                          className={`group relative p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
-                            quest.completed
-                              ? "bg-green-900/20 border-green-700/30"
-                              : quest.locked
-                              ? "bg-gray-900/20 border-gray-700/30 opacity-50"
-                              : "bg-purple-900/20 border-purple-700/30 hover:border-purple-600/50"
-                          }`}
-                          onClick={() => !quest.locked && handleQuestComplete(quest.id)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              <div
-                                className={`w-6 h-6 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                                  quest.completed
-                                    ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
-                                    : quest.locked
-                                    ? "border-gray-500"
-                                    : "border-purple-400 group-hover:border-purple-300"
-                                }`}
-                              >
-                                {quest.completed && <CheckCircle2 className="h-4 w-4 text-white" />}
-                                {quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className={`font-semibold ${quest.completed ? "line-through text-green-300" : ""}`}>
-                                    {quest.title}
-                                  </h4>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs ${
-                                      quest.difficulty === 'easy' ? 'border-green-500 text-green-400' :
-                                      quest.difficulty === 'medium' ? 'border-yellow-500 text-yellow-400' :
-                                      'border-red-500 text-red-400'
-                                    }`}
-                                  >
-                                    {quest.difficulty}
-                                  </Badge>
-                                  {quest.category && (
-                                    <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">
-                                      {quest.category}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-purple-300 mb-2">{quest.description}</p>
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-1 text-blue-400">
-                                    <Star className="h-3 w-3" />
-                                    <span className="text-xs">+{quest.xp} XP</span>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-yellow-400">
-                                    <Coins className="h-3 w-3" />
-                                    <span className="text-xs">+{quest.coins} coins</span>
-                                  </div>
-                                  {quest.estimatedTime && (
-                                    <div className="flex items-center gap-1 text-purple-400">
-                                      <Clock className="h-3 w-3" />
-                                      <span className="text-xs">{quest.estimatedTime}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
+                <QuestsList 
+                  quests={filteredQuests}
+                  onQuestComplete={handleQuestComplete}
+                  searchTerm={questSearch}
+                  onSearchChange={setQuestSearch}
+                  filter={questFilter}
+                  onFilterChange={setQuestFilter}
+                  completedCount={completedQuestsToday}
+                  totalCount={totalQuestsToday}
+                />
               </TabsContent>
 
-              {/* New Weekly Goals Tab */}
               <TabsContent value="weekly-goals" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-blue-400" />
-                      Weekly Goals
-                    </CardTitle>
-                    <CardDescription className="text-purple-300">
-                      Long-term objectives to build lasting habits and earn bigger rewards
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {weeklyGoals.map((goal) => (
-                      <div
-                        key={goal.id}
-                        className="p-4 rounded-lg border bg-blue-900/20 border-blue-700/30 transition-all duration-200 hover:scale-[1.02]"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-semibold">{goal.title}</h4>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="border-blue-500 text-blue-400">
-                              {goal.progress}/{goal.target}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Progress value={(goal.progress / goal.target) * 100} className="h-2 mb-3" />
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-blue-400">
-                              <Star className="h-3 w-3" />
-                              <span>+{goal.xp} XP</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-yellow-400">
-                              <Coins className="h-3 w-3" />
-                              <span>+{goal.coins} coins</span>
-                            </div>
-                          </div>
-                          <div className="text-sm text-purple-300">
-                            {Math.round((goal.progress / goal.target) * 100)}% complete
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                <WeeklyGoalsPanel goals={weeklyGoals} />
               </TabsContent>
 
-              {/* Enhanced Achievements */}
               <TabsContent value="achievements" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-yellow-400" />
-                      Achievements
-                    </CardTitle>
-                    <CardDescription className="text-purple-300">
-                      Unlock badges and earn recognition for your accomplishments
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {achievements.map((achievement, index) => (
-                        <div
-                          key={index}
-                          className={`p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
-                            achievement.earned
-                              ? "bg-yellow-900/20 border-yellow-700/30"
-                              : "bg-gray-900/20 border-gray-700/30"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <achievement.icon
-                              className={`h-8 w-8 transition-all duration-200 ${
-                                achievement.earned ? "text-yellow-400" : "text-gray-500"
-                              }`}
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className={`font-semibold ${achievement.earned ? "text-yellow-400" : "text-gray-400"}`}>
-                                  {achievement.title}
-                                </h4>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    achievement.rarity === 'common' ? 'border-gray-500 text-gray-400' :
-                                    achievement.rarity === 'rare' ? 'border-blue-500 text-blue-400' :
-                                    achievement.rarity === 'epic' ? 'border-purple-500 text-purple-400' :
-                                    'border-yellow-500 text-yellow-400'
-                                  }`}
-                                >
-                                  {achievement.rarity}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-purple-300">{achievement.description}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <AchievementsPanel achievements={achievements} />
               </TabsContent>
 
-              {/* Enhanced Progress Tab */}
               <TabsContent value="progress" className="space-y-4">
-                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-purple-400" />
-                      Your Journey
-                    </CardTitle>
-                    <CardDescription className="text-purple-300">
-                      Track your progress and see how far you've come
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="text-center py-8">
-                      <div className="text-6xl font-bold text-purple-400 mb-2">{stats.level}</div>
-                      <div className="text-purple-300 mb-4">Current Level</div>
-                      <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="w-full max-w-md mx-auto" />
-                      <div className="text-sm text-purple-300 mt-2">
-                        {stats.nextLevelXp - stats.xp} XP to next level
-                      </div>
-                    </div>
-
-                    {/* Progress Statistics */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center p-4 bg-purple-900/20 rounded-lg border border-purple-700/30">
-                        <Clock className="h-6 w-6 text-purple-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-purple-400">{stats.streak}</div>
-                        <div className="text-xs text-purple-300">Current Streak</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-900/20 rounded-lg border border-green-700/30">
-                        <CheckCircle2 className="h-6 w-6 text-green-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-green-400">{stats.completedQuests}</div>
-                        <div className="text-xs text-green-300">Total Quests</div>
-                      </div>
-                      <div className="text-center p-4 bg-yellow-900/20 rounded-lg border border-yellow-700/30">
-                        <Coins className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-yellow-400">{stats.totalCoins}</div>
-                        <div className="text-xs text-yellow-300">Total Coins</div>
-                      </div>
-                      <div className="text-center p-4 bg-blue-900/20 rounded-lg border border-blue-700/30">
-                        <TrendingUp className="h-6 w-6 text-blue-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-blue-400">{stats.weeklyProgress}%</div>
-                        <div className="text-xs text-blue-300">Weekly Progress</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProgressPanel stats={stats} />
               </TabsContent>
             </Tabs>
           </div>
