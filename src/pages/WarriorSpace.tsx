@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Target, Users, Flame, Sparkles } from "lucide-react";
+import { Plus, Target, Users, Flame, Sparkles, Trophy, Calendar, MessageSquare, BookOpen, ArrowLeft, Sword, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
@@ -15,7 +16,6 @@ import ProgressPanel from "@/components/warrior/ProgressPanel";
 import WelcomeBanner from "@/components/warrior/WelcomeBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
