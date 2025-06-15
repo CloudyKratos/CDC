@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { 
   Sword, 
   Shield, 
@@ -26,7 +26,15 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
-  Lock
+  Lock,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  BookOpen,
+  Lightbulb,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -37,6 +45,13 @@ const WarriorSpace = () => {
   const { user } = useAuth();
   const [activeQuest, setActiveQuest] = useState("daily-challenge");
   const [isLoading, setIsLoading] = useState(true);
+  const [questSearch, setQuestSearch] = useState("");
+  const [questFilter, setQuestFilter] = useState("all");
+  const [collapsedSections, setCollapsedSections] = useState({
+    stats: false,
+    quickActions: false,
+    addOns: false
+  });
   const [stats, setStats] = useState({
     level: 1,
     xp: 0,
@@ -79,7 +94,9 @@ const WarriorSpace = () => {
             xp: 50, 
             coins: 25,
             completed: true,
-            difficulty: "easy"
+            difficulty: "easy",
+            category: "wellness",
+            estimatedTime: "10 min"
           },
           { 
             id: 2, 
@@ -88,7 +105,9 @@ const WarriorSpace = () => {
             xp: 75, 
             coins: 40,
             completed: false,
-            difficulty: "medium"
+            difficulty: "medium",
+            category: "productivity",
+            estimatedTime: "25 min"
           },
           { 
             id: 3, 
@@ -97,7 +116,9 @@ const WarriorSpace = () => {
             xp: 30, 
             coins: 15,
             completed: true,
-            difficulty: "easy"
+            difficulty: "easy",
+            category: "social",
+            estimatedTime: "5 min"
           },
           { 
             id: 4, 
@@ -106,7 +127,9 @@ const WarriorSpace = () => {
             xp: 40, 
             coins: 20,
             completed: false,
-            difficulty: "easy"
+            difficulty: "easy",
+            category: "wellness",
+            estimatedTime: "15 min"
           },
           { 
             id: 5, 
@@ -116,6 +139,8 @@ const WarriorSpace = () => {
             coins: 60,
             completed: false,
             difficulty: "hard",
+            category: "learning",
+            estimatedTime: "20 min",
             locked: false
           }
         ]);
@@ -176,11 +201,40 @@ const WarriorSpace = () => {
         totalCoins: prev.totalCoins + quest.coins,
         completedQuests: prev.completedQuests + 1
       }));
-      toast.success(`Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
-        duration: 3000,
+      toast.success(`🎉 Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
+        duration: 4000,
+      });
+    } else if (quest && quest.completed) {
+      toast.info("Quest marked as incomplete", {
+        duration: 2000,
       });
     }
   };
+
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const filteredQuests = dailyQuests.filter(quest => {
+    const matchesSearch = quest.title.toLowerCase().includes(questSearch.toLowerCase()) ||
+                         quest.description.toLowerCase().includes(questSearch.toLowerCase());
+    const matchesFilter = questFilter === "all" || 
+                         (questFilter === "completed" && quest.completed) ||
+                         (questFilter === "pending" && !quest.completed) ||
+                         (questFilter === quest.difficulty) ||
+                         (questFilter === quest.category);
+    return matchesSearch && matchesFilter;
+  });
+
+  const quickActions = [
+    { icon: Calendar, label: "Calendar", path: "/dashboard?tab=calendar", color: "purple" },
+    { icon: Users, label: "Community", path: "/dashboard?tab=community", color: "blue" },
+    { icon: MessageSquare, label: "World Map", path: "/dashboard?tab=worldmap", color: "green" },
+    { icon: BookOpen, label: "Learning", path: "/dashboard?tab=command-room", color: "orange" }
+  ];
 
   if (isLoading) {
     return (
@@ -228,10 +282,11 @@ const WarriorSpace = () => {
   const isNewUser = stats.completedQuests === 0;
   const completedQuestsToday = dailyQuests.filter(q => q.completed).length;
   const totalQuestsToday = dailyQuests.length;
+  const progressPercentage = (completedQuestsToday / totalQuestsToday) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Enhanced Header */}
+      {/* Enhanced Header with Progress */}
       <div className="border-b border-purple-800/30 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -247,10 +302,21 @@ const WarriorSpace = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Warrior's Space</h1>
-                  <p className="text-purple-300 text-sm flex items-center gap-2">
-                    <Flame className="h-4 w-4" />
-                    {stats.streak} day streak • {completedQuestsToday}/{totalQuestsToday} quests today
-                  </p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 text-purple-300">
+                      <Flame className="h-4 w-4" />
+                      {stats.streak} day streak
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-2 bg-purple-900 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-500"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                      <span className="text-purple-300">{completedQuestsToday}/{totalQuestsToday} today</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,100 +358,131 @@ const WarriorSpace = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Enhanced Stats & Features */}
+          {/* Left Column - Collapsible Sections */}
           <div className="space-y-6">
-            {/* Enhanced Warrior Stats */}
+            {/* Collapsible Warrior Stats */}
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-400" />
-                  Warrior Stats
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-purple-400" />
+                    Warrior Stats
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleSection('stats')}
+                    className="h-6 w-6 text-purple-300 hover:text-white"
+                  >
+                    {collapsedSections.stats ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-purple-300">Rank</span>
-                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600">
-                    <Crown className="h-3 w-3 mr-1" />
-                    {stats.rank}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-purple-300">XP Progress</span>
-                    <span>{stats.xp}/{stats.nextLevelXp}</span>
+              {!collapsedSections.stats && (
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-purple-300">Rank</span>
+                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600">
+                      <Crown className="h-3 w-3 mr-1" />
+                      {stats.rank}
+                    </Badge>
                   </div>
-                  <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="h-2" />
-                  <div className="text-xs text-purple-400 mt-1">
-                    {stats.nextLevelXp - stats.xp} XP to next level
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="text-center p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                    <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
-                      <Flame className="h-5 w-5" />
-                      {stats.streak}
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-purple-300">XP Progress</span>
+                      <span>{stats.xp}/{stats.nextLevelXp}</span>
                     </div>
-                    <div className="text-xs text-orange-300">Day Streak</div>
-                  </div>
-                  <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                    <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-1">
-                      <Trophy className="h-5 w-5" />
-                      {stats.completedQuests}
+                    <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="h-2" />
+                    <div className="text-xs text-purple-400 mt-1">
+                      {stats.nextLevelXp - stats.xp} XP to next level
                     </div>
-                    <div className="text-xs text-green-300">Total Quests</div>
                   </div>
-                </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="text-center p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                      <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
+                        <Flame className="h-5 w-5" />
+                        {stats.streak}
+                      </div>
+                      <div className="text-xs text-orange-300">Day Streak</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-1">
+                        <Trophy className="h-5 w-5" />
+                        {stats.completedQuests}
+                      </div>
+                      <div className="text-xs text-green-300">Total Quests</div>
+                    </div>
+                  </div>
 
-                {/* Weekly Progress */}
-                <div className="pt-2 border-t border-purple-800/30">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-purple-300">Weekly Progress</span>
-                    <span>{stats.weeklyProgress}%</span>
+                  <div className="pt-2 border-t border-purple-800/30">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-purple-300">Weekly Progress</span>
+                      <span>{stats.weeklyProgress}%</span>
+                    </div>
+                    <Progress value={stats.weeklyProgress} className="h-2" />
                   </div>
-                  <Progress value={stats.weeklyProgress} className="h-2" />
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
-            {/* Optional Add-ons */}
-            <OptionalAddOns />
-
-            {/* Enhanced Quick Actions */}
+            {/* Collapsible Quick Actions */}
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-400" />
-                  Quick Actions
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-400" />
+                    Quick Actions
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleSection('quickActions')}
+                    className="h-6 w-6 text-purple-300 hover:text-white"
+                  >
+                    {collapsedSections.quickActions ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Link to="/dashboard?tab=calendar">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    View Calendar
-                    <ChevronRight className="h-4 w-4 ml-auto" />
+              {!collapsedSections.quickActions && (
+                <CardContent className="space-y-3">
+                  {quickActions.map((action, index) => (
+                    <Link key={index} to={action.path}>
+                      <Button className={`w-full justify-start bg-${action.color}-600/20 hover:bg-${action.color}-600/30 text-white border-${action.color}-600/30 transition-all duration-200 hover:scale-105`}>
+                        <action.icon className="h-4 w-4 mr-2" />
+                        {action.label}
+                        <ChevronRight className="h-4 w-4 ml-auto" />
+                      </Button>
+                    </Link>
+                  ))}
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Collapsible Optional Add-ons */}
+            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-green-400" />
+                    Optional Add-ons
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleSection('addOns')}
+                    className="h-6 w-6 text-purple-300 hover:text-white"
+                  >
+                    {collapsedSections.addOns ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                   </Button>
-                </Link>
-                
-                <Link to="/dashboard?tab=community">
-                  <Button className="w-full justify-start bg-blue-600/20 hover:bg-blue-600/30 text-white border-blue-600/30 transition-all duration-200 hover:scale-105">
-                    <Users className="h-4 w-4 mr-2" />
-                    Join Community
-                    <ChevronRight className="h-4 w-4 ml-auto" />
-                  </Button>
-                </Link>
-                
-                <Link to="/dashboard?tab=worldmap">
-                  <Button className="w-full justify-start bg-green-600/20 hover:bg-green-600/30 text-white border-green-600/30 transition-all duration-200 hover:scale-105">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    World Map
-                    <ChevronRight className="h-4 w-4 ml-auto" />
-                  </Button>
-                </Link>
-              </CardContent>
+                </div>
+              </CardHeader>
+              {!collapsedSections.addOns && (
+                <CardContent>
+                  <OptionalAddOns />
+                </CardContent>
+              )}
             </Card>
           </div>
 
@@ -410,80 +507,131 @@ const WarriorSpace = () => {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Enhanced Daily Quests */}
+              {/* Enhanced Daily Quests with Search and Filter */}
               <TabsContent value="daily-challenge" className="space-y-4">
                 <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5 text-green-400" />
-                      Today's Quests
-                      <Badge variant="secondary" className="ml-auto">
-                        {completedQuestsToday}/{totalQuestsToday}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription className="text-purple-300">
-                      Complete your daily challenges to earn XP, coins, and maintain your streak
-                    </CardDescription>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-green-400" />
+                          Today's Quests
+                          <Badge variant="secondary" className="ml-2">
+                            {completedQuestsToday}/{totalQuestsToday}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription className="text-purple-300 mt-1">
+                          Complete your daily challenges to earn XP, coins, and maintain your streak
+                        </CardDescription>
+                      </div>
+                    </div>
+                    
+                    {/* Search and Filter Controls */}
+                    <div className="flex gap-3 mb-4">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-400" />
+                        <Input
+                          placeholder="Search quests..."
+                          value={questSearch}
+                          onChange={(e) => setQuestSearch(e.target.value)}
+                          className="pl-10 bg-purple-900/20 border-purple-700/30 text-white placeholder:text-purple-400"
+                        />
+                      </div>
+                      <select
+                        value={questFilter}
+                        onChange={(e) => setQuestFilter(e.target.value)}
+                        className="px-3 py-2 bg-purple-900/20 border border-purple-700/30 rounded-md text-white"
+                      >
+                        <option value="all">All Quests</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="wellness">Wellness</option>
+                        <option value="productivity">Productivity</option>
+                        <option value="social">Social</option>
+                        <option value="learning">Learning</option>
+                      </select>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {dailyQuests.map((quest) => (
-                      <div
-                        key={quest.id}
-                        className={`group relative p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
-                          quest.completed
-                            ? "bg-green-900/20 border-green-700/30"
-                            : quest.locked
-                            ? "bg-gray-900/20 border-gray-700/30 opacity-50"
-                            : "bg-purple-900/20 border-purple-700/30 hover:border-purple-600/50"
-                        }`}
-                        onClick={() => !quest.locked && handleQuestComplete(quest.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div
-                              className={`w-6 h-6 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                                quest.completed
-                                  ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
-                                  : quest.locked
-                                  ? "border-gray-500"
-                                  : "border-purple-400 group-hover:border-purple-300"
-                              }`}
-                            >
-                              {quest.completed && <CheckCircle2 className="h-4 w-4 text-white" />}
-                              {quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className={`font-semibold ${quest.completed ? "line-through text-green-300" : ""}`}>
-                                  {quest.title}
-                                </h4>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    quest.difficulty === 'easy' ? 'border-green-500 text-green-400' :
-                                    quest.difficulty === 'medium' ? 'border-yellow-500 text-yellow-400' :
-                                    'border-red-500 text-red-400'
-                                  }`}
-                                >
-                                  {quest.difficulty}
-                                </Badge>
+                    {filteredQuests.length === 0 ? (
+                      <div className="text-center py-8 text-purple-300">
+                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No quests found matching your criteria</p>
+                      </div>
+                    ) : (
+                      filteredQuests.map((quest) => (
+                        <div
+                          key={quest.id}
+                          className={`group relative p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
+                            quest.completed
+                              ? "bg-green-900/20 border-green-700/30"
+                              : quest.locked
+                              ? "bg-gray-900/20 border-gray-700/30 opacity-50"
+                              : "bg-purple-900/20 border-purple-700/30 hover:border-purple-600/50"
+                          }`}
+                          onClick={() => !quest.locked && handleQuestComplete(quest.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div
+                                className={`w-6 h-6 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                                  quest.completed
+                                    ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
+                                    : quest.locked
+                                    ? "border-gray-500"
+                                    : "border-purple-400 group-hover:border-purple-300"
+                                }`}
+                              >
+                                {quest.completed && <CheckCircle2 className="h-4 w-4 text-white" />}
+                                {quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
                               </div>
-                              <p className="text-sm text-purple-300 mb-2">{quest.description}</p>
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1 text-blue-400">
-                                  <Star className="h-3 w-3" />
-                                  <span className="text-xs">+{quest.xp} XP</span>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className={`font-semibold ${quest.completed ? "line-through text-green-300" : ""}`}>
+                                    {quest.title}
+                                  </h4>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${
+                                      quest.difficulty === 'easy' ? 'border-green-500 text-green-400' :
+                                      quest.difficulty === 'medium' ? 'border-yellow-500 text-yellow-400' :
+                                      'border-red-500 text-red-400'
+                                    }`}
+                                  >
+                                    {quest.difficulty}
+                                  </Badge>
+                                  {quest.category && (
+                                    <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">
+                                      {quest.category}
+                                    </Badge>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-1 text-yellow-400">
-                                  <Coins className="h-3 w-3" />
-                                  <span className="text-xs">+{quest.coins} coins</span>
+                                <p className="text-sm text-purple-300 mb-2">{quest.description}</p>
+                                <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-1 text-blue-400">
+                                    <Star className="h-3 w-3" />
+                                    <span className="text-xs">+{quest.xp} XP</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-yellow-400">
+                                    <Coins className="h-3 w-3" />
+                                    <span className="text-xs">+{quest.coins} coins</span>
+                                  </div>
+                                  {quest.estimatedTime && (
+                                    <div className="flex items-center gap-1 text-purple-400">
+                                      <Clock className="h-3 w-3" />
+                                      <span className="text-xs">{quest.estimatedTime}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -597,7 +745,7 @@ const WarriorSpace = () => {
                 <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Star className="h-5 w-5 text-purple-400" />
+                      <BarChart3 className="h-5 w-5 text-purple-400" />
                       Your Journey
                     </CardTitle>
                     <CardDescription className="text-purple-300">
