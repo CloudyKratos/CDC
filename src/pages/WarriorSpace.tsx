@@ -20,9 +20,16 @@ import {
   Flame,
   Zap,
   ArrowLeft,
-  Sparkles
+  Sparkles,
+  Crown,
+  Coins,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  Lock
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
 import OptionalAddOns from "@/components/home/OptionalAddOns";
 
@@ -36,10 +43,13 @@ const WarriorSpace = () => {
     nextLevelXp: 100,
     streak: 0,
     completedQuests: 0,
-    rank: "New Warrior"
+    rank: "New Warrior",
+    totalCoins: 0,
+    weeklyProgress: 0
   });
   const [dailyQuests, setDailyQuests] = useState<any[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<any[]>([]);
 
   // Load user's actual data from database
   useEffect(() => {
@@ -47,33 +57,102 @@ const WarriorSpace = () => {
       if (user) {
         setIsLoading(true);
         
-        // In a real implementation, these would fetch from your database
-        // const userStats = await fetchUserStatsFromDB(user.id);
-        // const userQuests = await fetchUserQuestsFromDB(user.id);
-        // const userAchievements = await fetchUserAchievementsFromDB(user.id);
+        // Simulate loading with realistic data
+        await new Promise(resolve => setTimeout(resolve, 800));
         
-        // For now, start with fresh data for new users
         setStats({
-          level: 1,
-          xp: 0,
-          nextLevelXp: 100,
-          streak: 0,
-          completedQuests: 0,
-          rank: "New Warrior"
+          level: 3,
+          xp: 150,
+          nextLevelXp: 200,
+          streak: 5,
+          completedQuests: 12,
+          rank: "Rising Warrior",
+          totalCoins: 450,
+          weeklyProgress: 65
         });
         
         setDailyQuests([
-          { id: 1, title: "Complete your first morning routine", xp: 50, completed: false },
-          { id: 2, title: "Try a 25-minute focus session", xp: 75, completed: false },
-          { id: 3, title: "Connect with the community", xp: 30, completed: false },
-          { id: 4, title: "Write your evening reflection", xp: 40, completed: false }
+          { 
+            id: 1, 
+            title: "Complete morning routine", 
+            description: "Start your day with purpose and energy",
+            xp: 50, 
+            coins: 25,
+            completed: true,
+            difficulty: "easy"
+          },
+          { 
+            id: 2, 
+            title: "Focus session - 25 minutes", 
+            description: "Deep work on your most important task",
+            xp: 75, 
+            coins: 40,
+            completed: false,
+            difficulty: "medium"
+          },
+          { 
+            id: 3, 
+            title: "Connect with community", 
+            description: "Share insights or support a fellow warrior",
+            xp: 30, 
+            coins: 15,
+            completed: true,
+            difficulty: "easy"
+          },
+          { 
+            id: 4, 
+            title: "Evening reflection", 
+            description: "Review your day and plan tomorrow",
+            xp: 40, 
+            coins: 20,
+            completed: false,
+            difficulty: "easy"
+          },
+          { 
+            id: 5, 
+            title: "Skill development", 
+            description: "Learn something new for 20 minutes",
+            xp: 100, 
+            coins: 60,
+            completed: false,
+            difficulty: "hard",
+            locked: false
+          }
+        ]);
+
+        setWeeklyGoals([
+          { 
+            id: 1, 
+            title: "Maintain 7-day streak", 
+            progress: 5, 
+            target: 7, 
+            xp: 500,
+            coins: 200
+          },
+          { 
+            id: 2, 
+            title: "Complete 20 focus sessions", 
+            progress: 12, 
+            target: 20,
+            xp: 300,
+            coins: 150
+          },
+          { 
+            id: 3, 
+            title: "Engage with 10 community posts", 
+            progress: 7, 
+            target: 10,
+            xp: 200,
+            coins: 100
+          }
         ]);
 
         setAchievements([
-          { title: "First Steps", description: "Complete your first task", icon: Target, earned: false },
-          { title: "Team Player", description: "Make first community post", icon: Users, earned: false },
-          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: false },
-          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: false }
+          { title: "First Steps", description: "Complete your first task", icon: Target, earned: true, rarity: "common" },
+          { title: "Team Player", description: "Make first community post", icon: Users, earned: true, rarity: "common" },
+          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: false, rarity: "rare" },
+          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: false, rarity: "epic" },
+          { title: "Wisdom Seeker", description: "Complete 5 learning sessions", icon: Sparkles, earned: false, rarity: "legendary" }
         ]);
       }
       setIsLoading(false);
@@ -81,6 +160,27 @@ const WarriorSpace = () => {
 
     loadUserData();
   }, [user]);
+
+  const handleQuestComplete = (questId: number) => {
+    setDailyQuests(prev => prev.map(quest => 
+      quest.id === questId 
+        ? { ...quest, completed: !quest.completed }
+        : quest
+    ));
+    
+    const quest = dailyQuests.find(q => q.id === questId);
+    if (quest && !quest.completed) {
+      setStats(prev => ({
+        ...prev,
+        xp: prev.xp + quest.xp,
+        totalCoins: prev.totalCoins + quest.coins,
+        completedQuests: prev.completedQuests + 1
+      }));
+      toast.success(`Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
+        duration: 3000,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -126,10 +226,12 @@ const WarriorSpace = () => {
   }
 
   const isNewUser = stats.completedQuests === 0;
+  const completedQuestsToday = dailyQuests.filter(q => q.completed).length;
+  const totalQuestsToday = dailyQuests.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="border-b border-purple-800/30 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -145,14 +247,19 @@ const WarriorSpace = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Warrior's Space</h1>
-                  <p className="text-purple-300 text-sm">
-                    {isNewUser ? "Welcome to your journey!" : "Your personal command center"}
+                  <p className="text-purple-300 text-sm flex items-center gap-2">
+                    <Flame className="h-4 w-4" />
+                    {stats.streak} day streak • {completedQuestsToday}/{totalQuestsToday} quests today
                   </p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-yellow-500/20 px-3 py-1 rounded-full border border-yellow-500/30">
+                <Coins className="h-4 w-4 text-yellow-400" />
+                <span className="text-yellow-400 font-semibold">{stats.totalCoins}</span>
+              </div>
               <Badge className="bg-purple-600 text-white">
                 <Star className="h-3 w-3 mr-1" />
                 Level {stats.level}
@@ -167,6 +274,7 @@ const WarriorSpace = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Welcome Message for New Users */}
         {isNewUser && (
           <div className="mb-8">
             <Card className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border-purple-700/30 text-white backdrop-blur-sm">
@@ -184,9 +292,9 @@ const WarriorSpace = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Stats & Optional Add-ons */}
+          {/* Left Column - Enhanced Stats & Features */}
           <div className="space-y-6">
-            {/* Warrior Stats */}
+            {/* Enhanced Warrior Stats */}
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -198,6 +306,7 @@ const WarriorSpace = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-purple-300">Rank</span>
                   <Badge className="bg-gradient-to-r from-purple-600 to-pink-600">
+                    <Crown className="h-3 w-3 mr-1" />
                     {stats.rank}
                   </Badge>
                 </div>
@@ -208,17 +317,35 @@ const WarriorSpace = () => {
                     <span>{stats.xp}/{stats.nextLevelXp}</span>
                   </div>
                   <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="h-2" />
+                  <div className="text-xs text-purple-400 mt-1">
+                    {stats.nextLevelXp - stats.xp} XP to next level
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-400">{stats.streak}</div>
-                    <div className="text-xs text-purple-300">Day Streak</div>
+                  <div className="text-center p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                    <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
+                      <Flame className="h-5 w-5" />
+                      {stats.streak}
+                    </div>
+                    <div className="text-xs text-orange-300">Day Streak</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400">{stats.completedQuests}</div>
-                    <div className="text-xs text-purple-300">Quests Done</div>
+                  <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-1">
+                      <Trophy className="h-5 w-5" />
+                      {stats.completedQuests}
+                    </div>
+                    <div className="text-xs text-green-300">Total Quests</div>
                   </div>
+                </div>
+
+                {/* Weekly Progress */}
+                <div className="pt-2 border-t border-purple-800/30">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-purple-300">Weekly Progress</span>
+                    <span>{stats.weeklyProgress}%</span>
+                  </div>
+                  <Progress value={stats.weeklyProgress} className="h-2" />
                 </div>
               </CardContent>
             </Card>
@@ -226,7 +353,7 @@ const WarriorSpace = () => {
             {/* Optional Add-ons */}
             <OptionalAddOns />
 
-            {/* Quick Actions */}
+            {/* Enhanced Quick Actions */}
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -244,7 +371,7 @@ const WarriorSpace = () => {
                 </Link>
                 
                 <Link to="/dashboard?tab=community">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
+                  <Button className="w-full justify-start bg-blue-600/20 hover:bg-blue-600/30 text-white border-blue-600/30 transition-all duration-200 hover:scale-105">
                     <Users className="h-4 w-4 mr-2" />
                     Join Community
                     <ChevronRight className="h-4 w-4 ml-auto" />
@@ -252,7 +379,7 @@ const WarriorSpace = () => {
                 </Link>
                 
                 <Link to="/dashboard?tab=worldmap">
-                  <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-white border-purple-600/30 transition-all duration-200 hover:scale-105">
+                  <Button className="w-full justify-start bg-green-600/20 hover:bg-green-600/30 text-white border-green-600/30 transition-all duration-200 hover:scale-105">
                     <MessageSquare className="h-4 w-4 mr-2" />
                     World Map
                     <ChevronRight className="h-4 w-4 ml-auto" />
@@ -262,15 +389,18 @@ const WarriorSpace = () => {
             </Card>
           </div>
 
-          {/* Center Column - Main Content */}
+          {/* Center Column - Enhanced Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* CDC Morning Strategy Card */}
             <CDCMorningStrategyCard />
 
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-black/40 border-purple-800/30">
+              <TabsList className="grid w-full grid-cols-4 bg-black/40 border-purple-800/30">
                 <TabsTrigger value="daily-challenge" className="text-white data-[state=active]:bg-purple-600">
-                  {isNewUser ? "Start Here" : "Today's Quests"}
+                  Daily Quests
+                </TabsTrigger>
+                <TabsTrigger value="weekly-goals" className="text-white data-[state=active]:bg-purple-600">
+                  Weekly Goals
                 </TabsTrigger>
                 <TabsTrigger value="achievements" className="text-white data-[state=active]:bg-purple-600">
                   Achievements
@@ -280,51 +410,133 @@ const WarriorSpace = () => {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Enhanced Daily Quests */}
               <TabsContent value="daily-challenge" className="space-y-4">
                 <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5 text-green-400" />
-                      {isNewUser ? "Your First Quests" : "Today's Quests"}
+                      Today's Quests
+                      <Badge variant="secondary" className="ml-auto">
+                        {completedQuestsToday}/{totalQuestsToday}
+                      </Badge>
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      {isNewUser 
-                        ? "Complete these quests to start your warrior journey and earn your first XP"
-                        : "Complete your daily challenges to earn XP and maintain your streak"
-                      }
+                      Complete your daily challenges to earn XP, coins, and maintain your streak
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {dailyQuests.map((quest) => (
                       <div
                         key={quest.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
+                        className={`group relative p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
                           quest.completed
                             ? "bg-green-900/20 border-green-700/30"
-                            : "bg-purple-900/20 border-purple-700/30"
+                            : quest.locked
+                            ? "bg-gray-900/20 border-gray-700/30 opacity-50"
+                            : "bg-purple-900/20 border-purple-700/30 hover:border-purple-600/50"
                         }`}
+                        onClick={() => !quest.locked && handleQuestComplete(quest.id)}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-                              quest.completed
-                                ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
-                                : "border-purple-400"
-                            }`}
-                          />
-                          <span className={quest.completed ? "line-through text-green-300" : ""}>
-                            {quest.title}
-                          </span>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                                quest.completed
+                                  ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/30"
+                                  : quest.locked
+                                  ? "border-gray-500"
+                                  : "border-purple-400 group-hover:border-purple-300"
+                              }`}
+                            >
+                              {quest.completed && <CheckCircle2 className="h-4 w-4 text-white" />}
+                              {quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-semibold ${quest.completed ? "line-through text-green-300" : ""}`}>
+                                  {quest.title}
+                                </h4>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${
+                                    quest.difficulty === 'easy' ? 'border-green-500 text-green-400' :
+                                    quest.difficulty === 'medium' ? 'border-yellow-500 text-yellow-400' :
+                                    'border-red-500 text-red-400'
+                                  }`}
+                                >
+                                  {quest.difficulty}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-purple-300 mb-2">{quest.description}</p>
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-1 text-blue-400">
+                                  <Star className="h-3 w-3" />
+                                  <span className="text-xs">+{quest.xp} XP</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-yellow-400">
+                                  <Coins className="h-3 w-3" />
+                                  <span className="text-xs">+{quest.coins} coins</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <Badge variant={quest.completed ? "default" : "secondary"}>
-                          +{quest.xp} XP
-                        </Badge>
                       </div>
                     ))}
                   </CardContent>
                 </Card>
               </TabsContent>
 
+              {/* New Weekly Goals Tab */}
+              <TabsContent value="weekly-goals" className="space-y-4">
+                <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-400" />
+                      Weekly Goals
+                    </CardTitle>
+                    <CardDescription className="text-purple-300">
+                      Long-term objectives to build lasting habits and earn bigger rewards
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {weeklyGoals.map((goal) => (
+                      <div
+                        key={goal.id}
+                        className="p-4 rounded-lg border bg-blue-900/20 border-blue-700/30 transition-all duration-200 hover:scale-[1.02]"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-semibold">{goal.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="border-blue-500 text-blue-400">
+                              {goal.progress}/{goal.target}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Progress value={(goal.progress / goal.target) * 100} className="h-2 mb-3" />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1 text-blue-400">
+                              <Star className="h-3 w-3" />
+                              <span>+{goal.xp} XP</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-yellow-400">
+                              <Coins className="h-3 w-3" />
+                              <span>+{goal.coins} coins</span>
+                            </div>
+                          </div>
+                          <div className="text-sm text-purple-300">
+                            {Math.round((goal.progress / goal.target) * 100)}% complete
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Enhanced Achievements */}
               <TabsContent value="achievements" className="space-y-4">
                 <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
@@ -333,10 +545,7 @@ const WarriorSpace = () => {
                       Achievements
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      {isNewUser 
-                        ? "Unlock these badges as you complete your first milestones"
-                        : "Track your accomplishments and unlock special rewards"
-                      }
+                      Unlock badges and earn recognition for your accomplishments
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -356,10 +565,23 @@ const WarriorSpace = () => {
                                 achievement.earned ? "text-yellow-400" : "text-gray-500"
                               }`}
                             />
-                            <div>
-                              <h4 className={`font-semibold ${achievement.earned ? "text-yellow-400" : "text-gray-400"}`}>
-                                {achievement.title}
-                              </h4>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-semibold ${achievement.earned ? "text-yellow-400" : "text-gray-400"}`}>
+                                  {achievement.title}
+                                </h4>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${
+                                    achievement.rarity === 'common' ? 'border-gray-500 text-gray-400' :
+                                    achievement.rarity === 'rare' ? 'border-blue-500 text-blue-400' :
+                                    achievement.rarity === 'epic' ? 'border-purple-500 text-purple-400' :
+                                    'border-yellow-500 text-yellow-400'
+                                  }`}
+                                >
+                                  {achievement.rarity}
+                                </Badge>
+                              </div>
                               <p className="text-sm text-purple-300">{achievement.description}</p>
                             </div>
                           </div>
@@ -370,6 +592,7 @@ const WarriorSpace = () => {
                 </Card>
               </TabsContent>
 
+              {/* Enhanced Progress Tab */}
               <TabsContent value="progress" className="space-y-4">
                 <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
                   <CardHeader>
@@ -378,10 +601,7 @@ const WarriorSpace = () => {
                       Your Journey
                     </CardTitle>
                     <CardDescription className="text-purple-300">
-                      {isNewUser 
-                        ? "Start your journey by completing your first quest"
-                        : "Track your progress and see how far you've come"
-                      }
+                      Track your progress and see how far you've come
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -390,10 +610,31 @@ const WarriorSpace = () => {
                       <div className="text-purple-300 mb-4">Current Level</div>
                       <Progress value={(stats.xp / stats.nextLevelXp) * 100} className="w-full max-w-md mx-auto" />
                       <div className="text-sm text-purple-300 mt-2">
-                        {isNewUser 
-                          ? "Complete your first quest to start earning XP"
-                          : `${stats.nextLevelXp - stats.xp} XP to next level`
-                        }
+                        {stats.nextLevelXp - stats.xp} XP to next level
+                      </div>
+                    </div>
+
+                    {/* Progress Statistics */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-purple-900/20 rounded-lg border border-purple-700/30">
+                        <Clock className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-purple-400">{stats.streak}</div>
+                        <div className="text-xs text-purple-300">Current Streak</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-900/20 rounded-lg border border-green-700/30">
+                        <CheckCircle2 className="h-6 w-6 text-green-400 mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-green-400">{stats.completedQuests}</div>
+                        <div className="text-xs text-green-300">Total Quests</div>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-900/20 rounded-lg border border-yellow-700/30">
+                        <Coins className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-yellow-400">{stats.totalCoins}</div>
+                        <div className="text-xs text-yellow-300">Total Coins</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-900/20 rounded-lg border border-blue-700/30">
+                        <TrendingUp className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-blue-400">{stats.weeklyProgress}%</div>
+                        <div className="text-xs text-blue-300">Weekly Progress</div>
                       </div>
                     </div>
                   </CardContent>
