@@ -16,6 +16,8 @@ import ProgressPanel from "@/components/warrior/ProgressPanel";
 import WelcomeBanner from "@/components/warrior/WelcomeBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useDailyQuests } from "@/hooks/useDailyQuests";
+import { useXpProgress } from "@/hooks/useXpProgress";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
@@ -28,104 +30,28 @@ const WarriorSpace = () => {
     quickActions: false,
     addOns: false
   });
-  const [stats, setStats] = useState({
-    level: 1,
-    xp: 0,
-    nextLevelXp: 100,
-    streak: 0,
-    completedQuests: 0,
-    rank: "New Warrior",
-    totalCoins: 0,
-    weeklyProgress: 0
-  });
-  const [dailyQuests, setDailyQuests] = useState<any[]>([]);
+
+  // Use the new hooks
+  const { quests, toggleQuestCompletion, getQuestStats } = useDailyQuests();
+  const { progress, addXp } = useXpProgress();
+
   const [achievements, setAchievements] = useState<any[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<any[]>([]);
 
-  // Load user's actual data from database
+  // Load initial data
   useEffect(() => {
     const loadUserData = async () => {
       if (user) {
         setIsLoading(true);
         
-        // Simulate loading with realistic data
+        // Simulate loading
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        setStats({
-          level: 3,
-          xp: 150,
-          nextLevelXp: 200,
-          streak: 5,
-          completedQuests: 12,
-          rank: "Rising Warrior",
-          totalCoins: 450,
-          weeklyProgress: 65
-        });
-        
-        setDailyQuests([
-          { 
-            id: 1, 
-            title: "Complete morning routine", 
-            description: "Start your day with purpose and energy",
-            xp: 50, 
-            coins: 25,
-            completed: true,
-            difficulty: "easy",
-            category: "wellness",
-            estimatedTime: "10 min"
-          },
-          { 
-            id: 2, 
-            title: "Focus session - 25 minutes", 
-            description: "Deep work on your most important task",
-            xp: 75, 
-            coins: 40,
-            completed: false,
-            difficulty: "medium",
-            category: "productivity",
-            estimatedTime: "25 min"
-          },
-          { 
-            id: 3, 
-            title: "Connect with community", 
-            description: "Share insights or support a fellow warrior",
-            xp: 30, 
-            coins: 15,
-            completed: true,
-            difficulty: "easy",
-            category: "social",
-            estimatedTime: "5 min"
-          },
-          { 
-            id: 4, 
-            title: "Evening reflection", 
-            description: "Review your day and plan tomorrow",
-            xp: 40, 
-            coins: 20,
-            completed: false,
-            difficulty: "easy",
-            category: "wellness",
-            estimatedTime: "15 min"
-          },
-          { 
-            id: 5, 
-            title: "Skill development", 
-            description: "Learn something new for 20 minutes",
-            xp: 100, 
-            coins: 60,
-            completed: false,
-            difficulty: "hard",
-            category: "learning",
-            estimatedTime: "20 min",
-            locked: false
-          }
-        ]);
-
         setWeeklyGoals([
           { 
             id: 1, 
             title: "Maintain 7-day streak", 
-            progress: 5, 
+            progress: progress.streak, 
             target: 7, 
             xp: 500,
             coins: 200
@@ -133,54 +59,54 @@ const WarriorSpace = () => {
           { 
             id: 2, 
             title: "Complete 20 focus sessions", 
-            progress: 12, 
+            progress: Math.min(progress.completedQuests, 20), 
             target: 20,
             xp: 300,
             coins: 150
           },
           { 
             id: 3, 
-            title: "Engage with 10 community posts", 
-            progress: 7, 
-            target: 10,
+            title: "Earn 500 XP this week", 
+            progress: progress.weeklyXp, 
+            target: 500,
             xp: 200,
             coins: 100
           }
         ]);
 
         setAchievements([
-          { title: "First Steps", description: "Complete your first task", icon: Target, earned: true, rarity: "common" },
+          { title: "First Steps", description: "Complete your first task", icon: Target, earned: progress.completedQuests > 0, rarity: "common" },
           { title: "Team Player", description: "Make first community post", icon: Users, earned: true, rarity: "common" },
-          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: false, rarity: "rare" },
-          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: false, rarity: "epic" },
-          { title: "Wisdom Seeker", description: "Complete 5 learning sessions", icon: Sparkles, earned: false, rarity: "legendary" }
+          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: progress.completedQuests >= 10, rarity: "rare" },
+          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: progress.streak >= 7, rarity: "epic" },
+          { title: "XP Hunter", description: "Earn 1000+ total XP", icon: Sparkles, earned: progress.totalXp >= 1000, rarity: "legendary" }
         ]);
       }
       setIsLoading(false);
     };
 
     loadUserData();
-  }, [user]);
+  }, [user, progress]);
 
   const handleQuestComplete = (questId: number) => {
-    setDailyQuests(prev => prev.map(quest => 
-      quest.id === questId 
-        ? { ...quest, completed: !quest.completed }
-        : quest
-    ));
+    const updatedQuests = toggleQuestCompletion(questId);
+    const quest = updatedQuests.find(q => q.id === questId);
     
-    const quest = dailyQuests.find(q => q.id === questId);
-    if (quest && !quest.completed) {
-      setStats(prev => ({
-        ...prev,
-        xp: prev.xp + quest.xp,
-        totalCoins: prev.totalCoins + quest.coins,
-        completedQuests: prev.completedQuests + 1
-      }));
-      toast.success(`🎉 Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
-        duration: 4000,
-      });
-    } else if (quest && quest.completed) {
+    if (quest && quest.completed) {
+      // Add XP and coins
+      const newProgress = addXp(quest.xp, quest.coins);
+      
+      // Check for level up
+      if (newProgress.level > progress.level) {
+        toast.success(`🎉 LEVEL UP! You're now Level ${newProgress.level}!`, {
+          duration: 6000,
+        });
+      } else {
+        toast.success(`🎉 Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
+          duration: 4000,
+        });
+      }
+    } else if (quest && !quest.completed) {
       toast.info("Quest marked as incomplete", {
         duration: 2000,
       });
@@ -194,7 +120,7 @@ const WarriorSpace = () => {
     }));
   };
 
-  const filteredQuests = dailyQuests.filter(quest => {
+  const filteredQuests = quests.filter(quest => {
     const matchesSearch = quest.title.toLowerCase().includes(questSearch.toLowerCase()) ||
                          quest.description.toLowerCase().includes(questSearch.toLowerCase());
     const matchesFilter = questFilter === "all" || 
@@ -204,13 +130,6 @@ const WarriorSpace = () => {
                          (questFilter === quest.category);
     return matchesSearch && matchesFilter;
   });
-
-  const quickActions = [
-    { icon: Calendar, label: "Calendar", path: "/dashboard?tab=calendar", color: "purple" },
-    { icon: Users, label: "Community", path: "/dashboard?tab=community", color: "blue" },
-    { icon: MessageSquare, label: "World Map", path: "/dashboard?tab=worldmap", color: "green" },
-    { icon: BookOpen, label: "Learning", path: "/dashboard?tab=command-room", color: "orange" }
-  ];
 
   if (isLoading) {
     return (
@@ -255,18 +174,20 @@ const WarriorSpace = () => {
     );
   }
 
-  const isNewUser = stats.completedQuests === 0;
-  const completedQuestsToday = dailyQuests.filter(q => q.completed).length;
-  const totalQuestsToday = dailyQuests.length;
-  const progressPercentage = (completedQuestsToday / totalQuestsToday) * 100;
+  const isNewUser = progress.completedQuests === 0;
+  const questStats = getQuestStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <WarriorHeader 
-        stats={stats}
-        progressPercentage={progressPercentage}
-        completedQuestsToday={completedQuestsToday}
-        totalQuestsToday={totalQuestsToday}
+        stats={{
+          streak: progress.streak,
+          level: progress.level,
+          totalCoins: progress.totalCoins
+        }}
+        progressPercentage={questStats.progressPercentage}
+        completedQuestsToday={questStats.completed}
+        totalQuestsToday={questStats.total}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -276,7 +197,15 @@ const WarriorSpace = () => {
           {/* Left Column - Collapsible Sections */}
           <div className="space-y-6">
             <WarriorStatsPanel 
-              stats={stats}
+              stats={{
+                level: progress.level,
+                xp: progress.currentXp,
+                nextLevelXp: progress.nextLevelXp,
+                streak: progress.streak,
+                completedQuests: progress.completedQuests,
+                rank: progress.rank,
+                weeklyProgress: progress.weeklyProgress
+              }}
               isCollapsed={collapsedSections.stats}
               onToggle={() => toggleSection('stats')}
             />
@@ -340,8 +269,8 @@ const WarriorSpace = () => {
                   onSearchChange={setQuestSearch}
                   filter={questFilter}
                   onFilterChange={setQuestFilter}
-                  completedCount={completedQuestsToday}
-                  totalCount={totalQuestsToday}
+                  completedCount={questStats.completed}
+                  totalCount={questStats.total}
                 />
               </TabsContent>
 
@@ -354,7 +283,15 @@ const WarriorSpace = () => {
               </TabsContent>
 
               <TabsContent value="progress" className="space-y-4">
-                <ProgressPanel stats={stats} />
+                <ProgressPanel stats={{
+                  level: progress.level,
+                  xp: progress.currentXp,
+                  nextLevelXp: progress.nextLevelXp,
+                  streak: progress.streak,
+                  completedQuests: progress.completedQuests,
+                  totalCoins: progress.totalCoins,
+                  weeklyProgress: progress.weeklyProgress
+                }} />
               </TabsContent>
             </Tabs>
           </div>
