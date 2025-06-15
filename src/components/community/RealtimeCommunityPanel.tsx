@@ -1,12 +1,10 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSimpleChat } from './hooks/useSimpleChat';
-import { useChannelInitialization } from './hooks/realtime/useChannelInitialization';
-import { useMessageActions } from './hooks/realtime/useMessageActions';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
-import { ChannelType, Message } from '@/types/chat';
+import { ChannelType } from '@/types/chat';
 import ConnectionStatusIndicator from './ConnectionStatusIndicator';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
