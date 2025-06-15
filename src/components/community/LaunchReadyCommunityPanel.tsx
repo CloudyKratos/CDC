@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useSimplifiedRealtimeChat } from './hooks/realtime/useSimplifiedRealtimeChat';
+import { useSimpleChat } from './hooks/useSimpleChat';
 import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
 import ChannelSidebar from './ChannelSidebar';
@@ -25,14 +25,14 @@ const LaunchReadyCommunityPanel: React.FC<LaunchReadyCommunityPanelProps> = ({
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  // Use the simplified realtime chat hook
+  // Use the refactored simple chat hook
   const { 
     messages, 
     isLoading, 
     isConnected, 
     sendMessage, 
     deleteMessage 
-  } = useSimplifiedRealtimeChat(activeChannel);
+  } = useSimpleChat(activeChannel);
 
   // Default channels for launch
   const channels = [
