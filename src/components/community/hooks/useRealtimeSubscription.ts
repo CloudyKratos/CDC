@@ -1,22 +1,29 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 
-interface UseRealtimeConnection {
-  isConnected: boolean;
-  setupRealtimeSubscription: (channelId: string, setMessages: React.Dispatch<React.SetStateAction<Message[]>>) => any;
-}
-
-export function useRealtimeConnection(): UseRealtimeConnection {
+export function useRealtimeSubscription() {
   const [isConnected, setIsConnected] = useState(false);
+  const { user } = useAuth();
+  const subscriptionRef = useRef<any>(null);
 
   const setupRealtimeSubscription = useCallback((
-    channelId: string, 
+    channelId: string,
     setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   ) => {
-    console.log('🔄 Setting up realtime subscription for channel:', channelId);
+    if (!channelId || !user?.id) return;
+
+    console.log('🔄 Setting up realtime subscription for:', channelId);
     
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
     const subscription = supabase
       .channel(`community_messages_${channelId}`)
       .on(
@@ -31,7 +38,7 @@ export function useRealtimeConnection(): UseRealtimeConnection {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Fetch sender details
+          // Get sender profile
           const { data: sender } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
@@ -52,11 +59,11 @@ export function useRealtimeConnection(): UseRealtimeConnection {
           };
 
           setMessages(prev => {
-            // Avoid duplicates
-            if (prev.some(m => m.id === message.id)) return prev;
-            return [...prev, message].sort((a, b) => 
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
+            // Check if message already exists to avoid duplicates
+            const exists = prev.some(msg => msg.id === message.id);
+            if (exists) return prev;
+            
+            return [...prev, message];
           });
         }
       )
@@ -72,27 +79,29 @@ export function useRealtimeConnection(): UseRealtimeConnection {
           console.log('📝 Message updated:', payload);
           const updatedMessage = payload.new as any;
           if (updatedMessage.is_deleted) {
-            setMessages(prev => prev.filter(m => m.id !== updatedMessage.id));
+            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
           }
         }
       )
       .subscribe((status) => {
         console.log('📡 Subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Realtime connection established');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Realtime connection error');
-          setIsConnected(false);
-        }
       });
 
-    return subscription;
+    subscriptionRef.current = subscription;
+  }, [user?.id]);
+
+  const cleanup = useCallback(() => {
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
   }, []);
 
   return {
     isConnected,
-    setupRealtimeSubscription
+    setupRealtimeSubscription,
+    cleanup
   };
 }

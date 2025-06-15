@@ -8,23 +8,13 @@ export function useMessageActions() {
   const { user } = useAuth();
 
   const sendMessage = useCallback(async (content: string, channelId: string | null) => {
-    if (!user?.id) {
-      toast.error("You must be logged in to send messages");
-      return;
-    }
-
-    if (!content.trim()) {
-      toast.error("Message cannot be empty");
-      return;
-    }
-
-    if (!channelId) {
-      toast.error("Channel not ready. Please wait and try again.");
+    if (!user?.id || !channelId || !content.trim()) {
+      toast.error("Cannot send message");
       return;
     }
 
     try {
-      console.log('📤 Sending message:', content.substring(0, 50) + '...');
+      console.log('📤 Sending message to channel:', channelId);
       
       const { error } = await supabase
         .from('community_messages')
@@ -36,19 +26,19 @@ export function useMessageActions() {
 
       if (error) {
         console.error('❌ Error sending message:', error);
-        toast.error('Failed to send message: ' + error.message);
+        toast.error('Failed to send message');
         throw error;
       }
 
       console.log('✅ Message sent successfully');
-      toast.success('Message sent!');
+      toast.success('Message sent!', { duration: 1000 });
     } catch (error) {
       console.error('💥 Failed to send message:', error);
       throw error;
     }
   }, [user?.id]);
 
-  const deleteMessage = useCallback(async (messageId: string, setMessages: React.Dispatch<React.SetStateAction<any[]>>) => {
+  const deleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
@@ -62,13 +52,12 @@ export function useMessageActions() {
 
       if (error) {
         console.error('❌ Error deleting message:', error);
-        toast.error('Failed to delete message: ' + error.message);
+        toast.error('Failed to delete message');
         throw error;
       }
 
       console.log('✅ Message deleted successfully');
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
-      toast.success('Message deleted');
+      toast.success('Message deleted', { duration: 1000 });
     } catch (error) {
       console.error('💥 Failed to delete message:', error);
       throw error;
