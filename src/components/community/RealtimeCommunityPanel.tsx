@@ -2,9 +2,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSimpleChat } from './hooks/useSimpleChat';
 import { useChannelInitialization } from './hooks/realtime/useChannelInitialization';
-import { useMessageLoader } from './hooks/realtime/useMessageLoader';
-import { useRealtimeSubscription } from './hooks/realtime/useRealtimeSubscription';
 import { useMessageActions } from './hooks/realtime/useMessageActions';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { ChannelType, Message } from '@/types/chat';
@@ -29,69 +28,20 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [showChannelList, setShowChannelList] = useState(true);
   const [showMembersList, setShowMembersList] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
 
-  // Use the new refactored hooks
-  const { channelId, initializeChannel } = useChannelInitialization();
-  const { loadMessages } = useMessageLoader();
-  const { sendMessage, deleteMessage } = useMessageActions();
-
-  // Set up realtime subscription with callbacks
-  const handleMessageReceived = useCallback((message: Message) => {
-    setMessages(prev => {
-      if (prev.some(m => m.id === message.id)) return prev;
-      return [...prev, message].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-    });
-  }, []);
-
-  const handleMessageUpdated = useCallback((messageId: string) => {
-    setMessages(prev => prev.filter(m => m.id !== messageId));
-  }, []);
-
-  const { isConnected } = useRealtimeSubscription({
-    channelId,
-    onMessageReceived: handleMessageReceived,
-    onMessageUpdated: handleMessageUpdated
-  });
-
-  // Initialize channel and load messages
-  useEffect(() => {
-    if (!user?.id) {
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const initChat = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        console.log('🔄 Initializing chat for channel:', activeChannel);
-        
-        const id = await initializeChannel(activeChannel);
-        if (id) {
-          const loadedMessages = await loadMessages(id);
-          setMessages(loadedMessages);
-        }
-      } catch (error) {
-        console.error('💥 Failed to initialize chat:', error);
-        setError(error instanceof Error ? error.message : 'Failed to initialize chat');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initChat();
-  }, [activeChannel, user?.id, initializeChannel, loadMessages]);
+  // Use the simplified chat hook
+  const { 
+    messages, 
+    isLoading, 
+    error, 
+    isConnected,
+    sendMessage,
+    deleteMessage
+  } = useSimpleChat(activeChannel);
 
   // Mock channels data for the sidebar
   const mockChannels = [
@@ -122,18 +72,18 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     }
 
     try {
-      await sendMessage(content, channelId);
+      await sendMessage(content);
     } catch (error) {
       console.error("Error sending message:", error);
       // Error handling is done in the hook
     }
-  }, [user?.id, isOnline, sendMessage, channelId]);
+  }, [user?.id, isOnline, sendMessage]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
-      await deleteMessage(messageId, setMessages);
+      await deleteMessage(messageId);
     } catch (error) {
       console.error('Error deleting message:', error);
       // Error handling is done in the hook
