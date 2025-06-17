@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCommunityChat } from '@/hooks/use-community-chat';
+import { useChatManager } from '@/hooks/useChatManager';
 import { useChannelData } from '@/hooks/use-channel-data';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useChatActions } from './hooks/useChatActions';
@@ -31,15 +31,17 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
   const { user } = useAuth();
   const { isOnline, reconnecting, connectionAttempts } = useNetworkStatus();
 
-  // Use custom hooks for chat and channel data
+  // Use the new unified chat manager
   const {
     messages,
     isLoading: chatLoading,
+    error: chatError,
+    isConnected,
     sendMessage,
     deleteMessage,
     replyToMessage,
     addReaction
-  } = useCommunityChat(activeChannel);
+  } = useChatManager(activeChannel);
 
   const {
     channels,
@@ -72,13 +74,13 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
   };
 
   // Error state with retry option
-  if (channelsError) {
+  if (channelsError || chatError) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <Alert className="max-w-md border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800 space-y-3">
-            <div>Failed to load community channels. This might be due to connection issues.</div>
+            <div>{channelsError || chatError}</div>
             <Button onClick={handleRetryConnection} variant="outline" size="sm" className="w-full">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry Connection
@@ -111,7 +113,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <ChatHeader
           activeChannel={activeChannel}
-          isOnline={isOnline}
+          isOnline={isConnected}
           reconnecting={reconnecting}
           isMobile={isMobile}
           showChannelList={showChannelList}
