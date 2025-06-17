@@ -120,12 +120,28 @@ export function useCommunityChat(channelName: string) {
     }
   }, [user?.id]);
 
+  const replyToMessage = useCallback((messageId: string) => {
+    console.log('📝 Reply to message:', messageId);
+    // For now, just log the reply action
+    // This can be expanded later with actual reply functionality
+    toast.info('Reply feature coming soon!');
+  }, []);
+
+  const addReaction = useCallback(async (messageId: string, reaction: string) => {
+    console.log('👍 Add reaction:', reaction, 'to message:', messageId);
+    // For now, just log the reaction action
+    // This can be expanded later with actual reaction functionality
+    toast.info('Reactions feature coming soon!');
+  }, []);
+
   return {
     messages,
     isLoading,
     error,
     isConnected,
     sendMessage,
-    deleteMessage
+    deleteMessage,
+    replyToMessage,
+    addReaction
   };
 }
