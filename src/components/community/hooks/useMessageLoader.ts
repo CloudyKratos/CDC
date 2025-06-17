@@ -8,68 +8,58 @@ export function useMessageLoader() {
   const { user } = useAuth();
 
   const loadMessages = useCallback(async (channelId: string): Promise<Message[]> => {
-    if (!user?.id || !channelId) return [];
+    if (!user?.id || !channelId) {
+      console.log('⚠️ No user or channel ID for loading messages');
+      return [];
+    }
 
     try {
-      console.log('📖 Loading messages for channel:', channelId);
+      console.log('🔄 Loading messages for channel ID:', channelId);
       
-      const { data: messagesData, error: messagesError } = await supabase
+      const { data: messages, error } = await supabase
         .from('community_messages')
         .select(`
           id,
           content,
           created_at,
-          sender_id
+          sender_id,
+          profiles!community_messages_sender_id_fkey (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
         `)
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true });
 
-      if (messagesError) {
-        console.error('❌ Error loading messages:', messagesError);
+      if (error) {
+        console.error('❌ Error loading messages:', error);
+        throw new Error(`Failed to load messages: ${error.message}`);
+      }
+
+      console.log('✅ Messages loaded:', messages?.length || 0);
+
+      if (!messages || messages.length === 0) {
         return [];
       }
 
-      if (!messagesData?.length) {
-        console.log('📭 No messages found');
-        return [];
-      }
-
-      // Get sender profiles
-      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', senderIds);
-
-      // Format messages with sender data
-      const formattedMessages = messagesData.map(msg => {
-        const senderProfile = profiles?.find(p => p.id === msg.sender_id);
-        
-        return {
-          id: msg.id,
-          content: msg.content,
-          created_at: msg.created_at,
-          sender_id: msg.sender_id,
-          sender: senderProfile ? {
-            id: senderProfile.id,
-            username: senderProfile.username || 'Unknown User',
-            full_name: senderProfile.full_name || 'Unknown User',
-            avatar_url: senderProfile.avatar_url
-          } : {
-            id: msg.sender_id,
-            username: 'Unknown User',
-            full_name: 'Unknown User',
-            avatar_url: null
-          }
-        };
-      });
-
-      console.log('✅ Messages loaded:', formattedMessages.length);
-      return formattedMessages;
+      return messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+          id: msg.sender_id,
+          username: 'Unknown User',
+          full_name: 'Unknown User',
+          avatar_url: null
+        }
+      }));
     } catch (error) {
-      console.error('💥 Failed to load messages:', error);
-      return [];
+      console.error('💥 Exception in loadMessages:', error);
+      throw error;
     }
   }, [user?.id]);
 

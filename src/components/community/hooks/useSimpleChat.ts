@@ -22,6 +22,9 @@ export function useSimpleChat(channelName: string) {
 
   // Wrapper functions to maintain the same API
   const sendMessage = async (content: string) => {
+    if (!channelId) {
+      throw new Error('No channel available');
+    }
     await sendMessageAction(content, channelId);
   };
 
@@ -42,6 +45,8 @@ export function useSimpleChat(channelName: string) {
       try {
         setIsLoading(true);
         setError(null);
+
+        console.log('🔄 Initializing chat for:', channelName);
 
         // Get or create channel
         const id = await getOrCreateChannel(channelName);

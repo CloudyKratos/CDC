@@ -27,6 +27,7 @@ class MessageService {
         .from('channels')
         .select('id')
         .eq('name', channelName)
+        .eq('type', 'public')
         .single();
 
       if (channelError) {
