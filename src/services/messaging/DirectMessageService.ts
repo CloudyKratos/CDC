@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface DirectMessage {
   id: string;
@@ -41,8 +40,17 @@ class DirectMessageService {
   // Get all conversations for the current user
   async getConversations(): Promise<Conversation[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication required');
+      }
+
+      if (!user) {
+        console.log('No authenticated user');
+        return [];
+      }
 
       console.log('🔄 DirectMessageService: Fetching conversations for user:', user.id);
 
@@ -59,10 +67,10 @@ class DirectMessageService {
             id,
             content,
             created_at,
-            sender_id,
-            is_read
+            sender_id
           )
         `)
+        .or(`participant_one_id.eq.${user.id},participant_two_id.eq.${user.id}`)
         .order('last_activity_at', { ascending: false });
 
       if (error) {
@@ -70,58 +78,69 @@ class DirectMessageService {
         throw new Error(`Failed to fetch conversations: ${error.message}`);
       }
 
-      console.log('✅ DirectMessageService: Conversations fetched:', conversations?.length || 0);
+      if (!conversations || conversations.length === 0) {
+        console.log('📭 DirectMessageService: No conversations found');
+        return [];
+      }
 
-      if (!conversations) return [];
-
-      // Enhance conversations with participant info and unread counts
-      const enhancedConversations = await Promise.all(
+      // Process conversations to get other participant details
+      const processedConversations = await Promise.all(
         conversations.map(async (conv) => {
           const otherParticipantId = conv.participant_one_id === user.id 
             ? conv.participant_two_id 
             : conv.participant_one_id;
 
-          // Get other participant's profile
+          // Get other participant profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
             .eq('id', otherParticipantId)
             .single();
 
-          // Get unread message count
+          // Get unread count
           const { count: unreadCount } = await supabase
             .from('direct_messages')
             .select('id', { count: 'exact' })
             .eq('recipient_id', user.id)
             .eq('sender_id', otherParticipantId)
-            .eq('is_read', false);
+            .eq('is_read', false)
+            .eq('is_deleted', false);
 
           return {
-            ...conv,
+            id: conv.id,
+            participant_one_id: conv.participant_one_id,
+            participant_two_id: conv.participant_two_id,
+            last_message_id: conv.last_message_id,
+            last_activity_at: conv.last_activity_at,
+            created_at: conv.created_at,
+            last_message: Array.isArray(conv.direct_messages) ? conv.direct_messages[0] : conv.direct_messages,
             other_participant: profile || {
               id: otherParticipantId,
               username: 'Unknown User',
               full_name: 'Unknown User',
               avatar_url: null
             },
-            last_message: Array.isArray(conv.direct_messages) ? conv.direct_messages[0] : conv.direct_messages,
             unread_count: unreadCount || 0
           };
         })
       );
 
-      return enhancedConversations;
+      console.log('✅ DirectMessageService: Conversations processed:', processedConversations.length);
+      return processedConversations;
     } catch (error) {
       console.error('💥 DirectMessageService: Exception in getConversations:', error);
       throw error;
     }
   }
 
-  // Get messages for a specific conversation
+  // Get messages between current user and another user
   async getMessages(recipientId: string): Promise<DirectMessage[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
 
       console.log('🔄 DirectMessageService: Fetching messages between:', user.id, 'and', recipientId);
 
@@ -153,11 +172,11 @@ class DirectMessageService {
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
-      console.log('✅ DirectMessageService: Messages fetched:', messages?.length || 0);
+      if (!messages) {
+        return [];
+      }
 
-      if (!messages) return [];
-
-      return messages.map(msg => ({
+      const processedMessages = messages.map(msg => ({
         id: msg.id,
         sender_id: msg.sender_id,
         recipient_id: msg.recipient_id,
@@ -174,24 +193,25 @@ class DirectMessageService {
           avatar_url: null
         }
       }));
+
+      console.log('✅ DirectMessageService: Messages fetched:', processedMessages.length);
+      return processedMessages;
     } catch (error) {
       console.error('💥 DirectMessageService: Exception in getMessages:', error);
       throw error;
     }
   }
 
-  // Send a direct message
+  // Send a message
   async sendMessage(recipientId: string, content: string, replyToId?: string): Promise<DirectMessage> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      if (!content.trim()) {
-        toast.error('Cannot send empty message');
-        throw new Error('Content cannot be empty');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
       }
 
-      console.log('🔄 DirectMessageService: Sending message to:', recipientId);
+      console.log('📤 DirectMessageService: Sending message to:', recipientId);
 
       const { data: message, error } = await supabase
         .from('direct_messages')
@@ -199,7 +219,7 @@ class DirectMessageService {
           sender_id: user.id,
           recipient_id: recipientId,
           content: content.trim(),
-          reply_to_id: replyToId || null
+          reply_to_id: replyToId
         })
         .select(`
           id,
@@ -216,11 +236,8 @@ class DirectMessageService {
 
       if (error) {
         console.error('❌ DirectMessageService: Error sending message:', error);
-        toast.error('Failed to send message');
         throw new Error(`Failed to send message: ${error.message}`);
       }
-
-      console.log('✅ DirectMessageService: Message sent successfully');
 
       // Get sender profile
       const { data: sender } = await supabase
@@ -229,7 +246,7 @@ class DirectMessageService {
         .eq('id', user.id)
         .single();
 
-      return {
+      const processedMessage: DirectMessage = {
         ...message,
         sender: sender || {
           id: user.id,
@@ -238,6 +255,9 @@ class DirectMessageService {
           avatar_url: null
         }
       };
+
+      console.log('✅ DirectMessageService: Message sent successfully');
+      return processedMessage;
     } catch (error) {
       console.error('💥 DirectMessageService: Exception in sendMessage:', error);
       throw error;
@@ -247,16 +267,17 @@ class DirectMessageService {
   // Mark messages as read
   async markAsRead(senderId: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      console.log('🔄 DirectMessageService: Marking messages as read from:', senderId);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
 
       const { error } = await supabase
         .from('direct_messages')
         .update({ is_read: true })
-        .eq('sender_id', senderId)
         .eq('recipient_id', user.id)
+        .eq('sender_id', senderId)
         .eq('is_read', false);
 
       if (error) {
@@ -271,13 +292,20 @@ class DirectMessageService {
     }
   }
 
-  // Delete a message
+  // Delete a message (soft delete)
   async deleteMessage(messageId: string): Promise<void> {
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
+
       const { error } = await supabase
         .from('direct_messages')
         .update({ is_deleted: true })
-        .eq('id', messageId);
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
 
       if (error) {
         console.error('❌ DirectMessageService: Error deleting message:', error);
@@ -285,23 +313,25 @@ class DirectMessageService {
       }
 
       console.log('✅ DirectMessageService: Message deleted successfully');
-      toast.success('Message deleted', { duration: 1000 });
     } catch (error) {
       console.error('💥 DirectMessageService: Exception in deleteMessage:', error);
       throw error;
     }
   }
 
-  // Get all users for starting new conversations
+  // Get all users (for starting new conversations)
   async getUsers(): Promise<Array<{ id: string; username?: string; full_name?: string; avatar_url?: string; }>> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
 
       const { data: users, error } = await supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
-        .neq('id', user.id)
+        .neq('id', user.id) // Exclude current user
         .order('full_name');
 
       if (error) {
@@ -309,6 +339,7 @@ class DirectMessageService {
         throw new Error(`Failed to fetch users: ${error.message}`);
       }
 
+      console.log('✅ DirectMessageService: Users fetched:', users?.length || 0);
       return users || [];
     } catch (error) {
       console.error('💥 DirectMessageService: Exception in getUsers:', error);

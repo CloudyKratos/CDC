@@ -1048,6 +1048,10 @@ export type Database = {
         Args: { channel_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      user_can_access_channel_safe: {
+        Args: { channel_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       user_is_channel_member: {
         Args: { channel_id_param: string; user_id_param: string }
         Returns: boolean
