@@ -162,6 +162,85 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_activity_at: string
+          last_message_id: string | null
+          participant_one_id: string
+          participant_two_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          last_message_id?: string | null
+          participant_one_id: string
+          participant_two_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          last_message_id?: string | null
+          participant_one_id?: string
+          participant_two_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_last_message_id_fkey"
+            columns: ["last_message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_deleted: boolean | null
+          is_read: boolean | null
+          recipient_id: string
+          reply_to_id: string | null
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
+          recipient_id: string
+          reply_to_id?: string | null
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
+          recipient_id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_attendance: {
         Row: {
           created_at: string | null
@@ -861,6 +940,10 @@ export type Database = {
           comment_count: number
           user_rsvp_status: Database["public"]["Enums"]["rsvp_status"]
         }[]
+      }
+      get_or_create_conversation: {
+        Args: { user_one_id: string; user_two_id: string }
+        Returns: string
       }
       get_stage_with_counts: {
         Args: { stage_id_param: string }
