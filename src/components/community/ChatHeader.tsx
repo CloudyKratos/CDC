@@ -1,93 +1,65 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Hash, Users, Menu, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { Hash, Menu, MessageCircle, Wifi, WifiOff } from 'lucide-react';
 
 interface ChatHeaderProps {
   activeChannel: string;
-  isOnline: boolean;
-  reconnecting: boolean;
+  isConnected: boolean;
   isMobile: boolean;
   showChannelList: boolean;
-  setShowChannelList: (show: boolean) => void;
-  showMembersList: boolean;
-  setShowMembersList: (show: boolean) => void;
+  onToggleChannelList: (show: boolean) => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   activeChannel,
-  isOnline,
-  reconnecting,
+  isConnected,
   isMobile,
   showChannelList,
-  setShowChannelList,
-  showMembersList,
-  setShowMembersList
+  onToggleChannelList
 }) => {
-  const getChannelDisplayName = () => {
-    return activeChannel.replace(/-/g, ' ');
-  };
-
-  const getConnectionStatus = () => {
-    if (reconnecting) return { icon: AlertCircle, text: 'Reconnecting...', color: 'text-amber-500' };
-    if (isOnline) return { icon: Wifi, text: 'Connected', color: 'text-green-500' };
-    return { icon: WifiOff, text: 'Disconnected', color: 'text-red-500' };
-  };
-
-  const status = getConnectionStatus();
-  const StatusIcon = status.icon;
-
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
-      {/* Left side - Channel info */}
+    <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
       <div className="flex items-center gap-3">
-        {/* Mobile menu button */}
         {isMobile && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowChannelList(!showChannelList)}
+            onClick={() => onToggleChannelList(!showChannelList)}
             className="h-8 w-8 p-0"
           >
             <Menu size={18} />
           </Button>
         )}
         
-        {/* Channel name */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-            <Hash size={16} className="text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+            <Hash size={18} className="text-white" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-slate-100 capitalize">
-              {getChannelDisplayName()}
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 capitalize flex items-center gap-2">
+              {activeChannel}
+              <MessageCircle size={16} className="text-slate-500" />
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Community discussion
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right side - Status and controls */}
-      <div className="flex items-center gap-3">
-        {/* Connection status */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-full">
-          <StatusIcon size={14} className={status.color} />
-          <span className={`text-xs font-medium ${status.color}`}>
-            {status.text}
-          </span>
-        </div>
-
-        {/* Members button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowMembersList(!showMembersList)}
-          className="h-8 w-8 p-0 hidden md:flex"
-        >
-          <Users size={18} />
-        </Button>
+      <div className="flex items-center gap-2">
+        {isConnected ? (
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+            <Wifi className="h-4 w-4" />
+            <span className="text-sm font-medium">Connected</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <WifiOff className="h-4 w-4" />
+            <span className="text-sm font-medium">Connecting...</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,48 +1,63 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Hash } from 'lucide-react';
-import { ChatChannel } from '@/types/chat';
-import ServerSidebar from './ServerSidebar';
+
+interface Channel {
+  id: string;
+  name: string;
+  description: string;
+}
 
 interface ChannelSidebarProps {
-  channels: ChatChannel[];
+  channels: Channel[];
   activeChannel: string;
-  onChannelSelect: (channelId: string) => void;
-  isLoading: boolean;
+  onChannelSelect: (channelName: string) => void;
   isMobile: boolean;
   showChannelList: boolean;
-  setShowChannelList: (show: boolean) => void;
+  onToggleChannelList: (show: boolean) => void;
 }
 
 const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
   channels,
   activeChannel,
   onChannelSelect,
-  isLoading,
   isMobile,
   showChannelList,
-  setShowChannelList
+  onToggleChannelList
 }) => {
-  return (
-    <>
-      <div className={`${isMobile && !showChannelList ? 'hidden' : ''} ${isMobile ? 'absolute inset-y-0 left-0 z-50 w-80' : 'w-80'} bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-lg`}>
-        <ServerSidebar
-          channels={channels}
-          activeChannel={activeChannel}
-          onChannelSelect={onChannelSelect}
-          isLoading={isLoading}
-        />
-      </div>
+  if (!showChannelList && isMobile) return null;
 
-      {/* Mobile overlay */}
-      {isMobile && showChannelList && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setShowChannelList(false)}
-        />
-      )}
-    </>
+  return (
+    <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 p-4">
+      <div className="flex items-center gap-2 mb-6">
+        <Hash className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+        <h2 className="font-semibold text-slate-900 dark:text-slate-100">
+          Channels
+        </h2>
+      </div>
+      
+      <div className="space-y-2">
+        {channels.map((channel) => (
+          <button
+            key={channel.id}
+            onClick={() => {
+              onChannelSelect(channel.name);
+              if (isMobile) onToggleChannelList(false);
+            }}
+            className={`w-full text-left p-3 rounded-lg transition-colors ${
+              activeChannel === channel.name
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <div className="font-medium">#{channel.name}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {channel.description}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 };
 
