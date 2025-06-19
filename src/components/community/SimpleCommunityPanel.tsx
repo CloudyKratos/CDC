@@ -179,13 +179,13 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
                   />
                 </div>
                 
-                {/* Enhanced Message Input */}
+                {/* Message Input */}
                 <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <MessageInput 
                     onSendMessage={handleSendMessage} 
                     isLoading={chatLoading} 
                     channelName={activeChannel}
-                    placeholder={`Message #${activeChannel.replace(/-/g, ' ')}...`}
+                    disabled={!isConnected && !!user?.id}
                   />
                 </div>
               </>

@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import ImprovedCommunityPanel from './community/ImprovedCommunityPanel';
+import SimpleCommunityPanel from './community/SimpleCommunityPanel';
 import CommunityErrorBoundary from './community/CommunityErrorBoundary';
 
 interface CommunityPanelProps {
@@ -33,10 +33,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Quick initialization for launch readiness
+    // Quick initialization
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 200);
+    }, 500);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -51,7 +51,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     
     setTimeout(() => {
       setIsLoading(false);
-    }, 200);
+    }, 500);
   };
 
   if (!isOnline) {
@@ -79,7 +79,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Community</h3>
-            <p className="text-gray-600">Initializing real-time chat...</p>
+            <p className="text-gray-600">Setting up real-time chat...</p>
             {retryCount > 0 && (
               <p className="text-sm text-gray-500 mt-2">Retry attempt #{retryCount}</p>
             )}
@@ -100,7 +100,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       </div>
       
       <CommunityErrorBoundary>
-        <ImprovedCommunityPanel defaultChannel={channelName} />
+        <SimpleCommunityPanel defaultChannel={channelName} />
       </CommunityErrorBoundary>
     </div>
   );
