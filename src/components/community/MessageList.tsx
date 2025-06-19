@@ -6,10 +6,20 @@ import { Message } from '@/types/chat';
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
-  activeChannel: string;
+  activeChannel?: string;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
+  onReplyMessage?: (messageId: string) => void;
+  onReactionAdd?: (messageId: string, reaction: string) => Promise<void>;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, activeChannel }) => {
+const MessageList: React.FC<MessageListProps> = ({ 
+  messages, 
+  isLoading, 
+  activeChannel = 'general',
+  onDeleteMessage,
+  onReplyMessage,
+  onReactionAdd
+}) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -38,7 +48,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, activeCh
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {messages.map((message) => (
         <div key={message.id} className="flex gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">

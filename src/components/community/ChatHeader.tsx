@@ -5,19 +5,46 @@ import { Hash, Menu, MessageCircle, Wifi, WifiOff } from 'lucide-react';
 
 interface ChatHeaderProps {
   activeChannel: string;
-  isConnected: boolean;
+  isConnected?: boolean;
+  isOnline?: boolean;
+  reconnecting?: boolean;
   isMobile: boolean;
   showChannelList: boolean;
-  onToggleChannelList: (show: boolean) => void;
+  onToggleChannelList?: (show: boolean) => void;
+  setShowChannelList?: (show: boolean) => void;
+  showMembersList?: boolean;
+  setShowMembersList?: (show: boolean) => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   activeChannel,
-  isConnected,
+  isConnected = true,
+  isOnline = true,
+  reconnecting = false,
   isMobile,
   showChannelList,
-  onToggleChannelList
+  onToggleChannelList,
+  setShowChannelList,
+  showMembersList,
+  setShowMembersList
 }) => {
+  const handleToggleChannelList = () => {
+    if (onToggleChannelList) {
+      onToggleChannelList(!showChannelList);
+    } else if (setShowChannelList) {
+      setShowChannelList(!showChannelList);
+    }
+  };
+
+  // Determine connection status
+  const connectionStatus = reconnecting ? 'Reconnecting...' : 
+                          (isConnected && isOnline) ? 'Connected' : 'Connecting...';
+  const connectionIcon = reconnecting ? WifiOff : 
+                        (isConnected && isOnline) ? Wifi : WifiOff;
+  const connectionColor = reconnecting ? 'text-yellow-600 dark:text-yellow-400' :
+                         (isConnected && isOnline) ? 'text-green-600 dark:text-green-400' : 
+                         'text-red-600 dark:text-red-400';
+
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
       <div className="flex items-center gap-3">
@@ -25,7 +52,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onToggleChannelList(!showChannelList)}
+            onClick={handleToggleChannelList}
             className="h-8 w-8 p-0"
           >
             <Menu size={18} />
@@ -49,17 +76,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        {isConnected ? (
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-            <Wifi className="h-4 w-4" />
-            <span className="text-sm font-medium">Connected</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <WifiOff className="h-4 w-4" />
-            <span className="text-sm font-medium">Connecting...</span>
-          </div>
-        )}
+        <div className={`flex items-center gap-2 ${connectionColor}`}>
+          {React.createElement(connectionIcon, { className: "h-4 w-4" })}
+          <span className="text-sm font-medium">{connectionStatus}</span>
+        </div>
       </div>
     </div>
   );

@@ -6,18 +6,25 @@ import { Send } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
-  activeChannel: string;
-  isConnected: boolean;
+  activeChannel?: string;
+  channelName?: string;
+  isConnected?: boolean;
   isLoading: boolean;
+  placeholder?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   activeChannel,
-  isConnected,
-  isLoading
+  channelName,
+  isConnected = true,
+  isLoading,
+  placeholder
 }) => {
   const [messageInput, setMessageInput] = useState('');
+  
+  const displayChannel = channelName || activeChannel || 'general';
+  const inputPlaceholder = placeholder || `Message #${displayChannel}...`;
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return;
@@ -47,7 +54,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           value={messageInput}
           onChange={(e) => setMessageInput(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={`Message #${activeChannel}...`}
+          placeholder={inputPlaceholder}
           disabled={!isConnected || isLoading}
           className="flex-1"
         />
