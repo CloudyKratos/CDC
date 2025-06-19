@@ -8,6 +8,7 @@ interface UseChannelData {
   channels: ChatChannel[];
   isLoading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export function useChannelData(serverId: string, activeChannel: string): UseChannelData {
@@ -15,33 +16,36 @@ export function useChannelData(serverId: string, activeChannel: string): UseChan
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadChannels = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        console.log('Loading channels for server:', serverId);
-        const channelsData = await CommunityService.getChannels();
-        console.log('Channels loaded:', channelsData);
-        
-        setChannels(channelsData);
-      } catch (error) {
-        console.error('Error loading channels:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load channels';
-        setError(errorMessage);
-        toast.error('Failed to load community channels: ' + errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadChannels = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('Loading channels for server:', serverId);
+      const channelsData = await CommunityService.getChannels();
+      console.log('Channels loaded:', channelsData);
+      
+      setChannels(channelsData);
+    } catch (error) {
+      console.error('Error loading channels:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load channels';
+      setError(errorMessage);
+      
+      // Don't show toast error for channel loading - it's handled gracefully
+      console.log('Channel loading failed, using fallback channels');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadChannels();
   }, [serverId, activeChannel]);
 
   return {
     channels,
     isLoading,
-    error
+    error,
+    refetch: loadChannels
   };
 }

@@ -1,11 +1,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
-import type { CommunityMessage } from './types';
 import ChannelService from './ChannelService';
 
 class MessageService {
-  // Get messages for a specific channel
+  // Get messages for a specific channel with better error handling
   async getMessages(channelName: string): Promise<Message[]> {
     console.log('🔄 MessageService: Fetching messages for channel:', channelName);
     
@@ -28,17 +27,16 @@ class MessageService {
         .select('id')
         .eq('name', channelName)
         .eq('type', 'public')
-        .single();
+        .maybeSingle();
 
-      if (channelError) {
+      if (channelError && channelError.code !== 'PGRST116') {
         console.error('❌ MessageService: Error finding channel:', channelError);
-        
-        if (channelError.code === 'PGRST116') {
-          console.log('📝 MessageService: Channel not found, will create when first message is sent');
-          return [];
-        }
-        
-        throw new Error(`Channel not found: ${channelError.message}`);
+        throw new Error(`Failed to find channel: ${channelError.message}`);
+      }
+
+      if (!channel) {
+        console.log('📝 MessageService: Channel not found, will create when first message is sent');
+        return [];
       }
 
       console.log('✅ MessageService: Found channel:', channel);
@@ -64,7 +62,9 @@ class MessageService {
 
       if (error) {
         console.error('❌ MessageService: Error fetching messages:', error);
-        throw new Error(`Failed to fetch messages: ${error.message}`);
+        // Don't throw error for message fetching - return empty array instead
+        console.log('📝 MessageService: Returning empty messages due to error');
+        return [];
       }
 
       console.log('✅ MessageService: Messages fetched:', messages?.length || 0);
@@ -87,18 +87,19 @@ class MessageService {
       }));
     } catch (error) {
       console.error('💥 MessageService: Exception in getMessages:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crashes
+      return [];
     }
   }
 
-  // Send a message to a channel
+  // Send a message to a channel with improved error handling
   async sendMessage(content: string, channelName: string = 'general'): Promise<Message> {
     console.log('🔄 MessageService: Sending message:', { content, channelName });
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (!user) {
+      if (authError || !user) {
         console.error('❌ MessageService: No authenticated user found');
         throw new Error('User must be authenticated to send messages');
       }
@@ -156,18 +157,27 @@ class MessageService {
     }
   }
 
-  // Delete a message
+  // Delete a message with better error handling
   async deleteMessage(messageId: string): Promise<void> {
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
+
       const { error } = await supabase
         .from('community_messages')
         .update({ is_deleted: true })
-        .eq('id', messageId);
+        .eq('id', messageId)
+        .eq('sender_id', user.id); // Only allow deleting own messages
 
       if (error) {
         console.error('❌ MessageService: Error deleting message:', error);
         throw new Error(`Failed to delete message: ${error.message}`);
       }
+
+      console.log('✅ MessageService: Message deleted successfully');
     } catch (error) {
       console.error('💥 MessageService: Exception in deleteMessage:', error);
       throw error;

@@ -78,40 +78,45 @@ export class ChatManager {
   }
 
   private async getOrCreateChannel(channelName: string, userId: string): Promise<string> {
-    // First try to get existing channel
-    let { data: channel, error } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('name', channelName)
-      .eq('type', 'public')
-      .maybeSingle();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to check channel: ${error.message}`);
-    }
-
-    if (!channel) {
-      // Create new channel
-      console.log('📝 ChatManager: Creating new channel:', channelName);
-      const { data: newChannel, error: createError } = await supabase
+    try {
+      // First try to get existing channel
+      let { data: channel, error } = await supabase
         .from('channels')
-        .insert({
-          name: channelName,
-          type: 'public',
-          description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
-          created_by: userId
-        })
         .select('id')
-        .single();
+        .eq('name', channelName)
+        .eq('type', 'public')
+        .maybeSingle();
 
-      if (createError) {
-        throw new Error(`Failed to create channel: ${createError.message}`);
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(`Failed to check channel: ${error.message}`);
       }
-      
-      channel = newChannel;
-    }
 
-    return channel.id;
+      if (!channel) {
+        // Create new channel
+        console.log('📝 ChatManager: Creating new channel:', channelName);
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: channelName,
+            type: 'public',
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
+            created_by: userId
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          throw new Error(`Failed to create channel: ${createError.message}`);
+        }
+        
+        channel = newChannel;
+      }
+
+      return channel.id;
+    } catch (error) {
+      console.error('💥 ChatManager: Error in getOrCreateChannel:', error);
+      throw error;
+    }
   }
 
   private async ensureUserInChannel(channelId: string, userId: string): Promise<void> {
@@ -127,7 +132,7 @@ export class ChatManager {
         });
 
       // Ignore unique constraint violations (user already in channel)
-      if (error && !error.message.includes('duplicate key')) {
+      if (error && !error.message.includes('duplicate key') && !error.message.includes('unique')) {
         console.warn('⚠️ ChatManager: Could not add user to channel:', error);
       }
     } catch (error) {
@@ -139,42 +144,49 @@ export class ChatManager {
   private async loadMessages(channelId: string): Promise<Message[]> {
     console.log('📥 ChatManager: Loading messages for channel:', channelId);
     
-    const { data: messages, error } = await supabase
-      .from('community_messages')
-      .select(`
-        id,
-        content,
-        created_at,
-        sender_id,
-        profiles!community_messages_sender_id_fkey (
+    try {
+      const { data: messages, error } = await supabase
+        .from('community_messages')
+        .select(`
           id,
-          username,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('channel_id', channelId)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: true });
+          content,
+          created_at,
+          sender_id,
+          profiles!community_messages_sender_id_fkey (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('channel_id', channelId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to load messages: ${error.message}`);
-    }
-
-    if (!messages) return [];
-
-    return messages.map(msg => ({
-      id: msg.id,
-      content: msg.content,
-      created_at: msg.created_at,
-      sender_id: msg.sender_id,
-      sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
-        id: msg.sender_id,
-        username: 'Unknown User',
-        full_name: 'Unknown User',
-        avatar_url: null
+      if (error) {
+        console.error('❌ ChatManager: Error loading messages:', error);
+        // Return empty array instead of throwing
+        return [];
       }
-    }));
+
+      if (!messages) return [];
+
+      return messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+          id: msg.sender_id,
+          username: 'Unknown User',
+          full_name: 'Unknown User',
+          avatar_url: null
+        }
+      }));
+    } catch (error) {
+      console.error('💥 ChatManager: Exception loading messages:', error);
+      return [];
+    }
   }
 
   private setupRealtimeSubscription(channelId: string): void {

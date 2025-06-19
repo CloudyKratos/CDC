@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ChatChannel, ChannelType } from '@/types/chat';
-import type { Channel } from './types';
 
 class ChannelService {
   // Get all available channels
@@ -9,6 +8,18 @@ class ChannelService {
     console.log('🔄 ChannelService: Fetching channels...');
     
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('❌ ChannelService: Auth error:', authError);
+        throw new Error('Authentication required');
+      }
+
+      if (!user) {
+        console.log('⚠️ ChannelService: No authenticated user');
+        return this.createDefaultChannels();
+      }
+
       const { data: channels, error } = await supabase
         .from('channels')
         .select('*')
@@ -17,7 +28,8 @@ class ChannelService {
 
       if (error) {
         console.error('❌ ChannelService: Error fetching channels:', error);
-        throw new Error(`Failed to fetch channels: ${error.message}`);
+        // Return default channels instead of throwing error
+        return this.createDefaultChannels();
       }
 
       console.log('✅ ChannelService: Channels fetched successfully:', channels);
@@ -68,41 +80,51 @@ class ChannelService {
     ];
   }
 
-  // Get or create channel
+  // Get or create channel with better error handling
   async getOrCreateChannel(channelName: string, userId: string): Promise<{ id: string }> {
     console.log('🔄 ChannelService: Getting or creating channel:', channelName);
 
-    let { data: channel, error: channelError } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('name', channelName)
-      .single();
-
-    if (channelError || !channel) {
-      console.log('📝 ChannelService: Channel not found, creating it...');
-      const { data: newChannel, error: createError } = await supabase
+    try {
+      let { data: channel, error: channelError } = await supabase
         .from('channels')
-        .insert({
-          name: channelName,
-          type: 'public',
-          description: `${channelName} channel`,
-          created_by: userId
-        })
         .select('id')
-        .single();
+        .eq('name', channelName)
+        .maybeSingle();
 
-      if (createError) {
-        console.error('❌ ChannelService: Error creating channel:', createError);
-        throw new Error(`Failed to create channel: ${createError.message}`);
+      if (channelError && channelError.code !== 'PGRST116') {
+        console.error('❌ ChannelService: Error checking channel:', channelError);
+        throw new Error(`Failed to check channel: ${channelError.message}`);
       }
-      
-      channel = newChannel;
-    }
 
-    return channel;
+      if (!channel) {
+        console.log('📝 ChannelService: Channel not found, creating it...');
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: channelName,
+            type: 'public',
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
+            created_by: userId
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          console.error('❌ ChannelService: Error creating channel:', createError);
+          throw new Error(`Failed to create channel: ${createError.message}`);
+        }
+        
+        channel = newChannel;
+      }
+
+      return channel;
+    } catch (error) {
+      console.error('💥 ChannelService: Exception in getOrCreateChannel:', error);
+      throw error;
+    }
   }
 
-  // Join a channel
+  // Join a channel with improved error handling
   async joinChannel(channelName: string, userId: string): Promise<void> {
     console.log('🔄 ChannelService: Joining channel:', { channelName, userId });
     
@@ -112,9 +134,14 @@ class ChannelService {
         .from('channels')
         .select('id')
         .eq('name', channelName)
-        .single();
+        .maybeSingle();
 
-      if (channelError || !channel) {
+      if (channelError && channelError.code !== 'PGRST116') {
+        console.error('❌ ChannelService: Error finding channel for joining:', channelError);
+        return;
+      }
+
+      if (!channel) {
         console.log('⚠️ ChannelService: Channel not found for joining');
         return;
       }
@@ -128,15 +155,15 @@ class ChannelService {
         });
 
       // Ignore unique constraint violations (user already in channel)
-      if (error && !error.message.includes('duplicate key')) {
+      if (error && !error.message.includes('duplicate key') && !error.message.includes('unique')) {
         console.error('❌ ChannelService: Error joining channel:', error);
-        // Don't throw error for joining channel issues
+        // Don't throw error for joining channel issues - it's not critical
       }
 
       console.log('✅ ChannelService: Successfully joined channel');
     } catch (error) {
       console.error('💥 ChannelService: Exception in joinChannel:', error);
-      // Don't throw error for joining channel issues
+      // Don't throw error for joining channel issues - it's not critical
     }
   }
 }
