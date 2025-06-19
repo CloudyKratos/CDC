@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,7 +38,7 @@ const ImprovedCommunityChat: React.FC<ImprovedCommunityChatProps> = ({
   } = useSimpleChat(activeChannel);
 
   // Enhanced default channels with better descriptions
-  const displayChannels = channels.length > 0 ? channels : [
+  const defaultChannels = [
     { 
       id: 'general', 
       name: 'general', 
@@ -90,6 +89,14 @@ const ImprovedCommunityChat: React.FC<ImprovedCommunityChatProps> = ({
       description: '🤝 Professional networking and collaborations' 
     }
   ];
+
+  // Use channels from API if available, otherwise use defaults
+  const displayChannels = channels.length > 0 ? 
+    channels.map(channel => ({
+      ...channel,
+      description: channel.description || `${channel.name} channel discussion`
+    })) : 
+    defaultChannels;
 
   const handleChannelSelect = useCallback((channelId: string) => {
     console.log('🔄 Switching to channel:', channelId);
@@ -321,7 +328,7 @@ const ImprovedCommunityChat: React.FC<ImprovedCommunityChatProps> = ({
                   <MessageInput 
                     onSendMessage={handleSendMessage} 
                     isLoading={chatLoading || !isConnected} 
-                    channelName={activeChannel}
+                    activeChannel={activeChannel}
                   />
                 </div>
               </>

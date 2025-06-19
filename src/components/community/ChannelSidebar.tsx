@@ -5,7 +5,7 @@ import { Hash } from 'lucide-react';
 interface Channel {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   type?: string;
   members?: any[];
 }
@@ -70,9 +70,11 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
               }`}
             >
               <div className="font-medium">#{channel.name}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {channel.description}
-              </div>
+              {channel.description && (
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {channel.description}
+                </div>
+              )}
             </button>
           ))}
         </div>

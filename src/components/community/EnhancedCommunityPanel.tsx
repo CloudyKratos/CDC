@@ -73,6 +73,12 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     }, 3000);
   };
 
+  // Transform channels to ensure description is always present
+  const transformedChannels = channels.map(channel => ({
+    ...channel,
+    description: channel.description || `${channel.name} channel discussion`
+  }));
+
   // Error state with retry option
   if (channelsError || chatError) {
     return (
@@ -100,7 +106,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
       />
 
       <ChannelSidebar
-        channels={channels}
+        channels={transformedChannels}
         activeChannel={activeChannel}
         onChannelSelect={handleChannelSelect}
         isLoading={channelsLoading}
@@ -113,7 +119,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <ChatHeader
           activeChannel={activeChannel}
-          isOnline={isConnected}
+          isConnected={isConnected}
           reconnecting={reconnecting}
           isMobile={isMobile}
           showChannelList={showChannelList}
@@ -140,7 +146,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
                 <MessageInput 
                   onSendMessage={handleSendMessage} 
                   isLoading={chatLoading || (!isOnline && !reconnecting)} 
-                  channelName={activeChannel}
+                  activeChannel={activeChannel}
                   placeholder={!isOnline ? "You're offline - message will be sent when connection is restored" : undefined}
                 />
               </>

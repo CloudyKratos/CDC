@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -36,7 +35,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
   } = useSimpleChat(activeChannel);
 
   // Use default channels if none loaded
-  const displayChannels = channels.length > 0 ? channels : [
+  const defaultChannels = [
     { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
     { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
     { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
@@ -44,6 +43,13 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     { id: 'motivation', name: 'motivation', type: ChannelType.PUBLIC, members: [], description: 'Daily motivation' },
     { id: 'resources', name: 'resources', type: ChannelType.PUBLIC, members: [], description: 'Useful resources' }
   ];
+
+  const displayChannels = channels.length > 0 ? 
+    channels.map(channel => ({
+      ...channel,
+      description: channel.description || `${channel.name} channel discussion`
+    })) : 
+    defaultChannels;
 
   const handleChannelSelect = useCallback((channelId: string) => {
     console.log('🔄 Switching to channel:', channelId);
@@ -149,7 +155,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
         {/* Enhanced Chat Header */}
         <ChatHeader
           activeChannel={activeChannel}
-          isOnline={isConnected}
+          isConnected={isConnected}
           reconnecting={false}
           isMobile={isMobile}
           showChannelList={showChannelList}
@@ -190,7 +196,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
                   <MessageInput 
                     onSendMessage={handleSendMessage} 
                     isLoading={chatLoading || !isConnected} 
-                    channelName={activeChannel}
+                    activeChannel={activeChannel}
                   />
                 </div>
               </>
