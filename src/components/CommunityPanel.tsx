@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import ImprovedCommunityChat from './community/ImprovedCommunityChat';
+import RobustCommunityChat from './community/RobustCommunityChat';
 import CommunityErrorBoundary from './community/CommunityErrorBoundary';
 
 interface CommunityPanelProps {
@@ -36,7 +36,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     // Quick initialization for better UX
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 300);
+    }, 500);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -52,7 +52,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     setTimeout(() => {
       setIsLoading(false);
       toast.success('Chat refreshed successfully');
-    }, 500);
+    }, 1000);
   };
 
   if (!isOnline) {
@@ -113,7 +113,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       </div>
       
       <CommunityErrorBoundary>
-        <ImprovedCommunityChat defaultChannel={channelName} />
+        <RobustCommunityChat defaultChannel={channelName} />
       </CommunityErrorBoundary>
     </div>
   );
