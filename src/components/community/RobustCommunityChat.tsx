@@ -305,7 +305,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
                 </p>
               )}
             </CardContent>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -478,7 +478,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
                   Sign In to Chat
                 </Button>
               </CardContent>
-            </div>
+            </Card>
           </div>
         )}
       </div>
