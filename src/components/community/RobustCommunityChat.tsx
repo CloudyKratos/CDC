@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,6 +11,7 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
+import { useEnhancedMessageSender } from './hooks/useEnhancedMessageSender';
 
 interface RobustCommunityChatProps {
   defaultChannel?: string;
@@ -31,6 +31,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { sendMessage: sendMessageWithRetry, isSending, isReady } = useEnhancedMessageSender();
 
   // Default channels for fallback
   const defaultChannels = [
@@ -42,7 +43,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
     { id: 'resources', name: 'resources', description: '📚 Useful resources' }
   ];
 
-  // Robust channel initialization with better error handling
+  // Enhanced channel initialization with proper error handling
   const initializeChat = useCallback(async () => {
     if (!user?.id) {
       setIsLoading(false);
@@ -52,12 +53,23 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      console.log('🔄 Initializing robust chat for:', activeChannel);
+      console.log('🔄 Initializing enhanced chat for:', activeChannel);
 
       let currentChannelId = null;
       
       try {
-        // First attempt: try to get existing channel with a timeout
+        // Check user session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          console.warn('⚠️ Invalid session, attempting refresh...');
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            throw new Error('Authentication required. Please sign in again.');
+          }
+        }
+
+        // Try to get existing channel with timeout
         const channelPromise = supabase
           .from('channels')
           .select('id')
@@ -65,14 +77,11 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
           .eq('type', 'public')
           .maybeSingle();
 
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Channel query timeout')), 10000)
-        );
-
         const { data: existingChannel, error: channelError } = await Promise.race([
           channelPromise,
-          timeoutPromise
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Channel query timeout')), 8000)
+          )
         ]) as any;
 
         if (!channelError && existingChannel) {
@@ -82,7 +91,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
           // Channel doesn't exist, try to create it
           console.log('📝 Creating new channel:', activeChannel);
           
-          const createPromise = supabase
+          const { data: newChannel, error: createError } = await supabase
             .from('channels')
             .insert({
               name: activeChannel,
@@ -93,17 +102,11 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
             .select('id')
             .single();
 
-          const { data: newChannel, error: createError } = await Promise.race([
-            createPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Create timeout')), 10000))
-          ]) as any;
-
           if (!createError && newChannel) {
             currentChannelId = newChannel.id;
             console.log('✅ Created new channel:', currentChannelId);
           } else {
             console.warn('⚠️ Could not create channel, using fallback mode');
-            // Use channel name as ID for fallback mode
             currentChannelId = activeChannel;
           }
         } else {
@@ -116,12 +119,12 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
       }
 
       if (!currentChannelId) {
-        currentChannelId = activeChannel; // Final fallback
+        currentChannelId = activeChannel;
       }
 
       setChannelId(currentChannelId);
 
-      // Try to load existing messages with timeout and error handling
+      // Load existing messages with improved error handling
       try {
         const messagesPromise = supabase
           .from('community_messages')
@@ -143,7 +146,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
 
         const { data: existingMessages, error: messagesError } = await Promise.race([
           messagesPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Messages timeout')), 8000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Messages timeout')), 6000))
         ]) as any;
 
         if (!messagesError && existingMessages) {
@@ -162,7 +165,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
           setMessages(formattedMessages);
           console.log('✅ Loaded', formattedMessages.length, 'messages');
         } else {
-          console.log('📝 No messages loaded or error occurred:', messagesError);
+          console.log('📝 No messages loaded:', messagesError?.message || 'Unknown error');
           setMessages([]);
         }
       } catch (msgError) {
@@ -170,34 +173,32 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
         setMessages([]);
       }
 
-      // Set up real-time subscription with error handling
+      // Set up real-time subscription
       if (currentChannelId && currentChannelId !== activeChannel) {
         setupRealtimeSubscription(currentChannelId);
       }
       
       setIsConnected(true);
       setIsLoading(false);
-      console.log('✅ Robust chat initialized successfully');
+      console.log('✅ Enhanced chat initialized successfully');
 
     } catch (err) {
       console.error('💥 Failed to initialize chat:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize chat');
       setIsLoading(false);
       setIsConnected(false);
-      
-      // Use fallback mode
       setChannelId(activeChannel);
       setMessages([]);
     }
   }, [user?.id, activeChannel]);
 
-  // Enhanced real-time subscription setup with error handling
+  // Enhanced real-time subscription setup
   const setupRealtimeSubscription = useCallback((channelId: string) => {
-    console.log('📡 Setting up real-time subscription for:', channelId);
+    console.log('📡 Setting up enhanced real-time subscription for:', channelId);
     
     try {
       const subscription = supabase
-        .channel(`robust_chat_${channelId}`)
+        .channel(`enhanced_chat_${channelId}`)
         .on(
           'postgres_changes',
           {
@@ -211,6 +212,11 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
               console.log('📨 New message received:', payload);
               const newMessage = payload.new as any;
               
+              // Skip if message is from current user (avoid duplication)
+              if (newMessage.sender_id === user?.id) {
+                return;
+              }
+              
               // Get sender profile with timeout
               const { data: sender } = await Promise.race([
                 supabase
@@ -218,7 +224,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
                   .select('id, username, full_name, avatar_url')
                   .eq('id', newMessage.sender_id)
                   .single(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 3000))
               ]) as any;
 
               const message: Message = {
@@ -257,44 +263,31 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
       console.warn('⚠️ Error setting up real-time subscription:', error);
       setIsConnected(false);
     }
-  }, []);
+  }, [user?.id]);
 
-  // Enhanced send message function with better error handling
+  // Enhanced send message function
   const handleSendMessage = useCallback(async (content: string) => {
-    if (!user?.id || !channelId) {
-      toast.error("Unable to send message - not connected");
+    if (!isReady) {
+      toast.error("Please sign in to send messages");
       return;
     }
 
-    try {
-      console.log('📤 Sending message to channel:', channelId);
-      
-      // Add timeout to prevent hanging
-      const sendPromise = supabase
-        .from('community_messages')
-        .insert({
-          channel_id: channelId,
-          sender_id: user.id,
-          content: content
-        });
-
-      const { error } = await Promise.race([
-        sendPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Send timeout')), 10000))
-      ]) as any;
-
-      if (error) {
-        throw new Error(`Failed to send message: ${error.message}`);
-      }
-
-      console.log('✅ Message sent successfully');
-      toast.success('Message sent!', { duration: 1000 });
-    } catch (error) {
-      console.error('💥 Failed to send message:', error);
-      toast.error('Failed to send message - please try again');
-      throw error;
+    if (!channelId) {
+      toast.error("Channel not available");
+      return;
     }
-  }, [user?.id, channelId]);
+
+    const success = await sendMessageWithRetry({
+      channelId,
+      content,
+      maxRetries: 3,
+      retryDelay: 1000
+    });
+
+    if (success) {
+      console.log('✅ Message sent via enhanced sender');
+    }
+  }, [channelId, isReady, sendMessageWithRetry]);
 
   // Handle retry with exponential backoff
   const handleRetry = useCallback(() => {
@@ -302,7 +295,6 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
     setRetryCount(newRetryCount);
     setError(null);
     
-    // Exponential backoff for retries
     const delay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 10000);
     
     setTimeout(() => {
@@ -338,6 +330,8 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
                   'Connection timeout - the chat service may be slow. Please try again.' :
                   error.includes('recursion') ?
                   'Database configuration issue detected. Please try again in a moment.' :
+                  error.includes('Authentication') ?
+                  'Please sign in again to access the chat.' :
                   'Unable to connect to chat. Please check your connection and try again.'
                 }
               </p>
@@ -422,8 +416,8 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
           <MessageInput
             onSendMessage={handleSendMessage}
             activeChannel={activeChannel}
-            isConnected={isConnected}
-            isLoading={isLoading}
+            isConnected={isConnected && isReady}
+            isLoading={isLoading || isSending}
           />
         )}
 
