@@ -65,6 +65,12 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       return;
     }
 
+    if (!isConnected) {
+      console.log('⚠️ Not connected to chat, cannot send message');
+      toast.error("Unable to send message - connection lost");
+      return;
+    }
+
     try {
       console.log('📤 Handling message send:', content.substring(0, 50) + '...');
       await sendMessage(content);
@@ -73,7 +79,7 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
       console.error("💥 Error in handleSendMessage:", error);
       // Error is already handled in sendMessage with toast
     }
-  }, [user?.id, sendMessage]);
+  }, [user?.id, isConnected, sendMessage]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
@@ -183,9 +189,8 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
                 <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <MessageInput 
                     onSendMessage={handleSendMessage} 
-                    isLoading={chatLoading} 
+                    isLoading={chatLoading || !isConnected} 
                     channelName={activeChannel}
-                    disabled={!isConnected && !!user?.id}
                   />
                 </div>
               </>
