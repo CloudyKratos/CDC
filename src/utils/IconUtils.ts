@@ -25,7 +25,9 @@ import {
   FileText,
   Download,
   MoreHorizontal,
+  MoreVertical,
   Trash,
+  Trash2,
   Smile,
   Send,
   LayoutDashboard,
@@ -39,7 +41,8 @@ import {
   MessageSquare,
   ArrowRight,
   Mail,
-  Zap
+  Zap,
+  Command
 } from 'lucide-react';
 
 const Icons = {
@@ -68,7 +71,9 @@ const Icons = {
   FileText,
   Download,
   MoreHorizontal,
+  MoreVertical,
   Trash,
+  Trash2,
   Smile,
   Send,
   LayoutDashboard,
@@ -82,7 +87,8 @@ const Icons = {
   MessageSquare,
   ArrowRight,
   Mail,
-  Zap
+  Zap,
+  Command
 };
 
 export default Icons;
