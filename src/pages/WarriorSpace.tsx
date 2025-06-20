@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Target, Users, Flame, Sparkles, Trophy, Calendar, MessageSquare, BookOpen, ArrowLeft, Sword, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Target, Users, Flame, Sparkles, Trophy, Calendar, MessageSquare, BookOpen, ArrowLeft, Sword, ChevronDown, ChevronUp, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
@@ -25,10 +26,11 @@ const WarriorSpace = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [questSearch, setQuestSearch] = useState("");
   const [questFilter, setQuestFilter] = useState("all");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({
     stats: false,
     quickActions: false,
-    addOns: false
+    addOns: true // Start with add-ons collapsed to save space
   });
 
   // Use the new hooks
@@ -157,13 +159,13 @@ const WarriorSpace = () => {
           </div>
         </div>
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-48 bg-black/40 border-purple-800/30 rounded-lg animate-pulse" />
               ))}
             </div>
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-3 space-y-6">
               {[1, 2].map((i) => (
                 <div key={i} className="h-64 bg-black/40 border-purple-800/30 rounded-lg animate-pulse" />
               ))}
@@ -193,9 +195,20 @@ const WarriorSpace = () => {
       <div className="container mx-auto px-4 py-8">
         {isNewUser && <WelcomeBanner />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Collapsible Sections */}
-          <div className="space-y-6">
+        {/* Mobile Sidebar Toggle */}
+        <div className="lg:hidden mb-6">
+          <Button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-2"
+          >
+            {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {sidebarOpen ? "Close Menu" : "Open Menu"}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Left Column - Sidebar */}
+          <div className={`space-y-6 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
             <WarriorStatsPanel 
               stats={{
                 level: progress.level,
@@ -219,9 +232,9 @@ const WarriorSpace = () => {
             <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <Plus className="h-5 w-5 text-green-400" />
-                    Optional Add-ons
+                    Enhancements
                   </CardTitle>
                   <Button
                     variant="ghost"
@@ -241,27 +254,47 @@ const WarriorSpace = () => {
             </Card>
           </div>
 
-          {/* Center Column - Enhanced Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Main Content Area */}
+          <div className="lg:col-span-3 space-y-6">
             <CDCMorningStrategyCard />
 
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-black/40 border-purple-800/30">
-                <TabsTrigger value="daily-challenge" className="text-white data-[state=active]:bg-purple-600">
-                  Daily Quests
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-black/40 border-purple-800/30 h-auto p-1">
+                <TabsTrigger 
+                  value="daily-challenge" 
+                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Daily Quests</span>
+                  <span className="sm:hidden">Quests</span>
                 </TabsTrigger>
-                <TabsTrigger value="weekly-goals" className="text-white data-[state=active]:bg-purple-600">
-                  Weekly Goals
+                <TabsTrigger 
+                  value="weekly-goals" 
+                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Weekly Goals</span>
+                  <span className="sm:hidden">Goals</span>
                 </TabsTrigger>
-                <TabsTrigger value="achievements" className="text-white data-[state=active]:bg-purple-600">
-                  Achievements
+                <TabsTrigger 
+                  value="achievements" 
+                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Achievements</span>
+                  <span className="sm:hidden">Awards</span>
                 </TabsTrigger>
-                <TabsTrigger value="progress" className="text-white data-[state=active]:bg-purple-600">
-                  Progress
+                <TabsTrigger 
+                  value="progress" 
+                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Progress</span>
+                  <span className="sm:hidden">Stats</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="daily-challenge" className="space-y-4">
+              <TabsContent value="daily-challenge" className="space-y-4 mt-6">
                 <QuestsList 
                   quests={filteredQuests}
                   onQuestComplete={handleQuestComplete}
@@ -274,15 +307,15 @@ const WarriorSpace = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="weekly-goals" className="space-y-4">
+              <TabsContent value="weekly-goals" className="space-y-4 mt-6">
                 <WeeklyGoalsPanel goals={weeklyGoals} />
               </TabsContent>
 
-              <TabsContent value="achievements" className="space-y-4">
+              <TabsContent value="achievements" className="space-y-4 mt-6">
                 <AchievementsPanel achievements={achievements} />
               </TabsContent>
 
-              <TabsContent value="progress" className="space-y-4">
+              <TabsContent value="progress" className="space-y-4 mt-6">
                 <ProgressPanel stats={{
                   level: progress.level,
                   xp: progress.currentXp,
