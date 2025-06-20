@@ -6,50 +6,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Youtube, Search, Filter, BookOpen, Upload } from 'lucide-react';
-import AddYouTubeModal from './AddYouTubeModal';
-import YouTubeEmbed from './YouTubeEmbed';
-
-interface VideoData {
-  id: string;
-  title: string;
-  description: string;
-  youtubeUrl: string;
-  category: string;
-  level: string;
-  coach: string;
-  duration: string;
-}
+import { toast } from 'sonner';
+import Icons from '@/utils/IconUtils';
+import LearningCard, { LearningItem } from './LearningCard';
+import AddYouTubeVideoModal from './AddYouTubeVideoModal';
+import VideoViewerModal from './VideoViewerModal';
 
 const CommandRoomContent: React.FC = () => {
-  const [videos, setVideos] = useState<VideoData[]>([]);
+  const [learningItems, setLearningItems] = useState<LearningItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<LearningItem | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  const handleAddVideo = (video: VideoData) => {
-    setVideos(prev => [...prev, video]);
+  const handleAddVideo = (item: LearningItem) => {
+    setLearningItems(prev => [...prev, item]);
   };
 
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
+  const handlePlayVideo = (item: LearningItem) => {
+    setSelectedVideo(item);
+    setIsViewerOpen(true);
   };
 
-  const filteredVideos = videos.filter(video => {
-    const searchMatch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       video.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       video.coach.toLowerCase().includes(searchTerm.toLowerCase());
-    const categoryMatch = selectedCategory === 'all' || video.category === selectedCategory;
-    const levelMatch = selectedLevel === 'all' || video.level === selectedLevel;
+  const handleToggleFavorite = (id: string) => {
+    setLearningItems(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, isFavorited: !item.isFavorited } : item
+      )
+    );
+  };
+
+  const handleProgressUpdate = (id: string, progress: number) => {
+    setLearningItems(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, progress } : item
+      )
+    );
+  };
+
+  const filteredItems = learningItems.filter(item => {
+    const searchMatch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       item.coach.toLowerCase().includes(searchTerm.toLowerCase());
+    const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
+    const levelMatch = selectedLevel === 'all' || item.level === selectedLevel;
     
     return searchMatch && categoryMatch && levelMatch;
   });
@@ -60,7 +62,7 @@ const CommandRoomContent: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
         <div className="flex flex-1 gap-4 items-center">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search videos..."
               value={searchTerm}
@@ -97,71 +99,53 @@ const CommandRoomContent: React.FC = () => {
           </Select>
         </div>
 
-        <AddYouTubeModal onAdd={handleAddVideo} />
+        <Button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+        >
+          <Icons.Youtube className="h-4 w-4 mr-2" />
+          Add YouTube Video
+        </Button>
       </div>
 
       <TabsContent value="resources" className="space-y-6">
-        {videos.length === 0 ? (
+        {learningItems.length === 0 ? (
           <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
             <CardContent className="p-12 text-center">
-              <Youtube className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <Icons.Youtube className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 No Videos Added Yet
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                Start building your course by adding YouTube videos. Create comprehensive learning experiences with embedded videos.
+                Start building your course library by adding YouTube videos. Create comprehensive learning experiences with curated content.
               </p>
-              <AddYouTubeModal onAdd={handleAddVideo} />
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+              >
+                <Icons.Youtube className="h-4 w-4 mr-2" />
+                Add Your First Video
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredVideos.map((video) => {
-              const videoId = extractVideoId(video.youtubeUrl);
-              return (
-                <div key={video.id}>
-                  {videoId && (
-                    <YouTubeEmbed
-                      videoId={videoId}
-                      title={video.title}
-                      description={video.description}
-                      duration={video.duration}
-                    />
-                  )}
-                  <Card className="mt-4 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
-                    <CardContent className="p-4">
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-0 text-xs">
-                          {video.category}
-                        </Badge>
-                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 text-xs">
-                          {video.level}
-                        </Badge>
-                      </div>
-                      
-                      {video.coach && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          <strong>Coach:</strong> {video.coach}
-                        </p>
-                      )}
-                      
-                      {video.duration && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          <strong>Duration:</strong> {video.duration}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <LearningCard
+                key={item.id}
+                item={item}
+                onPlay={handlePlayVideo}
+                onToggleFavorite={handleToggleFavorite}
+                onProgressUpdate={handleProgressUpdate}
+              />
+            ))}
           </div>
         )}
 
-        {videos.length > 0 && filteredVideos.length === 0 && (
+        {learningItems.length > 0 && filteredItems.length === 0 && (
           <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
             <CardContent className="p-8 text-center">
-              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Icons.Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 No Videos Found
               </h3>
@@ -174,45 +158,80 @@ const CommandRoomContent: React.FC = () => {
       </TabsContent>
 
       <TabsContent value="bookmarks" className="space-y-6">
-        <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
-          <CardContent className="p-12 text-center">
-            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No Bookmarks Yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Bookmark your favorite videos to access them quickly later.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {learningItems.filter(item => item.isFavorited).map((item) => (
+            <LearningCard
+              key={item.id}
+              item={item}
+              onPlay={handlePlayVideo}
+              onToggleFavorite={handleToggleFavorite}
+              onProgressUpdate={handleProgressUpdate}
+            />
+          ))}
+        </div>
+        
+        {learningItems.filter(item => item.isFavorited).length === 0 && (
+          <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
+            <CardContent className="p-12 text-center">
+              <Icons.BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                No Bookmarks Yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Bookmark your favorite videos to access them quickly later.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </TabsContent>
 
       <TabsContent value="progress" className="space-y-6">
-        <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
-          <CardContent className="p-12 text-center">
-            <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700 mx-auto mb-4 flex items-center justify-center">
-              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Track Your Progress
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Your learning progress and achievements will appear here.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Icons.TrendingUp className="h-5 w-5 text-blue-500" />
+                Learning Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total Videos</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">{learningItems.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
+                <span className="text-lg font-semibold text-green-600">
+                  {learningItems.filter(item => item.progress === 100).length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">In Progress</span>
+                <span className="text-lg font-semibold text-yellow-600">
+                  {learningItems.filter(item => item.progress > 0 && item.progress < 100).length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Bookmarked</span>
+                <span className="text-lg font-semibold text-purple-600">
+                  {learningItems.filter(item => item.isFavorited).length}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </TabsContent>
 
       <TabsContent value="upload" className="space-y-6">
         <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-              <Upload className="h-5 w-5" />
+              <Icons.Upload className="h-5 w-5" />
               Upload Content
             </CardTitle>
           </CardHeader>
           <CardContent className="p-12 text-center">
-            <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <Icons.Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Upload Learning Materials
             </h3>
@@ -225,6 +244,20 @@ const CommandRoomContent: React.FC = () => {
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Modals */}
+      <AddYouTubeVideoModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddVideo}
+      />
+
+      <VideoViewerModal
+        item={selectedVideo}
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        onProgressUpdate={handleProgressUpdate}
+      />
     </>
   );
 };
