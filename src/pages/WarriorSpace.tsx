@@ -7,14 +7,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
 import OptionalAddOns from "@/components/home/OptionalAddOns";
-import WarriorHeader from "@/components/warrior/WarriorHeader";
-import WarriorStatsPanel from "@/components/warrior/WarriorStatsPanel";
-import QuickActionsPanel from "@/components/warrior/QuickActionsPanel";
+import ResponsiveWarriorHeader from "@/components/warrior/ResponsiveWarriorHeader";
+import EnhancedStatsCard from "@/components/warrior/EnhancedStatsCard";
+import ImprovedQuickActionsPanel from "@/components/warrior/ImprovedQuickActionsPanel";
 import QuestsList from "@/components/warrior/QuestsList";
 import WeeklyGoalsPanel from "@/components/warrior/WeeklyGoalsPanel";
 import AchievementsPanel from "@/components/warrior/AchievementsPanel";
 import ProgressPanel from "@/components/warrior/ProgressPanel";
 import WelcomeBanner from "@/components/warrior/WelcomeBanner";
+import EnhancedQuestCard from "@/components/warrior/EnhancedQuestCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useDailyQuests } from "@/hooks/useDailyQuests";
@@ -30,10 +31,9 @@ const WarriorSpace = () => {
   const [collapsedSections, setCollapsedSections] = useState({
     stats: false,
     quickActions: false,
-    addOns: true // Start with add-ons collapsed to save space
+    addOns: true
   });
 
-  // Use the new hooks
   const { quests, toggleQuestCompletion, getQuestStats } = useDailyQuests();
   const { progress, addXp } = useXpProgress();
 
@@ -95,10 +95,8 @@ const WarriorSpace = () => {
     const quest = updatedQuests.find(q => q.id === questId);
     
     if (quest && quest.completed) {
-      // Add XP and coins
       const newProgress = addXp(quest.xp, quest.coins);
       
-      // Check for level up
       if (newProgress.level > progress.level) {
         toast.success(`🎉 LEVEL UP! You're now Level ${newProgress.level}!`, {
           duration: 6000,
@@ -181,7 +179,7 @@ const WarriorSpace = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <WarriorHeader 
+      <ResponsiveWarriorHeader 
         stats={{
           streak: progress.streak,
           level: progress.level,
@@ -199,17 +197,17 @@ const WarriorSpace = () => {
         <div className="lg:hidden mb-6">
           <Button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white flex items-center justify-center gap-2 shadow-lg"
           >
             {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            {sidebarOpen ? "Close Menu" : "Open Menu"}
+            {sidebarOpen ? "Close Menu" : "Open Dashboard"}
           </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column - Sidebar */}
+          {/* Enhanced Left Sidebar */}
           <div className={`space-y-6 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
-            <WarriorStatsPanel 
+            <EnhancedStatsCard 
               stats={{
                 level: progress.level,
                 xp: progress.currentXp,
@@ -223,24 +221,23 @@ const WarriorSpace = () => {
               onToggle={() => toggleSection('stats')}
             />
 
-            <QuickActionsPanel 
+            <ImprovedQuickActionsPanel 
               isCollapsed={collapsedSections.quickActions}
               onToggle={() => toggleSection('quickActions')}
             />
 
-            {/* Optional Add-ons */}
-            <Card className="bg-black/40 border-purple-800/30 text-white backdrop-blur-sm">
+            <Card className="bg-gradient-to-br from-black/50 to-green-900/30 border-green-800/40 text-white backdrop-blur-sm shadow-xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Plus className="h-5 w-5 text-green-400" />
-                    Enhancements
+                    Power-Ups
                   </CardTitle>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => toggleSection('addOns')}
-                    className="h-6 w-6 text-purple-300 hover:text-white"
+                    className="h-6 w-6 text-green-300 hover:text-white transition-colors"
                   >
                     {collapsedSections.addOns ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                   </Button>
@@ -254,15 +251,17 @@ const WarriorSpace = () => {
             </Card>
           </div>
 
-          {/* Main Content Area */}
+          {/* Enhanced Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            <CDCMorningStrategyCard />
+            <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl border border-purple-500/30 p-1">
+              <CDCMorningStrategyCard />
+            </div>
 
             <Tabs value={activeQuest} onValueChange={setActiveQuest} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-black/40 border-purple-800/30 h-auto p-1">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-black/50 border-purple-800/40 h-auto p-1 backdrop-blur-sm">
                 <TabsTrigger 
                   value="daily-challenge" 
-                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                  className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
                 >
                   <Target className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Daily Quests</span>
@@ -270,7 +269,7 @@ const WarriorSpace = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="weekly-goals" 
-                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                  className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Weekly Goals</span>
@@ -278,7 +277,7 @@ const WarriorSpace = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="achievements" 
-                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                  className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
                 >
                   <Trophy className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Achievements</span>
@@ -286,7 +285,7 @@ const WarriorSpace = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="progress" 
-                  className="text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white py-3 text-sm"
+                  className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Progress</span>
@@ -295,16 +294,38 @@ const WarriorSpace = () => {
               </TabsList>
 
               <TabsContent value="daily-challenge" className="space-y-4 mt-6">
-                <QuestsList 
-                  quests={filteredQuests}
-                  onQuestComplete={handleQuestComplete}
-                  searchTerm={questSearch}
-                  onSearchChange={setQuestSearch}
-                  filter={questFilter}
-                  onFilterChange={setQuestFilter}
-                  completedCount={questStats.completed}
-                  totalCount={questStats.total}
-                />
+                <Card className="bg-gradient-to-br from-black/50 to-purple-900/30 border-purple-800/40 text-white backdrop-blur-sm shadow-xl">
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-4">
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Target className="h-6 w-6 text-green-400" />
+                        Today's Quests
+                        <div className="flex items-center gap-2 ml-4">
+                          <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-500/30">
+                            {questStats.completed}/{questStats.total}
+                          </div>
+                        </div>
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {filteredQuests.length === 0 ? (
+                      <div className="text-center py-12 text-purple-300">
+                        <Target className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">No quests found matching your criteria</p>
+                        <p className="text-sm">Try adjusting your search or filter</p>
+                      </div>
+                    ) : (
+                      filteredQuests.map((quest) => (
+                        <EnhancedQuestCard
+                          key={quest.id}
+                          quest={quest}
+                          onComplete={handleQuestComplete}
+                        />
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="weekly-goals" className="space-y-4 mt-6">
