@@ -20,7 +20,26 @@ import {
   Calendar,
   Clock,
   Users,
-  TrendingUp
+  TrendingUp,
+  CheckCircle,
+  FileText,
+  Download,
+  MoreHorizontal,
+  Trash,
+  Smile,
+  Send,
+  LayoutDashboard,
+  Target,
+  RefreshCw,
+  Phone,
+  Pin,
+  Bell,
+  User,
+  Sparkles,
+  MessageSquare,
+  ArrowRight,
+  Mail,
+  Zap
 } from 'lucide-react';
 
 const Icons = {
@@ -44,7 +63,26 @@ const Icons = {
   Calendar,
   Clock,
   Users,
-  TrendingUp
+  TrendingUp,
+  CheckCircle,
+  FileText,
+  Download,
+  MoreHorizontal,
+  Trash,
+  Smile,
+  Send,
+  LayoutDashboard,
+  Target,
+  RefreshCw,
+  Phone,
+  Pin,
+  Bell,
+  User,
+  Sparkles,
+  MessageSquare,
+  ArrowRight,
+  Mail,
+  Zap
 };
 
 export default Icons;
