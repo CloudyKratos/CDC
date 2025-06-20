@@ -35,7 +35,7 @@ const WarriorSpaceSidebar = ({
   sidebarOpen 
 }: WarriorSpaceSidebarProps) => {
   return (
-    <div className={`space-y-6 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
+    <div className={`space-y-6 transition-all duration-300 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
       <EnhancedStatsCard 
         stats={{
           level: progress.level,
@@ -55,10 +55,10 @@ const WarriorSpaceSidebar = ({
         onToggle={() => onToggleSection('quickActions')}
       />
 
-      <Card className="bg-gradient-to-br from-black/50 to-green-900/30 border-green-800/40 text-white backdrop-blur-sm shadow-xl">
+      <Card className="bg-gradient-to-br from-black/60 to-green-900/40 border-green-800/50 text-white backdrop-blur-md shadow-2xl hover:shadow-3xl transition-all duration-300 rounded-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
               <Plus className="h-5 w-5 text-green-400" />
               Power-Ups
             </CardTitle>
@@ -66,7 +66,7 @@ const WarriorSpaceSidebar = ({
               variant="ghost"
               size="icon"
               onClick={() => onToggleSection('addOns')}
-              className="h-6 w-6 text-green-300 hover:text-white transition-colors"
+              className="h-8 w-8 text-green-300 hover:text-white hover:bg-green-600/20 transition-all duration-200 rounded-lg"
             >
               {collapsedSections.addOns ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>

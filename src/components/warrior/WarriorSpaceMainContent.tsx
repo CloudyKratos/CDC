@@ -32,16 +32,18 @@ const WarriorSpaceMainContent = ({
   progress
 }: WarriorSpaceMainContentProps) => {
   return (
-    <div className="lg:col-span-3 space-y-6">
-      <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl border border-purple-500/30 p-1">
+    <div className="space-y-6">
+      {/* Enhanced Strategy Card */}
+      <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-2xl border border-purple-500/30 p-1 shadow-xl backdrop-blur-sm">
         <CDCMorningStrategyCard />
       </div>
 
+      {/* Enhanced Tabs */}
       <Tabs value={activeQuest} onValueChange={onActiveQuestChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-black/50 border-purple-800/40 h-auto p-1 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-black/60 border-purple-800/50 h-auto p-2 backdrop-blur-md rounded-xl shadow-xl">
           <TabsTrigger 
             value="daily-challenge" 
-            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
+            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-4 px-4 text-sm font-semibold transition-all duration-300 hover:bg-white/10 rounded-lg"
           >
             <Target className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Daily Quests</span>
@@ -49,7 +51,7 @@ const WarriorSpaceMainContent = ({
           </TabsTrigger>
           <TabsTrigger 
             value="weekly-goals" 
-            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
+            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-4 px-4 text-sm font-semibold transition-all duration-300 hover:bg-white/10 rounded-lg"
           >
             <Calendar className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Weekly Goals</span>
@@ -57,7 +59,7 @@ const WarriorSpaceMainContent = ({
           </TabsTrigger>
           <TabsTrigger 
             value="achievements" 
-            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
+            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-4 px-4 text-sm font-semibold transition-all duration-300 hover:bg-white/10 rounded-lg"
           >
             <Trophy className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Achievements</span>
@@ -65,7 +67,7 @@ const WarriorSpaceMainContent = ({
           </TabsTrigger>
           <TabsTrigger 
             value="progress" 
-            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 text-sm font-medium transition-all duration-200"
+            className="text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-4 px-4 text-sm font-semibold transition-all duration-300 hover:bg-white/10 rounded-lg"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Progress</span>
@@ -73,29 +75,31 @@ const WarriorSpaceMainContent = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="daily-challenge" className="space-y-4 mt-6">
-          <StableQuestManager />
-        </TabsContent>
+        <div className="mt-6">
+          <TabsContent value="daily-challenge" className="space-y-6 m-0">
+            <StableQuestManager />
+          </TabsContent>
 
-        <TabsContent value="weekly-goals" className="space-y-4 mt-6">
-          <WeeklyGoalsPanel goals={weeklyGoals} />
-        </TabsContent>
+          <TabsContent value="weekly-goals" className="space-y-6 m-0">
+            <WeeklyGoalsPanel goals={weeklyGoals} />
+          </TabsContent>
 
-        <TabsContent value="achievements" className="space-y-4 mt-6">
-          <AchievementsPanel achievements={achievements} />
-        </TabsContent>
+          <TabsContent value="achievements" className="space-y-6 m-0">
+            <AchievementsPanel achievements={achievements} />
+          </TabsContent>
 
-        <TabsContent value="progress" className="space-y-4 mt-6">
-          <ProgressPanel stats={{
-            level: progress.level,
-            xp: progress.currentXp,
-            nextLevelXp: progress.nextLevelXp,
-            streak: progress.streak,
-            completedQuests: progress.completedQuests,
-            totalCoins: progress.totalCoins,
-            weeklyProgress: progress.weeklyProgress
-          }} />
-        </TabsContent>
+          <TabsContent value="progress" className="space-y-6 m-0">
+            <ProgressPanel stats={{
+              level: progress.level,
+              xp: progress.currentXp,
+              nextLevelXp: progress.nextLevelXp,
+              streak: progress.streak,
+              completedQuests: progress.completedQuests,
+              totalCoins: progress.totalCoins,
+              weeklyProgress: progress.weeklyProgress
+            }} />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

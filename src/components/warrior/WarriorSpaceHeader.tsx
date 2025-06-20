@@ -13,16 +13,18 @@ interface WarriorSpaceHeaderProps {
 
 const WarriorSpaceHeader = ({ progress }: WarriorSpaceHeaderProps) => {
   return (
-    <ResponsiveWarriorHeader 
-      stats={{
-        streak: progress.streak,
-        level: progress.level,
-        totalCoins: progress.totalCoins
-      }}
-      progressPercentage={Math.min((progress.completedQuests / 7) * 100, 100)}
-      completedQuestsToday={progress.completedQuests}
-      totalQuestsToday={7}
-    />
+    <div className="relative z-20">
+      <ResponsiveWarriorHeader 
+        stats={{
+          streak: progress.streak,
+          level: progress.level,
+          totalCoins: progress.totalCoins
+        }}
+        progressPercentage={Math.min((progress.completedQuests / 7) * 100, 100)}
+        completedQuestsToday={progress.completedQuests}
+        totalQuestsToday={7}
+      />
+    </div>
   );
 };
 
