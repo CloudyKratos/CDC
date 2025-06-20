@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Target, Users, Flame, Sparkles, Trophy, Calendar, MessageSquare, BookOpen, ArrowLeft, Sword, ChevronDown, ChevronUp, Menu, X } from "lucide-react";
+import { Plus, Target, Users, Flame, Sparkles, Trophy, Calendar, ArrowLeft, Sword, ChevronDown, ChevronUp, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
@@ -10,23 +10,18 @@ import OptionalAddOns from "@/components/home/OptionalAddOns";
 import ResponsiveWarriorHeader from "@/components/warrior/ResponsiveWarriorHeader";
 import EnhancedStatsCard from "@/components/warrior/EnhancedStatsCard";
 import ImprovedQuickActionsPanel from "@/components/warrior/ImprovedQuickActionsPanel";
-import QuestsList from "@/components/warrior/QuestsList";
 import WeeklyGoalsPanel from "@/components/warrior/WeeklyGoalsPanel";
 import AchievementsPanel from "@/components/warrior/AchievementsPanel";
 import ProgressPanel from "@/components/warrior/ProgressPanel";
 import WelcomeBanner from "@/components/warrior/WelcomeBanner";
-import EnhancedQuestCard from "@/components/warrior/EnhancedQuestCard";
+import StableQuestManager from "@/components/warrior/StableQuestManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useDailyQuests } from "@/hooks/useDailyQuests";
-import { useXpProgress } from "@/hooks/useXpProgress";
+import { useWarriorProgress } from "@/hooks/useWarriorProgress";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
   const [activeQuest, setActiveQuest] = useState("daily-challenge");
-  const [isLoading, setIsLoading] = useState(true);
-  const [questSearch, setQuestSearch] = useState("");
-  const [questFilter, setQuestFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({
     stats: false,
@@ -34,8 +29,7 @@ const WarriorSpace = () => {
     addOns: true
   });
 
-  const { quests, toggleQuestCompletion, getQuestStats } = useDailyQuests();
-  const { progress, addXp } = useXpProgress();
+  const { progress, isLoading, error } = useWarriorProgress();
 
   const [achievements, setAchievements] = useState<any[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<any[]>([]);
@@ -43,11 +37,9 @@ const WarriorSpace = () => {
   // Load initial data
   useEffect(() => {
     const loadUserData = async () => {
-      if (user) {
-        setIsLoading(true);
-        
+      if (user && !isLoading) {
         // Simulate loading
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         setWeeklyGoals([
           { 
@@ -84,34 +76,10 @@ const WarriorSpace = () => {
           { title: "XP Hunter", description: "Earn 1000+ total XP", icon: Sparkles, earned: progress.totalXp >= 1000, rarity: "legendary" }
         ]);
       }
-      setIsLoading(false);
     };
 
     loadUserData();
-  }, [user, progress]);
-
-  const handleQuestComplete = (questId: number) => {
-    const updatedQuests = toggleQuestCompletion(questId);
-    const quest = updatedQuests.find(q => q.id === questId);
-    
-    if (quest && quest.completed) {
-      const newProgress = addXp(quest.xp, quest.coins);
-      
-      if (newProgress.level > progress.level) {
-        toast.success(`🎉 LEVEL UP! You're now Level ${newProgress.level}!`, {
-          duration: 6000,
-        });
-      } else {
-        toast.success(`🎉 Quest completed! +${quest.xp} XP, +${quest.coins} coins`, {
-          duration: 4000,
-        });
-      }
-    } else if (quest && !quest.completed) {
-      toast.info("Quest marked as incomplete", {
-        duration: 2000,
-      });
-    }
-  };
+  }, [user, progress, isLoading]);
 
   const toggleSection = (section: keyof typeof collapsedSections) => {
     setCollapsedSections(prev => ({
@@ -119,17 +87,6 @@ const WarriorSpace = () => {
       [section]: !prev[section]
     }));
   };
-
-  const filteredQuests = quests.filter(quest => {
-    const matchesSearch = quest.title.toLowerCase().includes(questSearch.toLowerCase()) ||
-                         quest.description.toLowerCase().includes(questSearch.toLowerCase());
-    const matchesFilter = questFilter === "all" || 
-                         (questFilter === "completed" && quest.completed) ||
-                         (questFilter === "pending" && !quest.completed) ||
-                         (questFilter === quest.difficulty) ||
-                         (questFilter === quest.category);
-    return matchesSearch && matchesFilter;
-  });
 
   if (isLoading) {
     return (
@@ -174,8 +131,28 @@ const WarriorSpace = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <Card className="bg-red-900/30 border-red-800/40 text-white backdrop-blur-sm shadow-xl max-w-md mx-4">
+          <CardHeader>
+            <CardTitle className="text-red-400">Error Loading Warrior Space</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-300 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full bg-red-600 hover:bg-red-700"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const isNewUser = progress.completedQuests === 0;
-  const questStats = getQuestStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -185,9 +162,9 @@ const WarriorSpace = () => {
           level: progress.level,
           totalCoins: progress.totalCoins
         }}
-        progressPercentage={questStats.progressPercentage}
-        completedQuestsToday={questStats.completed}
-        totalQuestsToday={questStats.total}
+        progressPercentage={Math.min((progress.completedQuests / 7) * 100, 100)}
+        completedQuestsToday={progress.completedQuests}
+        totalQuestsToday={7}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -294,38 +271,7 @@ const WarriorSpace = () => {
               </TabsList>
 
               <TabsContent value="daily-challenge" className="space-y-4 mt-6">
-                <Card className="bg-gradient-to-br from-black/50 to-purple-900/30 border-purple-800/40 text-white backdrop-blur-sm shadow-xl">
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-4">
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Target className="h-6 w-6 text-green-400" />
-                        Today's Quests
-                        <div className="flex items-center gap-2 ml-4">
-                          <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-500/30">
-                            {questStats.completed}/{questStats.total}
-                          </div>
-                        </div>
-                      </CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {filteredQuests.length === 0 ? (
-                      <div className="text-center py-12 text-purple-300">
-                        <Target className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">No quests found matching your criteria</p>
-                        <p className="text-sm">Try adjusting your search or filter</p>
-                      </div>
-                    ) : (
-                      filteredQuests.map((quest) => (
-                        <EnhancedQuestCard
-                          key={quest.id}
-                          quest={quest}
-                          onComplete={handleQuestComplete}
-                        />
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
+                <StableQuestManager />
               </TabsContent>
 
               <TabsContent value="weekly-goals" className="space-y-4 mt-6">

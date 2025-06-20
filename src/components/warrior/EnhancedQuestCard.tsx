@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Lock, Star, Coins, Clock, Zap, Trophy, Target } from "lucide-react";
+import { CheckCircle2, Lock, Star, Coins, Clock, Zap, Trophy, Target, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Quest {
@@ -21,20 +21,15 @@ interface Quest {
 interface EnhancedQuestCardProps {
   quest: Quest;
   onComplete: (questId: number) => void;
+  isProcessing?: boolean;
 }
 
-const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
+const EnhancedQuestCard = ({ quest, onComplete, isProcessing = false }: EnhancedQuestCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleComplete = () => {
-    if (quest.locked) return;
-    
-    setIsAnimating(true);
-    setTimeout(() => {
-      onComplete(quest.id);
-      setIsAnimating(false);
-    }, 200);
+    if (quest.locked || isProcessing) return;
+    onComplete(quest.id);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -66,7 +61,7 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
           ? "bg-gray-900/30 border-gray-700/30 opacity-60"
           : "bg-gradient-to-br from-purple-900/30 to-blue-900/20 border-purple-700/40 hover:border-purple-600/60 hover:shadow-xl hover:shadow-purple-900/20",
         isHovered && !quest.locked && !quest.completed && "scale-[1.02] -translate-y-1",
-        isAnimating && "scale-95"
+        isProcessing && "opacity-75"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -75,7 +70,7 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
       {/* Animated background gradient */}
       <div className={cn(
         "absolute inset-0 opacity-0 transition-opacity duration-300",
-        isHovered && !quest.locked && !quest.completed && "opacity-100"
+        isHovered && !quest.locked && !quest.completed && !isProcessing && "opacity-100"
       )}>
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-purple-600/10 animate-pulse" />
       </div>
@@ -94,9 +89,12 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
                   : "border-purple-400 bg-purple-900/30 group-hover:border-purple-300 group-hover:bg-purple-800/30"
               )}
             >
-              {quest.completed && <CheckCircle2 className="h-5 w-5 text-white" />}
-              {quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
-              {!quest.completed && !quest.locked && (
+              {isProcessing && (
+                <Loader2 className="h-4 w-4 text-purple-400 animate-spin" />
+              )}
+              {!isProcessing && quest.completed && <CheckCircle2 className="h-5 w-5 text-white" />}
+              {!isProcessing && quest.locked && <Lock className="h-4 w-4 text-gray-400" />}
+              {!isProcessing && !quest.completed && !quest.locked && (
                 <div className={cn(
                   "w-3 h-3 rounded-full bg-purple-400 transition-all duration-300",
                   isHovered && "scale-125 bg-purple-300"
@@ -105,7 +103,7 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
             </div>
             
             {/* Completion celebration effect */}
-            {quest.completed && (
+            {quest.completed && !isProcessing && (
               <div className="absolute inset-0 rounded-full border-2 border-green-400 animate-ping opacity-20" />
             )}
           </div>
@@ -171,16 +169,25 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
               {!quest.completed && !quest.locked && (
                 <Button
                   size="sm"
+                  disabled={isProcessing}
                   className={cn(
                     "transition-all duration-200 bg-purple-600 hover:bg-purple-500 text-white",
-                    isHovered && "scale-105 shadow-lg shadow-purple-600/30"
+                    isHovered && !isProcessing && "scale-105 shadow-lg shadow-purple-600/30",
+                    isProcessing && "opacity-50 cursor-not-allowed"
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleComplete();
                   }}
                 >
-                  Complete
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Processing
+                    </>
+                  ) : (
+                    "Complete"
+                  )}
                 </Button>
               )}
             </div>
@@ -189,7 +196,7 @@ const EnhancedQuestCard = ({ quest, onComplete }: EnhancedQuestCardProps) => {
       </div>
 
       {/* Completion overlay */}
-      {quest.completed && (
+      {quest.completed && !isProcessing && (
         <div className="absolute top-2 right-2">
           <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
             ✓ Done
