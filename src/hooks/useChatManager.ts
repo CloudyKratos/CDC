@@ -58,6 +58,25 @@ export function useChatManager(channelName: string) {
     }
   }, [user?.id, chatManager]);
 
+  const replyToMessage = useCallback((messageId: string) => {
+    // For now, just log the reply action - this could be enhanced later
+    console.log('Reply to message:', messageId);
+    toast.info('Reply feature coming soon!');
+  }, []);
+
+  const addReaction = useCallback(async (messageId: string, reaction: string) => {
+    if (!user?.id) return;
+
+    try {
+      // For now, just log the reaction - this could be enhanced later
+      console.log('Add reaction:', { messageId, reaction, userId: user.id });
+      toast.success(`Reacted with ${reaction}`);
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+      toast.error('Failed to add reaction');
+    }
+  }, [user?.id]);
+
   const reconnect = useCallback(() => {
     if (user?.id) {
       chatManager.initializeChannel(channelName, user.id);
@@ -72,6 +91,8 @@ export function useChatManager(channelName: string) {
     channelId,
     sendMessage,
     deleteMessage,
+    replyToMessage,
+    addReaction,
     reconnect
   };
 }
