@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Icons from '@/utils/IconUtils';
 
 export interface LearningItem {
@@ -30,13 +32,15 @@ interface LearningCardProps {
   onPlay?: (item: LearningItem) => void;
   onToggleFavorite?: (id: string) => void;
   onProgressUpdate?: (id: string, progress: number) => void;
+  onDelete?: (id: string) => void;
 }
 
 const LearningCard: React.FC<LearningCardProps> = ({
   item,
   onPlay,
   onToggleFavorite,
-  onProgressUpdate
+  onProgressUpdate,
+  onDelete
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -64,20 +68,24 @@ const LearningCard: React.FC<LearningCardProps> = ({
     return `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
   };
 
+  const handleProgressClick = (percentage: number) => {
+    onProgressUpdate?.(item.id, percentage);
+  };
+
   return (
     <Card 
-      className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30"
+      className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-purple-200/40 dark:border-purple-800/40 hover:border-purple-300/60 dark:hover:border-purple-700/60"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onPlay?.(item)}
     >
       {/* Thumbnail/Preview */}
-      <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden">
+      <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-t-lg overflow-hidden">
         {item.youtubeId ? (
           <img 
             src={getThumbnailUrl(item.youtubeId)}
             alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -86,19 +94,19 @@ const LearningCard: React.FC<LearningCardProps> = ({
         )}
         
         {/* Play overlay */}
-        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${
-          isHovered ? 'opacity-100' : 'opacity-0'
+        <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-all duration-300 ${
+          isHovered ? 'opacity-100 backdrop-blur-sm' : 'opacity-0'
         }`}>
-          <div className="bg-white/90 rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform duration-300">
-            <Icons.Play className="h-8 w-8 text-gray-900" />
+          <div className="bg-white/95 dark:bg-gray-800/95 rounded-full p-4 transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-lg">
+            <Icons.Play className="h-8 w-8 text-gray-900 dark:text-white" />
           </div>
         </div>
 
         {/* Progress bar */}
         {item.progress > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+          <div className="absolute bottom-0 left-0 right-0 h-2 bg-black/30">
             <div 
-              className="h-full bg-red-500 transition-all duration-300" 
+              className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-300 shadow-sm" 
               style={{ width: `${item.progress}%` }}
             />
           </div>
@@ -107,35 +115,72 @@ const LearningCard: React.FC<LearningCardProps> = ({
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
           {item.isPremium && (
-            <Badge className="bg-yellow-500 text-yellow-900 border-0 text-xs">
+            <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 border-0 text-xs shadow-sm">
               <Icons.Crown className="h-3 w-3 mr-1" />
               Premium
             </Badge>
           )}
           {item.isPrivate && (
-            <Badge className="bg-red-500 text-white border-0 text-xs">
+            <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 text-xs shadow-sm">
               <Icons.Lock className="h-3 w-3 mr-1" />
               Private
             </Badge>
           )}
         </div>
 
-        {/* Favorite button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.(item.id);
-          }}
-          className="absolute top-3 right-3 p-2 rounded-full bg-black/20 hover:bg-black/40 transition-colors duration-200"
-        >
-          <Icons.Heart 
-            className={`h-4 w-4 ${item.isFavorited ? 'fill-red-500 text-red-500' : 'text-white'}`} 
-          />
-        </button>
+        {/* Action buttons */}
+        <div className="absolute top-3 right-3 flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.(item.id);
+            }}
+            className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all duration-200 backdrop-blur-sm"
+          >
+            <Icons.Heart 
+              className={`h-4 w-4 transition-colors duration-200 ${
+                item.isFavorited ? 'fill-red-500 text-red-500' : 'text-white hover:text-red-400'
+              }`} 
+            />
+          </button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all duration-200 backdrop-blur-sm"
+              >
+                <Icons.MoreVertical className="h-4 w-4 text-white" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.youtubeUrl) window.open(item.youtubeUrl, '_blank');
+                }}
+                className="flex items-center gap-2"
+              >
+                <Icons.ExternalLink className="h-4 w-4" />
+                Open in YouTube
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(item.id);
+                }}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Icons.Trash2 className="h-4 w-4" />
+                Remove Video
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* Duration */}
         {item.duration && (
-          <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded shadow-sm backdrop-blur-sm">
             {item.duration}
           </div>
         )}
@@ -167,16 +212,30 @@ const LearningCard: React.FC<LearningCardProps> = ({
           </Badge>
         </div>
 
-        {/* Progress */}
-        {item.progress > 0 && (
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-              <span>Progress</span>
-              <span>{item.progress}%</span>
-            </div>
-            <Progress value={item.progress} className="h-2" />
+        {/* Progress Section */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+            <span>Progress</span>
+            <span>{item.progress}%</span>
           </div>
-        )}
+          <Progress value={item.progress} className="h-2" />
+          
+          {/* Quick Progress Actions */}
+          <div className="flex gap-1 justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {[25, 50, 75, 100].map((percentage) => (
+              <button
+                key={percentage}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProgressClick(percentage);
+                }}
+                className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors duration-200"
+              >
+                {percentage}%
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -193,7 +252,7 @@ const LearningCard: React.FC<LearningCardProps> = ({
               e.stopPropagation();
               onPlay?.(item);
             }}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-sm"
           >
             <Icons.Play className="h-3 w-3 mr-1" />
             Watch
