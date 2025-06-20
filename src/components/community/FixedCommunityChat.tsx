@@ -1,210 +1,244 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCommunityMessages } from '@/hooks/use-community-messages';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Send, Hash, Wifi, WifiOff, Users, AlertCircle, RefreshCw } from 'lucide-react';
+import { RefreshCw, Send, Users, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useChatManager } from '@/hooks/useChatManager';
+import ChatMessage from './ChatMessage';
 
 interface FixedCommunityChatProps {
   defaultChannel?: string;
 }
 
-const FixedCommunityChat: React.FC<FixedCommunityChatProps> = ({
-  defaultChannel = 'general'
+const FixedCommunityChat: React.FC<FixedCommunityChatProps> = ({ 
+  defaultChannel = 'general' 
 }) => {
-  const [inputMessage, setInputMessage] = useState('');
+  const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
+  
   const { user } = useAuth();
   const {
     messages,
     isLoading,
     isConnected,
     error,
-    sendMessage
-  } = useCommunityMessages(defaultChannel);
+    sendMessage,
+    deleteMessage,
+    reconnect
+  } = useChatManager(defaultChannel);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [messages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!inputMessage.trim() || isSending) return;
-    if (!user?.id) {
-      return;
-    }
+  // Focus input when component mounts
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
-    const messageToSend = inputMessage.trim();
-    setInputMessage('');
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isSending || !user?.id) return;
+
     setIsSending(true);
-
     try {
-      const success = await sendMessage(messageToSend);
-      if (!success) {
-        // Restore message if send failed
-        setInputMessage(messageToSend);
-      }
+      await sendMessage(newMessage);
+      setNewMessage('');
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
     } finally {
       setIsSending(false);
-      inputRef.current?.focus();
     }
   };
 
-  // Show error state
-  if (error && user?.id) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Connection Error</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
-  // Show unauthenticated state
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessage(messageId);
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message');
+    }
+  };
+
+  const handleReconnect = () => {
+    reconnect();
+    toast.info('Reconnecting to chat...');
+  };
+
   if (!user) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Join the Community</h3>
-            <p className="text-gray-600 mb-4">
-              Please sign in to participate in community discussions.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="h-full flex items-center justify-center">
+        <CardContent className="text-center">
+          <p className="text-gray-600 dark:text-gray-400">
+            Please log in to access the community chat
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[600px] bg-white dark:bg-slate-900 rounded-lg shadow-lg border">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-slate-800">
-        <div className="flex items-center gap-2">
-          <Hash className="h-5 w-5 text-gray-500" />
-          <h3 className="font-semibold capitalize">{defaultChannel}</h3>
-          <span className="text-sm text-gray-500">
-            ({messages.length} messages)
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          {isConnected ? (
-            <>
-              <Wifi className="h-4 w-4 text-green-500" />
-              <span className="text-green-600">Live</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4 text-red-500" />
-              <span className="text-red-600">Connecting...</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Connection Status Alert */}
-      {!isConnected && !isLoading && (
-        <Alert className="m-4 border-yellow-200 bg-yellow-50">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            Connecting to real-time chat...
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-500">
-            <div className="text-center">
-              <Hash className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-              <p>No messages yet. Be the first to say hello! 👋</p>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Community Chat
+            <Badge variant="outline" className="ml-2">
+              #{defaultChannel}
+            </Badge>
+          </CardTitle>
+          
+          <div className="flex items-center gap-2">
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs">Connected</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs">Disconnected</span>
+                </div>
+              )}
             </div>
+
+            {/* Reconnect Button */}
+            {(!isConnected || error) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReconnect}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className="flex gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {message.sender?.username?.[0]?.toUpperCase() || 
-                   message.sender?.full_name?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">
-                      {message.sender?.full_name || message.sender?.username || 'Community Member'}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(message.created_at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-sm leading-relaxed break-words text-gray-700 dark:text-gray-300">
-                    {message.content}
-                  </p>
-                </div>
-              </div>
-            ))}
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <span className="text-sm text-red-700 dark:text-red-400">{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReconnect}
+              className="ml-auto"
+            >
+              Retry
+            </Button>
           </div>
         )}
-      </ScrollArea>
+      </CardHeader>
 
-      {/* Input Area */}
-      <div className="p-4 border-t bg-gray-50 dark:bg-slate-800">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <Separator />
+
+      {/* Messages Area */}
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
+          {isLoading && messages.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="flex items-center gap-2 text-gray-500">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span>Loading messages...</span>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Welcome to #{defaultChannel}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Be the first to start the conversation!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {messages.map((message, index) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  onDelete={() => handleDeleteMessage(message.id)}
+                  isLast={index === messages.length - 1}
+                  previousMessage={messages[index - 1]}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </CardContent>
+
+      <Separator />
+
+      {/* Message Input */}
+      <CardContent className="p-4">
+        <div className="flex gap-2">
           <Input
             ref={inputRef}
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder={`Message #${defaultChannel}...`}
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={
+              isConnected 
+                ? `Message #${defaultChannel}...` 
+                : 'Connecting...'
+            }
+            disabled={!isConnected || isSending}
             className="flex-1"
-            disabled={isSending || !isConnected}
-            maxLength={500}
           />
-          <Button 
-            type="submit" 
-            size="icon"
-            disabled={!inputMessage.trim() || isSending || !isConnected}
-            className="shrink-0"
+          <Button
+            onClick={handleSendMessage}
+            disabled={!newMessage.trim() || !isConnected || isSending}
+            size="sm"
           >
             {isSending ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
             )}
           </Button>
-        </form>
-        {inputMessage && (
-          <p className="text-xs text-gray-500 mt-1">
-            {inputMessage.length}/500 characters
-          </p>
-        )}
-      </div>
-    </div>
+        </div>
+
+        {/* Status Info */}
+        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+          <span>
+            {messages.length} message{messages.length !== 1 ? 's' : ''}
+          </span>
+          <span>
+            Press Enter to send
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

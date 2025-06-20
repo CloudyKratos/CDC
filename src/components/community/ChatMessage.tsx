@@ -27,7 +27,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  // Remove automatic random reactions - start with empty reactions
   const [reactions, setReactions] = useState<Record<string, number>>({});
 
   const { user } = useAuth();
@@ -35,6 +34,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   // Check if this message should be grouped with the previous one
   const shouldGroup = previousMessage && 
     previousMessage.sender_id === message.sender_id &&
+    previousMessage.sender?.id === message.sender?.id &&
     new Date(message.created_at).getTime() - new Date(previousMessage.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
 
   // Check if this is the current user's message
@@ -43,7 +43,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const handleReaction = (reaction: string) => {
     if (onReaction) {
       onReaction(message.id, reaction);
-      // Only update local state, don't automatically add reactions
       toast.success(`Reacted with ${reaction}`);
     }
   };
@@ -51,6 +50,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const handleAddReaction = () => {
     setShowReactions(!showReactions);
   };
+
+  const handleDelete = () => {
+    if (onDelete && isOwnMessage) {
+      onDelete(message.id);
+    }
+  };
+
+  // Ensure we have valid sender data
+  const sender = message.sender || {
+    id: message.sender_id,
+    username: 'Unknown User',
+    full_name: 'Unknown User',
+    avatar_url: null
+  };
+
+  // Ensure we have valid content
+  const content = message.content || '';
   
   return (
     <div 
@@ -64,7 +80,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
           {!shouldGroup && (
             <MessageHeader 
-              message={message} 
+              message={{ ...message, sender }}
               isOwnMessage={isOwnMessage}
               showAvatar={!isOwnMessage}
             />
@@ -72,7 +88,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           
           <div className={`${shouldGroup ? (isOwnMessage ? 'ml-0' : 'ml-16') : (isOwnMessage ? 'ml-0' : 'ml-16')}`}>
             <MessageContent 
-              content={message.content} 
+              content={content}
               isOwnMessage={isOwnMessage}
               showTimestamp={shouldGroup}
               timestamp={message.created_at}
@@ -90,12 +106,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       
       <MessageActions
         messageId={message.id}
-        messageContent={message.content}
+        messageContent={content}
         showActions={showActions}
         showReactions={showReactions}
         setShowReactions={setShowReactions}
         onReply={onReply}
-        onDelete={onDelete}
+        onDelete={isOwnMessage ? handleDelete : undefined}
         onReaction={onReaction}
         isOwnMessage={isOwnMessage}
       />

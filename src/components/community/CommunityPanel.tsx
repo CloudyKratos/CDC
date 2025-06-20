@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import FixedCommunityChat from './FixedCommunityChat';
@@ -15,12 +15,14 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasError, setHasError] = useState(false);
   
   const { user } = useAuth();
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
+      setHasError(false);
       toast.success('Connection restored - chat is now available');
     };
 
@@ -32,10 +34,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Quick initialization for better UX
+    // Initialize with a reasonable loading time
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 1000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -47,13 +49,41 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setIsLoading(true);
+    setHasError(false);
     
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Chat refreshed successfully');
+      if (isOnline) {
+        toast.success('Chat refreshed successfully');
+      }
     }, 1000);
   };
 
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
+        <Card className="max-w-md mx-auto shadow-xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="h-8 w-8 text-yellow-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Please log in to access the community chat and connect with other members.
+            </p>
+            <Button onClick={() => window.location.reload()} className="w-full">
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle offline state
   if (!isOnline) {
     return (
       <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
@@ -78,6 +108,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     );
   }
 
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
