@@ -7,6 +7,12 @@ import EnhancedStatsCard from "./EnhancedStatsCard";
 import ImprovedQuickActionsPanel from "./ImprovedQuickActionsPanel";
 import OptionalAddOns from "@/components/home/OptionalAddOns";
 
+interface CollapsedSections {
+  stats: boolean;
+  quickActions: boolean;
+  addOns: boolean;
+}
+
 interface WarriorSpaceSidebarProps {
   progress: {
     level: number;
@@ -17,12 +23,8 @@ interface WarriorSpaceSidebarProps {
     rank: string;
     weeklyProgress: number;
   };
-  collapsedSections: {
-    stats: boolean;
-    quickActions: boolean;
-    addOns: boolean;
-  };
-  onToggleSection: (section: keyof typeof collapsedSections) => void;
+  collapsedSections: CollapsedSections;
+  onToggleSection: (section: keyof CollapsedSections) => void;
   sidebarOpen: boolean;
 }
 
