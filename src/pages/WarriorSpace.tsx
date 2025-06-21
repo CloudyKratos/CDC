@@ -113,8 +113,10 @@ const WarriorSpace = () => {
         {/* Main gradient overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-slate-900 to-slate-900"></div>
         
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" width=\"32\" height=\"32\" fill=\"none\" stroke=\"rgb(148 163 184 / 0.05)\"%3E%3Cpath d=\"m0 .5h32m-32 32v-32\"%3E%3C/path%3E%3C/svg%3E')] bg-[length:32px_32px]"></div>
+        {/* Grid pattern - simplified to avoid quote escaping issues */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="h-full w-full bg-[linear-gradient(rgba(148,163,184,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.1)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+        </div>
         
         {/* Floating orbs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse opacity-70"></div>
