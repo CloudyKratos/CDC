@@ -15,6 +15,8 @@ interface EnhancedStatsCardProps {
     completedQuests: number;
     rank: string;
     weeklyProgress: number;
+    dailyQuestProgress: number;
+    weeklyQuestTarget: number;
   };
   isCollapsed: boolean;
   onToggle: () => void;
@@ -23,6 +25,7 @@ interface EnhancedStatsCardProps {
 const EnhancedStatsCard = ({ stats, isCollapsed, onToggle }: EnhancedStatsCardProps) => {
   const progressPercentage = Math.min((stats.xp / stats.nextLevelXp) * 100, 100);
   const xpToNext = Math.max(stats.nextLevelXp - stats.xp, 0);
+  const dailyProgressPercentage = Math.min((stats.dailyQuestProgress / 5) * 100, 100);
 
   const getStreakMessage = () => {
     if (stats.streak >= 30) return "🔥 Legendary Streak!";
@@ -104,7 +107,8 @@ const EnhancedStatsCard = ({ stats, isCollapsed, onToggle }: EnhancedStatsCardPr
               max={stats.nextLevelXp} 
               color="purple"
               size="lg"
-              className="my-4"
+              showPercentage={true}
+              label=""
             />
             
             <div className="flex justify-between items-center">
@@ -114,6 +118,39 @@ const EnhancedStatsCard = ({ stats, isCollapsed, onToggle }: EnhancedStatsCardPr
               <span className="text-sm text-green-400 font-semibold">
                 {Math.round(progressPercentage)}% Complete
               </span>
+            </div>
+          </div>
+
+          {/* Daily Progress Section */}
+          <div className="space-y-4 p-6 bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-2xl border border-green-500/30">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold text-green-200 flex items-center gap-2">
+                <Target className="h-5 w-5 text-green-400" />
+                Daily Progress
+              </span>
+              <span className="text-xl font-bold text-white">{stats.dailyQuestProgress}/5</span>
+            </div>
+            
+            <AnimatedProgressBar 
+              value={stats.dailyQuestProgress} 
+              max={5} 
+              color="green"
+              size="md"
+              showPercentage={true}
+              label=""
+            />
+            
+            <div className="text-center">
+              {stats.dailyQuestProgress >= 5 ? (
+                <div className="flex items-center justify-center gap-2 text-green-400 bg-green-900/30 px-4 py-2 rounded-full">
+                  <Trophy className="h-4 w-4" />
+                  <span className="text-sm font-semibold">🎉 Daily Goal Complete!</span>
+                </div>
+              ) : (
+                <span className="text-sm text-green-300 bg-green-900/30 px-3 py-1 rounded-full">
+                  {5 - stats.dailyQuestProgress} quests remaining today
+                </span>
+              )}
             </div>
           </div>
           
@@ -158,8 +195,8 @@ const EnhancedStatsCard = ({ stats, isCollapsed, onToggle }: EnhancedStatsCardPr
           <div className="space-y-4 p-6 bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-2xl border border-blue-500/30">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-blue-200 flex items-center gap-2">
-                <Target className="h-5 w-5 text-cyan-400" />
-                Weekly Goal
+                <TrendingUp className="h-5 w-5 text-cyan-400" />
+                Weekly Goal ({stats.weeklyQuestTarget} XP)
               </span>
               <span className="text-xl font-bold text-white">{Math.round(stats.weeklyProgress)}%</span>
             </div>
@@ -169,6 +206,8 @@ const EnhancedStatsCard = ({ stats, isCollapsed, onToggle }: EnhancedStatsCardPr
               max={100} 
               color="blue"
               size="md"
+              showPercentage={false}
+              label=""
             />
             
             <div className="text-center">

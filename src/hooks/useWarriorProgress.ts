@@ -14,10 +14,13 @@ interface WarriorProgress {
   weeklyXp: number;
   weeklyProgress: number;
   rank: string;
+  dailyQuestProgress: number;
+  weeklyQuestTarget: number;
 }
 
-const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250];
+const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500, 5200, 6000];
 const WEEKLY_XP_TARGET = 500;
+const DAILY_QUEST_TARGET = 5;
 
 const RANKS = [
   { threshold: 0, name: "Novice Warrior" },
@@ -40,7 +43,9 @@ export const useWarriorProgress = () => {
     lastActiveDate: '',
     weeklyXp: 0,
     weeklyProgress: 0,
-    rank: "Novice Warrior"
+    rank: "Novice Warrior",
+    dailyQuestProgress: 0,
+    weeklyQuestTarget: WEEKLY_XP_TARGET
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -71,56 +76,80 @@ export const useWarriorProgress = () => {
     return `${year}-W${week}`;
   }, []);
 
+  const getDayKey = useCallback(() => {
+    return new Date().toDateString();
+  }, []);
+
   const loadProgress = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       const stored = localStorage.getItem('warriorProgress');
-      const today = new Date().toDateString();
+      const today = getDayKey();
       const thisWeek = getWeekKey();
 
+      // Initialize default progress if none exists
+      let savedProgress = {
+        totalXp: 0,
+        totalCoins: 0,
+        completedQuests: 0,
+        streak: 0,
+        lastActiveDate: ''
+      };
+
       if (stored) {
-        const savedProgress = JSON.parse(stored);
-        
-        // Check if it's a new day and update streak
-        let newStreak = savedProgress.streak;
-        if (savedProgress.lastActiveDate) {
-          const lastActive = new Date(savedProgress.lastActiveDate);
-          const todayDate = new Date(today);
-          const daysDiff = Math.floor((todayDate.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (daysDiff > 1) {
-            newStreak = 0; // Reset streak if more than 1 day gap
-            toast.info("🔥 Streak reset! Start a new one today.");
-          }
-        }
-
-        // Load weekly progress
-        const weeklyData = localStorage.getItem('weeklyProgress');
-        let weeklyXp = 0;
-        if (weeklyData) {
-          const weekly = JSON.parse(weeklyData);
-          if (weekly.week === thisWeek) {
-            weeklyXp = weekly.xp;
-          }
-        }
-
-        const level = calculateLevel(savedProgress.totalXp);
-        const currentXp = savedProgress.totalXp - (LEVEL_THRESHOLDS[level - 1] || 0);
-        const nextLevelXp = (LEVEL_THRESHOLDS[level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]) - (LEVEL_THRESHOLDS[level - 1] || 0);
-
-        setProgress({
-          ...savedProgress,
-          level,
-          currentXp,
-          nextLevelXp,
-          streak: newStreak,
-          weeklyXp,
-          weeklyProgress: Math.min((weeklyXp / WEEKLY_XP_TARGET) * 100, 100),
-          rank: getRank(savedProgress.totalXp)
-        });
+        savedProgress = JSON.parse(stored);
       }
+
+      // Check streak logic
+      let newStreak = savedProgress.streak;
+      if (savedProgress.lastActiveDate) {
+        const lastActive = new Date(savedProgress.lastActiveDate);
+        const todayDate = new Date(today);
+        const daysDiff = Math.floor((todayDate.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff > 1) {
+          newStreak = 0;
+        }
+      }
+
+      // Load weekly progress
+      const weeklyData = localStorage.getItem('weeklyProgress');
+      let weeklyXp = 0;
+      if (weeklyData) {
+        const weekly = JSON.parse(weeklyData);
+        if (weekly.week === thisWeek) {
+          weeklyXp = weekly.xp;
+        }
+      }
+
+      // Load daily quest progress
+      const dailyData = localStorage.getItem('dailyQuestProgress');
+      let dailyQuestProgress = 0;
+      if (dailyData) {
+        const daily = JSON.parse(dailyData);
+        if (daily.date === today) {
+          dailyQuestProgress = daily.completed;
+        }
+      }
+
+      const level = calculateLevel(savedProgress.totalXp);
+      const currentXp = savedProgress.totalXp - (LEVEL_THRESHOLDS[level - 1] || 0);
+      const nextLevelXp = (LEVEL_THRESHOLDS[level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]) - (LEVEL_THRESHOLDS[level - 1] || 0);
+
+      setProgress({
+        ...savedProgress,
+        level,
+        currentXp,
+        nextLevelXp,
+        streak: newStreak,
+        weeklyXp,
+        weeklyProgress: Math.min((weeklyXp / WEEKLY_XP_TARGET) * 100, 100),
+        rank: getRank(savedProgress.totalXp),
+        dailyQuestProgress,
+        weeklyQuestTarget: WEEKLY_XP_TARGET
+      });
     } catch (err) {
       console.error('Error loading warrior progress:', err);
       setError('Failed to load progress');
@@ -128,11 +157,11 @@ export const useWarriorProgress = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [calculateLevel, getRank, getWeekKey]);
+  }, [calculateLevel, getRank, getWeekKey, getDayKey]);
 
-  const addReward = useCallback(async (xp: number, coins: number) => {
+  const addReward = useCallback(async (xp: number, coins: number = 0) => {
     try {
-      const today = new Date().toDateString();
+      const today = getDayKey();
       const thisWeek = getWeekKey();
       
       // Update weekly progress
@@ -145,6 +174,17 @@ export const useWarriorProgress = () => {
         }
       }
       localStorage.setItem('weeklyProgress', JSON.stringify({ week: thisWeek, xp: weeklyXp }));
+
+      // Update daily quest progress
+      const dailyData = localStorage.getItem('dailyQuestProgress');
+      let dailyQuestProgress = 1;
+      if (dailyData) {
+        const daily = JSON.parse(dailyData);
+        if (daily.date === today) {
+          dailyQuestProgress = Math.min(daily.completed + 1, DAILY_QUEST_TARGET);
+        }
+      }
+      localStorage.setItem('dailyQuestProgress', JSON.stringify({ date: today, completed: dailyQuestProgress }));
 
       const oldLevel = progress.level;
       const newTotalXp = progress.totalXp + xp;
@@ -159,6 +199,7 @@ export const useWarriorProgress = () => {
         
         if (!lastActive || Math.floor((todayDate.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24)) === 1) {
           newStreak = progress.streak + 1;
+          toast.success(`🔥 Streak increased to ${newStreak} days!`);
         }
       }
 
@@ -178,7 +219,9 @@ export const useWarriorProgress = () => {
         lastActiveDate: today,
         weeklyXp,
         weeklyProgress: Math.min((weeklyXp / WEEKLY_XP_TARGET) * 100, 100),
-        rank: getRank(newTotalXp)
+        rank: getRank(newTotalXp),
+        dailyQuestProgress,
+        weeklyQuestTarget: WEEKLY_XP_TARGET
       };
 
       setProgress(updatedProgress);
@@ -191,6 +234,16 @@ export const useWarriorProgress = () => {
         });
       }
 
+      // Check for daily goal completion
+      if (dailyQuestProgress >= DAILY_QUEST_TARGET && dailyQuestProgress - 1 < DAILY_QUEST_TARGET) {
+        toast.success('🏆 Daily quest goal completed!', { duration: 4000 });
+      }
+
+      // XP reward notification
+      toast.success(`+${xp} XP ${coins > 0 ? `+${coins} coins` : ''}`, {
+        duration: 2000,
+      });
+
       return updatedProgress;
     } catch (err) {
       console.error('Error adding reward:', err);
@@ -198,7 +251,7 @@ export const useWarriorProgress = () => {
       toast.error('Failed to update your progress');
       return progress;
     }
-  }, [progress, calculateLevel, getRank, getWeekKey]);
+  }, [progress, calculateLevel, getRank, getWeekKey, getDayKey]);
 
   useEffect(() => {
     loadProgress();
