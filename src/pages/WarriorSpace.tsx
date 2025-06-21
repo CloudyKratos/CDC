@@ -30,43 +30,47 @@ const WarriorSpace = () => {
   useEffect(() => {
     const loadUserData = async () => {
       if (user && !isLoading) {
-        // Simulate loading
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setWeeklyGoals([
-          { 
-            id: 1, 
-            title: "Maintain 7-day streak", 
-            progress: progress.streak, 
-            target: 7, 
-            xp: 500,
-            coins: 200
-          },
-          { 
-            id: 2, 
-            title: "Complete 20 focus sessions", 
-            progress: Math.min(progress.completedQuests, 20), 
-            target: 20,
-            xp: 300,
-            coins: 150
-          },
-          { 
-            id: 3, 
-            title: "Earn 500 XP this week", 
-            progress: progress.weeklyXp, 
-            target: 500,
-            xp: 200,
-            coins: 100
-          }
-        ]);
+        // Simulate loading with better error handling
+        try {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          setWeeklyGoals([
+            { 
+              id: 1, 
+              title: "Maintain 7-day streak", 
+              progress: Math.min(progress.streak, 7), 
+              target: 7, 
+              xp: 500,
+              coins: 200
+            },
+            { 
+              id: 2, 
+              title: "Complete 20 focus sessions", 
+              progress: Math.min(progress.completedQuests, 20), 
+              target: 20,
+              xp: 300,
+              coins: 150
+            },
+            { 
+              id: 3, 
+              title: "Earn 500 XP this week", 
+              progress: Math.min(progress.weeklyXp || 0, 500), 
+              target: 500,
+              xp: 200,
+              coins: 100
+            }
+          ]);
 
-        setAchievements([
-          { title: "First Steps", description: "Complete your first task", icon: Target, earned: progress.completedQuests > 0, rarity: "common" },
-          { title: "Team Player", description: "Make first community post", icon: Users, earned: true, rarity: "common" },
-          { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: progress.completedQuests >= 10, rarity: "rare" },
-          { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: progress.streak >= 7, rarity: "epic" },
-          { title: "XP Hunter", description: "Earn 1000+ total XP", icon: Sparkles, earned: progress.totalXp >= 1000, rarity: "legendary" }
-        ]);
+          setAchievements([
+            { title: "First Steps", description: "Complete your first task", icon: Target, earned: progress.completedQuests > 0, rarity: "common" },
+            { title: "Team Player", description: "Make first community post", icon: Users, earned: true, rarity: "common" },
+            { title: "Focus Master", description: "Complete 10 focus sessions", icon: Trophy, earned: progress.completedQuests >= 10, rarity: "rare" },
+            { title: "Week Warrior", description: "Maintain 7-day streak", icon: Flame, earned: progress.streak >= 7, rarity: "epic" },
+            { title: "XP Hunter", description: "Earn 1000+ total XP", icon: Sparkles, earned: progress.totalXp >= 1000, rarity: "legendary" }
+          ]);
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
       }
     };
 
@@ -105,10 +109,34 @@ const WarriorSpace = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
       {/* Enhanced Background Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/30 via-slate-900 to-slate-900"></div>
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16"></div>
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className="absolute inset-0">
+        {/* Main gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-slate-900 to-slate-900"></div>
+        
+        {/* Grid pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="rgb(148 163 184 / 0.05)"%3E%3Cpath d="m0 .5h32m-32 32v-32"%3E%3C/path%3E%3C/svg%3E')] bg-[length:32px_32px]"></div>
+        
+        {/* Floating orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse opacity-70"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000 opacity-70"></div>
+        <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-2000 opacity-50"></div>
+        
+        {/* Animated particles */}
+        <div className="absolute inset-0">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-purple-400/20 rounded-full animate-pulse"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${3 + Math.random() * 2}s`
+              }}
+            />
+          ))}
+        </div>
+      </div>
       
       <div className="relative z-10">
         <WarriorSpaceHeader progress={progress} />
@@ -121,12 +149,12 @@ const WarriorSpace = () => {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-            {/* Sidebar with improved mobile handling */}
-            <div className={`lg:col-span-1 transition-all duration-300 ease-in-out ${
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+            {/* Enhanced Sidebar */}
+            <div className={`lg:col-span-4 xl:col-span-3 transition-all duration-300 ease-in-out ${
               sidebarOpen ? 'block' : 'hidden lg:block'
             }`}>
-              <div className="sticky top-6">
+              <div className="sticky top-6 space-y-6">
                 <WarriorSpaceSidebar
                   progress={progress}
                   collapsedSections={collapsedSections}
@@ -136,8 +164,8 @@ const WarriorSpace = () => {
               </div>
             </div>
 
-            {/* Main Content with improved spacing */}
-            <div className="lg:col-span-3">
+            {/* Enhanced Main Content */}
+            <div className="lg:col-span-8 xl:col-span-9">
               <WarriorSpaceMainContent
                 activeQuest={activeQuest}
                 onActiveQuestChange={setActiveQuest}
@@ -150,10 +178,10 @@ const WarriorSpace = () => {
         </div>
       </div>
 
-      {/* Mobile overlay when sidebar is open */}
+      {/* Enhanced Mobile overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-all duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}

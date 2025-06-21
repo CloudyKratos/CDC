@@ -55,12 +55,21 @@ const WarriorSpaceSidebar = ({
         onToggle={() => onToggleSection('quickActions')}
       />
 
-      <Card className="bg-gradient-to-br from-black/60 to-green-900/40 border-green-800/50 text-white backdrop-blur-md shadow-2xl hover:shadow-3xl transition-all duration-300 rounded-xl">
-        <CardHeader className="pb-3">
+      <Card className="bg-gradient-to-br from-slate-900/90 to-green-900/50 border-green-500/30 text-white backdrop-blur-lg shadow-2xl hover:shadow-green-500/20 transition-all duration-500 rounded-2xl overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute bottom-0 left-1/4 w-24 h-24 bg-green-500/30 rounded-full blur-3xl animate-pulse delay-700"></div>
+        </div>
+
+        <CardHeader className="pb-4 relative z-10">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold">
-              <Plus className="h-5 w-5 text-green-400" />
-              Power-Ups
+            <CardTitle className="flex items-center gap-3 text-xl font-bold">
+              <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+                <Plus className="h-6 w-6 text-white" />
+              </div>
+              <span className="bg-gradient-to-r from-white to-green-200 bg-clip-text text-transparent">
+                Power-Ups
+              </span>
             </CardTitle>
             <Button
               variant="ghost"
@@ -73,7 +82,7 @@ const WarriorSpaceSidebar = ({
           </div>
         </CardHeader>
         {!collapsedSections.addOns && (
-          <CardContent>
+          <CardContent className="relative z-10">
             <OptionalAddOns />
           </CardContent>
         )}

@@ -8,7 +8,7 @@ interface AnimatedProgressBarProps {
   max?: number;
   className?: string;
   showPercentage?: boolean;
-  color?: "default" | "green" | "blue" | "purple" | "yellow";
+  color?: "default" | "green" | "blue" | "purple" | "yellow" | "orange";
   size?: "sm" | "md" | "lg";
 }
 
@@ -26,7 +26,7 @@ const AnimatedProgressBar = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimatedValue(percentage);
-    }, 100);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [percentage]);
@@ -34,15 +34,17 @@ const AnimatedProgressBar = ({
   const getColorClasses = () => {
     switch (color) {
       case "green":
-        return "bg-green-500";
+        return "from-green-500 to-emerald-500";
       case "blue":
-        return "bg-blue-500";
+        return "from-blue-500 to-cyan-500";
       case "purple":
-        return "bg-purple-500";
+        return "from-purple-500 to-pink-500";
       case "yellow":
-        return "bg-yellow-500";
+        return "from-yellow-500 to-orange-500";
+      case "orange":
+        return "from-orange-500 to-red-500";
       default:
-        return "bg-gradient-to-r from-purple-500 to-blue-500";
+        return "from-purple-500 to-blue-500";
     }
   };
 
@@ -51,38 +53,40 @@ const AnimatedProgressBar = ({
       case "sm":
         return "h-2";
       case "lg":
-        return "h-4";
+        return "h-6";
       default:
-        return "h-3";
+        return "h-4";
     }
   };
 
   return (
     <div className={cn("w-full space-y-1", className)}>
-      <div className="relative">
-        <Progress 
-          value={animatedValue} 
-          className={cn("transition-all duration-1000 ease-out", getSizeClasses())}
-          style={{
-            background: "rgba(107, 114, 128, 0.2)"
-          }}
-        />
-        <div 
-          className={cn(
-            "absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out",
-            getColorClasses()
-          )}
-          style={{ width: `${animatedValue}%` }}
-        />
-        
-        {/* Shine effect */}
-        <div 
-          className="absolute top-0 h-full w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full animate-pulse"
-          style={{ 
-            left: `${Math.max(0, animatedValue - 8)}%`,
-            opacity: animatedValue > 5 ? 1 : 0
-          }}
-        />
+      <div className="relative overflow-hidden">
+        <div className={cn(
+          "w-full bg-gray-800/60 rounded-full border border-gray-700/50",
+          getSizeClasses()
+        )}>
+          <div 
+            className={cn(
+              "h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r relative overflow-hidden",
+              getColorClasses()
+            )}
+            style={{ width: `${animatedValue}%` }}
+          >
+            {/* Animated shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+            
+            {/* Moving highlight */}
+            <div 
+              className="absolute top-0 h-full w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"
+              style={{ 
+                left: `${Math.max(0, animatedValue - 8)}%`,
+                opacity: animatedValue > 10 ? 1 : 0,
+                animationDelay: '0.5s'
+              }}
+            />
+          </div>
+        </div>
       </div>
       
       {showPercentage && (
