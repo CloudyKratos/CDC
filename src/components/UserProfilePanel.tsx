@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,6 +19,24 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWarriorProgress } from "@/hooks/useWarriorProgress";
 
+interface ProfileData {
+  name: string;
+  bio: string;
+  location: string;
+  website: string;
+  timeZone: string;
+  phoneNumber: string;
+  role: string;
+  company: string;
+  skills: string[];
+  interests: string[];
+  socialLinks: {
+    twitter: string;
+    linkedin: string;
+    github: string;
+  };
+}
+
 const UserProfilePanel: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { progress } = useWarriorProgress();
@@ -29,7 +46,7 @@ const UserProfilePanel: React.FC = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<ProfileData>({
     name: user?.name || '',
     bio: '',
     location: '',
@@ -38,8 +55,8 @@ const UserProfilePanel: React.FC = () => {
     phoneNumber: '',
     role: user?.role || 'user',
     company: "",
-    skills: [] as string[],
-    interests: [] as string[],
+    skills: [],
+    interests: [],
     socialLinks: {
       twitter: '',
       linkedin: '',
@@ -81,8 +98,8 @@ const UserProfilePanel: React.FC = () => {
             website: data.website || '',
             phoneNumber: data.phone_number || '',
             company: data.company || '',
-            skills: data.skills || [],
-            interests: data.interests || [],
+            skills: Array.isArray(data.skills) ? data.skills : [],
+            interests: Array.isArray(data.interests) ? data.interests : [],
             socialLinks: {
               twitter: data.twitter_url || '',
               linkedin: data.linkedin_url || '',

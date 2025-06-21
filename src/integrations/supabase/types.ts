@@ -591,10 +591,20 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          company: string | null
           created_at: string
           full_name: string | null
+          github_url: string | null
           id: string
+          interests: Json | null
+          is_profile_public: boolean | null
+          last_active_at: string | null
+          linkedin_url: string | null
           location: string | null
+          phone_number: string | null
+          skills: Json | null
+          timezone: string | null
+          twitter_url: string | null
           updated_at: string
           username: string | null
           website: string | null
@@ -602,10 +612,20 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          company?: string | null
           created_at?: string
           full_name?: string | null
+          github_url?: string | null
           id: string
+          interests?: Json | null
+          is_profile_public?: boolean | null
+          last_active_at?: string | null
+          linkedin_url?: string | null
           location?: string | null
+          phone_number?: string | null
+          skills?: Json | null
+          timezone?: string | null
+          twitter_url?: string | null
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -613,10 +633,20 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          company?: string | null
           created_at?: string
           full_name?: string | null
+          github_url?: string | null
           id?: string
+          interests?: Json | null
+          is_profile_public?: boolean | null
+          last_active_at?: string | null
+          linkedin_url?: string | null
           location?: string | null
+          phone_number?: string | null
+          skills?: Json | null
+          timezone?: string | null
+          twitter_url?: string | null
           updated_at?: string
           username?: string | null
           website?: string | null
