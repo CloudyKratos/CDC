@@ -22,6 +22,8 @@ interface WarriorSpaceSidebarProps {
     completedQuests: number;
     rank: string;
     weeklyProgress: number;
+    dailyQuestProgress: number;
+    weeklyQuestTarget: number;
   };
   collapsedSections: CollapsedSections;
   onToggleSection: (section: keyof CollapsedSections) => void;
@@ -44,7 +46,9 @@ const WarriorSpaceSidebar = ({
           streak: progress.streak,
           completedQuests: progress.completedQuests,
           rank: progress.rank,
-          weeklyProgress: progress.weeklyProgress
+          weeklyProgress: progress.weeklyProgress,
+          dailyQuestProgress: progress.dailyQuestProgress,
+          weeklyQuestTarget: progress.weeklyQuestTarget
         }}
         isCollapsed={collapsedSections.stats}
         onToggle={() => onToggleSection('stats')}
