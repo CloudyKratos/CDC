@@ -120,34 +120,64 @@ const StableCommunityChat: React.FC<StableCommunityChatProps> = ({
       setIsLoadingMessages(true);
       console.log('📥 Loading messages for channel:', channelId);
 
-      const { data: messages, error } = await supabase
+      // First get the messages
+      const { data: messagesData, error: messagesError } = await supabase
         .from('community_messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          channel_id,
-          profiles (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, content, created_at, sender_id, channel_id')
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
         .limit(50);
 
-      if (error) {
-        console.error('❌ Error loading messages:', error);
+      if (messagesError) {
+        console.error('❌ Error loading messages:', messagesError);
         setMessages([]);
-      } else {
-        console.log('✅ Messages loaded:', messages?.length || 0);
-        setMessages(messages || []);
-        setTimeout(scrollToBottom, 100);
+        return;
       }
+
+      if (!messagesData || messagesData.length === 0) {
+        console.log('✅ No messages found');
+        setMessages([]);
+        return;
+      }
+
+      // Get unique sender IDs
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      
+      // Fetch profiles for all senders
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .in('id', senderIds);
+
+      if (profilesError) {
+        console.error('❌ Error loading profiles:', profilesError);
+      }
+
+      // Create a map of profiles by ID
+      const profilesMap = new Map();
+      (profilesData || []).forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
+
+      // Combine messages with profiles
+      const messagesWithProfiles: Message[] = messagesData.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        channel_id: msg.channel_id,
+        profiles: profilesMap.get(msg.sender_id) || {
+          id: msg.sender_id,
+          username: 'Unknown User',
+          full_name: 'Unknown User',
+          avatar_url: null
+        }
+      }));
+
+      console.log('✅ Messages loaded:', messagesWithProfiles.length);
+      setMessages(messagesWithProfiles);
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('💥 Exception loading messages:', error);
       setMessages([]);
