@@ -2,7 +2,7 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Calendar, Trophy, Sparkles } from "lucide-react";
-import CDCMorningStrategyCard from "@/components/home/CDCMorningStrategyCard";
+import EnhancedCDCMorningStrategyCard from "@/components/home/EnhancedCDCMorningStrategyCard";
 import StableQuestManager from "./StableQuestManager";
 import WeeklyGoalsPanel from "./WeeklyGoalsPanel";
 import AchievementsPanel from "./AchievementsPanel";
@@ -19,7 +19,7 @@ interface WarriorSpaceMainContentProps {
     nextLevelXp: number;
     streak: number;
     completedQuests: number;
-    totalCoins: number;
+    totalCoins: number;  
     weeklyProgress: number;
   };
 }
@@ -35,7 +35,7 @@ const WarriorSpaceMainContent = ({
     <div className="space-y-6">
       {/* Enhanced Strategy Card */}
       <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-2xl border border-purple-500/30 p-1 shadow-xl backdrop-blur-sm">
-        <CDCMorningStrategyCard />
+        <EnhancedCDCMorningStrategyCard />
       </div>
 
       {/* Enhanced Tabs */}
