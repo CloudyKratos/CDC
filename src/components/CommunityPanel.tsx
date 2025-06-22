@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertTriangle, Users, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import FixedCommunityChat from './community/FixedCommunityChat';
+import EnhancedCommunityChat from './community/EnhancedCommunityChat';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -14,27 +14,34 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [retryCount, setRetryCount] = useState(0);
   
   const { user } = useAuth();
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success('Connection restored - chat is now available');
+      toast.success('Connection restored - chat is now available', {
+        icon: '🌐',
+        duration: 3000,
+      });
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.error('Connection lost - you\'ll be able to chat when back online');
+      toast.error('Connection lost - you\'ll be able to chat when back online', {
+        icon: '📡',
+        duration: 5000,
+      });
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Quick initialization
+    // Initialize with smooth loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 800);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -44,28 +51,67 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   }, []);
 
   const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
     setIsLoading(true);
+    
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Chat refreshed successfully');
-    }, 1000);
+      if (isOnline) {
+        toast.success('Chat refreshed successfully', {
+          icon: '✨',
+          duration: 2000,
+        });
+      }
+    }, 1200);
   };
 
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <div className="h-full bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-indigo-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-indigo-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="h-10 w-10 text-yellow-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Please log in to access the community chat and connect with other members in real-time.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle offline state
   if (!isOnline) {
     return (
-      <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
-        <Card className="max-w-md mx-auto shadow-xl">
+      <div className="h-full bg-gradient-to-br from-red-50/50 via-orange-50/30 to-pink-50/50 dark:from-red-950/30 dark:via-orange-950/20 dark:to-pink-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <WifiOff className="h-8 w-8 text-red-500" />
+            <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <WifiOff className="h-10 w-10 text-red-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
               No Internet Connection
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Please check your internet connection to access the community chat.
+            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Please check your internet connection to access the real-time community chat.
             </p>
-            <Button onClick={handleRetry} className="flex items-center gap-2 w-full">
+            <Button 
+              onClick={handleRetry} 
+              className="flex items-center gap-2 w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700"
+            >
               <RefreshCw className="h-4 w-4" />
               Check Connection
             </Button>
@@ -75,18 +121,29 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     );
   }
 
+  // Handle loading state
   if (isLoading) {
     return (
-      <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 flex items-center justify-center">
-        <Card className="max-w-md mx-auto shadow-xl">
+      <div className="h-full bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-indigo-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-indigo-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto mb-6"></div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-ping opacity-20"></div>
+              <div className="relative w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <MessageCircle className="h-10 w-10 text-white animate-pulse" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
               Loading Community Chat
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Setting up real-time messaging...
+            <p className="text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+              Setting up real-time messaging and connecting you to the community...
             </p>
+            {retryCount > 0 && (
+              <p className="text-sm text-blue-600 font-medium mt-3">
+                Loading attempt #{retryCount + 1}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -94,18 +151,36 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 relative">
+    <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 relative overflow-hidden">
+      {/* Enhanced Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-400/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-400/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
+      
       {/* Status Indicator */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-6 right-6 z-10">
         <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-white/20">
-          <Wifi className="h-4 w-4 text-green-500" />
-          <span className="text-sm font-medium text-gray-700">Stable Chat</span>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <Wifi className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-semibold text-gray-700">Live Chat Active</span>
+          <Users className="h-4 w-4 text-gray-500" />
         </div>
       </div>
       
-      <div className="h-full p-4">
+      <div className="h-full p-6 relative z-10">
         <div className="h-full max-w-4xl mx-auto">
-          <FixedCommunityChat defaultChannel={channelName} />
+          <EnhancedCommunityChat defaultChannel={channelName} />
+        </div>
+      </div>
+      
+      {/* Floating Action Hint */}
+      <div className="absolute bottom-6 left-6 z-10">
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-full px-3 py-1 border border-blue-200/30">
+          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+            💬 Real-time messaging enabled
+          </span>
         </div>
       </div>
     </div>

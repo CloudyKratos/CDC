@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
@@ -13,16 +12,26 @@ export function useCommunityMessages(channelName: string) {
   const [channelId, setChannelId] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const { user } = useAuth();
+  
+  // Refs for cleanup and state management
+  const subscriptionRef = useRef<any>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializingRef = useRef(false);
 
-  // Get or create channel
+  // Enhanced channel initialization with better error handling
   const initializeChannel = useCallback(async () => {
-    if (!user?.id || !channelName) {
+    if (!user?.id || !channelName || isInitializingRef.current) {
       setIsLoading(false);
       return;
     }
 
+    isInitializingRef.current = true;
+    
     try {
       console.log('🔄 Initializing channel:', channelName);
+      
+      // Clear any existing errors
+      setError(null);
       
       // Check if channel exists
       let { data: channel, error: channelError } = await supabase
@@ -44,7 +53,7 @@ export function useCommunityMessages(channelName: string) {
           .insert({
             name: channelName,
             type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} channel`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} community channel`,
             created_by: user.id
           })
           .select('id')
@@ -55,6 +64,7 @@ export function useCommunityMessages(channelName: string) {
         }
         
         channel = newChannel;
+        toast.success(`Created #${channelName} channel`, { duration: 2000 });
       }
 
       setChannelId(channel.id);
@@ -64,20 +74,28 @@ export function useCommunityMessages(channelName: string) {
       
     } catch (err) {
       console.error('❌ Failed to initialize channel:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize channel');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize channel';
+      setError(errorMessage);
       
-      // Auto-retry with exponential backoff
+      // Auto-retry with exponential backoff (max 3 attempts)
       if (reconnectAttempts < 3) {
-        const delay = Math.pow(2, reconnectAttempts) * 1000;
-        setTimeout(() => {
+        const delay = Math.min(Math.pow(2, reconnectAttempts) * 1000, 10000); // Max 10 seconds
+        console.log(`🔄 Retrying in ${delay}ms (attempt ${reconnectAttempts + 1}/3)`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
           setReconnectAttempts(prev => prev + 1);
+          isInitializingRef.current = false;
           initializeChannel();
         }, delay);
+      }
+    } finally {
+      if (reconnectAttempts === 0) {
+        isInitializingRef.current = false;
       }
     }
   }, [user?.id, channelName, reconnectAttempts]);
 
-  // Load existing messages
+  // Enhanced message loading with better error handling
   const loadMessages = useCallback(async () => {
     if (!channelId || !user?.id) return;
 
@@ -101,7 +119,7 @@ export function useCommunityMessages(channelName: string) {
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
-        .limit(100); // Limit to last 100 messages for performance
+        .limit(50); // Load last 50 messages for better performance
 
       if (messagesError) {
         throw new Error(`Failed to load messages: ${messagesError.message}`);
@@ -114,7 +132,7 @@ export function useCommunityMessages(channelName: string) {
         sender_id: msg.sender_id,
         sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
-          username: 'User',
+          username: 'Unknown User',
           full_name: 'Community Member',
           avatar_url: null
         }
@@ -126,19 +144,25 @@ export function useCommunityMessages(channelName: string) {
       
     } catch (err) {
       console.error('❌ Failed to load messages:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load messages');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }, [channelId, user?.id]);
 
-  // Set up real-time subscription with better error handling
+  // Enhanced real-time subscription with automatic reconnection
   const setupRealtimeSubscription = useCallback(() => {
     if (!channelId || !user?.id) return;
 
     console.log('📡 Setting up real-time subscription for channel:', channelId);
     
-    let retryTimeout: NodeJS.Timeout;
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
     
     const channel = supabase
       .channel(`community_messages_${channelId}`)
@@ -154,7 +178,12 @@ export function useCommunityMessages(channelName: string) {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Get sender profile
+          // Skip if message is from current user (to avoid duplicates)
+          if (newMessage.sender_id === user.id) {
+            return;
+          }
+          
+          // Get sender profile with caching
           const { data: sender } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
@@ -168,7 +197,7 @@ export function useCommunityMessages(channelName: string) {
             sender_id: newMessage.sender_id,
             sender: sender || {
               id: newMessage.sender_id,
-              username: 'User',
+              username: 'Unknown User',
               full_name: 'Community Member',
               avatar_url: null
             }
@@ -178,8 +207,19 @@ export function useCommunityMessages(channelName: string) {
             // Check for duplicates
             const exists = prev.some(msg => msg.id === message.id);
             if (exists) return prev;
-            return [...prev, message];
+            
+            // Add new message and keep only last 100 messages for performance
+            const newMessages = [...prev, message];
+            return newMessages.slice(-100);
           });
+          
+          // Show toast notification for new messages (not from current user)
+          if (sender) {
+            toast.success(`New message from ${sender.full_name || sender.username}`, {
+              duration: 3000,
+              icon: '💬',
+            });
+          }
         }
       )
       .on(
@@ -206,26 +246,42 @@ export function useCommunityMessages(channelName: string) {
         if (status === 'SUBSCRIBED') {
           setError(null);
           setReconnectAttempts(0);
+          console.log('✅ Real-time subscription active');
         } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
           setError('Real-time connection failed');
           setIsConnected(false);
           
-          // Auto-reconnect after delay
-          retryTimeout = setTimeout(() => {
-            console.log('🔄 Attempting to reconnect...');
-            setupRealtimeSubscription();
-          }, 3000);
+          // Auto-reconnect after delay if not too many attempts
+          if (reconnectAttempts < 5) {
+            const delay = Math.min(3000 + (reconnectAttempts * 2000), 15000); // Max 15 seconds
+            console.log(`🔄 Attempting to reconnect in ${delay}ms...`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setReconnectAttempts(prev => prev + 1);
+              setupRealtimeSubscription();
+            }, delay);
+          } else {
+            toast.error('Connection lost. Please refresh the page.', { duration: 5000 });
+          }
         }
       });
 
-    return () => {
-      console.log('🧹 Cleaning up subscription');
-      if (retryTimeout) clearTimeout(retryTimeout);
-      supabase.removeChannel(channel);
-    };
-  }, [channelId, user?.id]);
+    subscriptionRef.current = channel;
 
-  // Send message function with retry logic
+    return () => {
+      console.log('🧹 Cleaning up subscription and timers');
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, [channelId, user?.id, reconnectAttempts]);
+
+  // Enhanced send message function with optimistic updates
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!channelId || !user?.id) {
       toast.error('Cannot send message - not connected');
@@ -236,6 +292,22 @@ export function useCommunityMessages(channelName: string) {
       toast.error('Message cannot be empty');
       return false;
     }
+
+    // Optimistic update - add message immediately
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+      sender_id: user.id,
+      sender: {
+        id: user.id,
+        username: user.email?.split('@')[0] || 'You',
+        full_name: user.email?.split('@')[0] || 'You',
+        avatar_url: null
+      }
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
 
     const maxRetries = 3;
     let attempt = 0;
@@ -264,30 +336,24 @@ export function useCommunityMessages(channelName: string) {
           throw new Error(error.message);
         }
 
-        // Add message to local state immediately for better UX
-        const { data: sender } = await supabase
-          .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .eq('id', user.id)
-          .single();
-
-        const newMessage: Message = {
-          id: data.id,
-          content: data.content,
-          created_at: data.created_at,
-          sender_id: data.sender_id,
-          sender: sender || {
-            id: user.id,
-            username: user.email?.split('@')[0] || 'You',
-            full_name: user.email?.split('@')[0] || 'You',
-            avatar_url: null
-          }
-        };
-
+        // Remove optimistic message and add real message
         setMessages(prev => {
-          const exists = prev.some(msg => msg.id === newMessage.id);
-          if (exists) return prev;
-          return [...prev, newMessage];
+          const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
+          
+          // Check if real message already exists (from real-time)
+          const exists = filtered.some(msg => msg.id === data.id);
+          if (exists) return filtered;
+          
+          // Add real message
+          const realMessage: Message = {
+            id: data.id,
+            content: data.content,
+            created_at: data.created_at,
+            sender_id: data.sender_id,
+            sender: optimisticMessage.sender
+          };
+          
+          return [...filtered, realMessage];
         });
 
         console.log('✅ Message sent successfully');
@@ -298,9 +364,11 @@ export function useCommunityMessages(channelName: string) {
         attempt++;
         
         if (attempt < maxRetries) {
-          // Wait before retry
+          // Wait before retry with exponential backoff
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         } else {
+          // Remove optimistic message on final failure
+          setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
           toast.error('Failed to send message after multiple attempts');
           return false;
         }
@@ -310,11 +378,17 @@ export function useCommunityMessages(channelName: string) {
     return false;
   }, [channelId, user]);
 
-  // Initialize everything
+  // Initialize everything with proper cleanup
   useEffect(() => {
     if (user?.id) {
       initializeChannel();
     }
+    
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
   }, [initializeChannel]);
 
   useEffect(() => {
@@ -329,6 +403,18 @@ export function useCommunityMessages(channelName: string) {
       return cleanup;
     }
   }, [channelId, user?.id, setupRealtimeSubscription]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     messages,
