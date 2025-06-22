@@ -6,7 +6,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CalendarEventData } from '@/types/calendar-events';
 import { useCalendarState } from '@/hooks/useCalendarState';
-import { generateCalendarDays, getEventsForDate } from '@/utils/calendarHelpers';
+import { generateCalendarDays, getEventsForDate, getEventTypeConfig } from '@/utils/calendarHelpers';
 import CalendarService from '@/services/CalendarService';
 import CalendarHeader from './CalendarHeader';
 import CalendarGrid from './CalendarGrid';

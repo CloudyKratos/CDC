@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
     loadEvents(true);
   };
 
-  const handleCreateEvent = async (eventData: CalendarEventData) => {
+  const handleCreateEvent = async (eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Creating event:', eventData);
       const createdEvent = await CalendarService.createEvent(eventData as EventData);
@@ -77,7 +78,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       if (createdEvent) {
         console.log('📅 CalendarPanel: Event created successfully');
         await loadEvents(true);
-        return Promise.resolve();
+        toast.success('Event created successfully');
       } else {
         throw new Error('Failed to create event');
       }
@@ -89,7 +90,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
     }
   };
 
-  const handleUpdateEvent = async (id: string, eventData: CalendarEventData) => {
+  const handleUpdateEvent = async (id: string, eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Updating event:', id, eventData);
       const updatedEvent = await CalendarService.updateEvent(id, eventData as Partial<EventData>);
@@ -97,7 +98,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       if (updatedEvent) {
         console.log('📅 CalendarPanel: Event updated successfully');
         await loadEvents(true);
-        return Promise.resolve();
+        toast.success('Event updated successfully');
       } else {
         throw new Error('Failed to update event');
       }
@@ -109,7 +110,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
+  const handleDeleteEvent = async (id: string): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Deleting event:', id);
       const success = await CalendarService.deleteEvent(id);
@@ -117,7 +118,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       if (success) {
         console.log('📅 CalendarPanel: Event deleted successfully');
         await loadEvents(true);
-        return Promise.resolve();
+        toast.success('Event deleted successfully');
       } else {
         throw new Error('Failed to delete event');
       }
@@ -249,9 +250,9 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
               <TabsContent value="manage">
                 <AdminEventManagement
                   events={events}
-                  onCreateEvent={() => {}}
-                  onUpdateEvent={() => {}}
-                  onDeleteEvent={() => {}}
+                  onCreateEvent={handleCreateEvent}
+                  onUpdateEvent={handleUpdateEvent}
+                  onDeleteEvent={handleDeleteEvent}
                   isLoading={isLoading}
                 />
               </TabsContent>
