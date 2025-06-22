@@ -1,243 +1,135 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { 
-  Send, 
-  Smile, 
-  Paperclip, 
-  AtSign,
-  Hash,
-  Bold,
-  Italic,
-  Code
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Send, Smile, Paperclip } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
-  isLoading: boolean;
+  onSendMessage: (content: string) => Promise<void>;
+  isLoading?: boolean;
+  channelName?: string;
+  activeChannel?: string;
   placeholder?: string;
-  channelId: string | null;
+  disabled?: boolean;
+  isConnected?: boolean;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({
+const MessageInput: React.FC<MessageInputProps> = ({ 
   onSendMessage,
-  isLoading,
-  placeholder = "Type a message...",
-  channelId
+  isLoading = false,
+  channelName,
+  activeChannel,
+  placeholder,
+  disabled = false,
+  isConnected = true
 }) => {
-  const [message, setMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
-  const { user } = useAuth();
-
-  // Handle typing indicators
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  const channel = channelName || activeChannel || "general";
+  const isInputDisabled = disabled || isLoading || isSending || !isConnected;
+  
+  const defaultPlaceholder = placeholder || `Message #${channel.replace(/-/g, ' ')}...`;
+  
   useEffect(() => {
-    if (!channelId || !user) return;
-
-    const handleTyping = async () => {
-      if (message.trim() && !isTyping) {
-        setIsTyping(true);
-        try {
-          await supabase
-            .from('typing_indicators')
-            .upsert({
-              channel_id: channelId,
-              user_id: user.id,
-              started_at: new Date().toISOString(),
-              expires_at: new Date(Date.now() + 10000).toISOString()
-            });
-        } catch (error) {
-          console.error('Failed to set typing indicator:', error);
-        }
-      }
-
-      // Clear previous timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      // Set new timeout to stop typing
-      typingTimeoutRef.current = setTimeout(async () => {
-        if (isTyping) {
-          setIsTyping(false);
-          try {
-            await supabase
-              .from('typing_indicators')
-              .delete()
-              .eq('channel_id', channelId)
-              .eq('user_id', user.id);
-          } catch (error) {
-            console.error('Failed to clear typing indicator:', error);
-          }
-        }
-      }, 3000);
-    };
-
-    if (message.trim()) {
-      handleTyping();
-    }
-
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [message, channelId, user, isTyping]);
-
-  const handleSend = async () => {
-    if (!message.trim() || isLoading) return;
-
-    const messageContent = message.trim();
-    setMessage('');
+    inputRef.current?.focus();
+  }, []);
+  
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Clear typing indicator
-    if (isTyping && channelId && user) {
-      setIsTyping(false);
-      try {
-        await supabase
-          .from('typing_indicators')
-          .delete()
-          .eq('channel_id', channelId)
-          .eq('user_id', user.id);
-      } catch (error) {
-        console.error('Failed to clear typing indicator:', error);
-      }
-    }
-
-    await onSendMessage(messageContent);
+    if (!message.trim() || isInputDisabled) return;
     
-    // Focus back to textarea
-    textareaRef.current?.focus();
+    const messageToSend = message.trim();
+    setMessage("");
+    setIsSending(true);
+    
+    try {
+      await onSendMessage(messageToSend);
+    } catch (error) {
+      setMessage(messageToSend);
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false);
+      inputRef.current?.focus();
+    }
   };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendMessage(e as unknown as React.FormEvent);
     }
-  };
-
-  const insertFormatting = (before: string, after: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = message.substring(start, end);
-    
-    const newText = message.substring(0, start) + before + selectedText + after + message.substring(end);
-    setMessage(newText);
-    
-    // Set cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + before.length, end + before.length);
-    }, 0);
   };
 
   return (
-    <div className="space-y-2">
-      {/* Formatting Toolbar */}
-      <div className="flex items-center space-x-1 px-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertFormatting('**', '**')}
-          className="h-7 w-7 p-0"
-        >
-          <Bold className="h-3 w-3" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertFormatting('*', '*')}
-          className="h-7 w-7 p-0"
-        >
-          <Italic className="h-3 w-3" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertFormatting('`', '`')}
-          className="h-7 w-7 p-0"
-        >
-          <Code className="h-3 w-3" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertFormatting('@')}
-          className="h-7 w-7 p-0"
-        >
-          <AtSign className="h-3 w-3" />
-        </Button>
-      </div>
-
-      {/* Input Area */}
-      <div className="flex items-end space-x-2">
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
+    <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+      <form onSubmit={handleSendMessage} className="space-y-3">
+        <div className={cn(
+          "flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl border transition-all duration-200 p-3",
+          isInputDisabled ? "border-red-200 dark:border-red-800 opacity-50" : "border-slate-200 dark:border-slate-700"
+        )}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0"
+            disabled={isInputDisabled}
+          >
+            <Paperclip size={16} />
+          </Button>
+          
+          <Input
+            ref={inputRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={isLoading}
-            className="min-h-[44px] max-h-32 resize-none pr-20"
-            rows={1}
+            placeholder={isInputDisabled ? "Chat unavailable..." : defaultPlaceholder}
+            disabled={isInputDisabled}
+            className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            maxLength={2000}
           />
           
-          {/* Toolbar in textarea */}
-          <div className="absolute right-2 bottom-2 flex items-center space-x-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0"
-              disabled={isLoading}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0"
-              disabled={isLoading}
-            >
-              <Smile className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0"
+            disabled={isInputDisabled}
+          >
+            <Smile size={16} />
+          </Button>
+          
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!message.trim() || isInputDisabled}
+            className={cn(
+              "h-8 w-8 p-0 shrink-0 transition-all duration-200",
+              message.trim() && !isInputDisabled
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-slate-300 dark:bg-slate-600 text-slate-500 cursor-not-allowed'
+            )}
+          >
+            {isSending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Send size={16} />
+            )}
+          </Button>
         </div>
         
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || isLoading}
-          size="sm"
-          className="h-11"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      {/* Character count and tips */}
-      <div className="flex justify-between text-xs text-muted-foreground px-1">
-        <span>
-          {message.length > 0 && `${message.length}/2000 characters`}
-        </span>
-        <span>
-          **bold** *italic* `code` @mention
-        </span>
-      </div>
+        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-1">
+          <span>
+            {!isConnected ? "Reconnecting..." : "Press Enter to send"}
+          </span>
+          <span className={message.length > 1800 ? 'text-orange-500' : ''}>
+            {message.length}/2000
+          </span>
+        </div>
+      </form>
     </div>
   );
 };

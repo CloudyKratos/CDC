@@ -37,71 +37,91 @@ interface Channel {
   id: string;
   name: string;
   type: string;
-  is_private: boolean;
+  is_private?: boolean;
   description?: string;
   unread_count?: number;
+  members?: any[];
 }
 
 interface ChannelSidebarProps {
-  selectedChannel: string;
+  channels?: Channel[];
+  selectedChannel?: string;
+  activeChannel?: string;
   onChannelSelect: (channel: string) => void;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  isLoading?: boolean;
+  isMobile?: boolean;
+  showChannelList?: boolean;
+  setShowChannelList?: (show: boolean) => void;
+  onToggleChannelList?: (show: boolean) => void;
 }
 
 const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
+  channels: propChannels = [],
   selectedChannel,
+  activeChannel,
   onChannelSelect,
-  collapsed,
-  onToggleCollapse
+  collapsed = false,
+  onToggleCollapse,
+  isLoading = false,
+  isMobile = false,
+  showChannelList = true,
+  setShowChannelList,
+  onToggleChannelList
 }) => {
-  const [channels, setChannels] = useState<Channel[]>([]);
+  const [localChannels, setLocalChannels] = useState<Channel[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
 
-  // Load channels
+  const currentChannel = selectedChannel || activeChannel;
+  
+  // Use prop channels if provided, otherwise load from database
+  const displayChannels = propChannels.length > 0 ? propChannels : localChannels;
+
+  // Load channels from database if not provided via props
   useEffect(() => {
-    if (!user) return;
+    if (propChannels.length === 0 && user) {
+      const loadChannels = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('channels')
+            .select('*')
+            .order('name');
 
-    const loadChannels = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('channels')
-          .select('*')
-          .order('name');
-
-        if (error) throw error;
-        setChannels(data || []);
-      } catch (error) {
-        console.error('Failed to load channels:', error);
-      }
-    };
-
-    loadChannels();
-
-    // Subscribe to channel changes
-    const channelSubscription = supabase
-      .channel('channels_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'channels'
-        },
-        () => {
-          loadChannels();
+          if (error) throw error;
+          setLocalChannels(data || []);
+        } catch (error) {
+          console.error('Failed to load channels:', error);
         }
-      )
-      .subscribe();
+      };
 
-    return () => {
-      supabase.removeChannel(channelSubscription);
-    };
-  }, [user]);
+      loadChannels();
+
+      // Subscribe to channel changes
+      const channelSubscription = supabase
+        .channel('channels_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'channels'
+          },
+          () => {
+            loadChannels();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channelSubscription);
+      };
+    }
+  }, [user, propChannels.length]);
 
   const createChannel = async () => {
     if (!newChannelName.trim() || !user) return;
@@ -128,9 +148,24 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
     }
   };
 
-  const filteredChannels = channels.filter(channel =>
+  const filteredChannels = displayChannels.filter(channel =>
     channel.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleToggle = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else if (setShowChannelList) {
+      setShowChannelList(!showChannelList);
+    } else if (onToggleChannelList) {
+      onToggleChannelList(!showChannelList);
+    }
+  };
+
+  // Hide sidebar on mobile when showChannelList is false
+  if (isMobile && !showChannelList) {
+    return null;
+  }
 
   return (
     <div className={cn(
@@ -148,7 +183,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onToggleCollapse}
+            onClick={handleToggle}
             className="flex-shrink-0"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -207,36 +242,42 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
             </div>
           )}
 
-          {filteredChannels.map((channel) => (
-            <Button
-              key={channel.id}
-              variant={selectedChannel === channel.name ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                collapsed ? "px-2" : "px-2",
-                selectedChannel === channel.name && "bg-accent"
-              )}
-              onClick={() => onChannelSelect(channel.name)}
-            >
-              <div className="flex items-center space-x-2 min-w-0 flex-1">
-                {channel.is_private ? (
-                  <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                ) : (
-                  <Hash className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+          {isLoading ? (
+            <div className="p-4 text-center text-muted-foreground">
+              Loading channels...
+            </div>
+          ) : (
+            filteredChannels.map((channel) => (
+              <Button
+                key={channel.id}
+                variant={currentChannel === channel.name ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  collapsed ? "px-2" : "px-2",
+                  currentChannel === channel.name && "bg-accent"
                 )}
-                {!collapsed && (
-                  <>
-                    <span className="truncate">{channel.name}</span>
-                    {channel.unread_count && channel.unread_count > 0 && (
-                      <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0.5">
-                        {channel.unread_count}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </div>
-            </Button>
-          ))}
+                onClick={() => onChannelSelect(channel.name)}
+              >
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  {channel.is_private ? (
+                    <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                  ) : (
+                    <Hash className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                  )}
+                  {!collapsed && (
+                    <>
+                      <span className="truncate">{channel.name}</span>
+                      {channel.unread_count && channel.unread_count > 0 && (
+                        <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0.5">
+                          {channel.unread_count}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                </div>
+              </Button>
+            ))
+          )}
         </div>
       </ScrollArea>
 

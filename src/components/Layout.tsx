@@ -33,6 +33,19 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     navigate('/login');
   };
 
+  // Helper functions to safely access user metadata
+  const getUserName = () => {
+    if (!user) return '';
+    const metadata = (user as any).user_metadata;
+    return metadata?.full_name || metadata?.name || user.email?.split('@')[0] || 'User';
+  };
+
+  const getUserAvatar = () => {
+    if (!user) return '';
+    const metadata = (user as any).user_metadata;
+    return metadata?.avatar_url || metadata?.avatar || '';
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
@@ -89,18 +102,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="flex items-center space-x-3">
               <Avatar className="w-8 h-8">
                 <AvatarImage 
-                  src={user?.user_metadata?.avatar_url || ''} 
-                  alt={user?.user_metadata?.full_name || user?.email || 'User'} 
+                  src={getUserAvatar()} 
+                  alt={getUserName()} 
                 />
                 <AvatarFallback>
-                  {(user?.user_metadata?.full_name || user?.email || 'U')[0]?.toUpperCase()}
+                  {getUserName()[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               
               {isSidebarOpen && (
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user?.user_metadata?.full_name || user?.email}
+                    {getUserName()}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user?.email}
