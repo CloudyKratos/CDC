@@ -11,6 +11,7 @@ export function useCommunityMessages(channelName: string) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [channelId, setChannelId] = useState<string | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const { user } = useAuth();
 
   // Get or create channel
@@ -57,13 +58,24 @@ export function useCommunityMessages(channelName: string) {
       }
 
       setChannelId(channel.id);
+      setError(null);
+      setReconnectAttempts(0);
       console.log('✅ Channel initialized:', channel.id);
       
     } catch (err) {
       console.error('❌ Failed to initialize channel:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize channel');
+      
+      // Auto-retry with exponential backoff
+      if (reconnectAttempts < 3) {
+        const delay = Math.pow(2, reconnectAttempts) * 1000;
+        setTimeout(() => {
+          setReconnectAttempts(prev => prev + 1);
+          initializeChannel();
+        }, delay);
+      }
     }
-  }, [user?.id, channelName]);
+  }, [user?.id, channelName, reconnectAttempts]);
 
   // Load existing messages
   const loadMessages = useCallback(async () => {
@@ -88,7 +100,8 @@ export function useCommunityMessages(channelName: string) {
         `)
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(100); // Limit to last 100 messages for performance
 
       if (messagesError) {
         throw new Error(`Failed to load messages: ${messagesError.message}`);
@@ -109,6 +122,7 @@ export function useCommunityMessages(channelName: string) {
 
       setMessages(formattedMessages);
       console.log('✅ Loaded', formattedMessages.length, 'messages');
+      setError(null);
       
     } catch (err) {
       console.error('❌ Failed to load messages:', err);
@@ -118,11 +132,13 @@ export function useCommunityMessages(channelName: string) {
     }
   }, [channelId, user?.id]);
 
-  // Set up real-time subscription
+  // Set up real-time subscription with better error handling
   const setupRealtimeSubscription = useCallback(() => {
     if (!channelId || !user?.id) return;
 
     console.log('📡 Setting up real-time subscription for channel:', channelId);
+    
+    let retryTimeout: NodeJS.Timeout;
     
     const channel = supabase
       .channel(`community_messages_${channelId}`)
@@ -137,11 +153,6 @@ export function useCommunityMessages(channelName: string) {
         async (payload) => {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
-          
-          // Skip if message is from current user (to avoid duplication)
-          if (newMessage.sender_id === user?.id) {
-            return;
-          }
           
           // Get sender profile
           const { data: sender } = await supabase
@@ -194,20 +205,28 @@ export function useCommunityMessages(channelName: string) {
         
         if (status === 'SUBSCRIBED') {
           setError(null);
-        } else if (status === 'CHANNEL_ERROR') {
+          setReconnectAttempts(0);
+        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
           setError('Real-time connection failed');
           setIsConnected(false);
+          
+          // Auto-reconnect after delay
+          retryTimeout = setTimeout(() => {
+            console.log('🔄 Attempting to reconnect...');
+            setupRealtimeSubscription();
+          }, 3000);
         }
       });
 
     return () => {
       console.log('🧹 Cleaning up subscription');
+      if (retryTimeout) clearTimeout(retryTimeout);
       supabase.removeChannel(channel);
     };
   }, [channelId, user?.id]);
 
-  // Send message function
-  const sendMessage = useCallback(async (content: string) => {
+  // Send message function with retry logic
+  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!channelId || !user?.id) {
       toast.error('Cannot send message - not connected');
       return false;
@@ -218,71 +237,84 @@ export function useCommunityMessages(channelName: string) {
       return false;
     }
 
-    try {
-      console.log('📤 Sending message:', content.substring(0, 50));
-      
-      const { data, error } = await supabase
-        .from('community_messages')
-        .insert({
-          channel_id: channelId,
-          sender_id: user.id,
-          content: content.trim(),
-          is_deleted: false
-        })
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id
-        `)
-        .single();
+    const maxRetries = 3;
+    let attempt = 0;
 
-      if (error) {
-        console.error('❌ Send error:', error);
-        toast.error(error.message || 'Failed to send message');
-        return false;
-      }
+    while (attempt < maxRetries) {
+      try {
+        console.log(`📤 Sending message (attempt ${attempt + 1}):`, content.substring(0, 50));
+        
+        const { data, error } = await supabase
+          .from('community_messages')
+          .insert({
+            channel_id: channelId,
+            sender_id: user.id,
+            content: content.trim(),
+            is_deleted: false
+          })
+          .select(`
+            id,
+            content,
+            created_at,
+            sender_id
+          `)
+          .single();
 
-      // Add message to local state immediately for better UX
-      const { data: sender } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-
-      const newMessage: Message = {
-        id: data.id,
-        content: data.content,
-        created_at: data.created_at,
-        sender_id: data.sender_id,
-        sender: sender || {
-          id: user.id,
-          username: user.email?.split('@')[0] || 'You',
-          full_name: user.email?.split('@')[0] || 'You',
-          avatar_url: null
+        if (error) {
+          throw new Error(error.message);
         }
-      };
 
-      setMessages(prev => {
-        const exists = prev.some(msg => msg.id === newMessage.id);
-        if (exists) return prev;
-        return [...prev, newMessage];
-      });
+        // Add message to local state immediately for better UX
+        const { data: sender } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .eq('id', user.id)
+          .single();
 
-      console.log('✅ Message sent successfully');
-      toast.success('Message sent!', { duration: 1000 });
-      return true;
+        const newMessage: Message = {
+          id: data.id,
+          content: data.content,
+          created_at: data.created_at,
+          sender_id: data.sender_id,
+          sender: sender || {
+            id: user.id,
+            username: user.email?.split('@')[0] || 'You',
+            full_name: user.email?.split('@')[0] || 'You',
+            avatar_url: null
+          }
+        };
 
-    } catch (err) {
-      console.error('💥 Send exception:', err);
-      toast.error('Failed to send message - please try again');
-      return false;
+        setMessages(prev => {
+          const exists = prev.some(msg => msg.id === newMessage.id);
+          if (exists) return prev;
+          return [...prev, newMessage];
+        });
+
+        console.log('✅ Message sent successfully');
+        return true;
+
+      } catch (err) {
+        console.error(`❌ Send attempt ${attempt + 1} failed:`, err);
+        attempt++;
+        
+        if (attempt < maxRetries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        } else {
+          toast.error('Failed to send message after multiple attempts');
+          return false;
+        }
+      }
     }
+
+    return false;
   }, [channelId, user]);
 
   // Initialize everything
   useEffect(() => {
-    initializeChannel();
+    if (user?.id) {
+      initializeChannel();
+    }
   }, [initializeChannel]);
 
   useEffect(() => {

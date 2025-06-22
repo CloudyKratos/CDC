@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import StableCommunityChat from './community/StableCommunityChat';
+import FixedCommunityChat from './community/FixedCommunityChat';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -105,7 +105,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       
       <div className="h-full p-4">
         <div className="h-full max-w-4xl mx-auto">
-          <StableCommunityChat channelName={channelName} />
+          <FixedCommunityChat defaultChannel={channelName} />
         </div>
       </div>
     </div>
