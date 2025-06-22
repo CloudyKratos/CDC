@@ -23,13 +23,17 @@ const WEEKLY_XP_TARGET = 500;
 const DAILY_QUEST_TARGET = 5;
 
 const RANKS = [
-  { threshold: 0, name: "Novice Warrior" },
-  { threshold: 100, name: "Rising Warrior" },
-  { threshold: 300, name: "Skilled Warrior" },
-  { threshold: 700, name: "Elite Warrior" },
-  { threshold: 1500, name: "Master Warrior" },
-  { threshold: 3000, name: "Legendary Warrior" }
+  { threshold: 0, name: "Novice Warrior", color: "gray" },
+  { threshold: 100, name: "Rising Warrior", color: "blue" },
+  { threshold: 300, name: "Skilled Warrior", color: "green" },
+  { threshold: 700, name: "Elite Warrior", color: "purple" },
+  { threshold: 1500, name: "Master Warrior", color: "orange" },
+  { threshold: 3000, name: "Legendary Warrior", color: "red" }
 ];
+
+// Auto-save functionality
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
+const BACKUP_KEY = 'warriorProgress_backup';
 
 export const useWarriorProgress = () => {
   const [progress, setProgress] = useState<WarriorProgress>({
@@ -50,7 +54,9 @@ export const useWarriorProgress = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // Enhanced calculation functions
   const calculateLevel = useCallback((totalXp: number) => {
     for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
       if (totalXp >= LEVEL_THRESHOLDS[i]) {
@@ -63,10 +69,10 @@ export const useWarriorProgress = () => {
   const getRank = useCallback((totalXp: number) => {
     for (let i = RANKS.length - 1; i >= 0; i--) {
       if (totalXp >= RANKS[i].threshold) {
-        return RANKS[i].name;
+        return RANKS[i];
       }
     }
-    return "Novice Warrior";
+    return RANKS[0];
   }, []);
 
   const getWeekKey = useCallback(() => {
@@ -80,16 +86,50 @@ export const useWarriorProgress = () => {
     return new Date().toDateString();
   }, []);
 
+  // Enhanced save function with backup
+  const saveProgress = useCallback((progressData: WarriorProgress) => {
+    try {
+      const dataToSave = {
+        ...progressData,
+        lastSaved: new Date().toISOString()
+      };
+      
+      // Primary save
+      localStorage.setItem('warriorProgress', JSON.stringify(dataToSave));
+      
+      // Backup save
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(dataToSave));
+      
+      setLastSaved(new Date());
+      console.log('✅ Progress saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save progress:', error);
+      toast.error('Failed to save progress');
+    }
+  }, []);
+
+  // Auto-save functionality
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      if (progress.totalXp > 0) {
+        saveProgress(progress);
+      }
+    }, AUTOSAVE_INTERVAL);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [progress, saveProgress]);
+
+  // Enhanced load function with recovery
   const loadProgress = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       const stored = localStorage.getItem('warriorProgress');
+      const backup = localStorage.getItem(BACKUP_KEY);
       const today = getDayKey();
       const thisWeek = getWeekKey();
 
-      // Initialize default progress if none exists
       let savedProgress = {
         totalXp: 0,
         totalCoins: 0,
@@ -98,11 +138,23 @@ export const useWarriorProgress = () => {
         lastActiveDate: ''
       };
 
+      // Try to load from primary storage, fallback to backup
       if (stored) {
-        savedProgress = JSON.parse(stored);
+        try {
+          savedProgress = JSON.parse(stored);
+        } catch (parseError) {
+          console.warn('Primary storage corrupted, trying backup');
+          if (backup) {
+            savedProgress = JSON.parse(backup);
+            toast.info('Progress restored from backup');
+          }
+        }
+      } else if (backup) {
+        savedProgress = JSON.parse(backup);
+        toast.info('Progress restored from backup');
       }
 
-      // Check streak logic
+      // Enhanced streak logic
       let newStreak = savedProgress.streak;
       if (savedProgress.lastActiveDate) {
         const lastActive = new Date(savedProgress.lastActiveDate);
@@ -111,34 +163,46 @@ export const useWarriorProgress = () => {
         
         if (daysDiff > 1) {
           newStreak = 0;
+        } else if (daysDiff === 1) {
+          // Maintain streak for consecutive days
+          newStreak = savedProgress.streak;
         }
       }
 
-      // Load weekly progress
+      // Load weekly progress with validation
       const weeklyData = localStorage.getItem('weeklyProgress');
       let weeklyXp = 0;
       if (weeklyData) {
-        const weekly = JSON.parse(weeklyData);
-        if (weekly.week === thisWeek) {
-          weeklyXp = weekly.xp;
+        try {
+          const weekly = JSON.parse(weeklyData);
+          if (weekly.week === thisWeek && typeof weekly.xp === 'number') {
+            weeklyXp = weekly.xp;
+          }
+        } catch (error) {
+          console.warn('Weekly progress data corrupted, resetting');
         }
       }
 
-      // Load daily quest progress
+      // Load daily quest progress with validation
       const dailyData = localStorage.getItem('dailyQuestProgress');
       let dailyQuestProgress = 0;
       if (dailyData) {
-        const daily = JSON.parse(dailyData);
-        if (daily.date === today) {
-          dailyQuestProgress = daily.completed;
+        try {
+          const daily = JSON.parse(dailyData);
+          if (daily.date === today && typeof daily.completed === 'number') {
+            dailyQuestProgress = Math.min(daily.completed, DAILY_QUEST_TARGET);
+          }
+        } catch (error) {
+          console.warn('Daily progress data corrupted, resetting');
         }
       }
 
       const level = calculateLevel(savedProgress.totalXp);
       const currentXp = savedProgress.totalXp - (LEVEL_THRESHOLDS[level - 1] || 0);
       const nextLevelXp = (LEVEL_THRESHOLDS[level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]) - (LEVEL_THRESHOLDS[level - 1] || 0);
+      const rankInfo = getRank(savedProgress.totalXp);
 
-      setProgress({
+      const newProgress = {
         ...savedProgress,
         level,
         currentXp,
@@ -146,10 +210,13 @@ export const useWarriorProgress = () => {
         streak: newStreak,
         weeklyXp,
         weeklyProgress: Math.min((weeklyXp / WEEKLY_XP_TARGET) * 100, 100),
-        rank: getRank(savedProgress.totalXp),
+        rank: rankInfo.name,
         dailyQuestProgress,
         weeklyQuestTarget: WEEKLY_XP_TARGET
-      });
+      };
+
+      setProgress(newProgress);
+      setLastSaved(new Date());
     } catch (err) {
       console.error('Error loading warrior progress:', err);
       setError('Failed to load progress');
@@ -159,29 +226,43 @@ export const useWarriorProgress = () => {
     }
   }, [calculateLevel, getRank, getWeekKey, getDayKey]);
 
+  // Enhanced reward system
   const addReward = useCallback(async (xp: number, coins: number = 0) => {
     try {
       const today = getDayKey();
       const thisWeek = getWeekKey();
       
-      // Update weekly progress
+      // Validate inputs
+      if (xp < 0 || coins < 0) {
+        throw new Error('Invalid reward values');
+      }
+
+      // Update weekly progress with validation
       const weeklyData = localStorage.getItem('weeklyProgress');
       let weeklyXp = xp;
       if (weeklyData) {
-        const weekly = JSON.parse(weeklyData);
-        if (weekly.week === thisWeek) {
-          weeklyXp += weekly.xp;
+        try {
+          const weekly = JSON.parse(weeklyData);
+          if (weekly.week === thisWeek && typeof weekly.xp === 'number') {
+            weeklyXp += weekly.xp;
+          }
+        } catch (error) {
+          console.warn('Weekly progress corrupted, starting fresh');
         }
       }
       localStorage.setItem('weeklyProgress', JSON.stringify({ week: thisWeek, xp: weeklyXp }));
 
-      // Update daily quest progress
+      // Update daily quest progress with validation
       const dailyData = localStorage.getItem('dailyQuestProgress');
       let dailyQuestProgress = 1;
       if (dailyData) {
-        const daily = JSON.parse(dailyData);
-        if (daily.date === today) {
-          dailyQuestProgress = Math.min(daily.completed + 1, DAILY_QUEST_TARGET);
+        try {
+          const daily = JSON.parse(dailyData);
+          if (daily.date === today && typeof daily.completed === 'number') {
+            dailyQuestProgress = Math.min(daily.completed + 1, DAILY_QUEST_TARGET);
+          }
+        } catch (error) {
+          console.warn('Daily progress corrupted, starting fresh');
         }
       }
       localStorage.setItem('dailyQuestProgress', JSON.stringify({ date: today, completed: dailyQuestProgress }));
@@ -191,7 +272,7 @@ export const useWarriorProgress = () => {
       const newTotalCoins = progress.totalCoins + coins;
       const newCompletedQuests = progress.completedQuests + 1;
       
-      // Update streak if it's a new day
+      // Enhanced streak calculation
       let newStreak = progress.streak;
       if (progress.lastActiveDate !== today) {
         const lastActive = progress.lastActiveDate ? new Date(progress.lastActiveDate) : null;
@@ -199,13 +280,16 @@ export const useWarriorProgress = () => {
         
         if (!lastActive || Math.floor((todayDate.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24)) === 1) {
           newStreak = progress.streak + 1;
-          toast.success(`🔥 Streak increased to ${newStreak} days!`);
+          toast.success(`🔥 Streak increased to ${newStreak} days!`, {
+            duration: 4000,
+          });
         }
       }
 
       const newLevel = calculateLevel(newTotalXp);
       const currentXp = newTotalXp - (LEVEL_THRESHOLDS[newLevel - 1] || 0);
       const nextLevelXp = (LEVEL_THRESHOLDS[newLevel] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]) - (LEVEL_THRESHOLDS[newLevel - 1] || 0);
+      const rankInfo = getRank(newTotalXp);
 
       const updatedProgress = {
         ...progress,
@@ -219,27 +303,32 @@ export const useWarriorProgress = () => {
         lastActiveDate: today,
         weeklyXp,
         weeklyProgress: Math.min((weeklyXp / WEEKLY_XP_TARGET) * 100, 100),
-        rank: getRank(newTotalXp),
+        rank: rankInfo.name,
         dailyQuestProgress,
         weeklyQuestTarget: WEEKLY_XP_TARGET
       };
 
       setProgress(updatedProgress);
-      localStorage.setItem('warriorProgress', JSON.stringify(updatedProgress));
+      saveProgress(updatedProgress);
 
-      // Check for level up
+      // Enhanced notifications
       if (newLevel > oldLevel) {
         toast.success(`🎉 LEVEL UP! You're now Level ${newLevel}!`, {
           duration: 6000,
         });
       }
 
-      // Check for daily goal completion
       if (dailyQuestProgress >= DAILY_QUEST_TARGET && dailyQuestProgress - 1 < DAILY_QUEST_TARGET) {
         toast.success('🏆 Daily quest goal completed!', { duration: 4000 });
       }
 
-      // XP reward notification
+      // Milestone celebrations
+      if ([100, 500, 1000, 2500, 5000].includes(newTotalXp)) {
+        toast.success(`🌟 Milestone achieved! ${newTotalXp} total XP!`, {
+          duration: 5000,
+        });
+      }
+
       toast.success(`+${xp} XP ${coins > 0 ? `+${coins} coins` : ''}`, {
         duration: 2000,
       });
@@ -251,17 +340,32 @@ export const useWarriorProgress = () => {
       toast.error('Failed to update your progress');
       return progress;
     }
-  }, [progress, calculateLevel, getRank, getWeekKey, getDayKey]);
+  }, [progress, calculateLevel, getRank, getWeekKey, getDayKey, saveProgress]);
 
+  // Initialize on mount
   useEffect(() => {
     loadProgress();
   }, [loadProgress]);
+
+  // Window beforeunload handler for emergency save
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (progress.totalXp > 0) {
+        saveProgress(progress);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [progress, saveProgress]);
 
   return {
     progress,
     isLoading,
     error,
     addReward,
-    loadProgress
+    loadProgress,
+    lastSaved,
+    getRank: (xp: number) => getRank(xp)
   };
 };
