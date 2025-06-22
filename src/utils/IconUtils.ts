@@ -42,7 +42,10 @@ import {
   ArrowRight,
   Mail,
   Zap,
-  Command
+  Command,
+  RotateCcw,
+  Award,
+  AlertTriangle
 } from 'lucide-react';
 
 const Icons = {
@@ -88,7 +91,10 @@ const Icons = {
   ArrowRight,
   Mail,
   Zap,
-  Command
+  Command,
+  RotateCcw,
+  Award,
+  AlertTriangle
 };
 
 export default Icons;

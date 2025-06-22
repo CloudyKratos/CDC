@@ -69,7 +69,9 @@ import {
   Gift,
   Play,
   Filter,
-  CheckSquare
+  CheckSquare,
+  RotateCcw,
+  Award
 } from "lucide-react";
 
 // Icon mapping for easy access
@@ -142,7 +144,9 @@ export const Icons = {
   Gift,
   Play,
   Filter,
-  CheckSquare
+  CheckSquare,
+  RotateCcw,
+  Award
 };
 
 export default Icons;
