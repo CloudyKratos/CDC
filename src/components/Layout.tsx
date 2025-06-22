@@ -35,16 +35,23 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // Helper functions to safely access user metadata
   const getUserName = () => {
-    if (!user) return '';
-    const metadata = (user as any).user_metadata;
-    return metadata?.full_name || metadata?.name || user.email?.split('@')[0] || 'User';
+    if (!user) return 'User';
+    return user.name || user.email?.split('@')[0] || 'User';
   };
 
   const getUserAvatar = () => {
     if (!user) return '';
-    const metadata = (user as any).user_metadata;
-    return metadata?.avatar_url || metadata?.avatar || '';
+    return user.avatar || '';
   };
+
+  const getUserEmail = () => {
+    return user?.email || '';
+  };
+
+  // If no user, don't render the layout
+  if (!user) {
+    return <div>{children}</div>;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -116,7 +123,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     {getUserName()}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {user?.email}
+                    {getUserEmail()}
                   </div>
                 </div>
               )}

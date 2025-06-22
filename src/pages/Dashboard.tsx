@@ -1,214 +1,70 @@
 
-import React, { useState } from 'react';
-import { useSearchParams, Navigate, Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import HomePage from '@/components/HomePage';
-import CalendarPanel from '@/components/CalendarPanel';
-import CommunityPanel from '@/components/CommunityPanel';
-import StageRoomPanel from '@/components/stage/StageRoomPanel';
-import CommandRoomPanel from '@/components/CommandRoomPanel';
-import WorldMapPanel from '@/components/WorldMapPanel';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import MobileMenu from '@/components/dashboard/MobileMenu';
-import { Button } from '@/components/ui/button';
-import { 
-  LayoutGrid, 
-  Calendar, 
-  Users, 
-  Video, 
-  User, 
-  Shield,
-  Map,
-  ChevronLeft,
-  ChevronRight,
-  Home
-} from 'lucide-react';
-import { useRole } from '@/contexts/RoleContext';
-import { ActivePanel } from '@/types/dashboard';
 
-const Dashboard = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activePanel = (searchParams.get("tab") || "command-room") as ActivePanel;
-  const { user } = useAuth();
-  const { currentRole } = useRole();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+const Dashboard: React.FC = () => {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isLoading, isAuthenticated, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
-  const handlePanelChange = (panel: ActivePanel) => {
-    setSearchParams({ tab: panel });
-  };
-
-  const renderContent = () => {
-    switch (activePanel) {
-      case "command-room":
-        return <CommandRoomPanel />;
-      case "calendar":
-        return <CalendarPanel />;
-      case "community":
-        return <CommunityPanel channelName="general" />;
-      case "stage":
-        return <StageRoomPanel />;
-      case "worldmap":
-        return <WorldMapPanel />;
-      case "profile":
-        return <div className="p-6">Profile Panel Coming Soon</div>;
-      default:
-        return <CommandRoomPanel />;
-    }
-  };
-
-  const isAdmin = currentRole === 'admin';
-
-  const navigationItems = [
-    { id: "command-room", label: "Command Room", icon: LayoutGrid },
-    { id: "calendar", label: "Calendar", icon: Calendar },
-    { id: "community", label: "Community", icon: Users },
-    { id: "stage", label: "Stage Rooms", icon: Video },
-    { id: "worldmap", label: "World Map", icon: Map },
-    { id: "profile", label: "Profile", icon: User },
-  ];
+  if (!isAuthenticated || !user) {
+    return null; // Will redirect to login
+  }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Modern Sidebar - Improved proportions */}
-      <div className={`hidden md:flex md:flex-col transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? 'md:w-16' : 'md:w-72'
-      }`}>
-        <div className="flex flex-col flex-grow bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-            {!sidebarCollapsed && (
-              <div className="flex items-center gap-3 animate-fade-in">
-                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-lg">W</span>
-                </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Warrior Space
-                </h1>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="transition-all duration-200 hover:scale-110"
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          
-          {/* Navigation */}
-          <div className="flex-grow p-4">
-            <nav className="space-y-2">
-              {/* Home Button - Link to Warrior's Space */}
-              <Link to="/warrior-space">
-                <Button
-                  variant="ghost"
-                  className={`w-full transition-all duration-200 hover:scale-105 group ${
-                    sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                  } h-12 hover:bg-gradient-to-r hover:from-orange-100 hover:to-red-100 hover:text-orange-600 dark:hover:from-orange-900/20 dark:hover:to-red-900/20`}
-                >
-                  <Home className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                  {!sidebarCollapsed && (
-                    <span className="animate-fade-in">Warrior's Space</span>
-                  )}
-                </Button>
-              </Link>
-
-              {navigationItems.map((item) => (
-                <Button
-                  key={item.id}
-                  variant={activePanel === item.id ? "default" : "ghost"}
-                  className={`w-full transition-all duration-200 hover:scale-105 group ${
-                    sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                  } h-12 ${
-                    activePanel === item.id 
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                  }`}
-                  onClick={() => handlePanelChange(item.id as ActivePanel)}
-                >
-                  <item.icon className={`h-5 w-5 ${
-                    activePanel === item.id ? 'text-white' : ''
-                  } group-hover:scale-110 transition-transform duration-200`} />
-                  {!sidebarCollapsed && (
-                    <span className="animate-fade-in">{item.label}</span>
-                  )}
-                </Button>
-              ))}
-
-              {isAdmin && (
-                <Link to="/admin">
-                  <Button
-                    variant="ghost"
-                    className={`w-full transition-all duration-200 hover:scale-105 group ${
-                      sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                    } h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20`}
-                  >
-                    <Shield className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                    {!sidebarCollapsed && (
-                      <span className="animate-fade-in">Admin Panel</span>
-                    )}
-                  </Button>
-                </Link>
-              )}
-            </nav>
-          </div>
-
-          {/* User Info */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 animate-fade-in">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-semibold text-lg">
-                    {user.email?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user.name || 'User'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome to your Dashboard
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Hello {user.name || user.email}, manage your entrepreneurial journey from here.
+          </p>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        activePanel={activePanel}
-        onPanelChange={handlePanelChange}
-      />
-
-      {/* Main Content - Improved layout */}
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        {/* Header */}
-        <DashboardHeader
-          activePanel={activePanel}
-          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onPanelChange={handlePanelChange}
-        />
-
-        {/* Main Area with better spacing */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
-          <div className="animate-fade-in min-h-full">
-            {renderContent()}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Quick Stats
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              View your progress and achievements
+            </p>
           </div>
-        </main>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Recent Activity
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Stay updated with your latest actions
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Community
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Connect with other entrepreneurs
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
