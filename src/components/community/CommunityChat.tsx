@@ -163,7 +163,6 @@ const CommunityChat: React.FC = () => {
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
             placeholder={`Message #${selectedChannel}`}
-            channelId={channelId}
           />
         </div>
       </div>

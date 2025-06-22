@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -33,14 +34,14 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
   const { user } = useAuth();
   const { sendMessage: sendMessageWithRetry, isSending, isReady } = useEnhancedMessageSender();
 
-  // Default channels for fallback
+  // Default channels for fallback - now with proper type property
   const defaultChannels = [
-    { id: 'general', name: 'general', description: '💬 General community discussions' },
-    { id: 'announcements', name: 'announcements', description: '📢 Important announcements' },
-    { id: 'entrepreneurs', name: 'entrepreneurs', description: '🚀 Entrepreneurial discussions' },
-    { id: 'tech-talk', name: 'tech-talk', description: '💻 Technology discussions' },
-    { id: 'motivation', name: 'motivation', description: '💪 Daily motivation' },
-    { id: 'resources', name: 'resources', description: '📚 Useful resources' }
+    { id: 'general', name: 'general', type: 'public', description: '💬 General community discussions' },
+    { id: 'announcements', name: 'announcements', type: 'public', description: '📢 Important announcements' },
+    { id: 'entrepreneurs', name: 'entrepreneurs', type: 'public', description: '🚀 Entrepreneurial discussions' },
+    { id: 'tech-talk', name: 'tech-talk', type: 'public', description: '💻 Technology discussions' },
+    { id: 'motivation', name: 'motivation', type: 'public', description: '💪 Daily motivation' },
+    { id: 'resources', name: 'resources', type: 'public', description: '📚 Useful resources' }
   ];
 
   // Enhanced channel initialization with proper error handling
