@@ -1,46 +1,48 @@
+import React from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate
+} from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { QueryClient } from 'react-query';
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/contexts/auth/AuthContext";
-import { RoleProvider } from "@/contexts/RoleContext";
-import { Toaster } from "@/components/ui/sonner";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
-import Dashboard from "./pages/Dashboard";
-import Admin from "./pages/Admin";
-import WarriorSpace from "./pages/WarriorSpace";
-import ResetPassword from "./pages/ResetPassword";
-import VerifyEmail from "./pages/VerifyEmail";
-import NotFound from "./pages/NotFound";
-import "./App.css";
+import Layout from '@/components/Layout';
+import Dashboard from '@/pages/Dashboard';
+import WarriorSpace from '@/pages/WarriorSpace';
+import Strategy from '@/pages/Strategy';
+import Progress from '@/pages/Progress';
+import Events from '@/pages/Events';
+import EventDetails from '@/pages/EventDetails';
+import StageRoom from '@/pages/StageRoom';
+import TickBombDemo from '@/pages/TickBombDemo';
+import DirectMessagesPanel from '@/components/messaging/DirectMessagesPanel';
+import Profile from '@/pages/Profile';
 
-const queryClient = new QueryClient();
+import Community from '@/pages/Community';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RoleProvider>
-          <Router>
-            <div className="min-h-screen bg-background">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/warrior-space" element={<WarriorSpace />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/verify" element={<VerifyEmail />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </Router>
-          <Toaster />
-        </RoleProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <QueryClient>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/warrior-space" element={<Layout><WarriorSpace /></Layout>} />
+          <Route path="/strategy" element={<Layout><Strategy /></Layout>} />
+          <Route path="/progress" element={<Layout><Progress /></Layout>} />
+          <Route path="/events" element={<Layout><Events /></Layout>} />
+          <Route path="/community" element={<Layout><Community /></Layout>} />
+          <Route path="/messages" element={<Layout><DirectMessagesPanel /></Layout>} />
+          <Route path="/profile" element={<Layout><Profile /></Layout>} />
+          <Route path="/event/:id" element={<Layout><EventDetails /></Layout>} />
+          <Route path="/stage/:id" element={<Layout><StageRoom /></Layout>} />
+          <Route path="/demo" element={<Layout><TickBombDemo /></Layout>} />
+        </Routes>
+        <Toaster />
+      </Router>
+    </QueryClient>
   );
 }
 

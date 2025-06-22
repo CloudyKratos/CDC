@@ -1,72 +1,89 @@
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
-import type { Message } from "@/types/chat";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { Message } from '@/types/chat';
+import { Crown, Shield, Star } from 'lucide-react';
 
 interface MessageHeaderProps {
   message: Message;
-  isOwnMessage?: boolean;
+  isOwnMessage: boolean;
   showAvatar?: boolean;
 }
 
-const MessageHeader: React.FC<MessageHeaderProps> = ({ 
-  message, 
-  isOwnMessage = false,
-  showAvatar = true 
+const MessageHeader: React.FC<MessageHeaderProps> = ({
+  message,
+  isOwnMessage,
+  showAvatar = true
 }) => {
-  const timestamp = message.created_at ? new Date(message.created_at) : new Date();
-  const formattedTime = format(timestamp, 'h:mm a');
-  
-  const getDisplayName = () => {
-    return message.sender?.full_name || message.sender?.username || 'Community Member';
+  const sender = message.sender;
+  const displayName = sender?.full_name || sender?.username || 'Unknown User';
+  const avatarUrl = sender?.avatar_url;
+
+  // Mock user roles - in production, this would come from the database
+  const getUserRole = () => {
+    // This is just for demo - replace with actual role logic
+    if (sender?.username === 'admin') return 'admin';
+    if (sender?.username === 'mod') return 'moderator';
+    return 'member';
   };
 
-  const getAvatarSrc = () => {
-    return message.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getDisplayName()}`;
+  const role = getUserRole();
+
+  const getRoleIcon = () => {
+    switch (role) {
+      case 'admin':
+        return <Crown className="h-3 w-3 text-yellow-500" />;
+      case 'moderator':
+        return <Shield className="h-3 w-3 text-blue-500" />;
+      default:
+        return null;
+    }
   };
 
-  if (isOwnMessage) {
-    return (
-      <div className="flex items-center justify-end gap-2 mb-1">
-        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          {formattedTime}
-        </span>
-        <span className="font-semibold text-gray-900 dark:text-white text-sm">
-          You
-        </span>
-      </div>
-    );
-  }
+  const getRoleColor = () => {
+    switch (role) {
+      case 'admin':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'moderator':
+        return 'text-blue-600 dark:text-blue-400';
+      default:
+        return 'text-foreground';
+    }
+  };
 
   return (
-    <div className="flex gap-3 mb-2">
+    <div className={`flex items-start space-x-3 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
       {showAvatar && (
-        <div className="relative">
-          <Avatar className="h-10 w-10 ring-2 ring-gray-100 dark:ring-gray-700 shadow-sm">
-            <AvatarImage 
-              src={getAvatarSrc()} 
-              alt={getDisplayName()} 
-            />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
-              {getDisplayName().charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
-        </div>
+        <Avatar className="h-10 w-10 ring-2 ring-background">
+          <AvatarImage src={avatarUrl || ''} alt={displayName} />
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+            {displayName[0]?.toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
       )}
       
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer text-sm">
-            {getDisplayName()}
+      <div className={`flex-1 min-w-0 ${isOwnMessage ? 'text-right' : ''}`}>
+        <div className={`flex items-center space-x-2 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
+          <span className={`font-semibold text-sm hover:underline cursor-pointer ${getRoleColor()}`}>
+            {displayName}
           </span>
-          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-            Warrior
-          </Badge>
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-            {formattedTime}
+          
+          {getRoleIcon() && (
+            <div className="flex items-center">
+              {getRoleIcon()}
+            </div>
+          )}
+          
+          {role !== 'member' && (
+            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 capitalize">
+              {role}
+            </Badge>
+          )}
+          
+          <span className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
           </span>
         </div>
       </div>
