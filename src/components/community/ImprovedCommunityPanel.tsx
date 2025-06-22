@@ -1,157 +1,189 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import EnhancedCommunityChat from './EnhancedCommunityChat';
-import CommunityChannelSelector from './CommunityChannelSelector';
-import { MessageSquare, Users, Globe, Settings, RefreshCw } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Wifi, WifiOff, AlertTriangle, Users, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import EnhancedCommunityChat from './EnhancedCommunityChat';
 
 interface ImprovedCommunityPanelProps {
-  defaultChannel?: string;
+  channelName?: string;
 }
 
 const ImprovedCommunityPanel: React.FC<ImprovedCommunityPanelProps> = ({
-  defaultChannel = 'general'
+  channelName = 'general'
 }) => {
-  const [activeChannel, setActiveChannel] = useState(defaultChannel);
+  const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [lastActivity, setLastActivity] = useState<Date>(new Date());
-
+  const [retryCount, setRetryCount] = useState(0);
+  
   const { user } = useAuth();
-  const isMobile = useIsMobile();
 
-  // Monitor online status
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success('Connection restored');
+      toast.success('Connection restored - chat is now available', {
+        icon: '🌐',
+        duration: 3000,
+      });
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.error('Connection lost');
+      toast.error('Connection lost - you\'ll be able to chat when back online', {
+        icon: '📡',
+        duration: 5000,
+      });
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Initialize with smooth loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(timer);
     };
   }, []);
 
-  // Update last activity
-  useEffect(() => {
-    const updateActivity = () => setLastActivity(new Date());
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setIsLoading(true);
     
-    window.addEventListener('focus', updateActivity);
-    window.addEventListener('click', updateActivity);
-    window.addEventListener('keypress', updateActivity);
-
-    return () => {
-      window.removeEventListener('focus', updateActivity);
-      window.removeEventListener('click', updateActivity);
-      window.removeEventListener('keypress', updateActivity);
-    };
-  }, []);
-
-  const handleChannelSelect = (channelId: string) => {
-    setActiveChannel(channelId);
-    toast.success(`Switched to #${channelId}`, { duration: 1000 });
+    setTimeout(() => {
+      setIsLoading(false);
+      if (isOnline) {
+        toast.success('Chat refreshed successfully', {
+          icon: '✨',
+          duration: 2000,
+        });
+      }
+    }, 1200);
   };
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
+  // Check if user is authenticated
   if (!user) {
     return (
-      <Card className="h-full flex items-center justify-center">
-        <CardContent className="text-center p-8">
-          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Join Our Community</h3>
-          <p className="text-gray-600 mb-4">
-            Connect with fellow warriors and share your journey. Sign in to get started!
-          </p>
-          <Button onClick={() => window.location.href = '/login'}>
-            Sign In to Join
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="h-full bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-indigo-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-indigo-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="h-10 w-10 text-yellow-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Please log in to access the community chat and connect with other members in real-time.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle offline state
+  if (!isOnline) {
+    return (
+      <div className="h-full bg-gradient-to-br from-red-50/50 via-orange-50/30 to-pink-50/50 dark:from-red-950/30 dark:via-orange-950/20 dark:to-pink-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <WifiOff className="h-10 w-10 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+              No Internet Connection
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Please check your internet connection to access the real-time community chat.
+            </p>
+            <Button 
+              onClick={handleRetry} 
+              className="flex items-center gap-2 w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Check Connection
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="h-full bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-indigo-50/50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-indigo-950/30 flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-ping opacity-20"></div>
+              <div className="relative w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <MessageCircle className="h-10 w-10 text-white animate-pulse" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+              Loading Community Chat
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+              Setting up real-time messaging and connecting you to the community...
+            </p>
+            {retryCount > 0 && (
+              <p className="text-sm text-blue-600 font-medium mt-3">
+                Loading attempt #{retryCount + 1}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4">
-      {/* Sidebar - Channels */}
-      {!isMobile && (
-        <Card className="w-80 flex-shrink-0">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Community Hub
-              <Badge variant={isOnline ? "secondary" : "destructive"} className="ml-auto">
-                {isOnline ? 'Online' : 'Offline'}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CommunityChannelSelector
-              activeChannel={activeChannel}
-              onChannelSelect={handleChannelSelect}
-            />
-            
-            {/* Quick Actions */}
-            <div className="mt-6 pt-4 border-t">
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start gap-2"
-                  onClick={handleRefresh}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh Chat
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start gap-2"
-                  disabled
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings (Soon)
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Chat Area */}
-      <Card className="flex-1 flex flex-col min-h-0">
-        {isMobile && (
-          <CardHeader className="pb-2">
-            <Tabs value={activeChannel} onValueChange={setActiveChannel}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="announcements">News</TabsTrigger>
-                <TabsTrigger value="entrepreneurs">Business</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardHeader>
-        )}
-        
-        <CardContent className="flex-1 flex flex-col p-0">
-          <EnhancedCommunityChat channelName={activeChannel} />
-        </CardContent>
-      </Card>
+    <div className="h-full bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-indigo-50/30 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-indigo-950/20 relative overflow-hidden">
+      {/* Enhanced Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-400/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-400/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
+      
+      {/* Status Indicator */}
+      <div className="absolute top-6 right-6 z-10">
+        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-white/20">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <Wifi className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-semibold text-gray-700">Live Chat Active</span>
+          <Users className="h-4 w-4 text-gray-500" />
+        </div>
+      </div>
+      
+      <div className="h-full p-6 relative z-10">
+        <div className="h-full max-w-4xl mx-auto">
+          <EnhancedCommunityChat defaultChannel={channelName} />
+        </div>
+      </div>
+      
+      {/* Floating Action Hint */}
+      <div className="absolute bottom-6 left-6 z-10">
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-full px-3 py-1 border border-blue-200/30">
+          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+            💬 Real-time messaging enabled
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
