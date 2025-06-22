@@ -67,6 +67,12 @@ const UserProfilePanel: React.FC = () => {
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
 
+  // Helper function to safely convert Json array to string array
+  const jsonArrayToStringArray = (jsonArray: any): string[] => {
+    if (!Array.isArray(jsonArray)) return [];
+    return jsonArray.filter(item => typeof item === 'string');
+  };
+
   // Fetch profile data from Supabase
   useEffect(() => {
     async function fetchProfileData() {
@@ -98,8 +104,8 @@ const UserProfilePanel: React.FC = () => {
             website: data.website || '',
             phoneNumber: data.phone_number || '',
             company: data.company || '',
-            skills: Array.isArray(data.skills) ? data.skills : [],
-            interests: Array.isArray(data.interests) ? data.interests : [],
+            skills: jsonArrayToStringArray(data.skills),
+            interests: jsonArrayToStringArray(data.interests),
             socialLinks: {
               twitter: data.twitter_url || '',
               linkedin: data.linkedin_url || '',
@@ -695,10 +701,10 @@ const UserProfilePanel: React.FC = () => {
                 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
-                    <Label htmlFor="pushNotifs">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive push notifications in your browser</p>
+                    <Label htmlFor="desktopNotifs">Desktop Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Receive desktop notifications in your browser</p>
                   </div>
-                  <Switch id="pushNotifs" defaultChecked={user?.preferences?.pushNotifications ?? true} />
+                  <Switch id="desktopNotifs" defaultChecked={user?.preferences?.desktopNotifications ?? true} />
                 </div>
                 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
