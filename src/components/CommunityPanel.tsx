@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import RobustCommunityChat from './community/RobustCommunityChat';
-import CommunityErrorBoundary from './community/CommunityErrorBoundary';
+import StableCommunityChat from './community/StableCommunityChat';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -15,7 +14,6 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [retryCount, setRetryCount] = useState(0);
   
   const { user } = useAuth();
 
@@ -33,7 +31,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Quick initialization for better UX
+    // Quick initialization
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 500);
@@ -46,9 +44,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   }, []);
 
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
     setIsLoading(true);
-    
     setTimeout(() => {
       setIsLoading(false);
       toast.success('Chat refreshed successfully');
@@ -88,14 +84,9 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
               Loading Community Chat
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-2">
+            <p className="text-gray-600 dark:text-gray-400">
               Setting up real-time messaging...
             </p>
-            {retryCount > 0 && (
-              <p className="text-sm text-gray-500 mt-3">
-                Loading attempt #{retryCount + 1}
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -108,13 +99,15 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       <div className="absolute top-4 right-4 z-10">
         <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-white/20">
           <Wifi className="h-4 w-4 text-green-500" />
-          <span className="text-sm font-medium text-gray-700">Live Chat Active</span>
+          <span className="text-sm font-medium text-gray-700">Stable Chat</span>
         </div>
       </div>
       
-      <CommunityErrorBoundary>
-        <RobustCommunityChat defaultChannel={channelName} />
-      </CommunityErrorBoundary>
+      <div className="h-full p-4">
+        <div className="h-full max-w-4xl mx-auto">
+          <StableCommunityChat channelName={channelName} />
+        </div>
+      </div>
     </div>
   );
 };
