@@ -1,27 +1,16 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { Reply, MoreHorizontal, Copy, Share, Pin, Flag, Edit3, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { 
-  MoreHorizontal, 
-  Reply, 
-  Pin, 
-  Trash2, 
-  Copy,
-  Flag,
-  Smile
-} from 'lucide-react';
+} from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
+import MessageReactionPicker from './MessageReactionPicker';
 
 interface MessageActionsProps {
   messageId: string;
@@ -30,9 +19,9 @@ interface MessageActionsProps {
   showReactions: boolean;
   setShowReactions: (show: boolean) => void;
   onReply?: (messageId: string) => void;
-  onDelete?: () => void;
+  onDelete?: (messageId: string) => void;
   onReaction?: (messageId: string, reaction: string) => void;
-  isOwnMessage: boolean;
+  isOwnMessage?: boolean;
 }
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -44,112 +33,103 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   onReply,
   onDelete,
   onReaction,
-  isOwnMessage
+  isOwnMessage = false
 }) => {
-  const handleCopyMessage = () => {
-    navigator.clipboard.writeText(messageContent);
+  const handleReaction = (reaction: string) => {
+    if (onReaction) {
+      onReaction(messageId, reaction);
+      setShowReactions(false);
+      // Remove automatic toast - let parent handle feedback
+    }
   };
 
-  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(messageContent);
+    toast.success('Message copied to clipboard');
+  };
+
+  const handleShareMessage = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Community Message',
+        text: messageContent,
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(`${messageContent}\n\n- Shared from Warrior Community`);
+      toast.success('Message link copied to clipboard');
+    }
+  };
+
+  const handleDeleteMessage = () => {
+    if (onDelete) {
+      onDelete(messageId);
+    }
+  };
+
+  if (!showActions) return null;
 
   return (
-    <>
-      {/* Quick Action Buttons */}
-      <div className={`absolute top-0 ${isOwnMessage ? 'left-0' : 'right-0'} transform -translate-y-1/2 transition-opacity duration-200 ${
-        showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}>
-        <div className="flex items-center space-x-1 bg-background border rounded-lg shadow-lg p-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setShowReactions(!showReactions)}
-                >
-                  <Smile className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Add reaction</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {onReply && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => onReply(messageId)}
-                  >
-                    <Reply className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reply</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+    <div className={`absolute -top-3 ${isOwnMessage ? 'left-4' : 'right-6'} bg-white dark:bg-gray-800 shadow-xl rounded-xl flex items-center border border-gray-200 dark:border-gray-700 z-10 overflow-hidden`}>
+      <MessageReactionPicker
+        showReactions={showReactions}
+        setShowReactions={setShowReactions}
+        onReactionSelect={handleReaction}
+      />
+      
+      <Button
+        variant="ghost" 
+        size="sm"
+        className="h-10 px-3 text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-none border-r border-gray-200 dark:border-gray-700"
+        onClick={() => onReply?.(messageId)}
+      >
+        <Reply size={16} />
+      </Button>
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-10 px-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-none">
+            <MoreHorizontal size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onSelect={() => onReply?.(messageId)} className="cursor-pointer">
+            <Reply className="mr-3 h-4 w-4" />
+            Reply to Message
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleCopyMessage} className="cursor-pointer">
+            <Copy className="mr-3 h-4 w-4" />
+            Copy Message
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleShareMessage} className="cursor-pointer">
+            <Share className="mr-3 h-4 w-4" />
+            Share Message
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer text-blue-600">
+            <Pin className="mr-3 h-4 w-4" />
+            Pin Message
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer text-amber-600">
+            <Flag className="mr-3 h-4 w-4" />
+            Report Message
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {isOwnMessage && (
+            <>
+              <DropdownMenuItem className="text-orange-600 cursor-pointer">
+                <Edit3 className="mr-3 h-4 w-4" />
+                Edit Message
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600 cursor-pointer" onSelect={handleDeleteMessage}>
+                <Trash2 className="mr-3 h-4 w-4" />
+                Delete Message
+              </DropdownMenuItem>
+            </>
           )}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                <MoreHorizontal className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleCopyMessage}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Message
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem>
-                <Pin className="h-4 w-4 mr-2" />
-                Pin Message
-              </DropdownMenuItem>
-              
-              {!isOwnMessage && (
-                <DropdownMenuItem className="text-red-600">
-                  <Flag className="h-4 w-4 mr-2" />
-                  Report
-                </DropdownMenuItem>
-              )}
-              
-              {isOwnMessage && onDelete && (
-                <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Reaction Picker */}
-      {showReactions && (
-        <div className={`absolute top-full ${isOwnMessage ? 'left-0' : 'right-0'} mt-2 z-10`}>
-          <div className="flex items-center space-x-1 bg-background border rounded-lg shadow-lg p-2">
-            {quickReactions.map((emoji) => (
-              <Button
-                key={emoji}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-lg hover:bg-accent"
-                onClick={() => {
-                  onReaction?.(messageId, emoji);
-                  setShowReactions(false);
-                }}
-              >
-                {emoji}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };
 

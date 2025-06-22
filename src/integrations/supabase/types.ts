@@ -44,11 +44,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
-          is_locked: boolean | null
-          is_private: boolean | null
           name: string
-          required_role: string | null
-          slow_mode_seconds: number | null
           type: string
           updated_at: string
         }
@@ -57,11 +53,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
-          is_locked?: boolean | null
-          is_private?: boolean | null
           name: string
-          required_role?: string | null
-          slow_mode_seconds?: number | null
           type?: string
           updated_at?: string
         }
@@ -70,11 +62,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
-          is_locked?: boolean | null
-          is_private?: boolean | null
           name?: string
-          required_role?: string | null
-          slow_mode_seconds?: number | null
           type?: string
           updated_at?: string
         }
@@ -138,41 +126,29 @@ export type Database = {
       }
       community_messages: {
         Row: {
-          attachments: Json | null
           channel_id: string
           content: string
           created_at: string
           id: string
-          is_announcement: boolean | null
           is_deleted: boolean | null
-          message_type: string | null
-          reply_to_id: string | null
           sender_id: string
           updated_at: string
         }
         Insert: {
-          attachments?: Json | null
           channel_id: string
           content: string
           created_at?: string
           id?: string
-          is_announcement?: boolean | null
           is_deleted?: boolean | null
-          message_type?: string | null
-          reply_to_id?: string | null
           sender_id: string
           updated_at?: string
         }
         Update: {
-          attachments?: Json | null
           channel_id?: string
           content?: string
           created_at?: string
           id?: string
-          is_announcement?: boolean | null
           is_deleted?: boolean | null
-          message_type?: string | null
-          reply_to_id?: string | null
           sender_id?: string
           updated_at?: string
         }
@@ -182,13 +158,6 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_messages_reply_to_id_fkey"
-            columns: ["reply_to_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -580,106 +549,6 @@ export type Database = {
         }
         Relationships: []
       }
-      message_mentions: {
-        Row: {
-          created_at: string
-          id: string
-          is_read: boolean | null
-          mentioned_user_id: string
-          message_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          mentioned_user_id: string
-          message_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          mentioned_user_id?: string
-          message_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_mentions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      message_reactions: {
-        Row: {
-          created_at: string
-          emoji: string
-          id: string
-          message_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          emoji: string
-          id?: string
-          message_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          emoji?: string
-          id?: string
-          message_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      message_threads: {
-        Row: {
-          created_at: string
-          id: string
-          parent_message_id: string
-          reply_message_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          parent_message_id: string
-          reply_message_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          parent_message_id?: string
-          reply_message_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_threads_parent_message_id_fkey"
-            columns: ["parent_message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_threads_reply_message_id_fkey"
-            columns: ["reply_message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       messages: {
         Row: {
           content: string
@@ -714,45 +583,6 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pinned_messages: {
-        Row: {
-          channel_id: string
-          id: string
-          message_id: string
-          pinned_at: string
-          pinned_by: string
-        }
-        Insert: {
-          channel_id: string
-          id?: string
-          message_id: string
-          pinned_at?: string
-          pinned_by: string
-        }
-        Update: {
-          channel_id?: string
-          id?: string
-          message_id?: string
-          pinned_at?: string
-          pinned_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pinned_messages_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pinned_messages_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -998,38 +828,6 @@ export type Database = {
           },
         ]
       }
-      typing_indicators: {
-        Row: {
-          channel_id: string
-          expires_at: string
-          id: string
-          started_at: string
-          user_id: string
-        }
-        Insert: {
-          channel_id: string
-          expires_at?: string
-          id?: string
-          started_at?: string
-          user_id: string
-        }
-        Update: {
-          channel_id?: string
-          expires_at?: string
-          id?: string
-          started_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "typing_indicators_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -1126,17 +924,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_access_channel_safe: {
-        Args: { channel_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
       can_user_access_events: {
         Args: { _user_id: string }
         Returns: boolean
-      }
-      cleanup_expired_typing: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       create_admin_account: {
         Args: {
@@ -1239,10 +1029,6 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string; _workspace_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
-      }
-      get_user_role_safe: {
-        Args: { user_id_param: string }
-        Returns: string
       }
       get_user_workspace_role: {
         Args: { _user_id: string; _workspace_id: string }

@@ -1,59 +1,46 @@
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface MessageContentProps {
   content: string;
-  isOwnMessage: boolean;
+  isOwnMessage?: boolean;
   showTimestamp?: boolean;
   timestamp?: string;
 }
 
-const MessageContent: React.FC<MessageContentProps> = ({
-  content,
-  isOwnMessage,
+const MessageContent: React.FC<MessageContentProps> = ({ 
+  content, 
+  isOwnMessage = false,
   showTimestamp = false,
   timestamp
 }) => {
-  // Simple markdown-like formatting
-  const formatContent = (text: string) => {
-    // Handle bold **text**
-    let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Handle italic *text*
-    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
-    // Handle code `text`
-    formatted = formatted.replace(/`(.*?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>');
-    
-    // Handle mentions @username
-    formatted = formatted.replace(/@(\w+)/g, '<span class="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline">@$1</span>');
-    
-    // Handle line breaks
-    formatted = formatted.replace(/\n/g, '<br />');
-    
-    return formatted;
-  };
+  const formattedTime = timestamp ? format(new Date(timestamp), 'h:mm a') : '';
 
   return (
-    <div className={`group relative ${isOwnMessage ? 'text-right' : ''}`}>
-      <div
-        className={cn(
-          "inline-block px-4 py-2 rounded-2xl text-sm leading-relaxed break-words max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl",
-          isOwnMessage
-            ? "bg-blue-600 text-white rounded-br-md"
-            : "bg-muted rounded-bl-md"
+    <div className={`group/content relative ${isOwnMessage ? 'flex justify-end' : ''}`}>
+      <div className={`relative max-w-full ${
+        isOwnMessage 
+          ? 'bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm border border-blue-700' 
+          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700'
+      }`}>
+        <p className={`whitespace-pre-line break-words ${
+          isOwnMessage ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+        } text-sm leading-relaxed`}>
+          {content}
+        </p>
+        
+        {showTimestamp && isOwnMessage && (
+          <div className="text-xs text-blue-100 mt-1 opacity-75">
+            {formattedTime}
+          </div>
         )}
-        dangerouslySetInnerHTML={{ __html: formatContent(content) }}
-      />
+      </div>
       
-      {showTimestamp && timestamp && (
-        <div className={`text-xs text-muted-foreground mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-          {new Date(timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </div>
+      {showTimestamp && !isOwnMessage && (
+        <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 opacity-0 group-hover/content:opacity-100 transition-opacity self-end mb-1">
+          {formattedTime}
+        </span>
       )}
     </div>
   );
