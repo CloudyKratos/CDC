@@ -9,7 +9,7 @@ interface TypingUser {
   profiles?: {
     username?: string;
     full_name?: string;
-  };
+  } | null;
 }
 
 interface TypingIndicatorProps {
@@ -30,20 +30,34 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ channelId }) => {
           .from('typing_indicators')
           .select(`
             id,
-            user_id,
-            profiles!typing_indicators_user_id_fkey (
-              username,
-              full_name
-            )
+            user_id
           `)
           .eq('channel_id', channelId)
           .neq('user_id', user.id)
           .gt('expires_at', new Date().toISOString());
 
         if (error) throw error;
-        setTypingUsers(data || []);
+
+        // Fetch profile data separately to avoid relation issues
+        const userIds = data?.map(item => item.user_id) || [];
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, full_name')
+            .in('id', userIds);
+
+          const typingWithProfiles = (data || []).map(typingUser => ({
+            ...typingUser,
+            profiles: profiles?.find(profile => profile.id === typingUser.user_id) || null
+          }));
+
+          setTypingUsers(typingWithProfiles);
+        } else {
+          setTypingUsers([]);
+        }
       } catch (error) {
         console.error('Failed to load typing users:', error);
+        setTypingUsers([]);
       }
     };
 
@@ -96,7 +110,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ channelId }) => {
   };
 
   return (
-    <div className="flex items-center space-x-2 text-sm text-muted-foreground animate-pulse">
+    <div className="flex items-center space-x-2 text-sm text-muted-foreground animate-pulse px-4 py-2">
       <div className="flex space-x-1">
         <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
         <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>

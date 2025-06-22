@@ -1,34 +1,31 @@
+
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from 'flowbite-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Target,
-  Brain,
-  TrendingUp,
-  Calendar,
   MessageSquare,
   MessageCircle,
   User,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/warrior-space', label: 'Warrior Space', icon: Target },
-  { path: '/strategy', label: 'Strategy', icon: Brain },
-  { path: '/progress', label: 'Progress', icon: TrendingUp },
-  { path: '/events', label: 'Events', icon: Calendar },
   { path: '/community', label: 'Community', icon: MessageSquare },
   { path: '/messages', label: 'Messages', icon: MessageCircle },
-  { path: '/profile', label: 'Profile', icon: User },
 ];
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleSignOut = async () => {
@@ -38,43 +35,98 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar
-        className="w-64 h-screen sticky top-0"
-        aria-label="Sidebar with content separation example"
-        style={{ display: isSidebarOpen ? 'block' : 'none' }}
-      >
-        <div className="h-full flex flex-col dark:bg-gray-800">
-          <div className="px-3 py-4 overflow-y-auto flex-grow">
-            <div className="space-y-2 font-medium">
-              {navItems.map((item) => (
-                <Sidebar.Item key={item.path} href={item.path} icon={item.icon} onClick={() => navigate(item.path)}>
-                  {item.label}
-                </Sidebar.Item>
-              ))}
+      {/* Sidebar */}
+      <div className={cn(
+        "bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300",
+        isSidebarOpen ? "w-64" : "w-16"
+      )}>
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              {isSidebarOpen && (
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Community
+                </h2>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              >
+                {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
-          <div className="p-4 border-t dark:border-gray-700">
-            <div className="flex items-center space-x-4">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.full_name} />
-                <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="space-y-1 font-medium dark:text-white">
-                <div>{user?.user_metadata?.full_name || user?.email}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</div>
-              </div>
+          
+          {/* Navigation */}
+          <div className="flex-1 px-3 py-4 overflow-y-auto">
+            <div className="space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                
+                return (
+                  <Button
+                    key={item.path}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start",
+                      !isSidebarOpen && "px-2"
+                    )}
+                    onClick={() => navigate(item.path)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {isSidebarOpen && <span className="ml-2">{item.label}</span>}
+                  </Button>
+                );
+              })}
             </div>
-            <Sidebar.Item href="#" onClick={handleSignOut} className="mt-4">
-              Sign Out
-            </Sidebar.Item>
+          </div>
+          
+          {/* User section */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-8 h-8">
+                <AvatarImage 
+                  src={user?.user_metadata?.avatar_url || ''} 
+                  alt={user?.user_metadata?.full_name || user?.email || 'User'} 
+                />
+                <AvatarFallback>
+                  {(user?.user_metadata?.full_name || user?.email || 'U')[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              {isSidebarOpen && (
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user?.user_metadata?.full_name || user?.email}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user?.email}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {isSidebarOpen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-2"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            )}
           </div>
         </div>
-      </Sidebar>
+      </div>
+      
+      {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900">
-          <div className="container mx-auto px-6 py-8">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>
