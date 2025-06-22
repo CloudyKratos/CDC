@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import CalendarService from '@/services/CalendarService';
 import { EventData } from '@/services/SupabaseService';
 import { CalendarEventData } from '@/types/calendar-events';
 import AdminEventManagement from './calendar/AdminEventManagement';
-import EnhancedCalendarView from './calendar/EnhancedCalendarView';
+import ImprovedCalendarView from './calendar/ImprovedCalendarView';
 import { CalendarEventErrorBoundary } from './calendar/CalendarEventErrorBoundary';
 import { CalendarStatusIndicator } from './calendar/CalendarStatusIndicator';
 import CalendarConnectionManager from './calendar/CalendarConnectionManager';
@@ -250,23 +249,21 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
               <TabsContent value="manage">
                 <AdminEventManagement
                   events={events}
-                  onCreateEvent={handleCreateEvent}
-                  onUpdateEvent={handleUpdateEvent}
-                  onDeleteEvent={handleDeleteEvent}
+                  onCreateEvent={() => {}}
+                  onUpdateEvent={() => {}}
+                  onDeleteEvent={() => {}}
                   isLoading={isLoading}
                 />
               </TabsContent>
 
               <TabsContent value="calendar">
-                <EnhancedCalendarView
-                  events={events}
+                <ImprovedCalendarView
                   showAllEvents={true}
                 />
               </TabsContent>
             </Tabs>
           ) : (
-            <EnhancedCalendarView
-              events={events}
+            <ImprovedCalendarView
               showAllEvents={true}
             />
           )}
