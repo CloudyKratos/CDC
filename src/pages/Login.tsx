@@ -132,179 +132,189 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 to-purple-100/20 dark:from-blue-900/10 dark:to-purple-900/10"></div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-10 -left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute -bottom-8 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse animation-delay-4000"></div>
       </div>
       
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
-        <CardHeader className="space-y-3 text-center pb-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
-              <Logo size="lg" className="text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome Back
-          </CardTitle>
-          <CardDescription className="text-lg text-gray-600 dark:text-gray-300">
-            Sign in to continue your journey
-          </CardDescription>
-          
-          {verified && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-green-800 dark:text-green-300">Email verified successfully!</p>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                    Your account is now active and ready to use.
-                  </p>
+      <div className="w-full max-w-md space-y-8 relative z-10">
+        <Card className="shadow-2xl border-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl overflow-hidden">
+          <CardHeader className="space-y-4 text-center px-6 pt-8 pb-6 sm:px-8 sm:pt-10">
+            <div className="flex justify-center mb-2">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                <div className="relative p-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-xl">
+                  <Logo size="lg" className="text-white" />
                 </div>
               </div>
             </div>
-          )}
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {errorMessage && (
-            <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
-                  {showResendOption && (
-                    <div className="mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleResendVerification}
-                        disabled={isResendingVerification}
-                        className="w-full border-red-200 text-red-700 hover:bg-red-50"
-                      >
-                        {isResendingVerification ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending verification email...
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Resend verification email
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
+            <div className="space-y-2">
+              <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Welcome Back
+              </CardTitle>
+              <CardDescription className="text-base sm:text-lg text-gray-600 dark:text-gray-300 font-medium">
+                Sign in to continue your journey
+              </CardDescription>
+            </div>
+            
+            {verified && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="font-semibold text-green-800 dark:text-green-300">Email verified successfully!</p>
+                    <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                      Your account is now active and ready to use.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </CardHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Email Address
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter your email address" 
-                        type="email" 
-                        {...field} 
-                        disabled={isLoading}
-                        className="h-12 px-4 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        Password
-                      </FormLabel>
-                      <Link 
-                        to="/reset-password" 
-                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <FormControl>
-                      <div className="relative">
-                        <Input 
-                          placeholder="Enter your password" 
-                          type={showPassword ? 'text' : 'password'} 
-                          {...field} 
-                          disabled={isLoading}
-                          className="h-12 px-4 pr-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
+          <CardContent className="px-6 pb-6 sm:px-8">
+            {errorMessage && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+                    {showResendOption && (
+                      <div className="mt-3">
                         <Button
-                          type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={handleResendVerification}
+                          disabled={isResendingVerification}
+                          className="w-full border-red-200 text-red-700 hover:bg-red-50 transition-all duration-200"
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          {isResendingVerification ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Sending verification email...
+                            </>
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400" />
+                            <>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Resend verification email
+                            </>
                           )}
                         </Button>
                       </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        
-        <CardFooter className="pt-6 pb-8">
-          <div className="w-full text-center">
-            <p className="text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
-              <Link 
-                to="/signup" 
-                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
-              >
-                Create one here
-              </Link>
-            </p>
-          </div>
-        </CardFooter>
-      </Card>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Email Address
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your email address" 
+                          type="email" 
+                          {...field} 
+                          disabled={isLoading}
+                          className="h-12 px-4 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all duration-200"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Password
+                        </FormLabel>
+                        <Link 
+                          to="/reset-password" 
+                          className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <div className="relative">
+                          <Input 
+                            placeholder="Enter your password" 
+                            type={showPassword ? 'text' : 'password'} 
+                            {...field} 
+                            disabled={isLoading}
+                            className="h-12 px-4 pr-12 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all duration-200"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent transition-colors"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            ) : (
+                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          
+          <CardFooter className="px-6 pb-8 sm:px-8">
+            <div className="w-full text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                Don't have an account?{' '}
+                <Link 
+                  to="/signup" 
+                  className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
+                >
+                  Create one here
+                </Link>
+              </p>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 };
