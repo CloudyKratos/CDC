@@ -20,7 +20,10 @@ import {
   Clock,
   CheckCircle,
   Star,
-  Youtube
+  Youtube,
+  Sparkles,
+  Zap,
+  Award
 } from 'lucide-react';
 import CommandRoomBackground from './CommandRoomBackground';
 import YouTubeEmbed from './YouTubeEmbed';
@@ -170,9 +173,17 @@ const EnhancedCommandRoom: React.FC = () => {
       <div className="relative min-h-screen">
         <CommandRoomBackground />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mx-auto"></div>
-            <p className="text-white/80 text-lg">Loading Learning Center...</p>
+          <div className="text-center space-y-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 border-t-transparent mx-auto"></div>
+              <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-cyan-300 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Loading Learning Universe
+              </h3>
+              <p className="text-blue-200/80 text-lg">Preparing your courses...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -183,120 +194,143 @@ const EnhancedCommandRoom: React.FC = () => {
     <div className="relative min-h-screen">
       <CommandRoomBackground />
       
-      <div className="relative z-10 p-6 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-4 mb-8">
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl">
-              <BookOpen className="h-8 w-8 text-white" />
+      <div className="relative z-10 p-6 space-y-8">
+        {/* Enhanced Header */}
+        <div className="text-center space-y-6 mb-12">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400via-purple-500 to-pink-500 rounded-3xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+              <div className="relative p-4 bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-600 rounded-3xl shadow-2xl">
+                <BookOpen className="h-10 w-10 text-white" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold text-white">Learning Center</h1>
+            <div className="text-left">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent mb-2">
+                Learning Universe
+              </h1>
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-400" />
+                <p className="text-xl text-cyan-200 font-medium">Power Up Your Skills</p>
+              </div>
+            </div>
           </div>
-          <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Master new skills with curated video courses. Track your progress and level up your expertise.
-          </p>
+          
+          <div className="max-w-3xl mx-auto">
+            <p className="text-lg text-blue-100/90 leading-relaxed">
+              🚀 Master cutting-edge skills with expertly curated video courses. Track your progress, 
+              earn achievements, and level up your expertise in an immersive learning environment.
+            </p>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Play className="h-5 w-5 text-blue-400" />
-                <span className="text-2xl font-bold">{totalVideos}</span>
+        {/* Vibrant Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl border-cyan-300/30 text-white hover:scale-105 transition-transform duration-300 shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="p-2 bg-cyan-400/20 rounded-full">
+                  <Play className="h-6 w-6 text-cyan-300" />
+                </div>
+                <span className="text-3xl font-bold text-cyan-300">{totalVideos}</span>
               </div>
-              <p className="text-white/70 text-sm">Total Courses</p>
+              <p className="text-cyan-100 font-medium">Epic Courses</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-                <span className="text-2xl font-bold">{completedVideos}</span>
+          <Card className="bg-gradient-to-br from-emerald-500/20 to-green-600/20 backdrop-blur-xl border-emerald-300/30 text-white hover:scale-105 transition-transform duration-300 shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="p-2 bg-emerald-400/20 rounded-full">
+                  <CheckCircle className="h-6 w-6 text-emerald-300" />
+                </div>
+                <span className="text-3xl font-bold text-emerald-300">{completedVideos}</span>
               </div>
-              <p className="text-white/70 text-sm">Completed</p>
+              <p className="text-emerald-100 font-medium">Conquered</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Clock className="h-5 w-5 text-yellow-400" />
-                <span className="text-2xl font-bold">{inProgressVideos}</span>
+          <Card className="bg-gradient-to-br from-amber-500/20 to-orange-600/20 backdrop-blur-xl border-amber-300/30 text-white hover:scale-105 transition-transform duration-300 shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="p-2 bg-amber-400/20 rounded-full">
+                  <Clock className="h-6 w-6 text-amber-300" />
+                </div>
+                <span className="text-3xl font-bold text-amber-300">{inProgressVideos}</span>
               </div>
-              <p className="text-white/70 text-sm">In Progress</p>
+              <p className="text-amber-100 font-medium">In Progress</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="h-5 w-5 text-purple-400" />
-                <span className="text-2xl font-bold">{Math.round(totalProgress)}%</span>
+          <Card className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl border-purple-300/30 text-white hover:scale-105 transition-transform duration-300 shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="p-2 bg-purple-400/20 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-purple-300" />
+                </div>
+                <span className="text-3xl font-bold text-purple-300">{Math.round(totalProgress)}%</span>
               </div>
-              <p className="text-white/70 text-sm">Overall Progress</p>
+              <p className="text-purple-100 font-medium">Skill Level</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
+        {/* Enhanced Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex items-center justify-between mb-6">
-            <TabsList className="bg-black/40 backdrop-blur-lg border-white/10">
+          <div className="flex items-center justify-between mb-8">
+            <TabsList className="bg-black/40 backdrop-blur-xl border border-white/20 p-2 rounded-2xl">
               <TabsTrigger 
                 value="courses" 
-                className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white text-blue-200 px-6 py-3 rounded-xl font-medium transition-all duration-300"
               >
-                <BookOpen className="h-4 w-4 mr-2" />
+                <BookOpen className="h-5 w-5 mr-2" />
                 Courses
               </TabsTrigger>
               <TabsTrigger 
                 value="progress" 
-                className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white text-purple-200 px-6 py-3 rounded-xl font-medium transition-all duration-300"
               >
-                <Trophy className="h-4 w-4 mr-2" />
-                My Progress
+                <Trophy className="h-5 w-5 mr-2" />
+                Progress
               </TabsTrigger>
             </TabsList>
 
             {isAdmin && (
               <Button 
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Course
+                <Plus className="h-5 w-5 mr-2" />
+                Add Epic Course
               </Button>
             )}
           </div>
 
-          <TabsContent value="courses" className="space-y-6">
-            {/* Filters */}
-            <Card className="bg-black/40 backdrop-blur-lg border-white/10">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row gap-4">
+          <TabsContent value="courses" className="space-y-8">
+            {/* Enhanced Filters */}
+            <Card className="bg-black/30 backdrop-blur-xl border border-white/20 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
                       <Input
-                        placeholder="Search courses..."
+                        placeholder="Search for amazing courses..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="pl-12 bg-white/10 border-cyan-300/40 text-white placeholder:text-cyan-200/60 h-12 rounded-xl focus:border-cyan-400 focus:ring-cyan-400/50"
                       />
                     </div>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-4">
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white text-sm"
+                      className="px-4 py-3 bg-white/10 border border-purple-300/40 rounded-xl text-white text-sm min-w-[150px] focus:border-purple-400 focus:ring-purple-400/50"
                     >
                       {categories.map(category => (
-                        <option key={category} value={category} className="bg-gray-800">
-                          {category === 'all' ? 'All Categories' : category}
+                        <option key={category} value={category} className="bg-gray-800 text-white">
+                          {category === 'all' ? '🌟 All Categories' : `📚 ${category}`}
                         </option>
                       ))}
                     </select>
@@ -304,11 +338,13 @@ const EnhancedCommandRoom: React.FC = () => {
                     <select
                       value={selectedDifficulty}
                       onChange={(e) => setSelectedDifficulty(e.target.value)}
-                      className="px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white text-sm"
+                      className="px-4 py-3 bg-white/10 border border-pink-300/40 rounded-xl text-white text-sm min-w-[150px] focus:border-pink-400 focus:ring-pink-400/50"
                     >
                       {difficulties.map(difficulty => (
-                        <option key={difficulty} value={difficulty} className="bg-gray-800">
-                          {difficulty === 'all' ? 'All Levels' : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                        <option key={difficulty} value={difficulty} className="bg-gray-800 text-white">
+                          {difficulty === 'all' ? '⚡ All Levels' : 
+                           difficulty === 'beginner' ? '🌱 Beginner' :
+                           difficulty === 'intermediate' ? '🚀 Intermediate' : '🎯 Advanced'}
                         </option>
                       ))}
                     </select>
@@ -317,8 +353,8 @@ const EnhancedCommandRoom: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Video Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Enhanced Video Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               {filteredVideos.map((video) => (
                 <YouTubeEmbed
                   key={video.id}
@@ -328,88 +364,97 @@ const EnhancedCommandRoom: React.FC = () => {
                   duration={video.duration}
                   progress={userProgress[video.id] || 0}
                   onProgressUpdate={(progress) => handleProgressUpdate(video.id, progress)}
-                  className="w-full"
+                  className="w-full transform hover:scale-105 transition-transform duration-300"
                 />
               ))}
             </div>
 
             {filteredVideos.length === 0 && (
-              <Card className="bg-black/40 backdrop-blur-lg border-white/10">
-                <CardContent className="p-8 text-center">
-                  <Youtube className="h-12 w-12 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">No courses found</h3>
-                  <p className="text-white/70">
-                    {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all'
-                      ? 'Try adjusting your filters to find more courses.'
-                      : 'No learning courses have been added yet.'}
-                  </p>
+              <Card className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-600/30">
+                <CardContent className="p-12 text-center">
+                  <div className="space-y-4">
+                    <Youtube className="h-16 w-16 text-gray-400 mx-auto" />
+                    <h3 className="text-2xl font-bold text-white mb-2">No Courses Found</h3>
+                    <p className="text-gray-300 text-lg">
+                      {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all'
+                        ? '🔍 Try different filters to discover more courses.'
+                        : '🎓 No learning adventures have been added yet. Stay tuned!'}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          <TabsContent value="progress" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Progress Overview */}
-              <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
+          <TabsContent value="progress" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Enhanced Progress Overview */}
+              <Card className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-xl border border-purple-300/30 text-white shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-yellow-400" />
-                    Learning Progress
+                  <CardTitle className="flex items-center gap-3 text-2xl">
+                    <div className="p-2 bg-purple-400/20 rounded-full">
+                      <Trophy className="h-6 w-6 text-purple-300" />
+                    </div>
+                    Learning Journey
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Overall Progress</span>
-                      <span>{Math.round(totalProgress)}%</span>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-100 font-medium">Overall Mastery</span>
+                      <span className="text-2xl font-bold text-purple-300">{Math.round(totalProgress)}%</span>
                     </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
+                    <div className="w-full bg-purple-900/30 rounded-full h-4 overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 rounded-full transition-all duration-1000 ease-out relative"
                         style={{ width: `${totalProgress}%` }}
-                      ></div>
+                      >
+                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 pt-4">
+                  <div className="grid grid-cols-3 gap-6 pt-6 border-t border-purple-300/20">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-400">{completedVideos}</div>
-                      <div className="text-xs text-white/70">Completed</div>
+                      <div className="text-3xl font-bold text-emerald-400 mb-1">{completedVideos}</div>
+                      <div className="text-sm text-emerald-200">🏆 Mastered</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-yellow-400">{inProgressVideos}</div>
-                      <div className="text-xs text-white/70">In Progress</div>
+                      <div className="text-3xl font-bold text-amber-400 mb-1">{inProgressVideos}</div>
+                      <div className="text-sm text-amber-200">⚡ Learning</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-400">{totalVideos - completedVideos - inProgressVideos}</div>
-                      <div className="text-xs text-white/70">Not Started</div>
+                      <div className="text-3xl font-bold text-cyan-400 mb-1">{totalVideos - completedVideos - inProgressVideos}</div>
+                      <div className="text-sm text-cyan-200">🚀 To Explore</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Recent Activity */}
-              <Card className="bg-black/40 backdrop-blur-lg border-white/10 text-white">
+              {/* Enhanced Activity Card */}
+              <Card className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 backdrop-blur-xl border border-cyan-300/30 text-white shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-400" />
+                  <CardTitle className="flex items-center gap-3 text-2xl">
+                    <div className="p-2 bg-cyan-400/20 rounded-full">
+                      <Clock className="h-6 w-6 text-cyan-300" />
+                    </div>
                     Recent Activity
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {videos.slice(0, 5).map(video => {
                       const progress = userProgress[video.id] || 0;
                       return (
-                        <div key={video.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                        <div key={video.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-cyan-300/20 hover:bg-white/10 transition-colors">
                           <div className="flex-1">
-                            <p className="text-sm font-medium truncate">{video.title}</p>
-                            <p className="text-xs text-white/70">{video.category}</p>
+                            <p className="font-medium truncate text-white mb-1">{video.title}</p>
+                            <p className="text-sm text-cyan-200/80">{video.category}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-xs text-white/70">{progress}%</div>
-                            {progress === 100 && <CheckCircle className="h-4 w-4 text-green-400" />}
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm font-bold text-cyan-300">{progress}%</div>
+                            {progress === 100 && <CheckCircle className="h-5 w-5 text-emerald-400" />}
+                            {progress > 0 && progress < 100 && <Clock className="h-5 w-5 text-amber-400" />}
                           </div>
                         </div>
                       );

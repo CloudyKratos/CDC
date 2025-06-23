@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Play, ExternalLink, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Play, ExternalLink, Clock, CheckCircle, AlertTriangle, Star, Zap } from 'lucide-react';
 
 interface YouTubeEmbedProps {
   videoId: string;
@@ -58,7 +58,9 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
     }
 
     if (clampedProgress === 100) {
-      toast.success('Video completed! 🎉');
+      toast.success('🎉 Course completed! Amazing work!', {
+        description: 'You\'ve mastered another skill. Keep up the momentum!'
+      });
     }
   }, [onProgressUpdate]);
 
@@ -68,20 +70,20 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
 
   if (hasError) {
     return (
-      <Card className={`overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-red-200/50 dark:border-red-800/50 ${className}`}>
-        <div className="aspect-video bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+      <Card className={`overflow-hidden bg-gradient-to-br from-red-500/10 to-orange-500/10 backdrop-blur-sm border-red-400/30 shadow-xl ${className}`}>
+        <div className="aspect-video bg-gradient-to-br from-red-900/20 to-orange-900/20 flex items-center justify-center">
           <div className="text-center p-8">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">
-              Video Failed to Load
+            <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-red-300 mb-3">
+              Video Unavailable
             </h3>
-            <p className="text-sm text-red-600 dark:text-red-400 mb-4">
-              Unable to load this video. It may be unavailable or restricted.
+            <p className="text-red-200/80 mb-6">
+              This course couldn't be loaded. It might be temporarily unavailable.
             </p>
             <Button
               variant="outline"
               onClick={() => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank')}
-              className="text-red-600 border-red-300 hover:bg-red-50"
+              className="bg-red-500/20 border-red-400/50 text-red-300 hover:bg-red-500/30 hover:text-red-200"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Open on YouTube
@@ -93,14 +95,17 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
   }
 
   return (
-    <Card className={`overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30 ${className}`}>
+    <Card className={`overflow-hidden bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-2xl hover:shadow-cyan-500/20 transition-all duration-300 ${className}`}>
       {/* Video Player */}
-      <div className="relative aspect-video bg-black">
+      <div className="relative aspect-video bg-black rounded-t-xl overflow-hidden">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Loading video...</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+            <div className="text-center space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gradient-to-r from-cyan-400 to-purple-500 border-t-transparent mx-auto"></div>
+                <Zap className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-cyan-400 animate-pulse" />
+              </div>
+              <p className="text-cyan-200 font-medium">Loading epic content...</p>
             </div>
           </div>
         )}
@@ -118,85 +123,93 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
         />
       </div>
 
-      {/* Video Info */}
-      <div className="p-6 space-y-4">
+      {/* Enhanced Video Info */}
+      <div className="p-6 space-y-6">
         <div>
-          <h3 className="font-semibold text-lg text-gray-900 dark:text-white line-clamp-2 mb-2">
+          <h3 className="font-bold text-xl text-white line-clamp-2 mb-3">
             {title}
           </h3>
           {description && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+            <p className="text-blue-100/80 line-clamp-3 leading-relaxed">
               {description}
             </p>
           )}
         </div>
 
-        {/* Progress Section */}
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Learning Progress</span>
-            <span className="text-gray-900 dark:text-white font-medium">{currentProgress}%</span>
+        {/* Enhanced Progress Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-cyan-200 font-medium">Learning Progress</span>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-lg">{currentProgress}%</span>
+              {currentProgress === 100 && <Star className="h-5 w-5 text-yellow-400" />}
+            </div>
           </div>
-          <Progress value={currentProgress} className="h-2" />
           
-          {/* Quick Progress Controls */}
+          <div className="relative">
+            <Progress value={currentProgress} className="h-3 bg-gray-700/50" />
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 rounded-full opacity-80" 
+                 style={{ width: `${currentProgress}%` }}></div>
+          </div>
+          
+          {/* Enhanced Quick Progress Controls */}
           <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickProgress(25)}
               disabled={currentProgress >= 25}
-              className="text-xs"
+              className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-400/40 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 disabled:opacity-50"
             >
-              25%
+              25% 🌱
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickProgress(50)}
               disabled={currentProgress >= 50}
-              className="text-xs"
+              className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/40 text-purple-300 hover:from-purple-500/30 hover:to-pink-500/30 hover:text-purple-200 disabled:opacity-50"
             >
-              50%
+              50% 🚀
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickProgress(75)}
               disabled={currentProgress >= 75}
-              className="text-xs"
+              className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/40 text-amber-300 hover:from-amber-500/30 hover:to-orange-500/30 hover:text-amber-200 disabled:opacity-50"
             >
-              75%
+              75% ⚡
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleQuickProgress(100)}
               disabled={currentProgress >= 100}
-              className="text-xs"
+              className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-emerald-400/40 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 disabled:opacity-50"
             >
-              Complete
+              Complete 🏆
             </Button>
           </div>
         </div>
 
-        {/* Meta Info */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
-          <div className="flex items-center gap-2">
-            <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-0 text-xs">
+        {/* Enhanced Meta Info */}
+        <div className="flex items-center justify-between pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge className="bg-gradient-to-r from-red-500/80 to-pink-500/80 text-white border-0 font-medium">
               <Play className="h-3 w-3 mr-1" />
-              Video
+              Video Course
             </Badge>
             {duration && (
-              <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-0 text-xs">
+              <Badge className="bg-gradient-to-r from-blue-500/80 to-cyan-500/80 text-white border-0 font-medium">
                 <Clock className="h-3 w-3 mr-1" />
                 {duration}
               </Badge>
             )}
             {currentProgress === 100 && (
-              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 text-xs">
+              <Badge className="bg-gradient-to-r from-emerald-500/80 to-green-500/80 text-white border-0 font-medium animate-pulse">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Completed
+                Mastered
               </Badge>
             )}
           </div>
@@ -205,9 +218,9 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank')}
-            className="text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="text-cyan-300 hover:text-cyan-200 hover:bg-cyan-500/20 transition-colors"
           >
-            <ExternalLink className="h-3 w-3 mr-1" />
+            <ExternalLink className="h-4 w-4 mr-1" />
             YouTube
           </Button>
         </div>
