@@ -117,7 +117,9 @@ const SignUp: React.FC = () => {
   if (formSubmitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" fill-rule=\"evenodd\"><g fill=\"%2310b981\" fill-opacity=\"0.05\"><circle cx=\"7\" cy=\"7\" r=\"7\"/></g></g></svg>')] opacity-30"></div>
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/20 to-teal-100/20 dark:from-emerald-900/10 dark:to-teal-900/10"></div>
+        </div>
         
         <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
           <CardHeader className="space-y-3 text-center pb-8">
@@ -192,7 +194,9 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" fill-rule=\"evenodd\"><g fill=\"%23ec4899\" fill-opacity=\"0.05\"><circle cx=\"7\" cy=\"7\" r=\"7\"/></g></g></svg>')] opacity-30"></div>
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-100/20 to-pink-100/20 dark:from-purple-900/10 dark:to-pink-900/10"></div>
+      </div>
       
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
         <CardHeader className="space-y-3 text-center pb-8">
