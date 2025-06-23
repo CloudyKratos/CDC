@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import Icons from '@/utils/IconUtils';
+import { Play, ExternalLink, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface YouTubeEmbedProps {
   videoId: string;
@@ -71,7 +71,7 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
       <Card className={`overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-red-200/50 dark:border-red-800/50 ${className}`}>
         <div className="aspect-video bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
           <div className="text-center p-8">
-            <Icons.AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">
               Video Failed to Load
             </h3>
@@ -83,7 +83,7 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
               onClick={() => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank')}
               className="text-red-600 border-red-300 hover:bg-red-50"
             >
-              <Icons.ExternalLink className="h-4 w-4 mr-2" />
+              <ExternalLink className="h-4 w-4 mr-2" />
               Open on YouTube
             </Button>
           </div>
@@ -184,18 +184,18 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
         <div className="flex items-center justify-between pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center gap-2">
             <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-0 text-xs">
-              <Icons.Play className="h-3 w-3 mr-1" />
+              <Play className="h-3 w-3 mr-1" />
               Video
             </Badge>
             {duration && (
               <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-0 text-xs">
-                <Icons.Clock className="h-3 w-3 mr-1" />
+                <Clock className="h-3 w-3 mr-1" />
                 {duration}
               </Badge>
             )}
             {currentProgress === 100 && (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 text-xs">
-                <Icons.CheckCircle className="h-3 w-3 mr-1" />
+                <CheckCircle className="h-3 w-3 mr-1" />
                 Completed
               </Badge>
             )}
@@ -207,7 +207,7 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({
             onClick={() => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank')}
             className="text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <Icons.ExternalLink className="h-3 w-3 mr-1" />
+            <ExternalLink className="h-3 w-3 mr-1" />
             YouTube
           </Button>
         </div>

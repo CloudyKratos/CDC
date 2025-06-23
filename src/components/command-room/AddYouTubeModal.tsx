@@ -1,232 +1,268 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Youtube, Plus } from 'lucide-react';
+import { Youtube, X, Plus } from 'lucide-react';
 
-interface VideoData {
-  id: string;
+interface LearningVideo {
   title: string;
   description: string;
-  youtubeUrl: string;
-  category: string;
-  level: string;
-  coach: string;
+  videoId: string;
   duration: string;
+  category: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  tags: string[];
 }
 
 interface AddYouTubeModalProps {
-  onAdd: (video: VideoData) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (video: LearningVideo) => void;
 }
 
-const AddYouTubeModal: React.FC<AddYouTubeModalProps> = ({ onAdd }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
+const AddYouTubeModal: React.FC<AddYouTubeModalProps> = ({ isOpen, onClose, onAdd }) => {
+  const [formData, setFormData] = useState<LearningVideo>({
     title: '',
     description: '',
-    youtubeUrl: '',
-    category: 'mindset',
-    level: 'beginner',
-    coach: '',
-    duration: ''
+    videoId: '',
+    duration: '',
+    category: '',
+    difficulty: 'beginner',
+    tags: []
   });
+  const [newTag, setNewTag] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
+  const extractVideoId = (url: string): string => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.title || !formData.videoId || !formData.category) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const videoId = extractVideoId(formData.youtubeUrl);
-      if (!videoId) {
-        toast.error('Invalid YouTube URL');
-        return;
-      }
-
-      const newVideo: VideoData = {
-        id: Date.now().toString(),
-        title: formData.title,
-        description: formData.description,
-        youtubeUrl: formData.youtubeUrl,
-        category: formData.category,
-        level: formData.level,
-        coach: formData.coach,
-        duration: formData.duration
+      const videoId = extractVideoId(formData.videoId);
+      
+      const videoData: LearningVideo = {
+        ...formData,
+        videoId,
+        duration: formData.duration || 'Unknown'
       };
 
-      onAdd(newVideo);
+      onAdd(videoData);
       
+      // Reset form
       setFormData({
         title: '',
         description: '',
-        youtubeUrl: '',
-        category: 'mindset',
-        level: 'beginner',
-        coach: '',
-        duration: ''
+        videoId: '',
+        duration: '',
+        category: '',
+        difficulty: 'beginner',
+        tags: []
       });
+      setNewTag('');
+      onClose();
       
-      setIsOpen(false);
-      toast.success('YouTube video added successfully!');
     } catch (error) {
-      console.error('Error adding video:', error);
-      toast.error('Failed to add video');
+      toast.error('Failed to add video. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const categories = [
+    'React', 'TypeScript', 'JavaScript', 'CSS', 'HTML',
+    'Node.js', 'Python', 'Design', 'DevOps', 'Database',
+    'Mobile', 'Testing', 'Security', 'Performance', 'Other'
+  ];
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700">
-          <Youtube className="h-4 w-4 mr-2" />
-          Add YouTube Video
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
-            <Youtube className="h-6 w-6 text-red-500" />
-            Add YouTube Video
+          <DialogTitle className="flex items-center gap-2">
+            <Youtube className="h-5 w-5 text-red-500" />
+            Add Learning Video
           </DialogTitle>
+          <DialogDescription>
+            Add a YouTube video to the learning center for community members to learn from.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="youtubeUrl">YouTube URL *</Label>
-              <Input
-                id="youtubeUrl"
-                type="url"
-                placeholder="https://youtube.com/watch?v=..."
-                value={formData.youtubeUrl}
-                onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
-                required
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Paste a YouTube video URL (youtube.com/watch?v=... or youtu.be/...)
-              </p>
+          {/* YouTube URL */}
+          <div className="space-y-2">
+            <Label htmlFor="videoId">YouTube URL or Video ID *</Label>
+            <Input
+              id="videoId"
+              type="text"
+              placeholder="https://youtube.com/watch?v=... or video ID"
+              value={formData.videoId}
+              onChange={(e) => setFormData(prev => ({ ...prev, videoId: e.target.value }))}
+              required
+            />
+          </div>
+
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Course Title *</Label>
+            <Input
+              id="title"
+              type="text"
+              placeholder="Enter the course title"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of what students will learn"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
+
+          {/* Category and Difficulty */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <Label htmlFor="title">Video Title *</Label>
-              <Input
-                id="title"
-                placeholder="Enter video title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="What will viewers learn from this video?"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="mt-1 min-h-20"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mindset">Mindset</SelectItem>
-                    <SelectItem value="productivity">Productivity</SelectItem>
-                    <SelectItem value="wellness">Wellness</SelectItem>
-                    <SelectItem value="strategy">Strategy</SelectItem>
-                    <SelectItem value="rituals">Rituals</SelectItem>
-                    <SelectItem value="wisdom">Wisdom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="level">Level</Label>
-                <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="coach">Coach/Creator</Label>
-                <Input
-                  id="coach"
-                  placeholder="Content creator name"
-                  value={formData.coach}
-                  onChange={(e) => setFormData({ ...formData, coach: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="duration">Duration</Label>
-                <Input
-                  id="duration"
-                  placeholder="e.g., 15 min, 1.5 hours"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Difficulty Level</Label>
+              <Select
+                value={formData.difficulty}
+                onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => 
+                  setFormData(prev => ({ ...prev, difficulty: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+          {/* Duration */}
+          <div className="space-y-2">
+            <Label htmlFor="duration">Duration (optional)</Label>
+            <Input
+              id="duration"
+              type="text"
+              placeholder="e.g., 28:15 or 1h 30m"
+              value={formData.duration}
+              onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+            />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Add a tag"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <Button type="button" onClick={addTag} variant="outline" size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.tags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
                   Adding...
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Video
+                  Add Course
                 </>
               )}
             </Button>
