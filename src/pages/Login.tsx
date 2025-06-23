@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail, ArrowRight } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -53,8 +53,8 @@ const Login = () => {
   // Show toast when email is verified
   useEffect(() => {
     if (verified) {
-      toast.success("Email verification successful!", {
-        description: "Your email has been verified. You can now log in.",
+      toast.success("🎉 Email verification successful!", {
+        description: "Welcome! You can now sign in to your account.",
       });
     }
   }, [verified]);
@@ -74,8 +74,8 @@ const Login = () => {
     try {
       const result = await resendVerificationEmail(lastAttemptedEmail);
       if (result) {
-        toast.success('Verification email sent!', {
-          description: 'Please check your inbox for the new verification link.',
+        toast.success('✉️ Verification email sent!', {
+          description: 'Please check your inbox and spam folder.',
         });
         setShowResendOption(false);
       } else {
@@ -97,7 +97,9 @@ const Login = () => {
     
     try {
       await login(values.email, values.password);
-      toast.success("Welcome back!");
+      toast.success("🎉 Welcome back!", {
+        description: "Successfully signed in to your account.",
+      });
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
@@ -107,22 +109,22 @@ const Login = () => {
       // Show specific toast and options based on error message
       if (errorMsg.toLowerCase().includes("invalid login") || 
           errorMsg.toLowerCase().includes("invalid credentials")) {
-        toast.error("Login failed", {
+        toast.error("❌ Login failed", {
           description: "Invalid email or password. Please check your credentials and try again.",
         });
       } else if (errorMsg.toLowerCase().includes("email not confirmed") || 
                  errorMsg.toLowerCase().includes("email not verified") ||
                  errorMsg.toLowerCase().includes("confirm your email")) {
-        toast.error("Email not verified", {
-          description: "Please verify your email before logging in.",
+        toast.error("📧 Email not verified", {
+          description: "Please verify your email before signing in.",
         });
         setShowResendOption(true);
       } else if (errorMsg.toLowerCase().includes("too many requests")) {
-        toast.error("Too many attempts", {
+        toast.error("⏳ Too many attempts", {
           description: "Please wait a moment before trying again.",
         });
       } else {
-        toast.error("Login failed", {
+        toast.error("❌ Sign in failed", {
           description: errorMsg,
         });
       }
@@ -130,33 +132,45 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="mb-2">
-            <Logo size="lg" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%236366f1" fill-opacity="0.05"%3E%3Ccircle cx="7" cy="7" r="7"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
+        <CardHeader className="space-y-3 text-center pb-8">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
+              <Logo size="lg" className="text-white" />
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to your account to continue
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Welcome Back
+          </CardTitle>
+          <CardDescription className="text-lg text-gray-600 dark:text-gray-300">
+            Sign in to continue your journey
           </CardDescription>
           
           {verified && (
-            <div className="mt-2 w-full p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md flex items-start gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
-              <p className="text-sm text-green-800 dark:text-green-300">
-                Email verified successfully! You can now sign in.
-              </p>
+            <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-green-800 dark:text-green-300">Email verified successfully!</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Your account is now active and ready to use.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="space-y-6">
           {errorMessage && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+            <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm text-destructive">{errorMessage}</p>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
                   {showResendOption && (
                     <div className="mt-3">
                       <Button
@@ -164,7 +178,7 @@ const Login = () => {
                         size="sm"
                         onClick={handleResendVerification}
                         disabled={isResendingVerification}
-                        className="w-full"
+                        className="w-full border-red-200 text-red-700 hover:bg-red-50"
                       >
                         {isResendingVerification ? (
                           <>
@@ -186,15 +200,23 @@ const Login = () => {
           )}
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Email Address
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your email address" type="email" {...field} disabled={isLoading} />
+                      <Input 
+                        placeholder="Enter your email address" 
+                        type="email" 
+                        {...field} 
+                        disabled={isLoading}
+                        className="h-12 px-4 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -207,8 +229,13 @@ const Login = () => {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <Link to="/reset-password" className="text-xs text-primary hover:underline">
+                      <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Password
+                      </FormLabel>
+                      <Link 
+                        to="/reset-password" 
+                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
+                      >
                         Forgot password?
                       </Link>
                     </div>
@@ -218,19 +245,20 @@ const Login = () => {
                           placeholder="Enter your password" 
                           type={showPassword ? 'text' : 'password'} 
                           {...field} 
-                          disabled={isLoading} 
+                          disabled={isLoading}
+                          className="h-12 px-4 pr-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-5 w-5 text-gray-400" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-5 w-5 text-gray-400" />
                           )}
                         </Button>
                       </div>
@@ -240,25 +268,38 @@ const Login = () => {
                 )}
               />
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]" 
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  <>
+                    Sign In
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
                 )}
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:underline font-medium">
-              Create one here
-            </Link>
+        
+        <CardFooter className="pt-6 pb-8">
+          <div className="w-full text-center">
+            <p className="text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link 
+                to="/signup" 
+                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
+              >
+                Create one here
+              </Link>
+            </p>
           </div>
         </CardFooter>
       </Card>

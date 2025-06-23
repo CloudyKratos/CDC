@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
@@ -68,8 +68,8 @@ const SignUp: React.FC = () => {
       
       // Show success state regardless of user object
       setFormSubmitted(true);
-      toast.success("Account created successfully!", {
-        description: "Please check your email to verify your account before logging in.",
+      toast.success("🎉 Account created successfully!", {
+        description: "Please check your email to verify your account.",
       });
     } catch (error: any) {
       console.error("Sign-up error:", error);
@@ -79,14 +79,14 @@ const SignUp: React.FC = () => {
       if (errorMessage.toLowerCase().includes("already registered") || 
           errorMessage.toLowerCase().includes("already been registered")) {
         toast.error("Email already in use", {
-          description: "This email is already registered. Try logging in instead."
+          description: "This email is already registered. Try signing in instead."
         });
       } else if (errorMessage.toLowerCase().includes("password")) {
         toast.error("Password requirements not met", {
           description: "Please ensure your password meets the requirements."
         });
       } else {
-        toast.error(`Sign up failed: ${errorMessage}`);
+        toast.error(`❌ Sign up failed: ${errorMessage}`);
       }
     }
   };
@@ -99,7 +99,7 @@ const SignUp: React.FC = () => {
     try {
       const result = await resendVerificationEmail(submittedEmail);
       if (result) {
-        toast.success("Verification email resent!", {
+        toast.success("✉️ Verification email resent!", {
           description: "Please check your inbox and spam folder."
         });
       } else {
@@ -116,57 +116,73 @@ const SignUp: React.FC = () => {
   // If the form was submitted successfully, show confirmation message
   if (formSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader className="space-y-1 flex flex-col items-center">
-            <div className="mb-2">
-              <Logo size="lg" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2310b981" fill-opacity="0.05"%3E%3Ccircle cx="7" cy="7" r="7"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+        
+        <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
+          <CardHeader className="space-y-3 text-center pb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600">
+                <CheckCircle className="h-8 w-8 text-white" />
+              </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-center">Check Your Email</CardTitle>
-            <CardDescription className="text-center">
-              We've sent a verification email to <strong>{submittedEmail}</strong>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              Check Your Email
+            </CardTitle>
+            <CardDescription className="text-lg text-gray-600 dark:text-gray-300">
+              We've sent a verification email to
             </CardDescription>
+            <p className="font-semibold text-gray-800 dark:text-gray-200 text-lg">
+              {submittedEmail}
+            </p>
           </CardHeader>
-          <CardContent className="flex flex-col items-center space-y-6">
-            <div className="bg-primary/10 text-primary rounded-full p-3">
-              <CheckCircle className="h-8 w-8" />
+          
+          <CardContent className="space-y-6 text-center">
+            <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+              <Mail className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+              <div className="space-y-3">
+                <p className="text-gray-700 dark:text-gray-300 font-medium">
+                  Click the verification link in your email to activate your account
+                </p>
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <p>• Check your spam folder if you don't see the email</p>
+                  <p>• The verification link expires in 24 hours</p>
+                  <p>• Make sure to verify before signing in</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center space-y-3">
-              <p className="text-muted-foreground">
-                Please click the verification link in your email to activate your account.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Important:</strong> Check your spam folder if you don't see the email.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                The verification link will expire in 24 hours.
-              </p>
-            </div>
+            
             <Button 
               variant="outline" 
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full h-12 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-medium"
               onClick={handleResendEmail}
               disabled={isResendingEmail}
             >
               {isResendingEmail ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Resending...
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Resending email...
                 </>
               ) : (
                 <>
-                  <Mail className="h-4 w-4" />
-                  Resend Verification Email
+                  <Mail className="h-5 w-5 mr-2" />
+                  Resend verification email
                 </>
               )}
             </Button>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Already verified your email?{' '}
-              <Link to="/login" className="text-primary hover:underline font-medium">
-                Sign in here
-              </Link>
+          
+          <CardFooter className="pt-6 pb-8">
+            <div className="w-full text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                Already verified your email?{' '}
+                <Link 
+                  to="/login" 
+                  className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-colors"
+                >
+                  Sign in here
+                </Link>
+              </p>
             </div>
           </CardFooter>
         </Card>
@@ -175,35 +191,51 @@ const SignUp: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="mb-2">
-            <Logo size="lg" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ec4899" fill-opacity="0.05"%3E%3Ccircle cx="7" cy="7" r="7"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative z-10">
+        <CardHeader className="space-y-3 text-center pb-8">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-600">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Create Your Account</CardTitle>
-          <CardDescription className="text-center">
-            Join us today and start your journey
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Join Our Community
+          </CardTitle>
+          <CardDescription className="text-lg text-gray-600 dark:text-gray-300">
+            Create your account and start your journey
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="space-y-6">
           {errorMessage && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-destructive">{errorMessage}</p>
+            <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+              </div>
             </div>
           )}
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Full Name
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your full name" {...field} disabled={isLoading} />
+                      <Input 
+                        placeholder="Enter your full name" 
+                        {...field} 
+                        disabled={isLoading} 
+                        className="h-12 px-4 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -215,9 +247,17 @@ const SignUp: React.FC = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Email Address
+                    </FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter your email address" {...field} disabled={isLoading} />
+                      <Input 
+                        type="email" 
+                        placeholder="Enter your email address" 
+                        {...field} 
+                        disabled={isLoading} 
+                        className="h-12 px-4 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -229,7 +269,9 @@ const SignUp: React.FC = () => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Password
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input 
@@ -237,18 +279,19 @@ const SignUp: React.FC = () => {
                           placeholder="Create a secure password" 
                           {...field} 
                           disabled={isLoading} 
+                          className="h-12 px-4 pr-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-5 w-5 text-gray-400" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-5 w-5 text-gray-400" />
                           )}
                         </Button>
                       </div>
@@ -263,7 +306,9 @@ const SignUp: React.FC = () => {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Confirm Password
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input 
@@ -271,49 +316,63 @@ const SignUp: React.FC = () => {
                           placeholder="Confirm your password" 
                           {...field} 
                           disabled={isLoading} 
+                          className="h-12 px-4 pr-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-5 w-5 text-gray-400" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-5 w-5 text-gray-400" />
                           )}
                         </Button>
                       </div>
                     </FormControl>
                     <FormMessage />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Password must be at least 6 characters long
                     </p>
                   </FormItem>
                 )}
               />
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]" 
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Creating account...
                   </>
                 ) : (
-                  'Create Account'
+                  <>
+                    Create Account
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
                 )}
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">
-              Sign in here
-            </Link>
+        
+        <CardFooter className="pt-6 pb-8">
+          <div className="w-full text-center">
+            <p className="text-gray-600 dark:text-gray-400">
+              Already have an account?{' '}
+              <Link 
+                to="/login" 
+                className="text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-colors"
+              >
+                Sign in here
+              </Link>
+            </p>
           </div>
         </CardFooter>
       </Card>
