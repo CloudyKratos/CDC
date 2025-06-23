@@ -11,7 +11,7 @@ import CalendarService from '@/services/CalendarService';
 import { EventData } from '@/services/SupabaseService';
 import { CalendarEventData } from '@/types/calendar-events';
 import AdminEventManagement from './calendar/AdminEventManagement';
-import ImprovedCalendarView from './calendar/ImprovedCalendarView';
+import EnhancedCommunityCalendar from './calendar/EnhancedCommunityCalendar';
 import { CalendarEventErrorBoundary } from './calendar/CalendarEventErrorBoundary';
 import { CalendarStatusIndicator } from './calendar/CalendarStatusIndicator';
 import CalendarConnectionManager from './calendar/CalendarConnectionManager';
@@ -182,59 +182,58 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   return (
     <CalendarEventErrorBoundary>
       <CalendarConnectionManager onRetry={handleRetry}>
-        <div className="space-y-6 p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {isAdminView ? 'Admin Calendar Management' : 'Community Calendar'}
-              </h2>
-              <div className="flex items-center gap-4 mt-2">
-                <CalendarStatusIndicator
-                  isOnline={!error}
-                  lastSync={lastRefresh}
-                  hasErrors={!!error}
-                  isLoading={isLoading}
-                  eventCount={events.length}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => loadEvents(true)}
-                  disabled={isLoading}
-                  className="flex items-center gap-1"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-            
-            {/* Role Information */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-blue-600" />
-                  <span className="text-blue-900 font-medium">
-                    {isAdmin ? 'Admin Access' : 'Community Member'}
-                  </span>
+        {/* Enhanced Community Calendar is the default view */}
+        {!isAdmin || !isAdminView ? (
+          <EnhancedCommunityCalendar />
+        ) : (
+          <div className="space-y-6 p-6">
+            {/* Admin Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Admin Calendar Management</h2>
+                <div className="flex items-center gap-4 mt-2">
+                  <CalendarStatusIndicator
+                    isOnline={!error}
+                    lastSync={lastRefresh}
+                    hasErrors={!!error}
+                    isLoading={isLoading}
+                    eventCount={events.length}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => loadEvents(true)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              
+              {/* Role Information */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-blue-600" />
+                    <span className="text-blue-900 font-medium">Admin Access</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Loading State */}
-          {isLoading && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                Refreshing calendar events... (Attempt #{retryCount + 1})
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Loading State */}
+            {isLoading && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Refreshing calendar events... (Attempt #{retryCount + 1})
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {/* Calendar Interface */}
-          {isAdmin ? (
+            {/* Admin Interface */}
             <Tabs defaultValue="manage" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="manage" className="flex items-center gap-2">
@@ -243,7 +242,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  Calendar View
+                  Community View
                 </TabsTrigger>
               </TabsList>
 
@@ -258,17 +257,11 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
               </TabsContent>
 
               <TabsContent value="calendar">
-                <ImprovedCalendarView
-                  showAllEvents={true}
-                />
+                <EnhancedCommunityCalendar />
               </TabsContent>
             </Tabs>
-          ) : (
-            <ImprovedCalendarView
-              showAllEvents={true}
-            />
-          )}
-        </div>
+          </div>
+        )}
       </CalendarConnectionManager>
     </CalendarEventErrorBoundary>
   );
