@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Youtube } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Youtube, Grid, List } from 'lucide-react';
 import YouTubeEmbed from './YouTubeEmbed';
 
 interface LearningVideo {
@@ -23,16 +24,19 @@ interface CoursesTabProps {
   videos: LearningVideo[];
   userProgress: Record<string, number>;
   onProgressUpdate: (videoId: string, progress: number) => void;
+  showFilters?: boolean;
 }
 
 const CoursesTab: React.FC<CoursesTabProps> = ({
   videos,
   userProgress,
-  onProgressUpdate
+  onProgressUpdate,
+  showFilters = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const categories = ['all', ...Array.from(new Set(videos.map(v => v.category)))];
   const difficulties = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -48,57 +52,83 @@ const CoursesTab: React.FC<CoursesTabProps> = ({
   });
 
   return (
-    <>
+    <div className="space-y-6">
       {/* Search and Filters */}
-      <Card className="bg-black/30 backdrop-blur-xl border border-white/20 shadow-xl rounded-2xl overflow-hidden">
-        <CardContent className="p-4 lg:p-6">
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <Card className="bg-black/20 backdrop-blur-xl border border-white/20 rounded-xl">
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 lg:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-cyan-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
                 <Input
-                  placeholder="Search for courses..."
+                  placeholder="Search courses..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 lg:pl-12 bg-white/10 border-cyan-300/40 text-white placeholder:text-cyan-200/70 h-10 lg:h-12 rounded-xl text-sm lg:text-base focus:border-cyan-400 focus:ring-cyan-400/50"
+                  className="pl-10 bg-white/10 border-cyan-300/30 text-white placeholder:text-cyan-200/60 h-10 rounded-lg"
                 />
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 lg:px-4 py-2 lg:py-3 bg-white/10 border border-purple-300/40 rounded-xl text-white text-sm lg:text-base font-medium min-w-[140px] lg:min-w-[160px] focus:border-purple-400 focus:ring-purple-400/50"
+            {/* Filters - Show conditionally */}
+            {showFilters && (
+              <div className="flex gap-3">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-3 py-2 bg-white/10 border border-purple-300/30 rounded-lg text-white text-sm min-w-[120px]"
+                >
+                  {categories.map(category => (
+                    <option key={category} value={category} className="bg-gray-800 text-white">
+                      {category === 'all' ? 'All Categories' : category}
+                    </option>
+                  ))}
+                </select>
+                
+                <select
+                  value={selectedDifficulty}
+                  onChange={(e) => setSelectedDifficulty(e.target.value)}
+                  className="px-3 py-2 bg-white/10 border border-pink-300/30 rounded-lg text-white text-sm min-w-[120px]"
+                >
+                  {difficulties.map(difficulty => (
+                    <option key={difficulty} value={difficulty} className="bg-gray-800 text-white">
+                      {difficulty === 'all' ? 'All Levels' : 
+                       difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* View Mode Toggle */}
+            <div className="flex bg-white/10 rounded-lg p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="px-3 py-1"
               >
-                {categories.map(category => (
-                  <option key={category} value={category} className="bg-gray-800 text-white font-medium">
-                    {category === 'all' ? 'All Categories' : category}
-                  </option>
-                ))}
-              </select>
-              
-              <select
-                value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-3 lg:px-4 py-2 lg:py-3 bg-white/10 border border-pink-300/40 rounded-xl text-white text-sm lg:text-base font-medium min-w-[140px] lg:min-w-[160px] focus:border-pink-400 focus:ring-pink-400/50"
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="px-3 py-1"
               >
-                {difficulties.map(difficulty => (
-                  <option key={difficulty} value={difficulty} className="bg-gray-800 text-white font-medium">
-                    {difficulty === 'all' ? 'All Levels' : 
-                     difficulty === 'beginner' ? 'Beginner' :
-                     difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
-                  </option>
-                ))}
-              </select>
+                <List className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Video Grid */}
+      {/* Video Grid/List */}
       {filteredVideos.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" 
+          : "space-y-4"
+        }>
           {filteredVideos.map((video) => (
             <YouTubeEmbed
               key={video.id}
@@ -113,23 +143,19 @@ const CoursesTab: React.FC<CoursesTabProps> = ({
           ))}
         </div>
       ) : (
-        <Card className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl border border-gray-600/30 rounded-2xl overflow-hidden">
-          <CardContent className="p-8 lg:p-12 text-center">
-            <div className="space-y-6">
-              <Youtube className="h-16 w-16 lg:h-20 lg:w-20 text-gray-400 mx-auto" />
-              <div className="space-y-3">
-                <h3 className="text-xl lg:text-2xl font-bold text-white mb-3">No Learning Adventures Found</h3>
-                <p className="text-gray-300 text-base lg:text-lg leading-relaxed max-w-md mx-auto">
-                  {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all'
-                    ? 'Try adjusting your filters to discover amazing courses that match your learning goals.'
-                    : 'Your learning universe is being prepared. Epic educational content coming soon!'}
-                </p>
-              </div>
-            </div>
+        <Card className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-xl border border-gray-600/20 rounded-xl">
+          <CardContent className="p-12 text-center">
+            <Youtube className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">No Courses Found</h3>
+            <p className="text-gray-300 leading-relaxed max-w-md mx-auto">
+              {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all'
+                ? 'Try adjusting your search or filters to find courses.'
+                : 'No learning content available yet. Check back soon!'}
+            </p>
           </CardContent>
         </Card>
       )}
-    </>
+    </div>
   );
 };
 

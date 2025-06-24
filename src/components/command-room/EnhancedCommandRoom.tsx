@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useRole } from '@/contexts/RoleContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -162,18 +161,13 @@ const EnhancedCommandRoom: React.FC = () => {
       <div className="relative min-h-screen">
         <CommandRoomBackground />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="text-center space-y-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 rounded-full blur-3xl opacity-30 animate-pulse"></div>
-              <div className="relative bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-white/10">
-                <div className="animate-spin rounded-full h-20 w-20 border-4 border-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 border-t-transparent mx-auto mb-6"></div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-4xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
-                Initializing Learning Universe
+          <div className="text-center space-y-6">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-cyan-400 border-t-transparent mx-auto"></div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold text-cyan-300">
+                Loading Command Room
               </h3>
-              <p className="text-blue-200/90 text-xl font-medium">Preparing your epic learning journey...</p>
+              <p className="text-blue-200/80">Preparing your learning environment...</p>
             </div>
           </div>
         </div>
@@ -182,11 +176,14 @@ const EnhancedCommandRoom: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen">
       <CommandRoomBackground />
       
-      <div className="relative z-10 p-4 md:p-8 space-y-8">
-        <CommandRoomHeader />
+      <div className="relative z-10 p-4 md:p-6 lg:p-8 space-y-6">
+        <CommandRoomHeader 
+          isAdmin={isAdmin}
+          onAddVideo={() => setIsAddModalOpen(true)}
+        />
         <CommandRoomStats stats={stats} />
         <CommandRoomContent
           videos={videos}
