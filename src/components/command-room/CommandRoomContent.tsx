@@ -39,20 +39,20 @@ const CommandRoomContent: React.FC<CommandRoomContentProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <div className="flex flex-col lg:flex-row items-center justify-between mb-10 gap-6">
-        <TabsList className="bg-black/50 backdrop-blur-2xl border border-white/20 p-3 rounded-3xl shadow-2xl">
+      <div className="flex flex-col lg:flex-row items-center justify-between mb-6 gap-4">
+        <TabsList className="bg-black/40 backdrop-blur-xl border border-white/20 p-2 rounded-2xl shadow-xl">
           <TabsTrigger 
             value="courses" 
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-blue-200 px-6 lg:px-8 py-4 rounded-2xl font-semibold text-base lg:text-lg transition-all duration-300 hover:bg-white/10"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-blue-200 px-4 lg:px-6 py-3 rounded-xl font-semibold text-sm lg:text-base"
           >
-            <BookOpen className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            <BookOpen className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
             Epic Courses
           </TabsTrigger>
           <TabsTrigger 
             value="progress" 
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-purple-200 px-6 lg:px-8 py-4 rounded-2xl font-semibold text-base lg:text-lg transition-all duration-300 hover:bg-white/10"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-purple-200 px-4 lg:px-6 py-3 rounded-xl font-semibold text-sm lg:text-base"
           >
-            <Trophy className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            <Trophy className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
             Progress Hub
           </TabsTrigger>
         </TabsList>
@@ -60,15 +60,15 @@ const CommandRoomContent: React.FC<CommandRoomContentProps> = ({
         {isAdmin && (
           <Button 
             onClick={onAddVideo}
-            className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-700 text-white px-6 lg:px-8 py-3 lg:py-4 rounded-2xl font-semibold text-base lg:text-lg shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105 transform"
+            className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-xl font-semibold text-sm lg:text-base shadow-xl"
           >
-            <Plus className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            <Plus className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
             Add Epic Course
           </Button>
         )}
       </div>
 
-      <TabsContent value="courses" className="space-y-10 mt-0">
+      <TabsContent value="courses" className="space-y-6 mt-0">
         <CoursesTab
           videos={videos}
           userProgress={userProgress}
@@ -76,7 +76,7 @@ const CommandRoomContent: React.FC<CommandRoomContentProps> = ({
         />
       </TabsContent>
 
-      <TabsContent value="progress" className="space-y-10 mt-0">
+      <TabsContent value="progress" className="space-y-6 mt-0">
         <ProgressTab
           videos={videos}
           userProgress={userProgress}
