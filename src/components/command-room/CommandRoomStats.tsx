@@ -1,67 +1,101 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Award,
-  Clock,
-  TrendingUp,
-  Target,
-  BookOpen,
-  Video,
-  Users,
-  Calendar
-} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Play, CheckCircle, Clock, TrendingUp } from 'lucide-react';
 
-const CommandRoomStats: React.FC = () => {
-  const stats = [
-    { label: 'Courses Completed', value: '12', icon: <Award className="w-5 h-5" />, color: 'text-yellow-600', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' },
-    { label: 'Study Hours', value: '248', icon: <Clock className="w-5 h-5" />, color: 'text-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-900/20' },
-    { label: 'Current Streak', value: '15 days', icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-600', bgColor: 'bg-green-50 dark:bg-green-900/20' },
-    { label: 'Goals Achieved', value: '8/10', icon: <Target className="w-5 h-5" />, color: 'text-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-900/20' }
-  ];
+interface StatsProps {
+  stats: {
+    totalVideos: number;
+    completedVideos: number;
+    totalProgress: number;
+    inProgressVideos: number;
+  };
+}
 
-  const quickStats = [
-    { label: 'Videos Watched', value: '45', icon: <Video className="w-4 h-4" />, color: 'text-red-600' },
-    { label: 'Articles Read', value: '32', icon: <BookOpen className="w-4 h-4" />, color: 'text-blue-600' },
-    { label: 'Sessions Joined', value: '18', icon: <Users className="w-4 h-4" />, color: 'text-green-600' },
-    { label: 'Events Attended', value: '26', icon: <Calendar className="w-4 h-4" />, color: 'text-purple-600' }
+const CommandRoomStats: React.FC<StatsProps> = ({ stats }) => {
+  const statCards = [
+    {
+      icon: Play,
+      value: stats.totalVideos,
+      label: 'Epic Courses Available',
+      description: 'Ready for mastery',
+      gradient: 'from-cyan-500/10 via-cyan-600/10 to-blue-700/10',
+      border: 'border-cyan-300/30',
+      iconBg: 'bg-cyan-400/20 group-hover:bg-cyan-400/30',
+      iconColor: 'text-cyan-300',
+      textColor: 'text-cyan-300 group-hover:text-cyan-200',
+      descColor: 'text-cyan-200/80',
+      shadow: 'hover:shadow-cyan-500/25'
+    },
+    {
+      icon: CheckCircle,
+      value: stats.completedVideos,
+      label: 'Courses Conquered',
+      description: 'Victory achieved!',
+      gradient: 'from-emerald-500/10 via-emerald-600/10 to-green-700/10',
+      border: 'border-emerald-300/30',
+      iconBg: 'bg-emerald-400/20 group-hover:bg-emerald-400/30',
+      iconColor: 'text-emerald-300',
+      textColor: 'text-emerald-300 group-hover:text-emerald-200',
+      descColor: 'text-emerald-200/80',
+      shadow: 'hover:shadow-emerald-500/25'
+    },
+    {
+      icon: Clock,
+      value: stats.inProgressVideos,
+      label: 'Active Learning',
+      description: 'In progress now',
+      gradient: 'from-amber-500/10 via-amber-600/10 to-orange-700/10',
+      border: 'border-amber-300/30',
+      iconBg: 'bg-amber-400/20 group-hover:bg-amber-400/30',
+      iconColor: 'text-amber-300',
+      textColor: 'text-amber-300 group-hover:text-amber-200',
+      descColor: 'text-amber-200/80',
+      shadow: 'hover:shadow-amber-500/25'
+    },
+    {
+      icon: TrendingUp,
+      value: `${stats.totalProgress}%`,
+      label: 'Mastery Level',
+      description: 'Total progress',
+      gradient: 'from-purple-500/10 via-purple-600/10 to-pink-700/10',
+      border: 'border-purple-300/30',
+      iconBg: 'bg-purple-400/20 group-hover:bg-purple-400/30',
+      iconColor: 'text-purple-300',
+      textColor: 'text-purple-300 group-hover:text-purple-200',
+      descColor: 'text-purple-200/80',
+      shadow: 'hover:shadow-purple-500/25'
+    }
   ];
 
   return (
-    <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-slate-900 dark:text-white">Your Progress</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Main Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <div key={index} className={`text-center p-4 rounded-xl ${stat.bgColor} border border-slate-200 dark:border-slate-700`}>
-              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${stat.bgColor} mb-3 ${stat.color}`}>
-                {stat.icon}
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 mb-12">
+      {statCards.map((stat, index) => {
+        const Icon = stat.icon;
+        return (
+          <Card 
+            key={index}
+            className={`group bg-gradient-to-br ${stat.gradient} backdrop-blur-2xl border ${stat.border} text-white hover:scale-105 hover:rotate-1 transition-all duration-500 shadow-2xl ${stat.shadow} overflow-hidden relative`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient.replace('/10', '/5')} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+            <CardContent className="p-6 lg:p-8 text-center relative z-10">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className={`p-4 ${stat.iconBg} rounded-2xl transition-colors duration-300`}>
+                  <Icon className={`h-6 w-6 lg:h-8 lg:w-8 ${stat.iconColor}`} />
+                </div>
+                <span className={`text-3xl lg:text-4xl font-bold ${stat.textColor} transition-colors duration-300`}>
+                  {stat.value}
+                </span>
               </div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickStats.map((stat, index) => (
-            <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <div className={`${stat.color}`}>
-                {stat.icon}
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-slate-900 dark:text-white">{stat.value}</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400">{stat.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              <p className={`${stat.textColor.replace('group-hover:', '')} font-semibold text-base lg:text-lg mb-2`}>
+                {stat.label}
+              </p>
+              <div className={`text-sm ${stat.descColor}`}>{stat.description}</div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 };
 

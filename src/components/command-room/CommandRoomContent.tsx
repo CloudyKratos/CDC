@@ -1,67 +1,88 @@
 
-import React, { Suspense, lazy } from 'react';
-import { TabsContent } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Trophy, Plus } from 'lucide-react';
+import CoursesTab from './CoursesTab';
+import ProgressTab from './ProgressTab';
 
-// Lazy load content components for better performance
-const ResourcesPanel = lazy(() => import('./panels/ResourcesPanel'));
-const TeamPanel = lazy(() => import('./panels/TeamPanel'));
-const AnalyticsPanel = lazy(() => import('./panels/AnalyticsPanel'));
-const SecurityPanel = lazy(() => import('./panels/SecurityPanel'));
-const PerformancePanel = lazy(() => import('./panels/PerformancePanel'));
-const IntegrationsPanel = lazy(() => import('./panels/IntegrationsPanel'));
-const AutomationPanel = lazy(() => import('./panels/AutomationPanel'));
-const SettingsPanel = lazy(() => import('./panels/SettingsPanel'));
+interface LearningVideo {
+  id: string;
+  title: string;
+  description: string;
+  videoId: string;
+  duration: string;
+  category: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  tags: string[];
+  addedBy: string;
+  addedAt: Date;
+  progress?: number;
+}
 
-const LoadingCard: React.FC = () => (
-  <Card className="bg-black/20 backdrop-blur-lg border-white/10">
-    <CardContent className="flex items-center justify-center h-64">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-        <p className="text-white/70">Loading command interface...</p>
-      </div>
-    </CardContent>
-  </Card>
-);
+interface CommandRoomContentProps {
+  videos: LearningVideo[];
+  userProgress: Record<string, number>;
+  onProgressUpdate: (videoId: string, progress: number) => void;
+  isAdmin: boolean;
+  onAddVideo: () => void;
+}
 
-const CommandRoomContent: React.FC = () => {
+const CommandRoomContent: React.FC<CommandRoomContentProps> = ({
+  videos,
+  userProgress,
+  onProgressUpdate,
+  isAdmin,
+  onAddVideo
+}) => {
+  const [activeTab, setActiveTab] = useState('courses');
+
   return (
-    <div className="relative z-10">
-      <Suspense fallback={<LoadingCard />}>
-        <TabsContent value="resources" className="mt-0 space-y-6">
-          <ResourcesPanel />
-        </TabsContent>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <div className="flex flex-col lg:flex-row items-center justify-between mb-10 gap-6">
+        <TabsList className="bg-black/50 backdrop-blur-2xl border border-white/20 p-3 rounded-3xl shadow-2xl">
+          <TabsTrigger 
+            value="courses" 
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-blue-200 px-6 lg:px-8 py-4 rounded-2xl font-semibold text-base lg:text-lg transition-all duration-300 hover:bg-white/10"
+          >
+            <BookOpen className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            Epic Courses
+          </TabsTrigger>
+          <TabsTrigger 
+            value="progress" 
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-purple-200 px-6 lg:px-8 py-4 rounded-2xl font-semibold text-base lg:text-lg transition-all duration-300 hover:bg-white/10"
+          >
+            <Trophy className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            Progress Hub
+          </TabsTrigger>
+        </TabsList>
 
-        <TabsContent value="team" className="mt-0 space-y-6">
-          <TeamPanel />
-        </TabsContent>
+        {isAdmin && (
+          <Button 
+            onClick={onAddVideo}
+            className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-700 text-white px-6 lg:px-8 py-3 lg:py-4 rounded-2xl font-semibold text-base lg:text-lg shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105 transform"
+          >
+            <Plus className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3" />
+            Add Epic Course
+          </Button>
+        )}
+      </div>
 
-        <TabsContent value="analytics" className="mt-0 space-y-6">
-          <AnalyticsPanel />
-        </TabsContent>
+      <TabsContent value="courses" className="space-y-10 mt-0">
+        <CoursesTab
+          videos={videos}
+          userProgress={userProgress}
+          onProgressUpdate={onProgressUpdate}
+        />
+      </TabsContent>
 
-        <TabsContent value="security" className="mt-0 space-y-6">
-          <SecurityPanel />
-        </TabsContent>
-
-        <TabsContent value="performance" className="mt-0 space-y-6">
-          <PerformancePanel />
-        </TabsContent>
-
-        <TabsContent value="integrations" className="mt-0 space-y-6">
-          <IntegrationsPanel />
-        </TabsContent>
-
-        <TabsContent value="automation" className="mt-0 space-y-6">
-          <AutomationPanel />
-        </TabsContent>
-
-        <TabsContent value="settings" className="mt-0 space-y-6">
-          <SettingsPanel />
-        </TabsContent>
-      </Suspense>
-    </div>
+      <TabsContent value="progress" className="space-y-10 mt-0">
+        <ProgressTab
+          videos={videos}
+          userProgress={userProgress}
+        />
+      </TabsContent>
+    </Tabs>
   );
 };
 
