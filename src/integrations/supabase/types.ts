@@ -9,7 +9,191 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      channels: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
+      member_locations: {
+        Row: {
+          city: string | null
+          country: string
+          country_code: string
+          created_at: string | null
+          id: string
+          is_location_visible: boolean | null
+          latitude: number
+          longitude: number
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country: string
+          country_code: string
+          created_at?: string | null
+          id?: string
+          is_location_visible?: boolean | null
+          latitude: number
+          longitude: number
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          is_location_visible?: boolean | null
+          latitude?: number
+          longitude?: number
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      member_online_status: {
+        Row: {
+          id: string
+          is_online: boolean | null
+          last_seen: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          channel_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          company: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          github_url: string | null
+          id: string
+          interests: Json | null
+          linkedin_url: string | null
+          location: string | null
+          phone_number: string | null
+          skills: Json | null
+          twitter_url: string | null
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id: string
+          interests?: Json | null
+          linkedin_url?: string | null
+          location?: string | null
+          phone_number?: string | null
+          skills?: Json | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string
+          interests?: Json | null
+          linkedin_url?: string | null
+          location?: string | null
+          phone_number?: string | null
+          skills?: Json | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
