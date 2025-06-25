@@ -41,11 +41,35 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
       const eventsData = await CalendarService.getEvents();
       console.log('📅 CalendarPanel: Events loaded:', eventsData.length);
       
-      setEvents(eventsData);
+      // Convert EnhancedEventData to CalendarEventData
+      const calendarEvents: CalendarEventData[] = eventsData.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start_time: event.start_time,
+        end_time: event.end_time,
+        event_type: event.event_type as CalendarEventData['event_type'],
+        status: event.status as CalendarEventData['status'],
+        max_attendees: event.max_attendees,
+        is_recurring: event.is_recurring,
+        recurrence_pattern: event.recurrence_pattern,
+        tags: event.tags,
+        cohort_id: event.cohort_id,
+        coach_id: event.coach_id,
+        replay_url: event.replay_url,
+        meeting_url: event.meeting_url,
+        resources: event.resources,
+        visibility_level: event.visibility_level,
+        xp_reward: event.xp_reward,
+        created_by: event.created_by,
+        workspace_id: event.workspace_id
+      }));
+      
+      setEvents(calendarEvents);
       setLastRefresh(new Date());
       
       if (showToast) {
-        toast.success(`Loaded ${eventsData.length} events`);
+        toast.success(`Loaded ${calendarEvents.length} events`);
       }
       
       if (retryCount > 0) {
@@ -73,11 +97,31 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   const handleCreateEvent = async (eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Creating event:', eventData);
+      
       // Convert CalendarEventData to EventData format for the service
       const eventPayload: EventData = {
-        ...eventData,
-        event_type: eventData.event_type as EventData['event_type'] // Ensure type compatibility
+        id: eventData.id,
+        title: eventData.title,
+        description: eventData.description || '',
+        start_time: eventData.start_time,
+        end_time: eventData.end_time,
+        event_type: eventData.event_type || 'mission_call',
+        status: eventData.status || 'scheduled',
+        max_attendees: eventData.max_attendees,
+        is_recurring: eventData.is_recurring || false,
+        recurrence_pattern: eventData.recurrence_pattern,
+        tags: eventData.tags,
+        cohort_id: eventData.cohort_id,
+        coach_id: eventData.coach_id,
+        replay_url: eventData.replay_url,
+        meeting_url: eventData.meeting_url,
+        resources: eventData.resources,
+        visibility_level: eventData.visibility_level || 'public',
+        xp_reward: eventData.xp_reward || 10,
+        created_by: eventData.created_by || '', // Ensure created_by is provided
+        workspace_id: eventData.workspace_id
       };
+
       const createdEvent = await CalendarService.createEvent(eventPayload);
       
       if (createdEvent) {
@@ -98,11 +142,29 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   const handleUpdateEvent = async (id: string, eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Updating event:', id, eventData);
+      
       // Convert CalendarEventData to Partial<EventData> format for the service
       const eventPayload: Partial<EventData> = {
-        ...eventData,
-        event_type: eventData.event_type as EventData['event_type'] // Ensure type compatibility
+        title: eventData.title,
+        description: eventData.description,
+        start_time: eventData.start_time,
+        end_time: eventData.end_time,
+        event_type: eventData.event_type,
+        status: eventData.status,
+        max_attendees: eventData.max_attendees,
+        is_recurring: eventData.is_recurring,
+        recurrence_pattern: eventData.recurrence_pattern,
+        tags: eventData.tags,
+        cohort_id: eventData.cohort_id,
+        coach_id: eventData.coach_id,
+        replay_url: eventData.replay_url,
+        meeting_url: eventData.meeting_url,
+        resources: eventData.resources,
+        visibility_level: eventData.visibility_level,
+        xp_reward: eventData.xp_reward,
+        workspace_id: eventData.workspace_id
       };
+
       const updatedEvent = await CalendarService.updateEvent(id, eventPayload);
       
       if (updatedEvent) {

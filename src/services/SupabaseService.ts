@@ -15,8 +15,8 @@ export interface EventData {
   end_time: string;
   created_by: string;
   workspace_id?: string;
-  event_type?: string;
-  status?: string;
+  event_type?: 'mission_call' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'workshop' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
+  status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
   max_attendees?: number;
   is_recurring?: boolean;
   recurrence_pattern?: any;
@@ -81,7 +81,8 @@ class SupabaseService {
 
       return (data || []).map(event => ({
         ...event,
-        created_by: event.created_by || ''
+        created_by: event.created_by || '',
+        event_type: event.event_type as EventData['event_type']
       })) as EventData[];
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -100,10 +101,23 @@ class SupabaseService {
       const { data, error } = await supabase
         .from('events')
         .insert({
-          ...eventData,
+          title: eventData.title,
+          description: eventData.description,
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
           created_by: user.id,
+          workspace_id: eventData.workspace_id,
           event_type: eventData.event_type || 'mission_call',
           status: eventData.status || 'scheduled',
+          max_attendees: eventData.max_attendees,
+          is_recurring: eventData.is_recurring || false,
+          recurrence_pattern: eventData.recurrence_pattern,
+          tags: eventData.tags,
+          cohort_id: eventData.cohort_id,
+          coach_id: eventData.coach_id,
+          replay_url: eventData.replay_url,
+          meeting_url: eventData.meeting_url,
+          resources: eventData.resources,
           visibility_level: eventData.visibility_level || 'public',
           xp_reward: eventData.xp_reward || 10
         })
@@ -117,7 +131,8 @@ class SupabaseService {
 
       return {
         ...data,
-        created_by: data.created_by || ''
+        created_by: data.created_by || '',
+        event_type: data.event_type as EventData['event_type']
       } as EventData;
     } catch (error) {
       console.error('Error creating calendar event:', error);
@@ -129,7 +144,26 @@ class SupabaseService {
     try {
       const { data, error } = await supabase
         .from('events')
-        .update(updates)
+        .update({
+          title: updates.title,
+          description: updates.description,
+          start_time: updates.start_time,
+          end_time: updates.end_time,
+          event_type: updates.event_type,
+          status: updates.status,
+          max_attendees: updates.max_attendees,
+          is_recurring: updates.is_recurring,
+          recurrence_pattern: updates.recurrence_pattern,
+          tags: updates.tags,
+          cohort_id: updates.cohort_id,
+          coach_id: updates.coach_id,
+          replay_url: updates.replay_url,
+          meeting_url: updates.meeting_url,
+          resources: updates.resources,
+          visibility_level: updates.visibility_level,
+          xp_reward: updates.xp_reward,
+          workspace_id: updates.workspace_id
+        })
         .eq('id', id)
         .select()
         .single();
@@ -141,7 +175,8 @@ class SupabaseService {
 
       return {
         ...data,
-        created_by: data.created_by || ''
+        created_by: data.created_by || '',
+        event_type: data.event_type as EventData['event_type']
       } as EventData;
     } catch (error) {
       console.error('Error updating calendar event:', error);
@@ -242,7 +277,8 @@ class SupabaseService {
 
       return (data || []).map(event => ({
         ...event,
-        created_by: event.created_by || ''
+        created_by: event.created_by || '',
+        event_type: event.event_type as EventData['event_type']
       })) as EventData[];
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -260,50 +296,6 @@ class SupabaseService {
 
   async deleteEvent(id: string): Promise<boolean> {
     return this.deleteCalendarEvent(id);
-  }
-
-  // Enhanced event methods for RSVP and attendance
-  async createRSVP(eventId: string, status: 'going' | 'maybe' | 'not_going'): Promise<any> {
-    try {
-      const { data, error } = await supabase
-        .from('event_rsvps')
-        .upsert({
-          event_id: eventId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          status
-        }, {
-          onConflict: 'event_id,user_id'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating/updating RSVP:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error creating/updating RSVP:', error);
-      return null;
-    }
-  }
-
-  async getEventWithStats(eventId: string): Promise<any> {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_event_with_stats', { event_id_param: eventId });
-
-      if (error) {
-        console.error('Error fetching event with stats:', error);
-        return null;
-      }
-
-      return data?.[0] || null;
-    } catch (error) {
-      console.error('Error fetching event with stats:', error);
-      return null;
-    }
   }
 }
 
