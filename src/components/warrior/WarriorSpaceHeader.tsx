@@ -8,20 +8,29 @@ interface WarriorSpaceHeaderProps {
     level: number;
     totalCoins: number;
     completedQuests: number;
+    currentXp: number;
+    nextLevelXp: number;
+    rank: string;
+    dailyQuestProgress: number;
   };
 }
 
 const WarriorSpaceHeader = ({ progress }: WarriorSpaceHeaderProps) => {
+  const progressPercentage = (progress.currentXp / progress.nextLevelXp) * 100;
+  
   return (
     <div className="relative z-20">
       <ResponsiveWarriorHeader 
         stats={{
           streak: progress.streak,
           level: progress.level,
-          totalCoins: progress.totalCoins
+          totalCoins: progress.totalCoins,
+          rank: progress.rank,
+          currentXp: progress.currentXp,
+          nextLevelXp: progress.nextLevelXp
         }}
-        progressPercentage={Math.min((progress.completedQuests / 7) * 100, 100)}
-        completedQuestsToday={progress.completedQuests}
+        progressPercentage={progressPercentage}
+        completedQuestsToday={progress.dailyQuestProgress}
         totalQuestsToday={7}
       />
     </div>
