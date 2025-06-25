@@ -10,24 +10,33 @@ import {
   Clock
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/contexts/RoleContext';
-import StageService from '@/services/StageService';
+import { supabase } from '@/integrations/supabase/client';
 import CreateStageModal from './CreateStageModal';
 import ActiveStage from './ActiveStage';
 import StageTimer from './StageTimer';
 import StageCard from './components/StageCard';
 import { toast } from 'sonner';
 
+interface Stage {
+  id: string;
+  name: string;
+  description?: string;
+  host_id: string;
+  is_active: boolean;
+  max_participants: number;
+  workspace_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const StageRoomPanel: React.FC = () => {
-  const [activeStages, setActiveStages] = useState<any[]>([]);
-  const [scheduledStages, setScheduledStages] = useState<any[]>([]);
+  const [stages, setStages] = useState<Stage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState('live');
 
   const { user } = useAuth();
-  const { currentRole } = useRole();
 
   useEffect(() => {
     loadStages();
@@ -36,12 +45,13 @@ const StageRoomPanel: React.FC = () => {
   const loadStages = async () => {
     setIsLoading(true);
     try {
-      const stages = await StageService.getActiveStages();
-      const liveStages = stages.filter(s => s.status === 'live');
-      const scheduled = stages.filter(s => s.status === 'scheduled');
-      
-      setActiveStages(liveStages);
-      setScheduledStages(scheduled);
+      const { data: stagesData, error } = await supabase
+        .from('stages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setStages(stagesData || []);
     } catch (error) {
       console.error('Error loading stages:', error);
       toast.error('Failed to load stages');
@@ -64,14 +74,15 @@ const StageRoomPanel: React.FC = () => {
     loadStages();
   };
 
-  const canCreateStage = currentRole === 'admin' || currentRole === 'moderator';
+  // Filter stages based on is_active property
+  const activeStages = stages.filter(s => s.is_active);
+  const scheduledStages = stages.filter(s => !s.is_active);
 
   if (selectedStageId) {
     return (
       <ActiveStage
         stageId={selectedStageId}
         onLeave={handleLeaveStage}
-        userRole={currentRole}
       />
     );
   }
@@ -81,7 +92,7 @@ const StageRoomPanel: React.FC = () => {
       {icon}
       <h3 className="text-lg font-medium mb-2">{title}</h3>
       <p className="text-muted-foreground mb-4">{description}</p>
-      {canCreateStage && showCreateButton && (
+      {user && showCreateButton && (
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           {title.includes('Live') ? 'Create Your First Stage' : 'Schedule a Stage'}
@@ -90,7 +101,7 @@ const StageRoomPanel: React.FC = () => {
     </Card>
   );
 
-  const renderStageGrid = (stages: any[], isLive: boolean) => {
+  const renderStageGrid = (stages: Stage[], isLive: boolean) => {
     if (isLoading) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,7 +140,7 @@ const StageRoomPanel: React.FC = () => {
             stage={stage}
             isLive={isLive}
             user={user}
-            canCreateStage={canCreateStage}
+            canCreateStage={!!user}
             onJoin={handleJoinStage}
           />
         ))}
@@ -148,9 +159,9 @@ const StageRoomPanel: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <StageTimer isHost={canCreateStage} />
+          <StageTimer isHost={!!user} />
           
-          {canCreateStage && (
+          {user && (
             <Button onClick={() => setShowCreateModal(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               Create Stage
