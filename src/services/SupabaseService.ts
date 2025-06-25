@@ -13,10 +13,10 @@ export interface EventData {
   description?: string;
   start_time: string;
   end_time: string;
-  created_by?: string;
+  created_by: string;
   workspace_id?: string;
-  event_type?: 'mission_call' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'workshop' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
-  status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  event_type?: string;
+  status?: string;
   max_attendees?: number;
   is_recurring?: boolean;
   recurrence_pattern?: any;
@@ -79,7 +79,10 @@ class SupabaseService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map(event => ({
+        ...event,
+        created_by: event.created_by || ''
+      })) as EventData[];
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
@@ -88,10 +91,17 @@ class SupabaseService {
 
   async createCalendarEvent(eventData: EventData): Promise<EventData | null> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('User not authenticated');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('events')
         .insert({
           ...eventData,
+          created_by: user.id,
           event_type: eventData.event_type || 'mission_call',
           status: eventData.status || 'scheduled',
           visibility_level: eventData.visibility_level || 'public',
@@ -105,7 +115,10 @@ class SupabaseService {
         return null;
       }
 
-      return data;
+      return {
+        ...data,
+        created_by: data.created_by || ''
+      } as EventData;
     } catch (error) {
       console.error('Error creating calendar event:', error);
       return null;
@@ -126,7 +139,10 @@ class SupabaseService {
         return null;
       }
 
-      return data;
+      return {
+        ...data,
+        created_by: data.created_by || ''
+      } as EventData;
     } catch (error) {
       console.error('Error updating calendar event:', error);
       return null;
@@ -224,7 +240,10 @@ class SupabaseService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map(event => ({
+        ...event,
+        created_by: event.created_by || ''
+      })) as EventData[];
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];

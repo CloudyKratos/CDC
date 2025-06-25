@@ -7,10 +7,8 @@ import { StageRoom } from '@/components/stage-call/StageRoom';
 import StageDetails from './components/StageDetails';
 import StageError from './components/StageError';
 import StageLoading from './components/StageLoading';
-import { Database } from '@/integrations/supabase/types';
+import { ExtendedStage } from '@/types/supabase-extended';
 import { toast } from 'sonner';
-
-type Stage = Database['public']['Tables']['stages']['Row'];
 
 interface ActiveStageProps {
   stageId: string;
@@ -23,7 +21,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({
   onLeave,
   userRole
 }) => {
-  const [stage, setStage] = useState<Stage | null>(null);
+  const [stage, setStage] = useState<ExtendedStage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);

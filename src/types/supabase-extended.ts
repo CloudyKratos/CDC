@@ -1,136 +1,60 @@
-
 import { Database } from '@/integrations/supabase/types';
 
 // Extended types for stages table with the new columns we added
 export interface ExtendedStage extends Database['public']['Tables']['stages']['Row'] {
-  title: string;
-  topic?: string;
-  creator_id: string;
-  status: 'scheduled' | 'live' | 'ended';
-  scheduled_start_time?: string;
-  actual_start_time?: string;
-  end_time?: string;
-  max_speakers?: number;
-  max_audience?: number;
-  allow_hand_raising?: boolean;
-  recording_enabled?: boolean;
+  // All properties are already included from the base type
 }
 
 // Extended insert type for stages
-export interface ExtendedStageInsert extends Omit<Database['public']['Tables']['stages']['Insert'], 'title' | 'creator_id'> {
-  title: string;
-  topic?: string;
-  creator_id: string;
-  status?: 'scheduled' | 'live' | 'ended';
-  scheduled_start_time?: string;
-  max_speakers?: number;
-  max_audience?: number;
-  allow_hand_raising?: boolean;
-  recording_enabled?: boolean;
+export interface ExtendedStageInsert extends Database['public']['Tables']['stages']['Insert'] {
+  // All properties are already included from the base type
 }
 
-// Extended types for stage_participants (if not in auto-generated types)
-export interface StageParticipant {
-  id: string;
-  stage_id: string;
-  user_id: string;
-  role: 'moderator' | 'speaker' | 'audience';
-  is_muted?: boolean;
-  is_video_enabled?: boolean;
-  is_hand_raised?: boolean;
-  joined_at?: string;
-  left_at?: string;
-  created_at?: string;
-  updated_at?: string;
+// Extended types for stage_participants with profile data
+export interface StageParticipant extends Database['public']['Tables']['stage_participants']['Row'] {
+  profiles?: {
+    id: string;
+    full_name?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null;
 }
 
-export interface StageParticipantInsert {
-  stage_id: string;
-  user_id: string;
-  role?: 'moderator' | 'speaker' | 'audience';
-  is_muted?: boolean;
-  is_video_enabled?: boolean;
-  is_hand_raised?: boolean;
+export interface StageParticipantInsert extends Database['public']['Tables']['stage_participants']['Insert'] {
+  // All properties are already included from the base type
 }
 
 // Extended types for speaker_requests with new columns
 export interface ExtendedSpeakerRequest extends Database['public']['Tables']['speaker_requests']['Row'] {
-  requested_at?: string;
-  responded_at?: string;
-  responded_by?: string;
-  status: 'pending' | 'approved' | 'denied';
+  // All properties are already included from the base type
 }
 
-export interface ExtendedSpeakerRequestInsert {
-  stage_id: string;
-  user_id: string;
-  status?: 'pending' | 'approved' | 'denied';
-  requested_at?: string;
+export interface ExtendedSpeakerRequestInsert extends Database['public']['Tables']['speaker_requests']['Insert'] {
+  // All properties are already included from the base type
 }
 
 // Extended types for user_roles
-export interface UserRole {
-  id: string;
-  user_id: string;
-  role: 'admin' | 'moderator' | 'user';
-  assigned_at?: string;
-  assigned_by?: string;
-  workspace_id?: string;
+export interface UserRole extends Database['public']['Tables']['user_roles']['Row'] {
+  // All properties are already included from the base type
 }
 
-export interface UserRoleInsert {
-  user_id: string;
-  role: 'admin' | 'moderator' | 'user';
-  assigned_by?: string;
-  workspace_id?: string;
+export interface UserRoleInsert extends Database['public']['Tables']['user_roles']['Insert'] {
+  // All properties are already included from the base type
 }
 
 // Extended types for events table
-export interface Event {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  created_by: string;
-  workspace_id?: string;
-  event_type?: string;
-  status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
-  max_attendees?: number;
-  is_recurring?: boolean;
-  recurrence_pattern?: any;
-  tags?: string[];
-  cohort_id?: string;
-  coach_id?: string;
-  replay_url?: string;
-  meeting_url?: string;
-  resources?: any;
-  visibility_level?: string;
-  xp_reward?: number;
-  created_at?: string;
-  updated_at?: string;
+export interface Event extends Database['public']['Tables']['events']['Row'] {
+  // All properties are already included from the base type
 }
 
-export interface EventInsert {
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  created_by: string;
-  workspace_id?: string;
-  event_type?: string;
-  status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
-  max_attendees?: number;
-  is_recurring?: boolean;
-  recurrence_pattern?: any;
-  tags?: string[];
-  cohort_id?: string;
-  coach_id?: string;
-  replay_url?: string;
-  meeting_url?: string;
-  resources?: any;
-  visibility_level?: string;
-  xp_reward?: number;
+export interface EventInsert extends Database['public']['Tables']['events']['Insert'] {
+  // All properties are already included from the base type
+}
+
+// Service response types
+export interface StageAccessValidation {
+  canAccess: boolean;
+  reason?: string;
 }
 
 // Type helpers for common operations

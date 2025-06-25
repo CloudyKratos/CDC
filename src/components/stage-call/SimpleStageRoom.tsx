@@ -44,11 +44,11 @@ export const SimpleStageRoom: React.FC<SimpleStageRoomProps> = ({
       const formattedParticipants: Participant[] = participantData.map(p => ({
         id: p.user_id,
         name: p.profiles?.full_name || p.profiles?.username || 'Anonymous',
-        role: p.role,
+        role: p.role as 'speaker' | 'audience' | 'moderator',
         isAudioEnabled: !p.is_muted,
         isVideoEnabled: p.is_video_enabled || false,
-        isHandRaised: p.is_hand_raised,
-        avatarUrl: p.profiles?.avatar_url
+        isHandRaised: p.is_hand_raised || false,
+        avatarUrl: p.profiles?.avatar_url || undefined
       }));
       
       setParticipants(formattedParticipants);
@@ -56,8 +56,8 @@ export const SimpleStageRoom: React.FC<SimpleStageRoomProps> = ({
       // Set current user's role
       const currentUserParticipant = participantData.find(p => p.user_id === user?.id);
       if (currentUserParticipant) {
-        setUserRole(currentUserParticipant.role);
-        setIsHandRaised(currentUserParticipant.is_hand_raised);
+        setUserRole(currentUserParticipant.role as 'speaker' | 'audience' | 'moderator');
+        setIsHandRaised(currentUserParticipant.is_hand_raised || false);
         setIsAudioEnabled(!currentUserParticipant.is_muted);
         setIsVideoEnabled(currentUserParticipant.is_video_enabled || false);
       }
@@ -149,7 +149,7 @@ export const SimpleStageRoom: React.FC<SimpleStageRoomProps> = ({
     const newMessage = {
       id: Date.now().toString(),
       userId: user?.id || '',
-      userName: user?.name || 'Anonymous',
+      userName: user?.email || 'Anonymous',
       message,
       timestamp: new Date().toISOString(),
       type: 'text' as const

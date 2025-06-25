@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ExtendedStage, ExtendedStageInsert, StageStatus } from "@/types/supabase-extended";
+import { ExtendedStage, ExtendedStageInsert, StageStatus, StageAccessValidation } from "@/types/supabase-extended";
 
 export { StageStatus };
 
@@ -18,7 +18,6 @@ class StageCoreService {
       ...stageData,
       creator_id: user.id,
       host_id: user.id, // Also set host_id for backward compatibility
-      name: stageData.title, // Map title to name for backward compatibility
     };
 
     const { data, error } = await supabase
@@ -96,12 +95,12 @@ class StageCoreService {
     return true;
   }
 
-  async validateStageAccess(stageId: string): Promise<boolean> {
+  async validateStageAccess(stageId: string): Promise<StageAccessValidation> {
     console.log('Validating stage access for:', stageId);
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return false;
+      return { canAccess: false, reason: 'Authentication required' };
     }
 
     // Check if user is the creator or a participant
@@ -112,12 +111,12 @@ class StageCoreService {
       .maybeSingle();
 
     if (!stage) {
-      return false;
+      return { canAccess: false, reason: 'Stage not found' };
     }
 
     // User is creator/host
     if (stage.creator_id === user.id || stage.host_id === user.id) {
-      return true;
+      return { canAccess: true };
     }
 
     // Check if user is a participant
@@ -129,7 +128,10 @@ class StageCoreService {
       .is('left_at', null)
       .maybeSingle();
 
-    return !!participant;
+    return { 
+      canAccess: !!participant,
+      reason: participant ? undefined : 'Not a participant'
+    };
   }
 }
 

@@ -8,7 +8,15 @@ class StageParticipantService {
     
     const { data, error } = await supabase
       .from('stage_participants')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .eq('stage_id', stageId)
       .is('left_at', null)
       .order('joined_at', { ascending: true });
@@ -126,7 +134,15 @@ class StageParticipantService {
     const { data, error } = await supabase
       .from('stage_participants')
       .insert(participantData)
-      .select()
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .single();
 
     if (error) {

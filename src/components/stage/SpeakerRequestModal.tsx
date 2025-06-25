@@ -13,10 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Hand, Check, X } from 'lucide-react';
 import StageService from '@/services/StageService';
-import { Database } from '@/integrations/supabase/types';
+import { ExtendedSpeakerRequest } from '@/types/supabase-extended';
 import { toast } from 'sonner';
-
-type SpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'];
 
 interface SpeakerRequestModalProps {
   isOpen: boolean;
@@ -31,7 +29,7 @@ const SpeakerRequestModal: React.FC<SpeakerRequestModalProps> = ({
   stageId,
   onApprove
 }) => {
-  const [requests, setRequests] = useState<SpeakerRequest[]>([]);
+  const [requests, setRequests] = useState<ExtendedSpeakerRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -121,7 +119,7 @@ const SpeakerRequestModal: React.FC<SpeakerRequestModalProps> = ({
                         User {request.user_id.slice(0, 8)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(request.requested_at).toLocaleTimeString()}
+                        {request.requested_at && new Date(request.requested_at).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
