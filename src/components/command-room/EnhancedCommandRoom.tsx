@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useRole } from '@/contexts/RoleContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,11 +76,24 @@ const EnhancedCommandRoom: React.FC = () => {
             addedBy: 'Admin',
             addedAt: new Date('2024-01-12'),
             progress: 0
+          },
+          {
+            id: '4',
+            title: 'JavaScript ES6+ Features',
+            description: 'Explore modern JavaScript features and how to use them in your projects.',
+            videoId: 'WZQc7RUAg18',
+            duration: '35:20',
+            category: 'JavaScript',
+            difficulty: 'intermediate',
+            tags: ['javascript', 'es6', 'modern'],
+            addedBy: 'Admin',
+            addedAt: new Date('2024-01-08'),
+            progress: 0
           }
         ];
 
         // Simulate loading time
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         setVideos(mockVideos);
         
@@ -158,16 +172,16 @@ const EnhancedCommandRoom: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="relative min-h-screen">
+      <div className="min-h-screen bg-gray-50">
         <CommandRoomBackground />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="text-center space-y-6">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-cyan-400 border-t-transparent mx-auto"></div>
+          <div className="text-center space-y-6 bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto"></div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-cyan-300">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Loading Command Room
               </h3>
-              <p className="text-blue-200/80">Preparing your learning environment...</p>
+              <p className="text-gray-600">Preparing your learning environment...</p>
             </div>
           </div>
         </div>
@@ -176,10 +190,10 @@ const EnhancedCommandRoom: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <CommandRoomBackground />
       
-      <div className="relative z-10 p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
         <CommandRoomHeader 
           isAdmin={isAdmin}
           onAddVideo={() => setIsAddModalOpen(true)}
