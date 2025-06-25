@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield } from 'lucide-react';
@@ -60,7 +59,8 @@ const SignUp: React.FC = () => {
     
     try {
       console.log("Form values:", values);
-      const user = await signup(values.email, values.password, values.fullName);
+      // Use only email and password - remove the third argument
+      const user = await signup(values.email, values.password);
       console.log("Sign-up response:", user);
       
       // Save email for resend functionality
@@ -293,7 +293,7 @@ const SignUp: React.FC = () => {
                           placeholder="Enter your email address" 
                           {...field} 
                           disabled={isLoading} 
-                          className="h-12 px-4 text-base border-gray-200 dark: border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
+                          className="h-12 px-4 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
                         />
                       </FormControl>
                       <FormMessage />

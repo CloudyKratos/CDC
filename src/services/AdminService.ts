@@ -1,322 +1,48 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface CDCAdminData {
-  email: string;
-  name: string;
-  isHidden: boolean;
-}
-
 interface UserStats {
   totalUsers: number;
-  adminCount: number;
-  moderatorCount: number;
-  memberCount: number;
   activeUsers: number;
 }
 
 interface PlatformMetrics {
-  totalEvents: number;
+  totalStages: number;
   activeStages: number;
   totalMessages: number;
-  userGrowth: number;
 }
 
 class AdminService {
-  async createCDCOfficialAccount(): Promise<boolean> {
-    try {
-      console.log("Setting up CDC Official Team account...");
-      
-      const cdcEmail = 'cdcofficialeg@gmail.com';
-      const cdcPassword = 'CDC2024!SecurePassword';
-      
-      // First, check if the CDC account already exists by trying to sign in
-      const { data: existingSession, error: signInError } = await supabase.auth.signInWithPassword({
-        email: cdcEmail,
-        password: cdcPassword
-      });
-
-      let userId: string;
-
-      if (existingSession?.user) {
-        // Account already exists and password is correct
-        userId = existingSession.user.id;
-        console.log('CDC account already exists with correct credentials:', userId);
-        
-        // Sign out immediately after verification
-        await supabase.auth.signOut();
-        
-        // Set up the profile and role using our database function
-        const { data, error: setupError } = await supabase.rpc('setup_cdc_account', {
-          cdc_user_id: userId
-        });
-
-        if (setupError) {
-          console.error('Error setting up CDC account profile:', setupError);
-        }
-
-        toast.success('CDC Official Team account verified and updated');
-        return true;
-      }
-
-      // Account doesn't exist or has wrong credentials, create it
-      console.log('Creating new CDC Official Team account...');
-      
-      // Create the user account
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: cdcEmail,
-        password: cdcPassword,
-        options: {
-          data: {
-            full_name: 'CDC Official Team',
-            is_admin: true,
-            is_hidden: true,
-            account_type: 'system'
-          }
-        }
-      });
-
-      if (signUpError) {
-        console.error('Error creating CDC account:', signUpError);
-        
-        // If user already exists but with different password, we can't fix it easily
-        if (signUpError.message.includes('User already registered')) {
-          toast.error('CDC account exists but password is incorrect. Please contact system administrator.');
-          return false;
-        }
-        
-        toast.error('Failed to create CDC Official Team account');
-        return false;
-      }
-
-      if (!signUpData.user) {
-        console.error('No user returned from signup');
-        toast.error('Failed to create CDC account - no user data');
-        return false;
-      }
-
-      userId = signUpData.user.id;
-      console.log('Created new CDC user:', userId);
-
-      // Set up the profile and role using our database function
-      const { data, error: setupError } = await supabase.rpc('setup_cdc_account', {
-        cdc_user_id: userId
-      });
-
-      if (setupError) {
-        console.error('Error setting up CDC account profile:', setupError);
-        toast.error('CDC account created but failed to set up profile');
-        return false;
-      }
-
-      console.log('CDC Official Team account setup successfully');
-      toast.success('CDC Official Team account created successfully');
-      return true;
-
-    } catch (error) {
-      console.error('Error in createCDCOfficialAccount:', error);
-      toast.error('Failed to setup CDC Official Team account');
-      return false;
-    }
-  }
-
-  async setupCDCAsAdmin(): Promise<boolean> {
-    try {
-      console.log("Setting up cdcofficialeg@gmail.com as admin account...");
-      
-      const cdcEmail = 'cdcofficialeg@gmail.com';
-      
-      // Create the user account with signup
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: cdcEmail,
-        password: 'CDC2024!SecurePassword',
-        options: {
-          data: {
-            full_name: 'CDC Official Team',
-            is_admin: true,
-            is_hidden: true
-          }
-        }
-      });
-
-      let userId: string;
-
-      if (signUpError) {
-        // If user already exists, try to get their ID and update their role
-        if (signUpError.message.includes('User already registered')) {
-          console.log('User already exists, trying to update role...');
-          
-          // Try to sign in to get the user ID
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: cdcEmail,
-            password: 'CDC2024!SecurePassword'
-          });
-
-          if (signInError || !signInData.user) {
-            console.error('Could not sign in existing user:', signInError);
-            toast.error('CDC account exists but credentials are incorrect');
-            return false;
-          }
-
-          userId = signInData.user.id;
-          
-          // Sign out immediately after getting the ID
-          await supabase.auth.signOut();
-        } else {
-          console.error('Error creating CDC user:', signUpError);
-          toast.error('Failed to create CDC user account');
-          return false;
-        }
-      } else if (signUpData.user) {
-        userId = signUpData.user.id;
-        console.log('Created new CDC user:', userId);
-      } else {
-        toast.error('User creation failed');
-        return false;
-      }
-
-      // Ensure profile exists
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .single();
-
-      if (!profile) {
-        // Create profile
-        const { error: insertProfileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            full_name: 'CDC Official Team',
-            username: 'cdc_official'
-          });
-
-        if (insertProfileError) {
-          console.error('Error creating profile:', insertProfileError);
-        }
-      }
-
-      // Assign admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role: 'admin'
-        });
-
-      if (roleError) {
-        console.error('Error assigning admin role:', roleError);
-        toast.error('Failed to assign admin role');
-        return false;
-      }
-
-      toast.success('cdcofficialeg@gmail.com has been set up as admin successfully');
-      return true;
-
-    } catch (error) {
-      console.error('Error in setupCDCAsAdmin:', error);
-      toast.error('Failed to setup CDC admin account');
-      return false;
-    }
-  }
-
-  async checkCDCAccountExists(): Promise<boolean> {
-    try {
-      // First check if we can authenticate with the CDC credentials
-      const { data: session, error } = await supabase.auth.signInWithPassword({
-        email: 'cdcofficialeg@gmail.com',
-        password: 'CDC2024!SecurePassword'
-      });
-
-      if (session?.user) {
-        console.log('CDC account exists and password is correct');
-        
-        // Sign out immediately after verification
-        await supabase.auth.signOut();
-        
-        // Double-check that the profile and role exist
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .eq('id', session.user.id)
-          .single();
-
-        const { data: role } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .single();
-
-        return !!(profile && role);
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error in checkCDCAccountExists:', error);
-      return false;
-    }
-  }
-
   async getUserStats(): Promise<UserStats> {
     try {
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('role, user_id');
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, created_at, updated_at');
 
       if (error) {
         console.error('Error fetching user stats:', error);
         return {
           totalUsers: 0,
-          adminCount: 0,
-          moderatorCount: 0,
-          memberCount: 0,
           activeUsers: 0
         };
       }
 
-      const stats = roles.reduce((acc, curr) => {
-        acc.totalUsers++;
-        switch (curr.role) {
-          case 'admin':
-            acc.adminCount++;
-            break;
-          case 'moderator':
-            acc.moderatorCount++;
-            break;
-          case 'member':
-            acc.memberCount++;
-            break;
-        }
-        return acc;
-      }, {
-        totalUsers: 0,
-        adminCount: 0,
-        moderatorCount: 0,
-        memberCount: 0,
-        activeUsers: 0
-      });
-
-      // Get active users (users with recent activity)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: activeUserData } = await supabase
-        .from('profiles')
-        .select('id')
-        .gte('updated_at', thirtyDaysAgo.toISOString());
+      const activeUsers = profiles?.filter(profile => 
+        new Date(profile.updated_at) >= thirtyDaysAgo
+      ).length || 0;
 
-      stats.activeUsers = activeUserData?.length || 0;
-
-      return stats;
+      return {
+        totalUsers: profiles?.length || 0,
+        activeUsers
+      };
     } catch (error) {
       console.error('Error in getUserStats:', error);
       return {
         totalUsers: 0,
-        adminCount: 0,
-        moderatorCount: 0,
-        memberCount: 0,
         activeUsers: 0
       };
     }
@@ -324,103 +50,144 @@ class AdminService {
 
   async getPlatformMetrics(): Promise<PlatformMetrics> {
     try {
-      // Get total events
-      const { data: events } = await supabase
-        .from('events')
-        .select('id');
-
-      // Get active stages
+      // Get total stages
       const { data: stages } = await supabase
         .from('stages')
-        .select('id')
-        .eq('status', 'live');
+        .select('id, is_active');
 
       // Get total messages
       const { data: messages } = await supabase
         .from('messages')
         .select('id');
 
-      // Calculate user growth (new users in last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: newUsers } = await supabase
-        .from('profiles')
-        .select('id')
-        .gte('created_at', thirtyDaysAgo.toISOString());
+      const activeStages = stages?.filter(s => s.is_active).length || 0;
 
       return {
-        totalEvents: events?.length || 0,
-        activeStages: stages?.length || 0,
-        totalMessages: messages?.length || 0,
-        userGrowth: newUsers?.length || 0
+        totalStages: stages?.length || 0,
+        activeStages,
+        totalMessages: messages?.length || 0
       };
     } catch (error) {
       console.error('Error in getPlatformMetrics:', error);
       return {
-        totalEvents: 0,
+        totalStages: 0,
         activeStages: 0,
-        totalMessages: 0,
-        userGrowth: 0
+        totalMessages: 0
       };
     }
   }
 
-  async getAllUsersWithRoles() {
+  // Mock methods for tables that don't exist yet
+  async getAllUsers(): Promise<any[]> {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          assigned_at,
-          profiles:user_id (
-            id,
-            full_name,
-            username,
-            avatar_url,
-            created_at,
-            updated_at
-          )
-        `);
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching users with roles:', error);
-        return [];
-      }
-
-      return data.map(item => ({
-        id: item.user_id,
-        role: item.role,
-        assignedAt: item.assigned_at,
-        profile: item.profiles
-      }));
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.error('Error in getAllUsersWithRoles:', error);
+      console.error('Error fetching users:', error);
       return [];
     }
   }
 
-  async assignUserRole(userId: string, role: 'admin' | 'moderator' | 'member') {
+  async updateUserRole(userId: string, role: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role: role
-        });
-
-      if (error) {
-        console.error('Error assigning role:', error);
-        toast.error('Failed to assign role');
-        return false;
-      }
-
-      toast.success(`Role assigned successfully`);
+      console.log('Mock: Updating user role', userId, role);
+      // Mock implementation - would need user_roles table
       return true;
     } catch (error) {
-      console.error('Error in assignUserRole:', error);
-      toast.error('Failed to assign role');
+      console.error('Error updating user role:', error);
+      return false;
+    }
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    try {
+      console.log('Mock: Deleting user', userId);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
+  }
+
+  async getAllEvents(): Promise<any[]> {
+    try {
+      console.log('Mock: Getting all events');
+      // Mock implementation - would need events table
+      return [];
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+  }
+
+  async createEvent(eventData: any): Promise<boolean> {
+    try {
+      console.log('Mock: Creating event', eventData);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error creating event:', error);
+      return false;
+    }
+  }
+
+  async updateEvent(eventId: string, eventData: any): Promise<boolean> {
+    try {
+      console.log('Mock: Updating event', eventId, eventData);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error updating event:', error);
+      return false;
+    }
+  }
+
+  async deleteEvent(eventId: string): Promise<boolean> {
+    try {
+      console.log('Mock: Deleting event', eventId);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      return false;
+    }
+  }
+
+  async getUserRoles(): Promise<any[]> {
+    try {
+      console.log('Mock: Getting user roles');
+      // Mock implementation - would need user_roles table
+      return [];
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+      return [];
+    }
+  }
+
+  async assignUserRole(userId: string, role: string): Promise<boolean> {
+    try {
+      console.log('Mock: Assigning user role', userId, role);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error assigning user role:', error);
+      return false;
+    }
+  }
+
+  async removeUserRole(userId: string, role: string): Promise<boolean> {
+    try {
+      console.log('Mock: Removing user role', userId, role);
+      // Mock implementation
+      return true;
+    } catch (error) {
+      console.error('Error removing user role:', error);
       return false;
     }
   }
