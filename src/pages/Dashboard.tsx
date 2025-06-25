@@ -17,17 +17,20 @@ import {
   Users, 
   Video, 
   User, 
+  Shield,
   Map,
   ChevronLeft,
   ChevronRight,
   Home
 } from 'lucide-react';
+import { useRole } from '@/contexts/RoleContext';
 import { ActivePanel } from '@/types/dashboard';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activePanel = (searchParams.get("tab") || "command-room") as ActivePanel;
   const { user } = useAuth();
+  const { currentRole } = useRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -58,6 +61,8 @@ const Dashboard = () => {
     }
   };
 
+  const isAdmin = currentRole === 'admin';
+
   const navigationItems = [
     { id: "command-room", label: "Command Room", icon: LayoutGrid },
     { id: "calendar", label: "Calendar", icon: Calendar },
@@ -69,7 +74,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Modern Sidebar */}
+      {/* Modern Sidebar - Improved proportions */}
       <div className={`hidden md:flex md:flex-col transition-all duration-300 ease-in-out ${
         sidebarCollapsed ? 'md:w-16' : 'md:w-72'
       }`}>
@@ -104,7 +109,7 @@ const Dashboard = () => {
           <div className="flex-grow p-4">
             <nav className="space-y-2">
               {/* Home Button - Link to Warrior's Space */}
-              <Link to="/">
+              <Link to="/warrior-space">
                 <Button
                   variant="ghost"
                   className={`w-full transition-all duration-200 hover:scale-105 group ${
@@ -139,6 +144,22 @@ const Dashboard = () => {
                   )}
                 </Button>
               ))}
+
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button
+                    variant="ghost"
+                    className={`w-full transition-all duration-200 hover:scale-105 group ${
+                      sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
+                    } h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20`}
+                  >
+                    <Shield className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    {!sidebarCollapsed && (
+                      <span className="animate-fade-in">Admin Panel</span>
+                    )}
+                  </Button>
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -153,10 +174,10 @@ const Dashboard = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user.email}
+                    {user.name || 'User'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    Warrior Member
+                    {user.email}
                   </p>
                 </div>
               </div>
@@ -173,7 +194,7 @@ const Dashboard = () => {
         onPanelChange={handlePanelChange}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Improved layout */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Header */}
         <DashboardHeader
@@ -182,7 +203,7 @@ const Dashboard = () => {
           onPanelChange={handlePanelChange}
         />
 
-        {/* Main Area */}
+        {/* Main Area with better spacing */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
           <div className="animate-fade-in min-h-full">
             {renderContent()}

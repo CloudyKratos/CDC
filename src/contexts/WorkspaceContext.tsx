@@ -50,34 +50,63 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Get workspaces directly where user is owner
-        const { data: ownedWorkspaces, error: ownedError } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('owner_id', user.id);
-
-        if (ownedError) {
-          console.log('Error fetching owned workspaces:', ownedError);
-          setWorkspaces([]);
-        } else if (ownedWorkspaces) {
-          setWorkspaces(ownedWorkspaces as Workspace[]);
+        // Get workspaces where the user is a member
+        const { data: memberWorkspaces, error: memberError } = await supabase
+          .from('workspace_members')
+          .select(`
+            workspace_id,
+            role,
+            workspaces:workspace_id (
+              id,
+              name,
+              description,
+              owner_id
+            )
+          `)
+          .eq('user_id', user.id);
           
-          // Set the first workspace as current if none is selected
-          if (!currentWorkspace && ownedWorkspaces.length > 0) {
-            setCurrentWorkspace(ownedWorkspaces[0] as Workspace);
-          }
+        if (memberError) {
+          throw memberError;
+        }
+        
+        // Transform the data to get the workspaces
+        const transformedWorkspaces = memberWorkspaces
+          .map(item => item.workspaces as Workspace)
+          .filter(Boolean);
+          
+        setWorkspaces(transformedWorkspaces);
+        
+        // Set the first workspace as current if none is selected
+        if (!currentWorkspace && transformedWorkspaces.length > 0) {
+          setCurrentWorkspace(transformedWorkspaces[0]);
         }
         
       } catch (error) {
         console.error('Error fetching workspaces:', error);
         setError('Failed to load workspaces.');
-        setWorkspaces([]);
       } finally {
         setIsLoading(false);
       }
     };
     
+    // Initial fetch
     fetchWorkspaces();
+    
+    // Subscribe to workspace changes
+    const workspaceSubscription = supabase
+      .channel('workspace-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'workspaces' },
+        () => {
+          fetchWorkspaces();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      workspaceSubscription.unsubscribe();
+    };
   }, []);
 
   // Create a new workspace
@@ -89,7 +118,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('User not authenticated');
       }
       
-      // Try to insert new workspace
+      // Insert new workspace
       const { data: newWorkspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
@@ -105,7 +134,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // Add creator as member with owner role
-      await supabase
+      const { error: memberError } = await supabase
         .from('workspace_members')
         .insert({
           workspace_id: newWorkspace.id,
@@ -113,12 +142,15 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           role: 'owner'
         });
       
-      // Update state
-      const workspace = newWorkspace as Workspace;
-      setWorkspaces([...workspaces, workspace]);
-      setCurrentWorkspace(workspace);
+      if (memberError) {
+        throw memberError;
+      }
       
-      return workspace;
+      // Update state
+      setWorkspaces([...workspaces, newWorkspace]);
+      setCurrentWorkspace(newWorkspace);
+      
+      return newWorkspace;
     } catch (error) {
       console.error('Error creating workspace:', error);
       setError('Failed to create workspace.');
@@ -140,17 +172,15 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      const workspace = updatedWorkspace as Workspace;
-      
       // Update state
-      setWorkspaces(workspaces.map(w => w.id === id ? workspace : w));
+      setWorkspaces(workspaces.map(w => w.id === id ? updatedWorkspace : w));
       
       // Update current workspace if needed
       if (currentWorkspace && currentWorkspace.id === id) {
-        setCurrentWorkspace(workspace);
+        setCurrentWorkspace(updatedWorkspace);
       }
       
-      return workspace;
+      return updatedWorkspace;
     } catch (error) {
       console.error('Error updating workspace:', error);
       setError('Failed to update workspace.');

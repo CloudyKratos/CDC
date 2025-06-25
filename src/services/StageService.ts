@@ -1,206 +1,115 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
+import StageCleanupService from "./StageCleanupService";
+import StageCoreService, { StageStatus } from "./stage/StageCoreService";
+import StageParticipantService from "./stage/StageParticipantService";
+import StageSpeakerService from "./stage/StageSpeakerService";
+import StageSubscriptionService from "./stage/StageSubscriptionService";
 
-interface Stage {
-  id: string;
-  name: string;
-  description?: string;
-  host_id: string;
-  is_active: boolean;
-  max_participants: number;
-  workspace_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface StageParticipant {
-  id: string;
-  stage_id: string;
-  user_id: string;
-  role: 'moderator' | 'speaker' | 'audience';
-  joined_at: string;
-  left_at?: string;
-  is_muted: boolean;
-  is_video_enabled: boolean;
-  is_hand_raised: boolean;
-  profiles?: {
-    id: string;
-    full_name?: string;
-    username?: string;
-    avatar_url?: string;
-  };
-}
+export type StageRole = 'moderator' | 'speaker' | 'audience';
+export type { StageStatus };
 
 class StageService {
-  async getActiveStages(): Promise<Stage[]> {
-    try {
-      const { data, error } = await supabase
-        .from('stages')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+  private cleanupService = StageCleanupService;
+  private coreService = StageCoreService;
+  private participantService = StageParticipantService;
+  private speakerService = StageSpeakerService;
+  private subscriptionService = StageSubscriptionService;
 
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching stages:', error);
-      throw error;
-    }
+  // Core stage operations
+  async createStage(stageData: any) {
+    return this.coreService.createStage(stageData);
   }
 
-  async createStage(stageData: {
-    name: string;
-    description?: string;
-    max_participants: number;
-    is_active: boolean;
-    host_id: string;
-  }): Promise<Stage> {
-    try {
-      const { data, error } = await supabase
-        .from('stages')
-        .insert(stageData)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error creating stage:', error);
-      throw error;
-    }
+  async getActiveStages() {
+    return this.coreService.getActiveStages();
   }
 
-  async updateStage(id: string, updates: Partial<Stage>): Promise<Stage> {
-    try {
-      const { data, error } = await supabase
-        .from('stages')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating stage:', error);
-      throw error;
-    }
+  async getStageById(stageId: string) {
+    return this.coreService.getStageById(stageId);
   }
 
-  async deleteStage(id: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('stages')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error deleting stage:', error);
-      throw error;
-    }
+  async updateStageStatus(stageId: string, status: StageStatus) {
+    return this.coreService.updateStageStatus(stageId, status);
   }
 
-  async getStageParticipants(stageId: string): Promise<StageParticipant[]> {
-    try {
-      // Since we don't have stage_participants table, return mock data for now
-      console.log('Loading participants for stage:', stageId);
-      return [];
-    } catch (error) {
-      console.error('Error loading participants:', error);
-      return [];
-    }
+  async validateStageAccess(stageId: string) {
+    return this.coreService.validateStageAccess(stageId);
   }
 
-  async joinStage(stageId: string, role: 'moderator' | 'speaker' | 'audience' = 'audience'): Promise<{ success: boolean; error?: string }> {
-    try {
-      console.log('Joining stage:', stageId, 'as', role);
-      // Mock implementation since we don't have stage_participants table
-      return { success: true };
-    } catch (error) {
-      console.error('Error joining stage:', error);
-      return { success: false, error: 'Failed to join stage' };
-    }
+  // Participant operations
+  async getStageParticipants(stageId: string) {
+    return this.participantService.getStageParticipants(stageId);
   }
 
-  subscribeToParticipants(stageId: string, callback: () => void) {
-    console.log('Subscribing to participants for stage:', stageId);
-    // Mock subscription - return unsubscribe function
-    return {
-      unsubscribe: () => {
-        console.log('Unsubscribing from participants');
-      }
-    };
+  async updateParticipantRole(stageId: string, userId: string, role: StageRole) {
+    return this.participantService.updateParticipantRole(stageId, userId, role);
+  }
+
+  async toggleMute(stageId: string, userId: string, isMuted: boolean) {
+    return this.participantService.toggleMute(stageId, userId, isMuted);
+  }
+
+  async raiseHand(stageId: string, isRaised: boolean) {
+    return this.participantService.raiseHand(stageId, isRaised);
+  }
+
+  async leaveStage(stageId: string) {
+    return this.participantService.leaveStage(stageId);
+  }
+
+  // Speaker request operations
+  async getPendingSpeakerRequests(stageId: string) {
+    return this.speakerService.getPendingSpeakerRequests(stageId);
+  }
+
+  async respondToSpeakerRequest(requestId: string, approved: boolean) {
+    return this.speakerService.respondToSpeakerRequest(requestId, approved);
+  }
+
+  // Subscription operations
+  subscribeToSpeakerRequests(stageId: string, callback: (payload: any) => void) {
+    return this.speakerService.subscribeToSpeakerRequests(stageId, callback);
   }
 
   subscribeToStageUpdates(stageId: string, callback: (payload: any) => void) {
-    return supabase
-      .channel(`stage-${stageId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stages',
-          filter: `id=eq.${stageId}`
-        },
-        callback
-      )
-      .subscribe();
+    return this.subscriptionService.subscribeToStageUpdates(stageId, callback);
   }
 
-  async toggleMute(stageId: string, userId: string, isMuted: boolean): Promise<boolean> {
+  subscribeToParticipants(stageId: string, callback: (payload: any) => void) {
+    return this.subscriptionService.subscribeToParticipants(stageId, callback);
+  }
+
+  // Cleanup operations
+  async forceDisconnectUser(stageId: string, userId: string) {
+    return this.cleanupService.forceCleanupUserParticipation(stageId, userId);
+  }
+
+  async cleanupGhostParticipants(stageId: string) {
     try {
-      console.log('Toggling mute for user:', userId, 'in stage:', stageId, 'muted:', isMuted);
-      // Mock implementation
+      await this.cleanupService.cleanupGhostParticipants(stageId);
       return true;
     } catch (error) {
-      console.error('Error toggling mute:', error);
+      console.error('Error in cleanupGhostParticipants:', error);
       return false;
     }
   }
 
-  async raiseHand(stageId: string, isRaised: boolean): Promise<boolean> {
-    try {
-      console.log('Raising hand in stage:', stageId, 'raised:', isRaised);
-      // Mock implementation
-      return true;
-    } catch (error) {
-      console.error('Error raising hand:', error);
-      return false;
-    }
-  }
-
-  async leaveStage(stageId: string): Promise<boolean> {
-    try {
-      console.log('Leaving stage:', stageId);
-      // Mock implementation
-      return true;
-    } catch (error) {
-      console.error('Error leaving stage:', error);
-      return false;
-    }
-  }
-
-  async validateStageAccess(stageId: string): Promise<{ canAccess: boolean; reason?: string }> {
+  async joinStage(stageId: string, role: StageRole = 'audience') {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { canAccess: false, reason: 'Authentication required' };
+      if (!user) return { success: false, error: 'Authentication required. Please log in to join the stage.' };
 
-      const { data: stage, error } = await supabase
-        .from('stages')
-        .select('*')
-        .eq('id', stageId)
-        .single();
-
-      if (error || !stage) {
-        return { canAccess: false, reason: 'Stage not found' };
-      }
-
-      return { canAccess: true };
+      console.log('Attempting to join stage using safe method:', { stageId, userId: user.id, role });
+      
+      return await this.cleanupService.safeJoinStage(stageId, user.id, role);
+      
     } catch (error) {
-      console.error('Error validating stage access:', error);
-      return { canAccess: false, reason: 'Unable to validate access' };
+      console.error('Error joining stage:', error);
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Failed to join stage. Please check your connection and try again.' };
     }
   }
 }
