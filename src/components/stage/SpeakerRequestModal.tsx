@@ -1,155 +1,193 @@
 
 import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Hand, Check, X } from 'lucide-react';
-import StageService from '@/services/StageService';
-import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Clock, MessageSquare } from 'lucide-react';
 
-type SpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'];
+interface SpeakerRequest {
+  id: string;
+  stage_id: string;
+  user_id: string;
+  status: string;
+  message?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface SpeakerRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   stageId: string;
-  onApprove: (userId: string) => void;
+  stageName: string;
 }
 
-const SpeakerRequestModal: React.FC<SpeakerRequestModalProps> = ({
-  isOpen,
-  onClose,
-  stageId,
-  onApprove
+const SpeakerRequestModal: React.FC<SpeakerRequestModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  stageId, 
+  stageName 
 }) => {
-  const [requests, setRequests] = useState<SpeakerRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [existingRequest, setExistingRequest] = useState<SpeakerRequest | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      loadSpeakerRequests();
-      setupRealTimeSubscription();
+    if (isOpen && user) {
+      checkExistingRequest();
     }
-  }, [isOpen, stageId]);
+  }, [isOpen, user, stageId]);
 
-  const loadSpeakerRequests = async () => {
+  const checkExistingRequest = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('speaker_requests')
+        .select('*')
+        .eq('stage_id', stageId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      setExistingRequest(data);
+      if (data?.message) {
+        setMessage(data.message);
+      }
+    } catch (error) {
+      console.error('Error checking existing request:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error('You must be logged in to request speaker access');
+      return;
+    }
+
     setIsLoading(true);
-    const requestsData = await StageService.getPendingSpeakerRequests(stageId);
-    setRequests(requestsData);
-    setIsLoading(false);
-  };
+    
+    try {
+      if (existingRequest) {
+        // Update existing request
+        const { error } = await supabase
+          .from('speaker_requests')
+          .update({
+            message: message.trim() || null,
+            updated_at: new Date().toISOString(),
+            status: 'pending'
+          })
+          .eq('id', existingRequest.id);
 
-  const setupRealTimeSubscription = () => {
-    const channel = StageService.subscribeToSpeakerRequests(stageId, () => {
-      loadSpeakerRequests();
-    });
+        if (error) throw error;
+        toast.success('Speaker request updated successfully!');
+      } else {
+        // Create new request
+        const { error } = await supabase
+          .from('speaker_requests')
+          .insert({
+            stage_id: stageId,
+            user_id: user.id,
+            message: message.trim() || null,
+            status: 'pending'
+          });
 
-    return () => {
-      channel.unsubscribe();
-    };
-  };
+        if (error) throw error;
+        toast.success('Speaker request submitted successfully!');
+      }
 
-  const handleApprove = async (requestId: string, userId: string) => {
-    const success = await StageService.respondToSpeakerRequest(requestId, true);
-    if (success) {
-      toast.success('Speaker request approved!');
-      onApprove(userId);
-      loadSpeakerRequests();
-    } else {
-      toast.error('Failed to approve request');
+      onClose();
+      setMessage('');
+    } catch (error) {
+      console.error('Error submitting speaker request:', error);
+      toast.error('Failed to submit speaker request');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeny = async (requestId: string) => {
-    const success = await StageService.respondToSpeakerRequest(requestId, false);
-    if (success) {
-      toast.success('Speaker request denied');
-      loadSpeakerRequests();
-    } else {
-      toast.error('Failed to deny request');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'default';
+      case 'rejected':
+        return 'destructive';
+      case 'pending':
+      default:
+        return 'secondary';
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Hand className="h-5 w-5" />
-            Speaker Requests
-          </DialogTitle>
+          <DialogTitle>Request Speaker Access</DialogTitle>
           <DialogDescription>
-            Manage requests from audience members who want to speak.
+            Request to speak on stage: <strong>{stageName}</strong>
           </DialogDescription>
         </DialogHeader>
-
-        <ScrollArea className="max-h-[400px]">
-          <div className="space-y-3 p-1">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading requests...</p>
-              </div>
-            ) : requests.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                  <Hand className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">No pending requests</p>
-              </div>
-            ) : (
-              requests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${request.user_id}`} />
-                      <AvatarFallback>
-                        {request.user_id.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div>
-                      <p className="font-medium">
-                        User {request.user_id.slice(0, 8)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(request.requested_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeny(request.id)}
-                      className="gap-1"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleApprove(request.id, request.user_id)}
-                      className="gap-1"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+        
+        {existingRequest && (
+          <div className="p-3 border rounded-lg bg-muted/50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Current Status</span>
+              <Badge variant={getStatusColor(existingRequest.status)}>
+                {existingRequest.status}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>Requested on {new Date(existingRequest.created_at).toLocaleDateString()}</span>
+            </div>
           </div>
-        </ScrollArea>
+        )}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="message">
+              Message to Host {existingRequest ? '(Optional - Update your request)' : '(Optional)'}
+            </Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Tell the host why you'd like to speak..."
+              rows={4}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              {message.length}/500 characters
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                existingRequest ? 'Updating...' : 'Submitting...'
+              ) : (
+                <>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {existingRequest ? 'Update Request' : 'Submit Request'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

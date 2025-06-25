@@ -50,91 +50,34 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Use raw query since types might not be updated yet
-        const { data: memberWorkspaces, error: memberError } = await supabase
-          .rpc('get_user_workspaces', { user_id: user.id })
-          .then(() => {
-            // Fallback to direct query if RPC doesn't exist
-            return supabase
-              .from('workspace_members')
-              .select(`
-                workspace_id,
-                role,
-                workspaces:workspace_id (
-                  id,
-                  name,
-                  description,
-                  owner_id
-                )
-              `)
-              .eq('user_id', user.id);
-          })
-          .catch(async () => {
-            // Final fallback - get workspaces directly
-            return await supabase
-              .from('workspaces')
-              .select('*')
-              .eq('owner_id', user.id);
-          });
-          
-        if (memberError) {
-          console.log('Error fetching workspaces, this is expected while types are updating:', memberError);
+        // Get workspaces directly where user is owner
+        const { data: ownedWorkspaces, error: ownedError } = await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('owner_id', user.id);
+
+        if (ownedError) {
+          console.log('Error fetching owned workspaces:', ownedError);
           setWorkspaces([]);
-        } else if (memberWorkspaces) {
-          // Handle the response based on structure
-          let transformedWorkspaces: Workspace[] = [];
-          
-          if (Array.isArray(memberWorkspaces)) {
-            transformedWorkspaces = memberWorkspaces
-              .map((item: any) => {
-                // If it has a workspaces property, extract it
-                if (item.workspaces) {
-                  return item.workspaces as Workspace;
-                }
-                // If it's a direct workspace object
-                if (item.name && item.owner_id) {
-                  return item as Workspace;
-                }
-                return null;
-              })
-              .filter(Boolean) as Workspace[];
-          }
-          
-          setWorkspaces(transformedWorkspaces);
+        } else if (ownedWorkspaces) {
+          setWorkspaces(ownedWorkspaces as Workspace[]);
           
           // Set the first workspace as current if none is selected
-          if (!currentWorkspace && transformedWorkspaces.length > 0) {
-            setCurrentWorkspace(transformedWorkspaces[0]);
+          if (!currentWorkspace && ownedWorkspaces.length > 0) {
+            setCurrentWorkspace(ownedWorkspaces[0] as Workspace);
           }
         }
         
       } catch (error) {
         console.error('Error fetching workspaces:', error);
-        setError('Failed to load workspaces. This may be temporary while database types update.');
+        setError('Failed to load workspaces.');
         setWorkspaces([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    // Initial fetch
     fetchWorkspaces();
-    
-    // Set up subscription if tables exist
-    const workspaceSubscription = supabase
-      .channel('workspace-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'workspaces' },
-        () => {
-          fetchWorkspaces();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      workspaceSubscription.unsubscribe();
-    };
   }, []);
 
   // Create a new workspace

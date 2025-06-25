@@ -1,200 +1,185 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/contexts/RoleContext';
-import StageService from '@/services/StageService';
-import { StageRoom } from '@/components/stage-call/StageRoom';
-import StageDetails from './components/StageDetails';
-import StageError from './components/StageError';
-import StageLoading from './components/StageLoading';
-import { Database } from '@/integrations/supabase/types';
+import { Mic, MicOff, Video, VideoOff, Users, Clock, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Stage = Database['public']['Tables']['stages']['Row'];
+interface Stage {
+  id: string;
+  name: string;
+  description?: string;
+  host_id: string;
+  is_active: boolean;
+  max_participants: number;
+  workspace_id?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ActiveStageProps {
   stageId: string;
   onLeave: () => void;
-  userRole?: string;
 }
 
-const ActiveStage: React.FC<ActiveStageProps> = ({
-  stageId,
-  onLeave,
-  userRole
-}) => {
+const ActiveStage: React.FC<ActiveStageProps> = ({ stageId, onLeave }) => {
+  const { user } = useAuth();
   const [stage, setStage] = useState<Stage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isJoining, setIsJoining] = useState(false);
-  const [hasJoined, setHasJoined] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const { user } = useAuth();
-  const { currentRole } = useRole();
-
-  const loadStage = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Loading stage:', stageId);
-      const stageData = await StageService.getStageById(stageId);
-      
-      if (!stageData) {
-        setError('Stage not found');
-        return;
-      }
-      
-      setStage(stageData);
-      console.log('Stage loaded successfully:', stageData);
-    } catch (error) {
-      console.error('Error loading stage:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load stage details';
-      setError(errorMessage);
-      
-      // Retry logic for network issues
-      if (retryCount < 3 && !errorMessage.includes('not found')) {
-        console.log(`Retrying... (${retryCount + 1}/3)`);
-        setRetryCount(prev => prev + 1);
-        setTimeout(() => loadStage(), 2000 * (retryCount + 1));
-        return;
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [stageId, retryCount]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [participants, setParticipants] = useState<any[]>([]);
 
   useEffect(() => {
-    loadStage();
-    
-    const channel = StageService.subscribeToStageUpdates(stageId, handleStageUpdate);
-    
-    return () => {
-      channel.unsubscribe();
+    const fetchStage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('stages')
+          .select('*')
+          .eq('id', stageId)
+          .single();
+
+        if (error) throw error;
+        setStage(data);
+      } catch (error) {
+        console.error('Error fetching stage:', error);
+        toast.error('Failed to load stage');
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [loadStage, stageId]);
 
-  const handleStageUpdate = useCallback(() => {
-    console.log('Stage update received, reloading...');
-    loadStage();
-  }, [loadStage]);
+    fetchStage();
+  }, [stageId]);
 
-  const validateJoinRequest = useCallback(async (): Promise<{ canJoin: boolean; error?: string }> => {
-    if (!user) {
-      return { canJoin: false, error: 'Please log in to join the stage' };
-    }
-
-    if (!stage) {
-      return { canJoin: false, error: 'Stage data not available' };
-    }
-
-    // Check stage status
-    if (stage.status === 'ended') {
-      return { canJoin: false, error: 'This stage has ended' };
-    }
-
-    // Additional validation through service
-    const validation = await StageService.validateStageAccess(stageId);
-    if (!validation.canAccess) {
-      return { canJoin: false, error: validation.reason };
-    }
-
-    return { canJoin: true };
-  }, [user, stage, stageId]);
-
-  const joinStageCall = async () => {
-    if (!user || !stage) {
-      toast.error('Unable to join stage at this time');
-      return;
-    }
-
-    setIsJoining(true);
-    setError(null);
-    
-    try {
-      // Validate join request
-      const validation = await validateJoinRequest();
-      if (!validation.canJoin) {
-        setError(validation.error || 'Cannot join stage');
-        toast.error(validation.error || 'Cannot join stage');
-        return;
-      }
-
-      // Start the stage if it's scheduled and user has permission
-      if (stage.status === 'scheduled' && 
-          (stage.creator_id === user.id || currentRole === 'admin' || currentRole === 'moderator')) {
-        console.log('Starting stage...');
-        const statusUpdated = await StageService.updateStageStatus(stageId, 'live');
-        if (statusUpdated) {
-          setStage(prev => prev ? { ...prev, status: 'live' } : null);
-          toast.success('Stage is now live!');
-        } else {
-          setError('Failed to start stage');
-          toast.error('Failed to start stage');
-          return;
-        }
-      }
-
-      // Proceed to stage call with new component
-      setHasJoined(true);
-    } catch (error) {
-      console.error('Error joining stage:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to join stage';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsJoining(false);
-    }
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+    toast.info(isMuted ? 'Microphone unmuted' : 'Microphone muted');
   };
 
-  const leaveStageCall = async () => {
-    try {
-      console.log('Leaving stage...');
-      setHasJoined(false);
-      onLeave();
-      toast.success('Left stage successfully!');
-    } catch (error) {
-      console.error('Error leaving stage:', error);
-      setHasJoined(false);
-      onLeave();
-    }
+  const handleVideoToggle = () => {
+    setIsVideoOff(!isVideoOff);
+    toast.info(isVideoOff ? 'Video enabled' : 'Video disabled');
   };
 
-  const handleRetry = () => {
-    setRetryCount(0);
-    setError(null);
-    loadStage();
+  const handleLeaveStage = () => {
+    toast.info('Left the stage');
+    onLeave();
   };
 
   if (isLoading) {
-    return <StageLoading onLeave={onLeave} />;
-  }
-
-  if (error || !stage) {
     return (
-      <StageError 
-        error={error} 
-        onLeave={onLeave}
-        onRetry={handleRetry}
-      />
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>Loading stage...</p>
+        </div>
+      </div>
     );
   }
 
-  if (hasJoined) {
-    return <StageRoom stageId={stageId} onLeave={leaveStageCall} />;
+  if (!stage) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground">Stage not found</p>
+        </CardContent>
+      </Card>
+    );
   }
 
+  const isHost = user?.id === stage.host_id;
+
   return (
-    <StageDetails
-      stage={stage}
-      user={user}
-      currentRole={currentRole}
-      isJoining={isJoining}
-      error={error}
-      onLeave={onLeave}
-      onJoin={joinStageCall}
-    />
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {stage.name}
+                <Badge variant={stage.is_active ? 'default' : 'secondary'}>
+                  {stage.is_active ? 'Live' : 'Inactive'}
+                </Badge>
+              </div>
+              {stage.description && (
+                <CardDescription>{stage.description}</CardDescription>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>{participants.length} / {stage.max_participants}</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Main Stage Area */}
+            <div className="md:col-span-2">
+              <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center mb-4">
+                <div className="text-center text-white">
+                  <Video className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm opacity-75">Stage Camera</p>
+                </div>
+              </div>
+              
+              {/* Stage Controls */}
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant={isMuted ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={handleMuteToggle}
+                >
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant={isVideoOff ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={handleVideoToggle}
+                >
+                  {isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleLeaveStage}>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Leave Stage
+                </Button>
+              </div>
+            </div>
+
+            {/* Participants Panel */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Participants</h3>
+              <div className="space-y-2">
+                {participants.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No other participants</p>
+                ) : (
+                  participants.map((participant) => (
+                    <div key={participant.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={participant.avatar_url} />
+                        <AvatarFallback>
+                          {participant.name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{participant.name || 'Anonymous'}</p>
+                        {participant.id === stage.host_id && (
+                          <Badge variant="secondary" className="text-xs">Host</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
