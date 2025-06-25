@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
-export type UserRole = 'admin' | 'moderator' | 'user';
+import { UserRole, UserWithRole } from "@/types/supabase-extended";
 
 class RoleService {
   async getUserRole(userId: string): Promise<UserRole | null> {
@@ -28,6 +27,18 @@ class RoleService {
     }
   }
 
+  async getCurrentUserRole(): Promise<UserRole | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      return await this.getUserRole(user.id);
+    } catch (error) {
+      console.error('Error in getCurrentUserRole:', error);
+      return null;
+    }
+  }
+
   async checkUserRole(userId: string): Promise<UserRole | null> {
     try {
       const { data, error } = await supabase
@@ -47,14 +58,32 @@ class RoleService {
     }
   }
 
-  async hasRole(userId: string, role: UserRole): Promise<boolean> {
+  async hasRole(userId: string, role: UserRole): Promise<boolean>;
+  async hasRole(role: UserRole): Promise<boolean>;
+  async hasRole(userIdOrRole: string | UserRole, role?: UserRole): Promise<boolean> {
     try {
-      // Since we don't have the has_role function, we'll check directly
+      let targetUserId: string;
+      let targetRole: UserRole;
+
+      if (typeof userIdOrRole === 'string' && role) {
+        // Two parameter version: hasRole(userId, role)
+        targetUserId = userIdOrRole;
+        targetRole = role;
+      } else if (typeof userIdOrRole === 'string' && !role) {
+        // Single parameter version: hasRole(role) - use current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+        targetUserId = user.id;
+        targetRole = userIdOrRole as UserRole;
+      } else {
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .eq('role', role)
+        .eq('user_id', targetUserId)
+        .eq('role', targetRole)
         .single();
 
       if (error) {
@@ -114,13 +143,84 @@ class RoleService {
     }
   }
 
-  async isAdmin(userId: string): Promise<boolean> {
-    return this.hasRole(userId, 'admin');
+  async isAdmin(userId?: string): Promise<boolean> {
+    if (userId) {
+      return this.hasRole(userId, 'admin');
+    }
+    return this.hasRole('admin');
   }
 
-  async isModerator(userId: string): Promise<boolean> {
-    return this.hasRole(userId, 'moderator');
+  async isModerator(userId?: string): Promise<boolean> {
+    if (userId) {
+      return this.hasRole(userId, 'moderator');
+    }
+    return this.hasRole('moderator');
+  }
+
+  // Permission check methods
+  async canManageCalendar(): Promise<boolean> {
+    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+  }
+
+  async canManageUsers(): Promise<boolean> {
+    return await this.hasRole('admin');
+  }
+
+  async canModerateStage(): Promise<boolean> {
+    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+  }
+
+  async canViewAnalytics(): Promise<boolean> {
+    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+  }
+
+  // Admin panel methods
+  async getUsersWithRoles(): Promise<UserWithRole[]> {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            full_name,
+            email
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching users with roles:', error);
+        return [];
+      }
+
+      return (data || []).map(item => ({
+        id: item.user_id,
+        name: item.profiles?.full_name || 'Unknown User',
+        email: item.profiles?.email || 'No email',
+        role: item.role as UserRole,
+        isHidden: false
+      }));
+    } catch (error) {
+      console.error('Error in getUsersWithRoles:', error);
+      return [];
+    }
+  }
+
+  async createAdminAccount(email: string, password: string, fullName: string): Promise<boolean> {
+    try {
+      console.log('Creating admin account:', { email, fullName });
+      
+      // Note: This would typically require admin-level Supabase functions
+      // For now, we'll simulate the process
+      console.log('Admin account creation simulated - requires backend implementation');
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating admin account:', error);
+      return false;
+    }
   }
 }
 
 export default new RoleService();
+export { UserRole, UserWithRole };

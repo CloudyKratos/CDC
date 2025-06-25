@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ const AdminPanel = () => {
   const { canManageUsers, canViewAnalytics, currentRole } = useRole();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('member');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('user');
 
   // Admin account creation form
   const [adminForm, setAdminForm] = useState({
@@ -89,7 +88,7 @@ const AdminPanel = () => {
     switch (role) {
       case 'admin': return 'bg-red-500 hover:bg-red-600';
       case 'moderator': return 'bg-orange-500 hover:bg-orange-600';
-      case 'member': return 'bg-blue-500 hover:bg-blue-600';
+      case 'user': return 'bg-blue-500 hover:bg-blue-600';
       default: return 'bg-gray-500 hover:bg-gray-600';
     }
   };
@@ -113,7 +112,7 @@ const AdminPanel = () => {
           <h1 className="text-3xl font-bold">Admin Panel</h1>
           <p className="text-gray-600">Manage your community platform</p>
         </div>
-        <Badge className={getRoleBadgeColor(currentRole || 'member')}>
+        <Badge className={getRoleBadgeColor(currentRole || 'user')}>
           <Crown className="h-3 w-3 mr-1" />
           Super Admin
         </Badge>
@@ -215,7 +214,7 @@ const AdminPanel = () => {
                   <div className="flex justify-between">
                     <span>Members:</span>
                     <span className="font-semibold text-blue-500">
-                      {users.filter(u => u.role === 'member').length}
+                      {users.filter(u => u.role === 'user').length}
                     </span>
                   </div>
                 </div>
@@ -258,7 +257,7 @@ const AdminPanel = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="member">Member</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
                           <SelectItem value="moderator">Moderator</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>

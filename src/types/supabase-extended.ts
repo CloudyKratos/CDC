@@ -28,11 +28,20 @@ export type ExtendedSpeakerRequest = Database['public']['Tables']['speaker_reque
 };
 export type ExtendedSpeakerRequestInsert = Database['public']['Tables']['speaker_requests']['Insert'];
 
-// Extended types for user_roles
-export type UserRole = Database['public']['Tables']['user_roles']['Row'];
+// Enhanced types for user_roles - fix the enum issue
+export type UserRole = 'admin' | 'moderator' | 'user';
 export type UserRoleInsert = Database['public']['Tables']['user_roles']['Insert'];
 
-// Extended types for events table
+// User with role interface for admin components
+export interface UserWithRole {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isHidden?: boolean;
+}
+
+// Enhanced types for events table
 export type Event = Database['public']['Tables']['events']['Row'];
 export type EventInsert = Database['public']['Tables']['events']['Insert'];
 
@@ -61,3 +70,22 @@ export type CalendarEventType =
   | 'course_drop'
   | 'challenge_sprint'
   | 'deep_work_day';
+
+// Platform metrics for analytics
+export interface PlatformMetrics {
+  totalUsers: number;
+  activeUsers: number;
+  totalEvents: number;
+  upcomingEvents: number;
+  totalStages: number;
+  activeStages: number;
+}
+
+// User statistics for admin dashboard
+export interface UserStats {
+  totalUsers: number;
+  adminCount: number;
+  moderatorCount: number;
+  memberCount: number;
+  activeUsers: number;
+}
