@@ -1,137 +1,88 @@
 
-import { CalendarEventData, CalendarServiceResponse } from '@/types/calendar-events';
-import { DatabaseService } from './DatabaseService';
-import { EventValidationService } from './EventValidationService';
-import { EventDataProcessor } from './EventDataProcessor';
-import { AuthService } from './AuthService';
+import { EnhancedEventData } from '@/types/supabase-extended';
+import CalendarEventService from './CalendarEventService';
 
-export class CalendarServiceCore {
-  static async getEvents(): Promise<CalendarServiceResponse<CalendarEventData[]>> {
+// Use EnhancedEventData as the main type
+type CalendarEventData = EnhancedEventData;
+
+class CalendarServiceCore {
+  async getEvents(): Promise<CalendarEventData[]> {
     try {
-      console.log('🔄 CalendarServiceCore: Starting event fetch...');
-      
-      const events = await DatabaseService.getEvents();
-      
-      return {
-        success: true,
-        data: events
-      };
+      const events = await CalendarEventService.getEvents();
+      return events;
     } catch (error) {
-      console.error('💥 CalendarServiceCore: Error in getEvents:', error);
-      
-      // Handle specific RLS/policy errors
-      if (error instanceof Error) {
-        if (error.message.includes('infinite recursion') || 
-            error.message.includes('policy') ||
-            error.message.includes('workspace_members')) {
-          return {
-            success: false,
-            error: 'Database permissions issue. Please check your workspace access.',
-            code: 'RLS_ERROR'
-          };
-        }
-        
-        if (error.message.includes('Authentication')) {
-          return {
-            success: false,
-            error: 'Please log in to access calendar events.',
-            code: 'AUTH_ERROR'
-          };
-        }
-      }
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        code: 'UNKNOWN_ERROR'
-      };
+      console.error('CalendarServiceCore: Error getting events:', error);
+      throw error;
     }
   }
 
-  static async createEvent(eventData: CalendarEventData): Promise<CalendarServiceResponse<CalendarEventData>> {
+  async createEvent(eventData: {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    event_type?: string;
+    visibility_level?: string;
+    max_attendees?: number;
+    tags?: string[];
+    meeting_url?: string;
+    resources?: any;
+  }): Promise<CalendarEventData> {
     try {
-      console.log('🔄 CalendarServiceCore: Starting event creation...');
+      console.log('CalendarServiceCore: Creating event:', eventData);
       
-      // Get current user
-      const userId = await AuthService.getCurrentUser();
-      
-      // Validate required fields
-      EventValidationService.validateEventData(eventData);
-      
-      // Date processing and validation
-      const startTime = new Date(eventData.start_time).toISOString();
-      const endTime = new Date(eventData.end_time).toISOString();
-      
-      EventValidationService.validateDateLogic(startTime, endTime);
-      
-      // Prepare clean event data
-      const cleanEventData = EventDataProcessor.processEventData(eventData, userId);
-      
-      // Insert into database
-      const result = await DatabaseService.insertEvent(cleanEventData);
-      
-      return {
-        success: true,
-        data: result
+      // Ensure required fields are present
+      const eventToCreate = {
+        ...eventData,
+        created_by: 'system', // This will be overridden by DatabaseService
+        visibility_level: eventData.visibility_level || 'public',
+        event_type: eventData.event_type || 'mission_call',
+        status: 'scheduled'
       };
+
+      const newEvent = await CalendarEventService.createEvent(eventToCreate);
+      console.log('CalendarServiceCore: Event created successfully:', newEvent);
+      return newEvent;
     } catch (error) {
-      console.error('💥 CalendarServiceCore: Error in createEvent:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create event',
-        code: 'CREATE_ERROR'
-      };
+      console.error('CalendarServiceCore: Error creating event:', error);
+      throw error;
     }
   }
 
-  static async updateEvent(id: string, updates: Partial<CalendarEventData>): Promise<CalendarServiceResponse<CalendarEventData>> {
+  async updateEvent(id: string, updates: Partial<CalendarEventData>): Promise<CalendarEventData> {
     try {
-      console.log('🔄 CalendarServiceCore: Starting event update...');
+      console.log('CalendarServiceCore: Updating event:', { id, updates });
       
-      // Validate updates if they include time changes
-      if (updates.start_time && updates.end_time) {
-        EventValidationService.validateDateLogic(updates.start_time, updates.end_time);
-      }
-
-      // Clean the updates data
-      const cleanUpdates = EventDataProcessor.processUpdateData(updates);
-
-      const result = await DatabaseService.updateEvent(id, cleanUpdates);
-      
-      return {
-        success: true,
-        data: result
-      };
+      const updatedEvent = await CalendarEventService.updateEvent(id, updates);
+      console.log('CalendarServiceCore: Event updated successfully:', updatedEvent);
+      return updatedEvent;
     } catch (error) {
-      console.error('💥 CalendarServiceCore: Error in updateEvent:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to update event',
-        code: 'UPDATE_ERROR'
-      };
+      console.error('CalendarServiceCore: Error updating event:', error);
+      throw error;
     }
   }
 
-  static async deleteEvent(id: string): Promise<CalendarServiceResponse<boolean>> {
+  async deleteEvent(id: string): Promise<boolean> {
     try {
-      console.log('🔄 CalendarServiceCore: Starting event deletion...');
+      console.log('CalendarServiceCore: Deleting event:', id);
       
-      const success = await DatabaseService.deleteEvent(id);
-      
-      return {
-        success: true,
-        data: success
-      };
+      const success = await CalendarEventService.deleteEvent(id);
+      console.log('CalendarServiceCore: Event deletion result:', success);
+      return success;
     } catch (error) {
-      console.error('💥 CalendarServiceCore: Error in deleteEvent:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete event',
-        code: 'DELETE_ERROR'
-      };
+      console.error('CalendarServiceCore: Error deleting event:', error);
+      throw error;
+    }
+  }
+
+  async checkForOverlappingEvents(startTime: string, endTime: string, excludeEventId?: string): Promise<CalendarEventData[]> {
+    try {
+      return await CalendarEventService.checkForOverlappingEvents(startTime, endTime, excludeEventId);
+    } catch (error) {
+      console.error('CalendarServiceCore: Error checking overlapping events:', error);
+      return [];
     }
   }
 }
+
+export default new CalendarServiceCore();

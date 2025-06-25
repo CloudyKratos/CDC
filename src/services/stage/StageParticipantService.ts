@@ -26,7 +26,11 @@ class StageParticipantService {
       throw new Error(`Failed to fetch participants: ${error.message}`);
     }
 
-    return (data || []) as StageParticipant[];
+    // Transform data to match StageParticipant type
+    return (data || []).map(participant => ({
+      ...participant,
+      profiles: Array.isArray(participant.profiles) ? participant.profiles[0] : participant.profiles
+    })) as StageParticipant[];
   }
 
   async updateParticipantRole(stageId: string, userId: string, role: StageRole): Promise<boolean> {
@@ -150,7 +154,11 @@ class StageParticipantService {
       throw new Error(`Failed to join stage: ${error.message}`);
     }
 
-    return data as StageParticipant;
+    // Transform data to match StageParticipant type
+    return {
+      ...data,
+      profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
+    } as StageParticipant;
   }
 }
 

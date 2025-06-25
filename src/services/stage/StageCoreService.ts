@@ -1,54 +1,25 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ExtendedStage, ExtendedStageInsert, StageStatus, StageAccessValidation } from "@/types/supabase-extended";
+import { ExtendedStage, ExtendedStageInsert, StageStatus } from "@/types/supabase-extended";
 
-export { StageStatus };
+// Export types properly with 'export type'
+export type { ExtendedStage, ExtendedStageInsert, StageStatus };
 
 class StageCoreService {
-  async createStage(stageData: ExtendedStageInsert): Promise<ExtendedStage> {
-    console.log('Creating stage with data:', stageData);
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User must be authenticated to create a stage');
-    }
-
-    // Ensure creator_id is set to current user
-    const stageToCreate = {
-      ...stageData,
-      creator_id: user.id,
-      host_id: user.id, // Also set host_id for backward compatibility
-    };
-
-    const { data, error } = await supabase
-      .from('stages')
-      .insert(stageToCreate)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating stage:', error);
-      throw new Error(`Failed to create stage: ${error.message}`);
-    }
-
-    return data as ExtendedStage;
-  }
-
-  async getActiveStages(): Promise<ExtendedStage[]> {
-    console.log('Fetching active stages');
+  async getStages(): Promise<ExtendedStage[]> {
+    console.log('Fetching all stages');
     
     const { data, error } = await supabase
       .from('stages')
       .select('*')
-      .in('status', ['scheduled', 'live'])
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching active stages:', error);
+      console.error('Error fetching stages:', error);
       throw new Error(`Failed to fetch stages: ${error.message}`);
     }
 
-    return (data || []) as ExtendedStage[];
+    return data || [];
   }
 
   async getStageById(stageId: string): Promise<ExtendedStage | null> {
@@ -58,80 +29,79 @@ class StageCoreService {
       .from('stages')
       .select('*')
       .eq('id', stageId)
-      .maybeSingle();
+      .single();
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Stage not found
+      }
       console.error('Error fetching stage:', error);
       throw new Error(`Failed to fetch stage: ${error.message}`);
     }
 
-    return data as ExtendedStage | null;
+    return data;
+  }
+
+  async createStage(stageData: ExtendedStageInsert): Promise<ExtendedStage> {
+    console.log('Creating new stage:', stageData);
+    
+    const { data, error } = await supabase
+      .from('stages')
+      .insert(stageData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating stage:', error);
+      throw new Error(`Failed to create stage: ${error.message}`);
+    }
+
+    return data;
   }
 
   async updateStageStatus(stageId: string, status: StageStatus): Promise<boolean> {
     console.log('Updating stage status:', { stageId, status });
     
-    const updateData: any = { status };
+    const updates: any = { 
+      status,
+      updated_at: new Date().toISOString()
+    };
     
-    // Set timestamps based on status
     if (status === 'live') {
-      updateData.actual_start_time = new Date().toISOString();
-      updateData.is_active = true;
+      updates.actual_start_time = new Date().toISOString();
+      updates.is_active = true;
     } else if (status === 'ended') {
-      updateData.end_time = new Date().toISOString();
-      updateData.is_active = false;
+      updates.end_time = new Date().toISOString();
+      updates.is_active = false;
     }
 
     const { error } = await supabase
       .from('stages')
-      .update(updateData)
+      .update(updates)
       .eq('id', stageId);
 
     if (error) {
       console.error('Error updating stage status:', error);
-      throw new Error(`Failed to update stage status: ${error.message}`);
+      return false;
     }
 
     return true;
   }
 
-  async validateStageAccess(stageId: string): Promise<StageAccessValidation> {
-    console.log('Validating stage access for:', stageId);
+  async deleteStage(stageId: string): Promise<boolean> {
+    console.log('Deleting stage:', stageId);
     
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { canAccess: false, reason: 'Authentication required' };
-    }
-
-    // Check if user is the creator or a participant
-    const { data: stage } = await supabase
+    const { error } = await supabase
       .from('stages')
-      .select('creator_id, host_id')
-      .eq('id', stageId)
-      .maybeSingle();
+      .delete()
+      .eq('id', stageId);
 
-    if (!stage) {
-      return { canAccess: false, reason: 'Stage not found' };
+    if (error) {
+      console.error('Error deleting stage:', error);
+      return false;
     }
 
-    // User is creator/host
-    if (stage.creator_id === user.id || stage.host_id === user.id) {
-      return { canAccess: true };
-    }
-
-    // Check if user is a participant
-    const { data: participant } = await supabase
-      .from('stage_participants')
-      .select('id')
-      .eq('stage_id', stageId)
-      .eq('user_id', user.id)
-      .is('left_at', null)
-      .maybeSingle();
-
-    return { 
-      canAccess: !!participant,
-      reason: participant ? undefined : 'Not a participant'
-    };
+    return true;
   }
 }
 

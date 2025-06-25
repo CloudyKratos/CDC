@@ -1,30 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
-export interface DirectMessage {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-}
-
-export interface Conversation {
-  id: string;
-  participants: string[];
-  last_message?: DirectMessage;
-  created_at: string;
-  updated_at: string;
-}
+import { DirectMessage, Conversation } from "@/types/supabase-extended";
 
 class DirectMessageService {
-  async getConversations(userId: string): Promise<Conversation[]> {
+  async getConversations(): Promise<Conversation[]> {
     try {
-      console.log('Getting conversations for user:', userId);
+      console.log('Direct messages feature requires database setup - returning mock data');
       
-      // Since we don't have conversations table, return empty array for now
-      console.log('Conversations feature not fully implemented - requires database setup');
+      // Mock conversation data since tables don't exist yet
       return [];
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -32,12 +15,11 @@ class DirectMessageService {
     }
   }
 
-  async getMessages(conversationId: string): Promise<DirectMessage[]> {
+  async getMessages(recipientId: string): Promise<DirectMessage[]> {
     try {
-      console.log('Getting messages for conversation:', conversationId);
+      console.log('Getting messages for recipient:', recipientId);
       
-      // Since we don't have direct_messages table, return empty array for now
-      console.log('Direct messages feature not fully implemented - requires database setup');
+      // Mock messages since table doesn't exist yet
       return [];
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -45,7 +27,7 @@ class DirectMessageService {
     }
   }
 
-  async sendMessage(recipientId: string, content: string): Promise<DirectMessage | null> {
+  async sendMessage(recipientId: string, content: string): Promise<DirectMessage> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -54,33 +36,42 @@ class DirectMessageService {
 
       console.log('Sending message to:', recipientId, 'content:', content);
       
-      // Since we don't have direct_messages table, simulate message creation
+      // Simulate message creation since table doesn't exist
       const mockMessage: DirectMessage = {
         id: `msg_${Date.now()}`,
         sender_id: user.id,
         recipient_id: recipientId,
         content,
         created_at: new Date().toISOString(),
-        is_read: false
+        updated_at: new Date().toISOString(),
+        is_read: false,
+        is_deleted: false,
+        reply_to_id: null,
+        sender: {
+          id: user.id,
+          username: 'current_user',
+          full_name: 'Current User',
+          avatar_url: null
+        }
       };
 
       console.log('Message sent (simulated):', mockMessage);
       return mockMessage;
     } catch (error) {
       console.error('Error sending message:', error);
-      return null;
+      throw error;
     }
   }
 
-  async markAsRead(messageId: string): Promise<boolean> {
+  async markAsRead(recipientId: string): Promise<boolean> {
     try {
-      console.log('Marking message as read:', messageId);
+      console.log('Marking messages as read from:', recipientId);
       
-      // Since we don't have direct_messages table, simulate mark as read
-      console.log('Mark as read simulated for message:', messageId);
+      // Simulate mark as read since table doesn't exist
+      console.log('Mark as read simulated for recipient:', recipientId);
       return true;
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      console.error('Error marking messages as read:', error);
       return false;
     }
   }
@@ -94,7 +85,7 @@ class DirectMessageService {
 
       console.log('Creating conversation with:', participantId);
       
-      // Since we don't have conversations table, simulate conversation creation
+      // Simulate conversation creation since table doesn't exist
       const conversationId = `conv_${Date.now()}`;
       console.log('Conversation created (simulated):', conversationId);
       return conversationId;
@@ -108,12 +99,31 @@ class DirectMessageService {
     try {
       console.log('Deleting message:', messageId);
       
-      // Since we don't have direct_messages table, simulate deletion
+      // Simulate deletion since table doesn't exist
       console.log('Message deletion simulated for:', messageId);
       return true;
     } catch (error) {
       console.error('Error deleting message:', error);
       return false;
+    }
+  }
+
+  async getUsers(): Promise<Array<{ id: string; username?: string; full_name?: string; avatar_url?: string; }>> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
     }
   }
 }

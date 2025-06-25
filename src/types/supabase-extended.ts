@@ -5,19 +5,19 @@ import { Database } from '@/integrations/supabase/types';
 export type ExtendedStage = Database['public']['Tables']['stages']['Row'];
 export type ExtendedStageInsert = Database['public']['Tables']['stages']['Insert'];
 
-// Properly extend stage participants with profile data
-export interface StageParticipant extends Database['public']['Tables']['stage_participants']['Row'] {
+// Enhanced StageParticipant type with proper profile data
+export type StageParticipant = Database['public']['Tables']['stage_participants']['Row'] & {
   profiles?: {
     id: string;
     full_name?: string | null;
     username?: string | null;
     avatar_url?: string | null;
   } | null;
-}
+};
 
 export type StageParticipantInsert = Database['public']['Tables']['stage_participants']['Insert'];
 
-// Use actual database types for speaker requests
+// Enhanced speaker request type with profile data
 export type ExtendedSpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'] & {
   profiles?: {
     id: string;
@@ -52,9 +52,9 @@ export type Event = Database['public']['Tables']['events']['Row'];
 export type EventInsert = Database['public']['Tables']['events']['Insert'];
 
 // Enhanced event data with proper typing
-export interface EnhancedEventData extends Database['public']['Tables']['events']['Row'] {
+export type EnhancedEventData = Database['public']['Tables']['events']['Row'] & {
   event_type: CalendarEventType | null;
-}
+};
 
 // Service response types
 export interface StageAccessValidation {
@@ -101,4 +101,40 @@ export interface UserStats {
   moderatorCount: number;
   memberCount: number;
   activeUsers: number;
+}
+
+// Fixed DirectMessage interface with proper sender info
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  is_read: boolean;
+  is_deleted?: boolean;
+  reply_to_id?: string | null;
+  sender?: {
+    id: string;
+    username?: string | null;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  };
+}
+
+// Fixed Conversation interface with proper participant info
+export interface Conversation {
+  id: string;
+  participants: string[];
+  last_message?: DirectMessage;
+  created_at: string;
+  updated_at: string;
+  last_activity_at: string;
+  unread_count?: number;
+  other_participant?: {
+    id: string;
+    username?: string | null;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  };
 }
