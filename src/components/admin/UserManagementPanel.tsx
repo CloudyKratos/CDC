@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Crown, Shield, User, TrendingUp, Calendar } from 'lucide-react';
 import AdminService from '@/services/AdminService';
+import { UserRole } from '@/types/supabase-extended';
 import { format } from 'date-fns';
 
 const UserManagementPanel = () => {
@@ -40,7 +41,7 @@ const UserManagementPanel = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'moderator' | 'member') => {
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
     const success = await AdminService.assignUserRole(userId, newRole);
     if (success) {
       loadUserData(); // Refresh data
@@ -161,12 +162,12 @@ const UserManagementPanel = () => {
                     <span className="ml-1 capitalize">{user.role}</span>
                   </Badge>
 
-                  <Select value={user.role} onValueChange={(value) => handleRoleChange(user.id, value as any)}>
+                  <Select value={user.role} onValueChange={(value: UserRole) => handleRoleChange(user.id, value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
                       <SelectItem value="moderator">Moderator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>

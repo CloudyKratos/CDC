@@ -41,17 +41,19 @@ class RoleService {
 
   async checkUserRole(userId: string): Promise<UserRole | null> {
     try {
+      // Since we don't have the RPC function, use direct query
       const { data, error } = await supabase
-        .rpc('get_user_role', { 
-          check_user_id: userId 
-        });
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
 
       if (error) {
         console.error('Error checking user role:', error);
         return null;
       }
 
-      return data as UserRole;
+      return data?.role as UserRole;
     } catch (error) {
       console.error('Error in checkUserRole:', error);
       return null;
@@ -177,29 +179,47 @@ class RoleService {
   // Admin panel methods
   async getUsersWithRoles(): Promise<UserWithRole[]> {
     try {
-      const { data, error } = await supabase
+      // First get all user roles
+      const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `);
+        .select('user_id, role');
 
-      if (error) {
-        console.error('Error fetching users with roles:', error);
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
         return [];
       }
 
-      return (data || []).map(item => ({
-        id: item.user_id,
-        name: item.profiles?.full_name || 'Unknown User',
-        email: item.profiles?.email || 'No email',
-        role: item.role as UserRole,
-        isHidden: false
-      }));
+      // Then get all profiles for those users
+      const userIds = (rolesData || []).map(role => role.user_id);
+      
+      if (userIds.length === 0) {
+        return [];
+      }
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, username, created_at')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        return [];
+      }
+
+      // Combine the data
+      const usersWithRoles = (rolesData || []).map(roleItem => {
+        const profile = (profilesData || []).find(p => p.id === roleItem.user_id);
+        return {
+          id: roleItem.user_id,
+          name: profile?.full_name || 'Unknown User',
+          email: profile?.email || 'No email',
+          role: roleItem.role as UserRole,
+          isHidden: false,
+          profile: profile
+        };
+      });
+
+      return usersWithRoles;
     } catch (error) {
       console.error('Error in getUsersWithRoles:', error);
       return [];
@@ -211,7 +231,6 @@ class RoleService {
       console.log('Creating admin account:', { email, fullName });
       
       // Note: This would typically require admin-level Supabase functions
-      // For now, we'll simulate the process
       console.log('Admin account creation simulated - requires backend implementation');
       
       return true;
@@ -223,4 +242,4 @@ class RoleService {
 }
 
 export default new RoleService();
-export { UserRole, UserWithRole };
+export type { UserRole, UserWithRole };

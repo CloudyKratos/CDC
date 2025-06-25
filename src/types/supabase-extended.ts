@@ -39,6 +39,12 @@ export interface UserWithRole {
   email: string;
   role: UserRole;
   isHidden?: boolean;
+  profile?: {
+    full_name?: string | null;
+    username?: string | null;
+    email?: string | null;
+    created_at?: string;
+  };
 }
 
 // Enhanced types for events table
@@ -71,7 +77,7 @@ export type CalendarEventType =
   | 'challenge_sprint'
   | 'deep_work_day';
 
-// Platform metrics for analytics
+// Platform metrics for analytics - updated to match component expectations
 export interface PlatformMetrics {
   totalUsers: number;
   activeUsers: number;
@@ -79,6 +85,8 @@ export interface PlatformMetrics {
   upcomingEvents: number;
   totalStages: number;
   activeStages: number;
+  totalMessages: number;
+  userGrowth: number;
 }
 
 // User statistics for admin dashboard

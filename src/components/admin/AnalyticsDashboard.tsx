@@ -22,7 +22,12 @@ const AnalyticsDashboard = () => {
     setIsLoading(true);
     try {
       const platformMetrics = await AdminService.getPlatformMetrics();
-      setMetrics(platformMetrics);
+      setMetrics({
+        totalEvents: platformMetrics.totalEvents,
+        activeStages: platformMetrics.activeStages,
+        totalMessages: platformMetrics.totalMessages,
+        userGrowth: platformMetrics.userGrowth
+      });
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
