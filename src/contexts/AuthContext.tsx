@@ -7,9 +7,12 @@ export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (data: { name?: string; avatar_url?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,13 +67,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const updateUser = async (data: { name?: string; avatar_url?: string }): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: data.name,
+          avatar_url: data.avatar_url,
+        });
+      
+      return !error;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return false;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     session,
     loading,
+    isAuthenticated: !!user,
     signIn,
     signUp,
     signOut,
+    logout,
+    updateUser,
   };
 
   return (
