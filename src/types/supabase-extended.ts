@@ -47,9 +47,14 @@ export interface UserWithRole {
   };
 }
 
-// Enhanced types for events table
+// Enhanced types for events table - fix the event_type issue
 export type Event = Database['public']['Tables']['events']['Row'];
 export type EventInsert = Database['public']['Tables']['events']['Insert'];
+
+// Enhanced event data with proper typing
+export interface EnhancedEventData extends Database['public']['Tables']['events']['Row'] {
+  event_type: CalendarEventType | null;
+}
 
 // Service response types
 export interface StageAccessValidation {

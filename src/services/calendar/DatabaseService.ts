@@ -1,12 +1,13 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { EnhancedEventData } from './CalendarEventService';
+import { EnhancedEventData, CalendarEventType } from '@/types/supabase-extended';
 
 export class DatabaseService {
   static async getEvents(): Promise<EnhancedEventData[]> {
     try {
-      console.log('🔄 DatabaseService: Fetching events using security definer function...');
+      console.log('🔄 DatabaseService: Fetching events...');
       
-      // First, try to get the current user to check authentication
+      // Get current user to check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
@@ -19,57 +20,49 @@ export class DatabaseService {
         return [];
       }
 
-      // Use the new security definer function to avoid RLS infinite recursion
+      // Direct query to events table
       const { data, error } = await supabase
-        .rpc('get_user_events', { _user_id: user.id });
+        .from('events')
+        .select(`
+          id,
+          title,
+          description,
+          start_time,
+          end_time,
+          event_type,
+          status,
+          max_attendees,
+          is_recurring,
+          recurrence_pattern,
+          tags,
+          cohort_id,
+          coach_id,
+          replay_url,
+          meeting_url,
+          resources,
+          visibility_level,
+          xp_reward,
+          created_by,
+          workspace_id,
+          created_at,
+          updated_at
+        `)
+        .eq('visibility_level', 'public')
+        .order('start_time', { ascending: true })
+        .limit(50);
 
       if (error) {
-        console.error('❌ DatabaseService: Error fetching events via RPC:', error);
-        
-        // Fallback to direct query without workspace filtering
-        console.log('🔄 DatabaseService: Trying fallback direct query...');
-        
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('events')
-          .select(`
-            id,
-            title,
-            description,
-            start_time,
-            end_time,
-            event_type,
-            status,
-            max_attendees,
-            is_recurring,
-            recurrence_pattern,
-            tags,
-            cohort_id,
-            coach_id,
-            replay_url,
-            meeting_url,
-            resources,
-            visibility_level,
-            xp_reward,
-            created_by,
-            workspace_id,
-            created_at,
-            updated_at
-          `)
-          .eq('visibility_level', 'public')
-          .order('start_time', { ascending: true })
-          .limit(50);
-
-        if (fallbackError) {
-          console.error('❌ DatabaseService: Fallback also failed:', fallbackError);
-          throw new Error(`Database error: ${fallbackError.message}`);
-        }
-
-        console.log('✅ DatabaseService: Fallback successful, events fetched:', fallbackData?.length || 0);
-        return fallbackData || [];
+        console.error('❌ DatabaseService: Error fetching events:', error);
+        throw new Error(`Database error: ${error.message}`);
       }
 
-      console.log('✅ DatabaseService: Events fetched successfully via RPC:', data?.length || 0);
-      return data || [];
+      console.log('✅ DatabaseService: Events fetched successfully:', data?.length || 0);
+      
+      // Transform the data to match EnhancedEventData type
+      return (data || []).map(event => ({
+        ...event,
+        event_type: event.event_type as CalendarEventType | null
+      }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in getEvents:', error);
       throw error;
@@ -94,7 +87,7 @@ export class DatabaseService {
         created_by: user.id
       };
 
-      // Direct insert without any complex queries
+      // Direct insert
       const { data, error } = await supabase
         .from('events')
         .insert([insertData])
@@ -117,7 +110,10 @@ export class DatabaseService {
       }
 
       console.log('✅ DatabaseService: Event created successfully:', data);
-      return data;
+      return {
+        ...data,
+        event_type: data.event_type as CalendarEventType | null
+      };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in insertEvent:', error);
       throw error;
@@ -145,7 +141,10 @@ export class DatabaseService {
       }
 
       console.log('✅ DatabaseService: Event updated successfully:', data);
-      return data;
+      return {
+        ...data,
+        event_type: data.event_type as CalendarEventType | null
+      };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in updateEvent:', error);
       throw error;
@@ -220,7 +219,10 @@ export class DatabaseService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map(event => ({
+        ...event,
+        event_type: event.event_type as CalendarEventType | null
+      }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in checkForOverlappingEvents:', error);
       return [];
