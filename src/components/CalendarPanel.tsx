@@ -73,7 +73,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   const handleCreateEvent = async (eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Creating event:', eventData);
-      const createdEvent = await CalendarService.createEvent(eventData as EventData);
+      // Convert CalendarEventData to EventData format for the service
+      const eventPayload: EventData = {
+        ...eventData,
+        event_type: eventData.event_type as EventData['event_type'] // Ensure type compatibility
+      };
+      const createdEvent = await CalendarService.createEvent(eventPayload);
       
       if (createdEvent) {
         console.log('📅 CalendarPanel: Event created successfully');
@@ -93,7 +98,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ isAdminView = false }) =>
   const handleUpdateEvent = async (id: string, eventData: CalendarEventData): Promise<void> => {
     try {
       console.log('📅 CalendarPanel: Updating event:', id, eventData);
-      const updatedEvent = await CalendarService.updateEvent(id, eventData as Partial<EventData>);
+      // Convert CalendarEventData to Partial<EventData> format for the service
+      const eventPayload: Partial<EventData> = {
+        ...eventData,
+        event_type: eventData.event_type as EventData['event_type'] // Ensure type compatibility
+      };
+      const updatedEvent = await CalendarService.updateEvent(id, eventPayload);
       
       if (updatedEvent) {
         console.log('📅 CalendarPanel: Event updated successfully');

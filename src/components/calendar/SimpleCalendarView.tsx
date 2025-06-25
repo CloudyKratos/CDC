@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 interface CalendarEvent extends EventData {
   start: Date;
   end: Date;
+  created_by: string; // Make required to match EventData
 }
 
 const SimpleCalendarView = () => {
@@ -30,10 +31,11 @@ const SimpleCalendarView = () => {
     try {
       setIsLoading(true);
       const eventsData = await CalendarService.getEvents();
-      const formattedEvents = eventsData.map(event => ({
+      const formattedEvents: CalendarEvent[] = eventsData.map(event => ({
         ...event,
         start: new Date(event.start_time),
         end: new Date(event.end_time),
+        created_by: event.created_by || '', // Ensure created_by is always a string
       }));
       setEvents(formattedEvents);
     } catch (error) {

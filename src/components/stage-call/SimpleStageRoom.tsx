@@ -7,6 +7,7 @@ import { StageHeader } from './ui/StageHeader';
 import { ParticipantGrid } from './ui/ParticipantGrid';
 import { StageControls } from './ui/StageControls';
 import { StageChat } from './ui/StageChat';
+import { StageParticipant } from '@/types/supabase-extended';
 
 interface SimpleStageRoomProps {
   stageId: string;
@@ -39,7 +40,7 @@ export const SimpleStageRoom: React.FC<SimpleStageRoomProps> = ({
 
   const loadParticipants = useCallback(async () => {
     try {
-      const participantData = await StageService.getStageParticipants(stageId);
+      const participantData: StageParticipant[] = await StageService.getStageParticipants(stageId);
       
       const formattedParticipants: Participant[] = participantData.map(p => ({
         id: p.user_id,
