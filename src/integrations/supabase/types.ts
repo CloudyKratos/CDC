@@ -106,6 +106,89 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          coach_id: string | null
+          cohort_id: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          end_time: string
+          event_type: string | null
+          id: string
+          is_recurring: boolean | null
+          max_attendees: number | null
+          meeting_url: string | null
+          recurrence_pattern: Json | null
+          replay_url: string | null
+          resources: Json | null
+          start_time: string
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          visibility_level: string | null
+          workspace_id: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          coach_id?: string | null
+          cohort_id?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          end_time: string
+          event_type?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          recurrence_pattern?: Json | null
+          replay_url?: string | null
+          resources?: Json | null
+          start_time: string
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          visibility_level?: string | null
+          workspace_id?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          coach_id?: string | null
+          cohort_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          end_time?: string
+          event_type?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          recurrence_pattern?: Json | null
+          replay_url?: string | null
+          resources?: Json | null
+          start_time?: string
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          visibility_level?: string | null
+          workspace_id?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_locations: {
         Row: {
           city: string | null
@@ -269,6 +352,9 @@ export type Database = {
           created_at: string | null
           id: string
           message: string | null
+          requested_at: string | null
+          responded_at: string | null
+          responded_by: string | null
           stage_id: string
           status: string | null
           updated_at: string | null
@@ -278,6 +364,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           message?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
           stage_id: string
           status?: string | null
           updated_at?: string | null
@@ -287,6 +376,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           message?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
           stage_id?: string
           status?: string | null
           updated_at?: string | null
@@ -302,43 +394,161 @@ export type Database = {
           },
         ]
       }
-      stages: {
+      stage_participants: {
         Row: {
           created_at: string | null
+          id: string
+          is_hand_raised: boolean | null
+          is_muted: boolean | null
+          is_video_enabled: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          role: string
+          stage_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_hand_raised?: boolean | null
+          is_muted?: boolean | null
+          is_video_enabled?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          role?: string
+          stage_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_hand_raised?: boolean | null
+          is_muted?: boolean | null
+          is_video_enabled?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          role?: string
+          stage_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_participants_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stages: {
+        Row: {
+          actual_start_time: string | null
+          allow_hand_raising: boolean | null
+          created_at: string | null
+          creator_id: string
           description: string | null
+          end_time: string | null
           host_id: string
           id: string
           is_active: boolean | null
+          max_audience: number | null
           max_participants: number | null
+          max_speakers: number | null
           name: string
+          recording_enabled: boolean | null
+          scheduled_start_time: string | null
+          status: string | null
+          title: string
+          topic: string | null
           updated_at: string | null
           workspace_id: string | null
         }
         Insert: {
+          actual_start_time?: string | null
+          allow_hand_raising?: boolean | null
           created_at?: string | null
+          creator_id: string
           description?: string | null
+          end_time?: string | null
           host_id: string
           id?: string
           is_active?: boolean | null
+          max_audience?: number | null
           max_participants?: number | null
+          max_speakers?: number | null
           name: string
+          recording_enabled?: boolean | null
+          scheduled_start_time?: string | null
+          status?: string | null
+          title: string
+          topic?: string | null
           updated_at?: string | null
           workspace_id?: string | null
         }
         Update: {
+          actual_start_time?: string | null
+          allow_hand_raising?: boolean | null
           created_at?: string | null
+          creator_id?: string
           description?: string | null
+          end_time?: string | null
           host_id?: string
           id?: string
           is_active?: boolean | null
+          max_audience?: number | null
           max_participants?: number | null
+          max_speakers?: number | null
           name?: string
+          recording_enabled?: boolean | null
+          scheduled_start_time?: string | null
+          status?: string | null
+          title?: string
+          topic?: string | null
           updated_at?: string | null
           workspace_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -410,7 +620,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { check_user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
