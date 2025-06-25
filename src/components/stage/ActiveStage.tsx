@@ -105,7 +105,7 @@ const ActiveStage: React.FC<ActiveStageProps> = ({ stageId, onLeave }) => {
                 <Badge variant={stage.is_active ? 'default' : 'secondary'}>
                   {stage.is_active ? 'Live' : 'Inactive'}
                 </Badge>
-              </div>
+              </CardTitle>
               {stage.description && (
                 <CardDescription>{stage.description}</CardDescription>
               )}
