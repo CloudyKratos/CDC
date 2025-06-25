@@ -18,7 +18,14 @@ export interface StageParticipant extends Database['public']['Tables']['stage_pa
 export type StageParticipantInsert = Database['public']['Tables']['stage_participants']['Insert'];
 
 // Use actual database types for speaker requests
-export type ExtendedSpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'];
+export type ExtendedSpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'] & {
+  profiles?: {
+    id: string;
+    full_name?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null;
+};
 export type ExtendedSpeakerRequestInsert = Database['public']['Tables']['speaker_requests']['Insert'];
 
 // Extended types for user_roles

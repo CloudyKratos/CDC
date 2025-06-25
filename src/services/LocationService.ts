@@ -90,9 +90,20 @@ class LocationService {
   // Update user online status
   async updateOnlineStatus(isOnline: boolean) {
     try {
-      const { error } = await supabase.rpc('update_user_online_status', {
-        is_online_param: isOnline
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Since we don't have the RPC function, we'll update directly
+      const { error } = await supabase
+        .from('member_online_status')
+        .upsert({
+          user_id: user.id,
+          is_online: isOnline,
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
       if (error) throw error;
     } catch (error) {
