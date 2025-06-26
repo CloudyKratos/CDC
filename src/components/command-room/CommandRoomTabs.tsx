@@ -150,15 +150,8 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
             <TabsContent value="progress" className="m-0">
               <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-8">
                 <ProgressTab
-                  completedCourses={Object.values(userProgress).filter(p => p === 100).length}
-                  totalCourses={videos.length}
-                  totalHoursLearned={42}
-                  currentStreak={7}
-                  achievements={[
-                    { id: 1, name: 'First Course', description: 'Complete your first course', earned: true, icon: Trophy },
-                    { id: 2, name: 'Dedicated Learner', description: 'Complete 5 courses', earned: true, icon: Target },
-                    { id: 3, name: 'Learning Streak', description: 'Learn for 7 days straight', earned: true, icon: Sparkles }
-                  ]}
+                  videos={videos}
+                  userProgress={userProgress}
                 />
               </div>
             </TabsContent>
