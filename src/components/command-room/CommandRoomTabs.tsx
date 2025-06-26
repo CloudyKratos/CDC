@@ -1,58 +1,199 @@
 
-import React from 'react';
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useMemo } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
-  Database, 
-  Users, 
+  BookOpen, 
   BarChart3, 
+  Users, 
   Settings, 
-  Shield, 
-  Activity,
-  Zap,
-  Globe
+  Plus,
+  Sparkles,
+  Trophy,
+  Target
 } from 'lucide-react';
+import { mockLearningContent } from './mockData';
+import PremiumCoursesTab from './PremiumCoursesTab';
+import ProgressTab from './ProgressTab';
+import AddYouTubeVideoModal from './AddYouTubeVideoModal';
 
-const CommandRoomTabs: React.FC = () => {
-  const tabs = [
-    { value: 'resources', label: 'Resources', icon: Database, color: 'from-blue-500 to-cyan-500' },
-    { value: 'team', label: 'Team', icon: Users, color: 'from-green-500 to-emerald-500' },
-    { value: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-purple-500 to-pink-500' },
-    { value: 'security', label: 'Security', icon: Shield, color: 'from-red-500 to-orange-500' },
-    { value: 'performance', label: 'Performance', icon: Activity, color: 'from-yellow-500 to-amber-500' },
-    { value: 'integrations', label: 'Integrations', icon: Globe, color: 'from-indigo-500 to-blue-500' },
-    { value: 'automation', label: 'Automation', icon: Zap, color: 'from-teal-500 to-cyan-500' },
-    { value: 'settings', label: 'Settings', icon: Settings, color: 'from-gray-500 to-slate-500' },
-  ];
+interface CommandRoomTabsProps {
+  isAdmin?: boolean;
+}
+
+const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) => {
+  const [activeTab, setActiveTab] = useState('courses');
+  const [userProgress, setUserProgress] = useState<Record<string, number>>({
+    '1': 75,
+    '2': 100,
+    '3': 25,
+    '4': 0,
+    '5': 90
+  });
+  const [showAddVideoModal, setShowAddVideoModal] = useState(false);
+  const [videos, setVideos] = useState(mockLearningContent);
+
+  const handleProgressUpdate = (videoId: string, progress: number) => {
+    setUserProgress(prev => ({
+      ...prev,
+      [videoId]: progress
+    }));
+  };
+
+  const handleAddVideo = (videoData: any) => {
+    const newVideo = {
+      ...videoData,
+      id: (videos.length + 1).toString(),
+      addedAt: new Date()
+    };
+    setVideos(prev => [...prev, newVideo]);
+    setShowAddVideoModal(false);
+  };
+
+  const tabContent = {
+    courses: {
+      icon: BookOpen,
+      label: 'Premium Courses',
+      badge: videos.length,
+      color: 'from-blue-600 to-purple-600'
+    },
+    progress: {
+      icon: BarChart3,
+      label: 'Progress',
+      badge: Object.values(userProgress).filter(p => p === 100).length,
+      color: 'from-green-600 to-emerald-600'
+    },
+    community: {
+      icon: Users,
+      label: 'Community',
+      badge: '12',
+      color: 'from-orange-600 to-red-600'
+    },
+    settings: {
+      icon: Settings,
+      label: 'Settings',
+      badge: null,
+      color: 'from-gray-600 to-slate-600'
+    }
+  };
 
   return (
-    <div className="relative">
-      <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 h-auto p-3 bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="group relative flex flex-col items-center justify-center p-4 h-auto min-h-[80px] bg-transparent border-0 rounded-xl transition-all duration-300 hover:bg-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:shadow-lg data-[state=active]:shadow-white/10"
-              style={{
-                backgroundImage: `var(--state-active) and linear-gradient(135deg, ${tab.color.split(' ')[1]}, ${tab.color.split(' ')[3]})`
-              }}
-            >
-              <div className="relative mb-2">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-data-[state=active]:opacity-100 rounded-full blur-sm transition-opacity duration-300"
-                     style={{ background: `linear-gradient(135deg, ${tab.color.split(' ')[1]}, ${tab.color.split(' ')[3]})` }}></div>
-                <Icon className="relative h-5 w-5 text-white/70 group-data-[state=active]:text-white transition-colors duration-300" />
+    <div className="space-y-6">
+      {/* Premium Tab Navigation */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center justify-between mb-4 px-4 pt-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xs font-medium text-white/70 group-data-[state=active]:text-white transition-colors duration-300 text-center">
-                {tab.label}
-              </span>
-              
-              {/* Active indicator */}
-              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full opacity-0 group-data-[state=active]:opacity-100 transition-opacity duration-300"></div>
-            </TabsTrigger>
-          );
-        })}
-      </TabsList>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Command Room</h2>
+                <p className="text-gray-600">Your premium learning headquarters</p>
+              </div>
+            </div>
+            
+            {isAdmin && (
+              <Button
+                onClick={() => setShowAddVideoModal(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Content
+              </Button>
+            )}
+          </div>
+
+          <TabsList className="grid w-full grid-cols-4 bg-gray-50 p-1 rounded-xl">
+            {Object.entries(tabContent).map(([key, config]) => {
+              const Icon = config.icon;
+              return (
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="relative flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-md"
+                >
+                  <Icon className={`h-4 w-4 ${activeTab === key ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <span className={activeTab === key ? 'text-gray-900' : 'text-gray-600'}>
+                    {config.label}
+                  </span>
+                  {config.badge && (
+                    <Badge className={`ml-1 ${
+                      activeTab === key 
+                        ? `bg-gradient-to-r ${config.color} text-white border-0` 
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {config.badge}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {/* Tab Content */}
+          <div className="mt-6">
+            <TabsContent value="courses" className="m-0">
+              <PremiumCoursesTab
+                videos={videos}
+                userProgress={userProgress}
+                onProgressUpdate={handleProgressUpdate}
+                searchTerm=""
+                selectedCategory="all"
+                viewMode="grid"
+                isAdmin={isAdmin}
+                onAddVideo={() => setShowAddVideoModal(true)}
+              />
+            </TabsContent>
+
+            <TabsContent value="progress" className="m-0">
+              <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-8">
+                <ProgressTab
+                  completedCourses={Object.values(userProgress).filter(p => p === 100).length}
+                  totalCourses={videos.length}
+                  totalHoursLearned={42}
+                  currentStreak={7}
+                  achievements={[
+                    { id: 1, name: 'First Course', description: 'Complete your first course', earned: true, icon: Trophy },
+                    { id: 2, name: 'Dedicated Learner', description: 'Complete 5 courses', earned: true, icon: Target },
+                    { id: 3, name: 'Learning Streak', description: 'Learn for 7 days straight', earned: true, icon: Sparkles }
+                  ]}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="community" className="m-0">
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-8 text-center">
+                <Users className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Community Hub</h3>
+                <p className="text-gray-600 mb-6">Connect with fellow learners and share your progress</p>
+                <Button className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
+                  Join Community
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings" className="m-0">
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-8 text-center">
+                <Settings className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Learning Settings</h3>
+                <p className="text-gray-600 mb-6">Customize your learning experience and preferences</p>
+                <Button variant="outline" className="border-gray-300">
+                  Configure Settings
+                </Button>
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+
+      {/* Add Video Modal */}
+      <AddYouTubeVideoModal
+        isOpen={showAddVideoModal}
+        onClose={() => setShowAddVideoModal(false)}
+        onAdd={handleAddVideo}
+      />
     </div>
   );
 };
