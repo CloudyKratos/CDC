@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Target, Users, Flame, Sparkles, Trophy, Shield, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +9,7 @@ import WarriorSpaceMainContent from "@/components/warrior/WarriorSpaceMainConten
 import WarriorSpaceLoadingState from "@/components/warrior/WarriorSpaceLoadingState";
 import WarriorSpaceErrorState from "@/components/warrior/WarriorSpaceErrorState";
 import WarriorSpaceMobileSidebar from "@/components/warrior/WarriorSpaceMobileSidebar";
+import MorningPictureUpload from "@/components/warrior/MorningPictureUpload";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
@@ -229,6 +229,11 @@ const WarriorSpace = () => {
 
         <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
           {isNewUser && <WelcomeBanner />}
+
+          {/* Morning Picture Upload - Show prominently for new feature */}
+          <div className="mb-6">
+            <MorningPictureUpload />
+          </div>
 
           <WarriorSpaceMobileSidebar 
             sidebarOpen={sidebarOpen}
