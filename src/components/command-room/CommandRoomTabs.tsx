@@ -29,12 +29,7 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
     '2': 100,
     '3': 25,
     '4': 0,
-    '5': 90,
-    '6': 60,
-    '7': 30,
-    '8': 0,
-    '9': 85,
-    '10': 100
+    '5': 90
   });
   const [showAddVideoModal, setShowAddVideoModal] = useState(false);
   const [videos, setVideos] = useState(mockLearningContent);
@@ -59,7 +54,7 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
   const tabContent = {
     courses: {
       icon: BookOpen,
-      label: 'Learning Vault',
+      label: 'Premium Courses',
       badge: videos.length,
       color: 'from-blue-600 to-purple-600'
     },
@@ -94,8 +89,8 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Learning Command Center</h2>
-                <p className="text-gray-600">Your personalized learning headquarters</p>
+                <h2 className="text-2xl font-bold text-gray-900">Command Room</h2>
+                <p className="text-gray-600">Your premium learning headquarters</p>
               </div>
             </div>
             
@@ -164,7 +159,7 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
             <TabsContent value="community" className="m-0">
               <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-8 text-center">
                 <Users className="h-16 w-16 text-orange-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Learning Community</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Community Hub</h3>
                 <p className="text-gray-600 mb-6">Connect with fellow learners and share your progress</p>
                 <Button className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
                   Join Community
