@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ExtendedStage, ExtendedStageInsert, StageStatus } from "@/types/supabase-extended";
 
@@ -17,6 +16,23 @@ class StageCoreService {
     if (error) {
       console.error('Error fetching stages:', error);
       throw new Error(`Failed to fetch stages: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async getActiveStages(): Promise<ExtendedStage[]> {
+    console.log('Fetching active stages');
+    
+    const { data, error } = await supabase
+      .from('stages')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching active stages:', error);
+      throw new Error(`Failed to fetch active stages: ${error.message}`);
     }
 
     return data || [];
@@ -57,6 +73,28 @@ class StageCoreService {
     }
 
     return data;
+  }
+
+  async validateStageAccess(stageId: string): Promise<{ canAccess: boolean; reason?: string }> {
+    try {
+      console.log('Validating stage access for:', stageId);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { canAccess: false, reason: 'Authentication required' };
+      }
+
+      const stage = await this.getStageById(stageId);
+      if (!stage) {
+        return { canAccess: false, reason: 'Stage not found' };
+      }
+
+      // Basic access validation - can be extended with more complex rules
+      return { canAccess: true };
+    } catch (error) {
+      console.error('Error validating stage access:', error);
+      return { canAccess: false, reason: 'Access validation failed' };
+    }
   }
 
   async updateStageStatus(stageId: string, status: StageStatus): Promise<boolean> {

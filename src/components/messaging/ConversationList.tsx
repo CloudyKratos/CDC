@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation } from '@/services/messaging/DirectMessageService';
+import { Conversation } from '@/types/supabase-extended';
 
 interface ConversationListProps {
   conversations: Conversation[];

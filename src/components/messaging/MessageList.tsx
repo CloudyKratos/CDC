@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { MoreHorizontal, Trash2, Reply } from 'lucide-react';
-import { DirectMessage } from '@/services/messaging/DirectMessageService';
+import { DirectMessage } from '@/types/supabase-extended';
 
 interface MessageListProps {
   messages: DirectMessage[];

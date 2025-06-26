@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { CalendarEventData } from '@/types/calendar-events';
-import { CalendarServiceCore } from '@/services/calendar/CalendarServiceCore';
+import CalendarServiceCore from '@/services/calendar/CalendarServiceCore';
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEventData[]>([]);
@@ -16,22 +15,15 @@ export const useCalendarEvents = () => {
     setError(null);
     
     try {
-      const response = await CalendarServiceCore.getEvents();
+      const events = await CalendarServiceCore.getEvents();
+      setEvents(events);
+      setLastRefresh(new Date());
       
-      if (response.success && response.data) {
-        setEvents(response.data);
-        setLastRefresh(new Date());
-        
-        if (showToast) {
-          toast.success(`Loaded ${response.data.length} events`);
-        }
-        
-        console.log(`✅ useCalendarEvents: Loaded ${response.data.length} events`);
-      } else {
-        const errorMessage = response.error || 'Failed to load events';
-        setError(errorMessage);
-        console.error('❌ useCalendarEvents: Load failed:', errorMessage);
+      if (showToast) {
+        toast.success(`Loaded ${events.length} events`);
       }
+      
+      console.log(`✅ useCalendarEvents: Loaded ${events.length} events`);
     } catch (error) {
       const errorMessage = 'An unexpected error occurred while loading events';
       setError(errorMessage);

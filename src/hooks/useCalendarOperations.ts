@@ -1,8 +1,7 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { CalendarEventData, CalendarEventFormState } from '@/types/calendar-events';
-import { CalendarServiceCore } from '@/services/calendar/CalendarServiceCore';
+import CalendarServiceCore from '@/services/calendar/CalendarServiceCore';
 
 export const useCalendarOperations = () => {
   const [formState, setFormState] = useState<CalendarEventFormState>({
@@ -28,25 +27,15 @@ export const useCalendarOperations = () => {
     setFormState(prev => ({ ...prev, isSubmitting: true, errors: [] }));
     
     try {
-      const response = await CalendarServiceCore.createEvent(eventData);
-      
-      if (response.success) {
-        toast.success('Event created successfully!');
-        setFormState(prev => ({
-          ...prev,
-          isSubmitting: false,
-          isDirty: false,
-          lastSaved: new Date()
-        }));
-        return true;
-      } else {
-        setFormState(prev => ({
-          ...prev,
-          isSubmitting: false,
-          errors: [response.error || 'Failed to create event']
-        }));
-        return false;
-      }
+      const newEvent = await CalendarServiceCore.createEvent(eventData);
+      toast.success('Event created successfully!');
+      setFormState(prev => ({
+        ...prev,
+        isSubmitting: false,
+        isDirty: false,
+        lastSaved: new Date()
+      }));
+      return true;
     } catch (error) {
       console.error('💥 useCalendarOperations: Unexpected error:', error);
       setFormState(prev => ({
