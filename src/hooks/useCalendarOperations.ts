@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { CalendarEventData, CalendarEventFormState } from '@/types/calendar-events';
@@ -54,9 +55,9 @@ export const useCalendarOperations = () => {
     setFormState(prev => ({ ...prev, isSubmitting: true, errors: [] }));
     
     try {
-      const response = await CalendarServiceCore.updateEvent(id, updates);
+      const updatedEvent = await CalendarServiceCore.updateEvent(id, updates);
       
-      if (response.success) {
+      if (updatedEvent) {
         toast.success('Event updated successfully!');
         setFormState(prev => ({
           ...prev,
@@ -69,7 +70,7 @@ export const useCalendarOperations = () => {
         setFormState(prev => ({
           ...prev,
           isSubmitting: false,
-          errors: [response.error || 'Failed to update event']
+          errors: ['Failed to update event']
         }));
         return false;
       }
@@ -89,13 +90,13 @@ export const useCalendarOperations = () => {
     console.log('🗑️ useCalendarOperations: Deleting event');
     
     try {
-      const response = await CalendarServiceCore.deleteEvent(id);
+      const success = await CalendarServiceCore.deleteEvent(id);
       
-      if (response.success) {
+      if (success) {
         toast.success('Event deleted successfully!');
         return true;
       } else {
-        toast.error(response.error || 'Failed to delete event');
+        toast.error('Failed to delete event');
         return false;
       }
     } catch (error) {

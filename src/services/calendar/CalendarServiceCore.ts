@@ -1,4 +1,5 @@
 
+
 import { EnhancedEventData } from '@/types/supabase-extended';
 import CalendarEventService from './CalendarEventService';
 

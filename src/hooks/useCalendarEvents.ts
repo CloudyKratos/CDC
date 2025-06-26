@@ -1,7 +1,18 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { CalendarEventData } from '@/types/calendar-events';
+import { EnhancedEventData } from '@/types/supabase-extended';
 import CalendarServiceCore from '@/services/calendar/CalendarServiceCore';
+
+// Helper function to convert EnhancedEventData to CalendarEventData
+const convertToCalendarEventData = (events: EnhancedEventData[]): CalendarEventData[] => {
+  return events.map(event => ({
+    ...event,
+    status: (event.status as CalendarEventData['status']) || 'scheduled',
+    event_type: (event.event_type as CalendarEventData['event_type']) || 'mission_call'
+  }));
+};
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEventData[]>([]);
@@ -15,15 +26,16 @@ export const useCalendarEvents = () => {
     setError(null);
     
     try {
-      const events = await CalendarServiceCore.getEvents();
-      setEvents(events);
+      const enhancedEvents = await CalendarServiceCore.getEvents();
+      const calendarEvents = convertToCalendarEventData(enhancedEvents);
+      setEvents(calendarEvents);
       setLastRefresh(new Date());
       
       if (showToast) {
-        toast.success(`Loaded ${events.length} events`);
+        toast.success(`Loaded ${calendarEvents.length} events`);
       }
       
-      console.log(`✅ useCalendarEvents: Loaded ${events.length} events`);
+      console.log(`✅ useCalendarEvents: Loaded ${calendarEvents.length} events`);
     } catch (error) {
       const errorMessage = 'An unexpected error occurred while loading events';
       setError(errorMessage);
