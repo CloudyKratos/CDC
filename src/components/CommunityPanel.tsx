@@ -14,7 +14,6 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [retryCount, setRetryCount] = useState(0);
   
   const { user } = useAuth();
 
@@ -51,9 +50,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
   }, []);
 
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
     setIsLoading(true);
-    
     setTimeout(() => {
       setIsLoading(false);
       if (isOnline) {
@@ -139,11 +136,6 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
             <p className="text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
               Setting up real-time messaging and connecting you to the community...
             </p>
-            {retryCount > 0 && (
-              <p className="text-sm text-blue-600 font-medium mt-3">
-                Loading attempt #{retryCount + 1}
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -156,7 +148,6 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-400/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-400/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
       
       {/* Status Indicator */}
@@ -165,22 +156,12 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({ channelName = 'general'
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <Wifi className="h-4 w-4 text-green-600" />
           <span className="text-sm font-semibold text-gray-700">Live Chat Active</span>
-          <Users className="h-4 w-4 text-gray-500" />
         </div>
       </div>
       
       <div className="h-full p-6 relative z-10">
         <div className="h-full max-w-4xl mx-auto">
           <EnhancedCommunityChat defaultChannel={channelName} />
-        </div>
-      </div>
-      
-      {/* Floating Action Hint */}
-      <div className="absolute bottom-6 left-6 z-10">
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-full px-3 py-1 border border-blue-200/30">
-          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-            💬 Real-time messaging enabled
-          </span>
         </div>
       </div>
     </div>

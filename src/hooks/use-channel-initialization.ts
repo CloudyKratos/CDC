@@ -1,30 +1,28 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export function useChannelInitialization() {
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
-  
-  const isInitializingRef = useRef(false);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const initializeChannel = useCallback(async (channelName: string) => {
-    if (!user?.id || !channelName || isInitializingRef.current) {
-      return;
+    if (!user?.id) {
+      setError('User not authenticated');
+      return null;
     }
 
-    isInitializingRef.current = true;
-    
+    setIsInitializing(true);
+    setError(null);
+
     try {
       console.log('🔄 Initializing channel:', channelName);
       
-      setError(null);
-      
+      // First try to get existing channel
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
@@ -37,13 +35,14 @@ export function useChannelInitialization() {
       }
 
       if (!channel) {
-        console.log('📝 Creating channel:', channelName);
+        // Create new channel
+        console.log('📝 Creating new channel:', channelName);
         const { data: newChannel, error: createError } = await supabase
           .from('channels')
           .insert({
             name: channelName,
             type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} community channel`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
             created_by: user.id
           })
           .select('id')
@@ -54,48 +53,59 @@ export function useChannelInitialization() {
         }
         
         channel = newChannel;
-        toast.success(`Created #${channelName} channel`, { duration: 2000 });
       }
 
-      setChannelId(channel.id);
-      setError(null);
-      setReconnectAttempts(0);
-      console.log('✅ Channel initialized:', channel.id);
+      // Auto-join user to channel
+      const { error: joinError } = await supabase
+        .from('channel_members')
+        .upsert({
+          channel_id: channel.id,
+          user_id: user.id,
+          role: 'member'
+        }, { onConflict: 'user_id,channel_id' });
+
+      if (joinError && !joinError.message.includes('duplicate')) {
+        console.warn('⚠️ Could not join channel:', joinError);
+      }
+
+      console.log('✅ Channel initialized successfully:', channel.id);
+      setRetryCount(0);
+      return channel.id;
       
     } catch (err) {
       console.error('❌ Failed to initialize channel:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize channel';
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       
-      if (reconnectAttempts < 3) {
-        const delay = Math.min(Math.pow(2, reconnectAttempts) * 1000, 10000);
-        console.log(`🔄 Retrying in ${delay}ms (attempt ${reconnectAttempts + 1}/3)`);
+      // Auto-retry with exponential backoff
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`🔄 Retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+        setRetryCount(prev => prev + 1);
         
-        reconnectTimeoutRef.current = setTimeout(() => {
-          setReconnectAttempts(prev => prev + 1);
-          isInitializingRef.current = false;
+        setTimeout(() => {
           initializeChannel(channelName);
         }, delay);
+      } else {
+        toast.error('Failed to connect to chat after multiple attempts');
       }
+      
+      return null;
     } finally {
-      if (reconnectAttempts === 0) {
-        isInitializingRef.current = false;
-      }
+      setIsInitializing(false);
     }
-  }, [user?.id, reconnectAttempts]);
+  }, [user?.id, retryCount]);
 
-  const cleanup = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
+  const resetRetryCount = useCallback(() => {
+    setRetryCount(0);
+    setError(null);
   }, []);
 
   return {
-    channelId,
-    error,
-    reconnectAttempts,
     initializeChannel,
-    cleanup
+    isInitializing,
+    error,
+    retryCount,
+    resetRetryCount
   };
 }

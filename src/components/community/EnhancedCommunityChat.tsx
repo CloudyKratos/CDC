@@ -1,175 +1,93 @@
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCommunityMessages } from '@/hooks/use-community-messages';
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Send, Hash, Users, Wifi, WifiOff, RefreshCw, Smile, MoreHorizontal, MessageCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { 
+  Send, 
+  Hash, 
+  Users, 
+  Wifi, 
+  WifiOff, 
+  RefreshCw,
+  MessageCircle,
+  AlertCircle
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { useChatManager } from '@/hooks/useChatManager';
+import { toast } from 'sonner';
 
 interface EnhancedCommunityChatProps {
   defaultChannel?: string;
 }
 
-const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({ 
-  defaultChannel = 'general' 
+const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({
+  defaultChannel = 'general'
 }) => {
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { user } = useAuth();
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   
+  const { user } = useAuth();
   const {
     messages,
     isLoading,
     isConnected,
-    error,
     sendMessage,
-    channelId
-  } = useCommunityMessages(defaultChannel);
+    isSending,
+    error,
+    reconnect
+  } = useChatManager(activeChannel);
 
   // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ 
-      behavior: 'smooth',
-      block: 'end'
-    });
-  }, []);
-
   useEffect(() => {
-    if (messages.length > 0) {
-      const timer = setTimeout(scrollToBottom, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length, scrollToBottom]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // Handle sending messages with better error handling
-  const handleSendMessage = useCallback(async () => {
-    if (!message.trim() || isSending || !user?.id) return;
-
-    const messageToSend = message.trim();
-    setMessage('');
-    setIsSending(true);
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentMessage.trim() || isSending) return;
 
     try {
-      const success = await sendMessage(messageToSend);
-      if (success) {
-        // Focus back to input after successful send
-        setTimeout(() => inputRef.current?.focus(), 100);
-      } else {
-        // Restore message if send failed
-        setMessage(messageToSend);
-        toast.error('Failed to send message. Please try again.');
-      }
+      await sendMessage(currentMessage);
+      setCurrentMessage('');
     } catch (error) {
-      console.error('Send error:', error);
-      setMessage(messageToSend);
-      toast.error('Failed to send message. Please try again.');
-    } finally {
-      setIsSending(false);
+      // Error already handled in useChatManager
     }
-  }, [message, isSending, user?.id, sendMessage]);
+  };
 
-  // Handle key press
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSendMessage(e);
     }
-  }, [handleSendMessage]);
+  };
 
-  // Connection status with better visual feedback
-  const connectionStatus = useMemo(() => {
-    if (isLoading) return { 
-      icon: RefreshCw, 
-      color: 'text-blue-500', 
-      label: 'Connecting...', 
-      spin: true,
-      bgColor: 'bg-blue-50 border-blue-200'
-    };
-    if (!isConnected || error) return { 
-      icon: WifiOff, 
-      color: 'text-red-500', 
-      label: 'Disconnected', 
-      spin: false,
-      bgColor: 'bg-red-50 border-red-200'
-    };
-    return { 
-      icon: Wifi, 
-      color: 'text-green-500', 
-      label: 'Live', 
-      spin: false,
-      bgColor: 'bg-green-50 border-green-200'
-    };
-  }, [isLoading, isConnected, error]);
-
-  // Group consecutive messages from same user with time consideration
-  const groupedMessages = useMemo(() => {
-    const groups: Array<{
-      sender: any;
-      messages: Array<{ id: string; content: string; created_at: string }>;
-      timestamp: string;
-    }> = [];
-
-    messages.forEach((msg) => {
-      const lastGroup = groups[groups.length - 1];
-      
-      if (lastGroup && lastGroup.sender?.id === msg.sender?.id) {
-        // Add to existing group if same sender and within 5 minutes
-        const lastMsgTime = new Date(lastGroup.timestamp);
-        const currentMsgTime = new Date(msg.created_at);
-        const timeDiff = (currentMsgTime.getTime() - lastMsgTime.getTime()) / (1000 * 60);
-        
-        if (timeDiff <= 5) {
-          lastGroup.messages.push({
-            id: msg.id,
-            content: msg.content,
-            created_at: msg.created_at
-          });
-          lastGroup.timestamp = msg.created_at;
-          return;
-        }
-      }
-      
-      // Create new group
-      groups.push({
-        sender: msg.sender,
-        messages: [{
-          id: msg.id,
-          content: msg.content,
-          created_at: msg.created_at
-        }],
-        timestamp: msg.created_at
-      });
-    });
-
-    return groups;
-  }, [messages]);
+  // Channel switching
+  const channels = [
+    { id: 'general', name: 'general', emoji: '💬' },
+    { id: 'announcements', name: 'announcements', emoji: '📢' },
+    { id: 'entrepreneurs', name: 'entrepreneurs', emoji: '🚀' },
+    { id: 'tech-talk', name: 'tech-talk', emoji: '💻' },
+    { id: 'motivation', name: 'motivation', emoji: '💪' }
+  ];
 
   if (!user) {
     return (
-      <Card className="h-full max-h-[600px] flex flex-col border-2 border-dashed border-gray-200">
-        <CardContent className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
-              <MessageCircle className="h-8 w-8 text-blue-500" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Join the Conversation
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Sign in to connect with the community and share your thoughts
-              </p>
-            </div>
+      <Card className="h-full">
+        <CardContent className="h-full flex items-center justify-center p-8">
+          <div className="text-center">
+            <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Sign in to join the chat
+            </h3>
+            <p className="text-gray-600">
+              You need to be signed in to participate in community discussions.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -177,195 +95,174 @@ const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({
   }
 
   return (
-    <Card className="h-full max-h-[600px] flex flex-col shadow-xl border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800">
-      {/* Enhanced Header */}
-      <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+      {/* Header with Channel Selector */}
+      <CardHeader className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Hash className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {defaultChannel}
-                </span>
-                <div className="text-xs text-gray-500 font-normal">
-                  {messages.length} messages
-                </div>
-              </div>
-            </div>
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <Hash className="h-5 w-5 text-blue-500" />
+            <select
+              value={activeChannel}
+              onChange={(e) => setActiveChannel(e.target.value)}
+              className="bg-transparent text-lg font-semibold text-gray-900 dark:text-white border-none outline-none cursor-pointer"
+            >
+              {channels.map(channel => (
+                <option key={channel.id} value={channel.name}>
+                  {channel.emoji} {channel.name}
+                </option>
+              ))}
+            </select>
+          </div>
           
           <div className="flex items-center gap-3">
-            <Badge 
-              variant="outline" 
-              className={`${connectionStatus.bgColor} ${connectionStatus.color} border-current`}
-            >
-              <connectionStatus.icon 
-                className={`h-3 w-3 mr-1 ${connectionStatus.spin ? 'animate-spin' : ''}`} 
-              />
-              {connectionStatus.label}
-            </Badge>
-            
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Community</span>
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <Badge className="bg-green-100 text-green-700 border-green-200">
+                  <Wifi className="h-3 w-3 mr-1" />
+                  Live
+                </Badge>
+              ) : (
+                <Badge className="bg-red-100 text-red-700 border-red-200">
+                  <WifiOff className="h-3 w-3 mr-1" />
+                  Offline
+                </Badge>
+              )}
+              
+              {/* Message Count */}
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                <Users className="h-3 w-3 mr-1" />
+                {messages.length}
+              </Badge>
             </div>
+
+            {/* Reconnect Button */}
+            {error && (
+              <Button
+                onClick={reconnect}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
 
-      {/* Enhanced Messages Area */}
-      <CardContent className="flex-1 p-0 overflow-hidden bg-white/50 dark:bg-gray-900/50">
-        <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
-            {error && (
-              <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-center">
-                <p className="text-red-700 dark:text-red-300 text-sm font-medium">{error}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => window.location.reload()}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Retry Connection
-                </Button>
-              </div>
-            )}
-
-            {isLoading && messages.length === 0 ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-3 text-gray-500">
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span className="font-medium">Loading messages...</span>
-                </div>
-              </div>
-            ) : groupedMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
-                  <MessageCircle className="h-8 w-8 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Start the Conversation
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm max-w-md">
-                  Be the first to share your thoughts with the community. 
-                  Your message could spark an amazing discussion!
-                </p>
-              </div>
-            ) : (
-              groupedMessages.map((group, groupIndex) => {
-                const isOwn = group.sender?.id === user?.id;
-                const senderName = group.sender?.full_name || 
-                                 group.sender?.username || 
-                                 'Community Member';
-                const avatar = group.sender?.avatar_url;
-
-                return (
-                  <div key={groupIndex} className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
-                    <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-white shadow-lg">
-                      <AvatarImage src={avatar || ''} alt={senderName} />
-                      <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                        {senderName[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className={`flex-1 space-y-2 ${isOwn ? 'text-right' : ''}`}>
-                      <div className={`flex items-center gap-2 mb-3 ${isOwn ? 'justify-end' : ''}`}>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {isOwn ? 'You' : senderName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(group.timestamp), { addSuffix: true })}
-                        </span>
-                      </div>
-                      
-                      {group.messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`inline-block px-4 py-3 rounded-2xl max-w-xs sm:max-w-md lg:max-w-lg shadow-md ${
-                            isOwn
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-br-md'
-                              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md border border-gray-200 dark:border-gray-600'
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                            {msg.content}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
+      {/* Messages Area */}
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+              <span className="text-gray-600">Loading chat...</span>
+            </div>
           </div>
-        </ScrollArea>
-      </CardContent>
-
-      {/* Enhanced Message Input */}
-      <div className="p-4 border-t bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700">
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 relative">
-            <Input
-              ref={inputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={`Message #${defaultChannel}...`}
-              disabled={!isConnected || isSending}
-              className="pr-12 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 bg-white dark:bg-gray-800"
-              maxLength={1000}
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 hover:bg-gray-100"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              >
-                <Smile className="h-4 w-4 text-gray-400" />
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+              <p className="text-red-600 mb-3">Connection failed</p>
+              <Button onClick={reconnect} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
               </Button>
             </div>
-            
-            {message.length > 900 && (
-              <div className="absolute -top-8 right-0 text-xs text-gray-500">
-                {message.length}/1000
-              </div>
-            )}
           </div>
-          
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center text-gray-500">
+              <MessageCircle className="h-8 w-8 mx-auto mb-2" />
+              <p>No messages yet</p>
+              <p className="text-sm">Be the first to start the conversation!</p>
+            </div>
+          </div>
+        ) : (
+          /* Messages List */
+          messages.map((message) => {
+            const isOwn = message.sender_id === user?.id;
+            const senderName = message.sender?.full_name || 
+                             message.sender?.username || 
+                             'Unknown User';
+            const avatar = message.sender?.avatar_url;
+
+            return (
+              <div
+                key={message.id}
+                className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
+              >
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={avatar || ''} alt={senderName} />
+                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+                    {senderName[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className={`flex-1 max-w-xs lg:max-w-md ${isOwn ? 'text-right' : ''}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {isOwn ? 'You' : senderName}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  
+                  <div
+                    className={`inline-block px-3 py-2 rounded-lg ${
+                      isOwn
+                        ? 'bg-blue-500 text-white rounded-br-sm'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </CardContent>
+
+      {/* Message Input */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={`Message #${activeChannel}...`}
+            disabled={!isConnected || isSending}
+            className="flex-1"
+          />
           <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim() || !isConnected || isSending}
-            size="default"
-            className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg"
+            type="submit"
+            disabled={!currentMessage.trim() || !isConnected || isSending}
+            size="sm"
+            className="px-4"
           >
             {isSending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
             ) : (
               <Send className="h-4 w-4" />
             )}
           </Button>
-        </div>
+        </form>
         
         {!isConnected && (
-          <p className="text-xs text-red-500 mt-2 text-center font-medium">
-            Connection lost - messages will be sent when connection is restored
-          </p>
-        )}
-        
-        {isConnected && (
-          <p className="text-xs text-green-600 mt-2 text-center">
-            <Wifi className="inline h-3 w-3 mr-1" />
-            Real-time chat active
+          <p className="text-xs text-red-600 mt-2">
+            Reconnecting to chat...
           </p>
         )}
       </div>
-    </Card>
+    </div>
   );
 };
 
