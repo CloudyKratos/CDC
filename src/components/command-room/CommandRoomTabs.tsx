@@ -54,7 +54,7 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
   const tabContent = {
     courses: {
       icon: BookOpen,
-      label: 'Premium Courses',
+      label: 'Learning Vault',
       badge: videos.length,
       color: 'from-blue-600 to-purple-600'
     },
@@ -80,60 +80,65 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
 
   return (
     <div className="space-y-6">
-      {/* Premium Tab Navigation */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-2">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-4 px-4 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Command Room</h2>
-                <p className="text-gray-600">Your premium learning headquarters</p>
-              </div>
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg">
+              <Sparkles className="h-8 w-8 text-white" />
             </div>
-            
-            {isAdmin && (
-              <Button
-                onClick={() => setShowAddVideoModal(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Content
-              </Button>
-            )}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Command Room</h1>
+              <p className="text-gray-600">Your premium learning headquarters</p>
+            </div>
+          </div>
+          
+          {isAdmin && (
+            <Button
+              onClick={() => setShowAddVideoModal(true)}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Content
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Premium Tab Navigation */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="border-b border-gray-100 bg-gray-50/50">
+            <TabsList className="grid w-full grid-cols-4 bg-transparent p-2 h-auto">
+              {Object.entries(tabContent).map(([key, config]) => {
+                const Icon = config.icon;
+                return (
+                  <TabsTrigger
+                    key={key}
+                    value={key}
+                    className="relative flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-gray-200"
+                  >
+                    <Icon className={`h-5 w-5 ${activeTab === key ? 'text-blue-600' : 'text-gray-500'}`} />
+                    <span className={`${activeTab === key ? 'text-gray-900' : 'text-gray-600'} hidden sm:inline`}>
+                      {config.label}
+                    </span>
+                    {config.badge && (
+                      <Badge className={`ml-1 ${
+                        activeTab === key 
+                          ? `bg-gradient-to-r ${config.color} text-white border-0` 
+                          : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {config.badge}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
           </div>
 
-          <TabsList className="grid w-full grid-cols-4 bg-gray-50 p-1 rounded-xl">
-            {Object.entries(tabContent).map(([key, config]) => {
-              const Icon = config.icon;
-              return (
-                <TabsTrigger
-                  key={key}
-                  value={key}
-                  className="relative flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-md"
-                >
-                  <Icon className={`h-4 w-4 ${activeTab === key ? 'text-blue-600' : 'text-gray-500'}`} />
-                  <span className={activeTab === key ? 'text-gray-900' : 'text-gray-600'}>
-                    {config.label}
-                  </span>
-                  {config.badge && (
-                    <Badge className={`ml-1 ${
-                      activeTab === key 
-                        ? `bg-gradient-to-r ${config.color} text-white border-0` 
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {config.badge}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
           {/* Tab Content */}
-          <div className="mt-6">
+          <div className="p-6">
             <TabsContent value="courses" className="m-0">
               <PremiumCoursesTab
                 videos={videos}
