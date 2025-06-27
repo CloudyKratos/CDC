@@ -1,13 +1,17 @@
 
 import React from 'react';
-import EnhancedCommandRoom from './command-room/EnhancedCommandRoom';
+import CommandRoomTabs from './command-room/CommandRoomTabs';
 import CommandRoomQuickActions from './command-room/CommandRoomQuickActions';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CommandRoomPanel: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="space-y-6">
       <CommandRoomQuickActions />
-      <EnhancedCommandRoom />
+      <CommandRoomTabs isAdmin={isAdmin} />
     </div>
   );
 };
