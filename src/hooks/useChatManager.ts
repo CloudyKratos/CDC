@@ -197,6 +197,45 @@ export function useChatManager(channelName: string = 'general') {
     }
   }, [user?.id, channelId, isSending]);
 
+  // Delete message
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
+
+    try {
+      console.log('🗑️ Deleting message:', messageId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .update({ is_deleted: true })
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
+
+      if (error) {
+        throw new Error(`Failed to delete message: ${error.message}`);
+      }
+
+      console.log('✅ Message deleted successfully');
+      toast.success('Message deleted', { duration: 1000 });
+    } catch (error) {
+      console.error('💥 Failed to delete message:', error);
+      toast.error('Failed to delete message');
+    }
+  }, [user?.id]);
+
+  // Reply to message (placeholder implementation)
+  const replyToMessage = useCallback((messageId: string) => {
+    console.log('Replying to message:', messageId);
+    // This would be implemented to set up a reply context
+    toast.info('Reply feature coming soon!');
+  }, []);
+
+  // Add reaction (placeholder implementation)
+  const addReaction = useCallback(async (messageId: string, reaction: string) => {
+    console.log('Adding reaction:', reaction, 'to message:', messageId);
+    // This would be implemented to add reactions to messages
+    toast.info('Reactions feature coming soon!');
+  }, []);
+
   // Initialize on mount
   useEffect(() => {
     setupChat();
@@ -215,6 +254,9 @@ export function useChatManager(channelName: string = 'general') {
     isConnected,
     channelId,
     sendMessage,
+    deleteMessage,
+    replyToMessage,
+    addReaction,
     isSending,
     error: initError,
     reconnect: setupChat

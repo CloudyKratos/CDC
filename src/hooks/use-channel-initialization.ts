@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,9 +8,12 @@ export function useChannelInitialization() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [channelId, setChannelId] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const initializeChannel = useCallback(async (channelName: string) => {
+  const initializeChannel = useCallback(async (channelName: string): Promise<string | null> => {
     if (!user?.id) {
       setError('User not authenticated');
       return null;
@@ -70,6 +73,7 @@ export function useChannelInitialization() {
 
       console.log('✅ Channel initialized successfully:', channel.id);
       setRetryCount(0);
+      setChannelId(channel.id);
       return channel.id;
       
     } catch (err) {
@@ -101,11 +105,23 @@ export function useChannelInitialization() {
     setError(null);
   }, []);
 
+  const cleanup = useCallback(() => {
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+    setChannelId(null);
+    setError(null);
+    setRetryCount(0);
+  }, []);
+
   return {
     initializeChannel,
     isInitializing,
     error,
     retryCount,
-    resetRetryCount
+    resetRetryCount,
+    channelId,
+    cleanup
   };
 }
