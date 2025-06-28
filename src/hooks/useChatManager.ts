@@ -2,143 +2,120 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useChannelInitialization } from './use-channel-initialization';
-import { useRealtimeSubscription } from './use-realtime-subscription';
+import { useChannelManager } from './use-channel-manager';
+import { useEnhancedRealtime } from './use-enhanced-realtime';
 import { useMessageActions } from './use-message-actions';
 
 export function useChatManager(channelName: string = 'general') {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  
   const { user } = useAuth();
-  const { 
-    initializeChannel, 
-    isInitializing, 
-    error: initError, 
-    channelId 
-  } = useChannelInitialization();
   
-  const { 
-    isConnected, 
-    setupRealtimeSubscription, 
-    cleanup: cleanupSubscription 
-  } = useRealtimeSubscription();
-  
-  const { 
-    sendMessage: sendMessageAction, 
-    deleteMessage: deleteMessageAction,
-    replyToMessage,
-    addReaction
-  } = useMessageActions();
+  const channelManager = useChannelManager();
+  const realtime = useEnhancedRealtime();
+  const messageActions = useMessageActions();
 
-  // Initialize channel and load messages
-  const setupChat = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
+  // Initialize chat for the given channel
+  const initializeChat = useCallback(async () => {
+    if (!user?.id || !channelName) return;
 
     try {
-      setIsLoading(true);
-      console.log('🔄 Setting up chat for channel:', channelName);
+      console.log('🚀 Initializing chat for:', channelName);
       
-      const initChannelId = await initializeChannel(channelName);
+      // Clear previous messages when switching channels
+      realtime.clearMessages();
       
-      if (!initChannelId) {
+      // Get or create channel
+      const channelId = await channelManager.setActiveChannel(channelName);
+      if (!channelId) {
         console.error('Failed to initialize channel');
         return;
       }
 
-      // Load existing messages
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('community_messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          profiles!community_messages_sender_id_fkey (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('channel_id', initChannelId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (messagesError) {
-        console.warn('⚠️ Could not load messages:', messagesError);
-        setMessages([]);
-      } else {
-        const formattedMessages = (messagesData || []).map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          created_at: msg.created_at,
-          sender_id: msg.sender_id,
-          sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
-            id: msg.sender_id,
-            username: 'Unknown User',
-            full_name: 'Unknown User',
-            avatar_url: null
-          }
-        }));
-        setMessages(formattedMessages);
-      }
-
-      // Setup real-time subscription
-      setupRealtimeSubscription(initChannelId, setMessages);
-
+      // Load message history
+      await realtime.loadMessages(channelId);
+      
+      // Subscribe to realtime updates
+      realtime.subscribeToChannel(channelId);
+      
+      console.log('✅ Chat initialized successfully for:', channelName);
+      
     } catch (error) {
-      console.error('💥 Failed to setup chat:', error);
+      console.error('💥 Failed to initialize chat:', error);
       toast.error('Failed to connect to chat');
-    } finally {
-      setIsLoading(false);
     }
-  }, [user?.id, channelName, initializeChannel, setupRealtimeSubscription]);
+  }, [user?.id, channelName, channelManager, realtime]);
 
-  // Send message wrapper
+  // Send message with enhanced error handling
   const sendMessage = useCallback(async (content: string) => {
-    if (!channelId || isSending) return;
+    if (!channelManager.activeChannelId || isSending || !content.trim()) return;
 
     setIsSending(true);
     try {
-      await sendMessageAction(content, channelId);
+      console.log('📤 Sending message via enhanced chat');
+      
+      const success = await realtime.sendMessage(channelManager.activeChannelId, content);
+      if (!success) {
+        toast.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('💥 Send message error:', error);
+      toast.error('Failed to send message');
     } finally {
       setIsSending(false);
     }
-  }, [channelId, isSending, sendMessageAction]);
+  }, [channelManager.activeChannelId, isSending, realtime]);
 
   // Delete message wrapper
   const deleteMessage = useCallback(async (messageId: string) => {
-    await deleteMessageAction(messageId);
-  }, [deleteMessageAction]);
-
-  // Initialize on mount
-  useEffect(() => {
-    setupChat();
+    if (!user?.id) return;
     
-    return () => {
-      cleanupSubscription();
-    };
-  }, [setupChat, cleanupSubscription]);
+    try {
+      await messageActions.deleteMessage(messageId);
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
+  }, [user?.id, messageActions]);
+
+  // Initialize on mount and channel change
+  useEffect(() => {
+    initializeChat();
+  }, [initializeChat]);
+
+  // Load available channels on mount
+  useEffect(() => {
+    if (user?.id) {
+      channelManager.loadChannels();
+    }
+  }, [user?.id, channelManager]);
 
   return {
-    messages,
-    isLoading: isLoading || isInitializing,
-    isConnected,
-    channelId,
+    // Messages and loading state
+    messages: realtime.messages,
+    isLoading: realtime.isLoading || channelManager.isLoading,
+    
+    // Connection state
+    isConnected: realtime.isConnected,
+    
+    // Channel info
+    channelId: channelManager.activeChannelId,
+    channels: channelManager.channels,
+    
+    // Message actions
     sendMessage,
     deleteMessage,
-    replyToMessage,
-    addReaction,
+    replyToMessage: messageActions.replyToMessage,
+    addReaction: messageActions.addReaction,
+    
+    // State flags
     isSending,
-    error: initError,
-    reconnect: setupChat
+    
+    // Error handling
+    error: channelManager.error || realtime.connectionError,
+    reconnect: () => {
+      console.log('🔄 Manual reconnect triggered');
+      realtime.reconnect();
+      initializeChat();
+    }
   };
 }
