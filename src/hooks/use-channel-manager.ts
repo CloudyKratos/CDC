@@ -19,23 +19,15 @@ export function useChannelManager() {
   const [error, setError] = useState<string | null>(null);
   
   const { user } = useAuth();
-  const initializationRef = useRef<Set<string>>(new Set());
 
-  // Get or create channel with robust error handling
+  // Simplified channel creation/retrieval
   const getOrCreateChannel = useCallback(async (channelName: string): Promise<string | null> => {
     if (!user?.id) {
+      console.error('❌ User not authenticated');
       setError('User not authenticated');
       return null;
     }
 
-    // Prevent duplicate initialization
-    const initKey = `${channelName}-${user.id}`;
-    if (initializationRef.current.has(initKey)) {
-      console.log('⏳ Channel initialization already in progress:', channelName);
-      return null;
-    }
-
-    initializationRef.current.add(initKey);
     setIsLoading(true);
     setError(null);
 
@@ -43,86 +35,57 @@ export function useChannelManager() {
       console.log('🔄 Getting or creating channel:', channelName);
       
       // First, try to get existing channel
-      let { data: channel, error: channelError } = await supabase
+      const { data: existingChannel, error: fetchError } = await supabase
         .from('channels')
         .select('id, name, type, created_at')
         .eq('name', channelName)
         .eq('type', 'public')
-        .maybeSingle();
+        .single();
 
-      if (channelError && channelError.code !== 'PGRST116') {
-        throw new Error(`Failed to check channel: ${channelError.message}`);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('❌ Error fetching channel:', fetchError);
+        throw new Error(`Failed to fetch channel: ${fetchError.message}`);
       }
 
-      if (!channel) {
-        console.log('📝 Creating new channel:', channelName);
-        
-        const { data: newChannel, error: createError } = await supabase
-          .from('channels')
-          .insert({
-            name: channelName,
-            type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
-            created_by: user.id
-          })
-          .select('id, name, type, created_at')
-          .single();
-
-        if (createError) {
-          throw new Error(`Failed to create channel: ${createError.message}`);
-        }
-        
-        channel = newChannel;
-        toast.success(`Created channel #${channelName}`);
+      if (existingChannel) {
+        console.log('✅ Found existing channel:', existingChannel.id);
+        return existingChannel.id;
       }
 
-      // Auto-join user to channel
-      await ensureUserInChannel(channel.id, user.id);
+      // Create new channel if it doesn't exist
+      console.log('📝 Creating new channel:', channelName);
+      const { data: newChannel, error: createError } = await supabase
+        .from('channels')
+        .insert({
+          name: channelName,
+          type: 'public',
+          description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
+          created_by: user.id
+        })
+        .select('id, name, type, created_at')
+        .single();
 
-      // Update channels list
-      setChannels(prev => {
-        const exists = prev.some(c => c.id === channel!.id);
-        if (exists) return prev;
-        return [...prev, channel!];
-      });
-
-      console.log('✅ Channel ready:', channel.id);
-      return channel.id;
+      if (createError) {
+        console.error('❌ Error creating channel:', createError);
+        throw new Error(`Failed to create channel: ${createError.message}`);
+      }
+      
+      console.log('✅ Created new channel:', newChannel.id);
+      
+      // Add to channels list
+      setChannels(prev => [...prev, newChannel]);
+      
+      return newChannel.id;
       
     } catch (err) {
       console.error('❌ Failed to get/create channel:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      toast.error(`Failed to access channel: ${errorMessage}`);
       return null;
     } finally {
       setIsLoading(false);
-      initializationRef.current.delete(initKey);
     }
   }, [user?.id]);
-
-  // Ensure user is member of channel
-  const ensureUserInChannel = useCallback(async (channelId: string, userId: string) => {
-    try {
-      console.log('👥 Ensuring user is in channel');
-      
-      const { error } = await supabase
-        .from('channel_members')
-        .upsert({
-          channel_id: channelId,
-          user_id: userId,
-          role: 'member'
-        }, { 
-          onConflict: 'user_id,channel_id' 
-        });
-
-      if (error && !error.message.includes('duplicate')) {
-        console.warn('⚠️ Could not join channel:', error);
-      }
-    } catch (error) {
-      console.warn('⚠️ Error joining channel:', error);
-    }
-  }, []);
 
   // Load available channels
   const loadChannels = useCallback(async () => {
@@ -133,18 +96,14 @@ export function useChannelManager() {
       
       const { data: channelsData, error } = await supabase
         .from('channels')
-        .select(`
-          id,
-          name,
-          type,
-          created_at,
-          channel_members(count)
-        `)
+        .select('id, name, type, created_at')
         .eq('type', 'public')
         .order('name');
 
       if (error) {
-        throw error;
+        console.error('❌ Error loading channels:', error);
+        setError('Failed to load channels');
+        return;
       }
 
       const formattedChannels = channelsData?.map(channel => ({
@@ -152,9 +111,7 @@ export function useChannelManager() {
         name: channel.name,
         type: channel.type,
         created_at: channel.created_at,
-        member_count: Array.isArray(channel.channel_members) 
-          ? channel.channel_members.length 
-          : 0
+        member_count: 0
       })) || [];
 
       setChannels(formattedChannels);
@@ -168,10 +125,11 @@ export function useChannelManager() {
 
   // Set active channel
   const setActiveChannel = useCallback(async (channelName: string) => {
+    console.log('🎯 Setting active channel:', channelName);
     const channelId = await getOrCreateChannel(channelName);
     if (channelId) {
       setActiveChannelId(channelId);
-      console.log('🎯 Active channel set to:', channelName, channelId);
+      console.log('✅ Active channel set:', channelId);
     }
     return channelId;
   }, [getOrCreateChannel]);

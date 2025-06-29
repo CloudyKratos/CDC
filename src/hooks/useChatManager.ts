@@ -9,6 +9,7 @@ import { useMessageActions } from './use-message-actions';
 
 export function useChatManager(channelName: string = 'general') {
   const [isSending, setIsSending] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { user } = useAuth();
   
   const channelManager = useChannelManager();
@@ -17,10 +18,13 @@ export function useChatManager(channelName: string = 'general') {
 
   // Initialize chat for the given channel
   const initializeChat = useCallback(async () => {
-    if (!user?.id || !channelName) return;
+    if (!user?.id || !channelName || isInitialized) {
+      return;
+    }
 
     try {
       console.log('🚀 Initializing chat for:', channelName);
+      setIsInitialized(true);
       
       // Clear previous messages when switching channels
       realtime.clearMessages();
@@ -28,14 +32,17 @@ export function useChatManager(channelName: string = 'general') {
       // Get or create channel
       const channelId = await channelManager.setActiveChannel(channelName);
       if (!channelId) {
-        console.error('Failed to initialize channel');
+        console.error('❌ Failed to get channel ID');
+        setIsInitialized(false);
         return;
       }
 
       // Load message history
+      console.log('📥 Loading messages for channel:', channelId);
       await realtime.loadMessages(channelId);
       
       // Subscribe to realtime updates
+      console.log('📡 Setting up realtime subscription');
       realtime.subscribeToChannel(channelId);
       
       console.log('✅ Chat initialized successfully for:', channelName);
@@ -43,8 +50,9 @@ export function useChatManager(channelName: string = 'general') {
     } catch (error) {
       console.error('💥 Failed to initialize chat:', error);
       toast.error('Failed to connect to chat');
+      setIsInitialized(false);
     }
-  }, [user?.id, channelName, channelManager, realtime]);
+  }, [user?.id, channelName, isInitialized, channelManager, realtime]);
 
   // Send message with enhanced error handling
   const sendMessage = useCallback(async (content: string) => {
@@ -52,7 +60,7 @@ export function useChatManager(channelName: string = 'general') {
 
     setIsSending(true);
     try {
-      console.log('📤 Sending message via enhanced chat');
+      console.log('📤 Sending message');
       
       const success = await realtime.sendMessage(channelManager.activeChannelId, content);
       if (!success) {
@@ -79,8 +87,10 @@ export function useChatManager(channelName: string = 'general') {
 
   // Initialize on mount and channel change
   useEffect(() => {
-    initializeChat();
-  }, [initializeChat]);
+    if (user?.id && channelName && !isInitialized) {
+      initializeChat();
+    }
+  }, [user?.id, channelName, isInitialized, initializeChat]);
 
   // Load available channels on mount
   useEffect(() => {
@@ -88,6 +98,11 @@ export function useChatManager(channelName: string = 'general') {
       channelManager.loadChannels();
     }
   }, [user?.id, channelManager]);
+
+  // Reset initialization when channel changes
+  useEffect(() => {
+    setIsInitialized(false);
+  }, [channelName]);
 
   return {
     // Messages and loading state
@@ -114,8 +129,8 @@ export function useChatManager(channelName: string = 'general') {
     error: channelManager.error || realtime.connectionError,
     reconnect: () => {
       console.log('🔄 Manual reconnect triggered');
+      setIsInitialized(false);
       realtime.reconnect();
-      initializeChat();
     }
   };
 }
