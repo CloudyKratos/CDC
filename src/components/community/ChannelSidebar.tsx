@@ -1,84 +1,85 @@
 
 import React from 'react';
-import { Hash } from 'lucide-react';
-
-interface Channel {
-  id: string;
-  name: string;
-  description?: string;
-  type?: string;
-  members?: any[];
-}
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Hash, X, Users } from 'lucide-react';
 
 interface ChannelSidebarProps {
-  channels: Channel[];
   activeChannel: string;
-  onChannelSelect: (channelName: string) => void;
-  isMobile: boolean;
-  showChannelList: boolean;
-  onToggleChannelList?: (show: boolean) => void;
-  setShowChannelList?: (show: boolean) => void;
-  isLoading?: boolean;
+  onChannelSelect: (channel: string) => void;
+  onClose: () => void;
 }
 
 const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
-  channels,
   activeChannel,
   onChannelSelect,
-  isMobile,
-  showChannelList,
-  onToggleChannelList,
-  setShowChannelList,
-  isLoading = false
+  onClose
 }) => {
-  if (!showChannelList && isMobile) return null;
-
-  const handleToggleChannelList = (show: boolean) => {
-    if (onToggleChannelList) {
-      onToggleChannelList(show);
-    } else if (setShowChannelList) {
-      setShowChannelList(show);
-    }
-  };
+  // Default channels for now
+  const channels = [
+    { name: 'general', description: 'General discussion', memberCount: 12 },
+    { name: 'announcements', description: 'Official announcements', memberCount: 45 },
+    { name: 'support', description: 'Help and support', memberCount: 8 },
+    { name: 'random', description: 'Random conversations', memberCount: 23 },
+    { name: 'dev', description: 'Development talk', memberCount: 15 }
+  ];
 
   return (
-    <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 p-4">
-      <div className="flex items-center gap-2 mb-6">
-        <Hash className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-        <h2 className="font-semibold text-slate-900 dark:text-slate-100">
-          Channels
-        </h2>
-      </div>
-      
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+              Channels
+            </h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      ) : (
-        <div className="space-y-2">
+      </div>
+
+      {/* Channel List */}
+      <div className="flex-1 overflow-y-auto p-2">
+        <div className="space-y-1">
           {channels.map((channel) => (
             <button
-              key={channel.id}
-              onClick={() => {
-                onChannelSelect(channel.name);
-                if (isMobile) handleToggleChannelList(false);
-              }}
+              key={channel.name}
+              onClick={() => onChannelSelect(channel.name)}
               className={`w-full text-left p-3 rounded-lg transition-colors ${
                 activeChannel === channel.name
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
-              <div className="font-medium">#{channel.name}</div>
-              {channel.description && (
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {channel.description}
-                </div>
-              )}
+              <div className="flex items-center gap-2 mb-1">
+                <Hash className="h-4 w-4" />
+                <span className="font-medium">{channel.name}</span>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {channel.memberCount}
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {channel.description}
+              </p>
             </button>
           ))}
         </div>
-      )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          Real-time community chat
+        </p>
+      </div>
     </div>
   );
 };

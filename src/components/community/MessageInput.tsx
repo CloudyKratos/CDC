@@ -1,70 +1,109 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Send, Wifi, WifiOff } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
-  activeChannel?: string;
-  channelName?: string;
-  isConnected?: boolean;
-  isLoading: boolean;
-  placeholder?: string;
+  isConnected: boolean;
+  isSending: boolean;
+  activeChannel: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
-  activeChannel,
-  channelName,
-  isConnected = true,
-  isLoading,
-  placeholder
+  isConnected,
+  isSending,
+  activeChannel
 }) => {
-  const [messageInput, setMessageInput] = useState('');
-  
-  const displayChannel = channelName || activeChannel || 'general';
-  const inputPlaceholder = placeholder || `Message #${displayChannel}...`;
+  const [message, setMessage] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const content = messageInput.trim();
-    setMessageInput('');
+    if (!message.trim() || isSending || !isConnected) return;
+
+    const messageToSend = message.trim();
+    setMessage(''); // Clear immediately for better UX
     
     try {
-      await onSendMessage(content);
+      await onSendMessage(messageToSend);
     } catch (error) {
-      // Restore input on error
-      setMessageInput(content);
+      // Restore message on error
+      setMessage(messageToSend);
+      inputRef.current?.focus();
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSubmit(e);
     }
   };
 
+  // Auto-focus when connected
+  useEffect(() => {
+    if (isConnected && !isSending) {
+      inputRef.current?.focus();
+    }
+  }, [isConnected, isSending]);
+
+  const canSend = message.trim() && isConnected && !isSending;
+
   return (
-    <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-      <div className="flex gap-2">
+    <div className="p-4">
+      <form onSubmit={handleSubmit} className="flex gap-2">
         <Input
-          value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
+          ref={inputRef}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={inputPlaceholder}
-          disabled={!isConnected || isLoading}
+          placeholder={
+            isConnected 
+              ? `Message #${activeChannel}...` 
+              : 'Connecting to chat...'
+          }
+          disabled={!isConnected || isSending}
           className="flex-1"
+          maxLength={2000}
         />
         <Button
-          onClick={handleSendMessage}
-          disabled={!messageInput.trim() || !isConnected || isLoading}
+          type="submit"
+          disabled={!canSend}
           size="sm"
+          className="px-4 min-w-[60px]"
         >
-          <Send className="h-4 w-4" />
+          {isSending ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </Button>
+      </form>
+      
+      <div className="flex items-center justify-between mt-2 text-xs">
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <>
+              <Wifi className="h-3 w-3 text-green-600" />
+              <span className="text-green-600">Connected</span>
+            </>
+          ) : (
+            <>
+              <WifiOff className="h-3 w-3 text-red-600" />
+              <span className="text-red-600">Reconnecting...</span>
+            </>
+          )}
+        </div>
+        
+        {message && (
+          <span className="text-gray-500">
+            {message.length}/2000
+          </span>
+        )}
       </div>
     </div>
   );
