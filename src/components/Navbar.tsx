@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
@@ -24,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
-import ProfileDropdown from "./navbar/ProfileDropdown";
 
 interface NavbarProps {
   transparent?: boolean;
@@ -213,9 +211,64 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           
           <ThemeToggle />
           
-          {/* Enhanced Profile Dropdown */}
+          {/* User profile menu for desktop */}
           {isAuthenticated ? (
-            <ProfileDropdown className="hidden md:flex" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="hidden md:flex">
+                <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
+                  <Avatar>
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
+                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 glass-morphism animate-scale-in">
+                <div className="py-2 px-3 mb-1 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
+                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user?.name || "User"}</p>
+                    <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+                    {isAdmin && (
+                      <Badge className="bg-red-500 text-white text-[10px] mt-1">
+                        <Shield className="h-2 w-2 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <Link to="/dashboard">
+                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                </Link>
+
+                {isAdmin && (
+                  <Link to="/admin">
+                    <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10">
+                      <Shield className="h-4 w-4 mr-2" />
+                      <span>Admin Panel</span>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
+                
+                <Link to="/settings">
+                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </Link>
+                
+                <DropdownMenuSeparator className="my-1 bg-gray-100 dark:bg-gray-800" />
+                
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer rounded-md py-2 my-1 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/10">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/login" className="hidden md:block">
               <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">

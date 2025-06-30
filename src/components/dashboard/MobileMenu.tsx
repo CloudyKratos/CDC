@@ -8,6 +8,7 @@ import {
   Calendar, 
   Users, 
   Video, 
+  User, 
   Shield,
   Map,
   X,
@@ -35,6 +36,7 @@ const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuP
     { id: "community" as const, label: "Community", icon: Users },
     { id: "stage" as const, label: "Stage Call", icon: Video },
     { id: "worldmap" as const, label: "World Map", icon: Map },
+    { id: "profile" as const, label: "Profile", icon: User },
   ];
 
   const handlePanelSelect = (panel: ActivePanel) => {
@@ -56,10 +58,10 @@ const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuP
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">W</span>
+                <span className="text-white font-bold text-sm">D</span>
               </div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Warrior Space
+                Dashboard
               </h2>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
