@@ -4,7 +4,8 @@ import { Logo } from "./ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { Menu, X, Bell, Search, User, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, LogOut, Settings, Shield } from "lucide-react";
+import { ProfileDropdown } from "./navbar/ProfileDropdown";
+import { Menu, X, Bell, Search, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, Shield } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -18,8 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
@@ -31,13 +30,12 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]); // Start with empty notifications for new users
+  const [notifications, setNotifications] = useState<any[]>([]);
   const navbarRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout } = useAuth();
   const { currentRole } = useRole();
   const navigate = useNavigate();
 
-  // Check if user is admin
   const isAdmin = currentRole === 'admin';
 
   useEffect(() => {
@@ -52,7 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navbarRef.current && !navbarRef.current.contains(event.target as Node) && mobileMenuOpen) {
@@ -64,14 +61,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [mobileMenuOpen]);
 
-  const handleNotificationRead = (id: number) => {
-    setNotifications(
-      notifications.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
-  };
-
   const handleLogout = () => {
     logout();
     toast.success("You've been successfully logged out");
@@ -81,7 +70,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
-  // Navigation items - centralized for consistency
   const navItems = [
     { id: "home", label: "Home", icon: Home, url: "/" },
     { id: "features", label: "Features", icon: Sparkles, url: "#features" },
@@ -100,6 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
       )}
     >
       <div className="container mx-auto flex items-center justify-between px-4 md:px-6">
+        {/* Logo */}
         <Link to="/" className="flex items-center z-20 group">
           <div className="relative">
             <Logo className="mr-2 group-hover:scale-110 transition-transform duration-300" />
@@ -110,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           </span>
         </Link>
 
-        {/* Desktop Menu - with improved animations */}
+        {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-1">
           {navItems.map((item, index) => (
             <TooltipProvider key={item.id}>
@@ -211,64 +200,11 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           
           <ThemeToggle />
           
-          {/* User profile menu for desktop */}
+          {/* Enhanced Profile Dropdown */}
           {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild className="hidden md:flex">
-                <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
-                  <Avatar>
-                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Avatar" />
-                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 glass-morphism animate-scale-in">
-                <div className="py-2 px-3 mb-1 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
-                    <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{user?.name || "User"}</p>
-                    <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
-                    {isAdmin && (
-                      <Badge className="bg-red-500 text-white text-[10px] mt-1">
-                        <Shield className="h-2 w-2 mr-1" />
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                <Link to="/dashboard">
-                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
-                    <span>Dashboard</span>
-                  </DropdownMenuItem>
-                </Link>
-
-                {isAdmin && (
-                  <Link to="/admin">
-                    <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10">
-                      <Shield className="h-4 w-4 mr-2" />
-                      <span>Admin Panel</span>
-                    </DropdownMenuItem>
-                  </Link>
-                )}
-                
-                <Link to="/settings">
-                  <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1">
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                </Link>
-                
-                <DropdownMenuSeparator className="my-1 bg-gray-100 dark:bg-gray-800" />
-                
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer rounded-md py-2 my-1 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/10">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="hidden md:block">
+              <ProfileDropdown onLogout={handleLogout} />
+            </div>
           ) : (
             <Link to="/login" className="hidden md:block">
               <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
@@ -277,6 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
             </Link>
           )}
           
+          {/* CTA Button */}
           {isAuthenticated ? (
             <Link to="/dashboard" className="hidden md:block">
               <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
@@ -305,7 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         </div>
       </div>
       
-      {/* Mobile Menu - with enhanced animations */}
+      {/* Mobile Menu - Enhanced with Profile Integration */}
       <div 
         className={cn(
           "absolute top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg transform transition-all duration-500 ease-in-out overflow-hidden",
@@ -316,24 +253,17 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
       >
         <div className="container mx-auto px-4 pt-24 pb-6">
           <div className="flex flex-col space-y-5 items-center">
+            {/* Mobile Profile Header */}
             {isAuthenticated && (
               <div className="w-full mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 flex items-center gap-4">
-                <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-800">
-                  <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} />
-                  <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "US"}</AvatarFallback>
-                </Avatar>
+                <ProfileDropdown onLogout={handleLogout} />
                 <div className="flex-1">
                   <p className="font-medium">{user?.name || "User"}</p>
                   <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
-                  {isAdmin && (
-                    <Badge className="bg-red-500 text-white text-[10px] mt-1">
-                      <Shield className="h-2 w-2 mr-1" />
-                      Admin
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
+            
             <div className="flex flex-col w-full space-y-3">
               {navItems.map((item, index) => (
                 <Link 
@@ -470,13 +400,10 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                   </span>
                 )}
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full" onClick={() => setMobileMenuOpen(false)}>
-                <Settings size={18} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+            </div >
+          </div >
+        </div >
+      </div >
+    </nav >
   );
 };

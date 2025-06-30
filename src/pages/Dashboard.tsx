@@ -16,7 +16,6 @@ import {
   Calendar, 
   Users, 
   Video, 
-  User, 
   Shield,
   Map,
   ChevronLeft,
@@ -54,8 +53,6 @@ const Dashboard = () => {
         return <StageRoomPanel />;
       case "worldmap":
         return <WorldMapPanel />;
-      case "profile":
-        return <div className="p-6">Profile Panel Coming Soon</div>;
       default:
         return <CommandRoomPanel />;
     }
@@ -69,12 +66,11 @@ const Dashboard = () => {
     { id: "community", label: "Community", icon: Users },
     { id: "stage", label: "Stage Rooms", icon: Video },
     { id: "worldmap", label: "World Map", icon: Map },
-    { id: "profile", label: "Profile", icon: User },
   ];
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Modern Sidebar - Improved proportions */}
+      {/* Modern Sidebar */}
       <div className={`hidden md:flex md:flex-col transition-all duration-300 ease-in-out ${
         sidebarCollapsed ? 'md:w-16' : 'md:w-72'
       }`}>
@@ -194,7 +190,7 @@ const Dashboard = () => {
         onPanelChange={handlePanelChange}
       />
 
-      {/* Main Content - Improved layout */}
+      {/* Main Content */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Header */}
         <DashboardHeader
@@ -203,7 +199,7 @@ const Dashboard = () => {
           onPanelChange={handlePanelChange}
         />
 
-        {/* Main Area with better spacing */}
+        {/* Main Area */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
           <div className="animate-fade-in min-h-full">
             {renderContent()}

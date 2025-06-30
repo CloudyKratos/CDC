@@ -8,7 +8,6 @@ import {
   Calendar, 
   Users, 
   Video, 
-  User, 
   Shield,
   Map,
   X,
@@ -36,7 +35,6 @@ const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuP
     { id: "community" as const, label: "Community", icon: Users },
     { id: "stage" as const, label: "Stage Call", icon: Video },
     { id: "worldmap" as const, label: "World Map", icon: Map },
-    { id: "profile" as const, label: "Profile", icon: User },
   ];
 
   const handlePanelSelect = (panel: ActivePanel) => {

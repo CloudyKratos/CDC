@@ -11,7 +11,6 @@ import {
   Users,
   Video,
   Map,
-  User,
   LayoutGrid
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,8 +45,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         return "Stage Call";
       case "worldmap":
         return "World Map";
-      case "profile":
-        return "Profile";
       default:
         return "Dashboard";
     }
@@ -65,8 +62,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         return <Video className="h-5 w-5" />;
       case "worldmap":
         return <Map className="h-5 w-5" />;
-      case "profile":
-        return <User className="h-5 w-5" />;
       default:
         return <LayoutGrid className="h-5 w-5" />;
     }
@@ -103,10 +98,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         {/* Right side - User actions */}
         <div className="flex items-center gap-3">
-          {/* Notifications - Empty for new users */}
+          {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
-            {/* No notification badge for new users */}
           </Button>
 
           {/* Admin Panel Button */}
