@@ -6,24 +6,39 @@ import { Send, Wifi, WifiOff } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
-  isConnected: boolean;
-  isSending: boolean;
-  activeChannel: string;
+  isConnected?: boolean;
+  isSending?: boolean;
+  isLoading?: boolean; // Added for backward compatibility
+  activeChannel?: string;
+  channelName?: string; // Added for backward compatibility
+  placeholder?: string; // Added for backward compatibility
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
-  isConnected,
-  isSending,
-  activeChannel
+  isConnected = true,
+  isSending = false,
+  isLoading = false,
+  activeChannel,
+  channelName,
+  placeholder
 }) => {
   const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Use channelName if provided (backward compatibility), otherwise use activeChannel
+  const displayChannel = channelName || activeChannel || 'general';
+  
+  // Use isLoading or isSending for loading state
+  const isCurrentlyLoading = isLoading || isSending;
+  
+  // Use isConnected, but if isLoading is true, consider it as not connected
+  const isCurrentlyConnected = isConnected && !isLoading;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim() || isSending || !isConnected) return;
+    if (!message.trim() || isCurrentlyLoading || !isCurrentlyConnected) return;
 
     const messageToSend = message.trim();
     setMessage(''); // Clear immediately for better UX
@@ -46,12 +61,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   // Auto-focus when connected
   useEffect(() => {
-    if (isConnected && !isSending) {
+    if (isCurrentlyConnected && !isCurrentlyLoading) {
       inputRef.current?.focus();
     }
-  }, [isConnected, isSending]);
+  }, [isCurrentlyConnected, isCurrentlyLoading]);
 
-  const canSend = message.trim() && isConnected && !isSending;
+  const canSend = message.trim() && isCurrentlyConnected && !isCurrentlyLoading;
+
+  const defaultPlaceholder = isCurrentlyConnected 
+    ? `Message #${displayChannel}...` 
+    : 'Connecting to chat...';
 
   return (
     <div className="p-4">
@@ -61,12 +80,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={
-            isConnected 
-              ? `Message #${activeChannel}...` 
-              : 'Connecting to chat...'
-          }
-          disabled={!isConnected || isSending}
+          placeholder={placeholder || defaultPlaceholder}
+          disabled={!isCurrentlyConnected || isCurrentlyLoading}
           className="flex-1"
           maxLength={2000}
         />
@@ -76,7 +91,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           size="sm"
           className="px-4 min-w-[60px]"
         >
-          {isSending ? (
+          {isCurrentlyLoading ? (
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
           ) : (
             <Send className="h-4 w-4" />
@@ -86,7 +101,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       
       <div className="flex items-center justify-between mt-2 text-xs">
         <div className="flex items-center gap-2">
-          {isConnected ? (
+          {isCurrentlyConnected ? (
             <>
               <Wifi className="h-3 w-3 text-green-600" />
               <span className="text-green-600">Connected</span>
