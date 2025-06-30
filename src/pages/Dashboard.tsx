@@ -16,7 +16,6 @@ import {
   Calendar, 
   Users, 
   Video, 
-  User, 
   Shield,
   Map,
   ChevronLeft,
@@ -54,8 +53,6 @@ const Dashboard = () => {
         return <StageRoomPanel />;
       case "worldmap":
         return <WorldMapPanel />;
-      case "profile":
-        return <div className="p-6">Profile Panel Coming Soon</div>;
       default:
         return <CommandRoomPanel />;
     }
@@ -69,7 +66,6 @@ const Dashboard = () => {
     { id: "community", label: "Community", icon: Users },
     { id: "stage", label: "Stage Rooms", icon: Video },
     { id: "worldmap", label: "World Map", icon: Map },
-    { id: "profile", label: "Profile", icon: User },
   ];
 
   return (
