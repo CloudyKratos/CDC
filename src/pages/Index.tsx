@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,8 @@ import { toast } from 'sonner';
 const Index = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [activeWarriors, setActiveWarriors] = useState(0);
+  const [animateWarriors, setAnimateWarriors] = useState(false);
 
   const testimonials = [
     {
@@ -72,6 +73,49 @@ const Index = () => {
     { number: "4.9/5", label: "Community Rating" }
   ];
 
+  // Enhanced Three Pillars with detailed content
+  const threePillars = [
+    {
+      icon: Icons.Target,
+      title: "Commitment",
+      subtitle: "The Foundation of All Achievement",
+      description: "Make the decision before you have all the answers. Commitment precedes clarity. Warriors decide first, then figure out the how.",
+      details: [
+        "Commit to your vision even when the path isn't clear",
+        "Make decisions based on your future self, not current circumstances",
+        "Honor your word to yourself above all else"
+      ],
+      color: "from-red-500 to-pink-500",
+      bgColor: "bg-red-50 dark:bg-red-900/10"
+    },
+    {
+      icon: Icons.Clock,
+      title: "Discipline",
+      subtitle: "The Bridge Between Goals and Accomplishment",
+      description: "Do what needs to be done regardless of how you feel. Discipline is the ability to execute on your commitments even when motivation fades.",
+      details: [
+        "Execute your plans regardless of emotional state",
+        "Build systems that work even on your worst days",
+        "Choose delayed gratification over instant satisfaction"
+      ],
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-blue-50 dark:bg-blue-900/10"
+    },
+    {
+      icon: Icons.RefreshCw,
+      title: "Consistency",
+      subtitle: "The Compound Effect of Excellence",
+      description: "Small actions, repeated with precision over time, lead to extraordinary outcomes. Consistency compounds into unstoppable momentum.",
+      details: [
+        "Show up daily, especially when you don't feel like it",
+        "Focus on progress, not perfection",
+        "Trust the process and let time amplify your efforts"
+      ],
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-green-50 dark:bg-green-900/10"
+    }
+  ];
+
   // Auto-rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
@@ -83,6 +127,26 @@ const Index = () => {
   // Loading animation
   useEffect(() => {
     setIsLoaded(true);
+  }, []);
+
+  // Animate active warriors counter
+  useEffect(() => {
+    setAnimateWarriors(true);
+    const timer = setTimeout(() => {
+      let count = 0;
+      const target = 2500;
+      const increment = target / 100;
+      const counter = setInterval(() => {
+        count += increment;
+        if (count >= target) {
+          setActiveWarriors(target);
+          clearInterval(counter);
+        } else {
+          setActiveWarriors(Math.floor(count));
+        }
+      }, 20);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleJoinClick = (source: string) => {
@@ -140,7 +204,7 @@ const Index = () => {
       </header>
       
       <main className="flex-1 relative z-10">
-        {/* Enhanced Hero Section */}
+        {/* Enhanced Hero Section with Active Warriors Counter */}
         <section className="py-20 md:py-32 container mx-auto px-4 text-center relative">
           <div className="animate-fade-in">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
@@ -152,9 +216,33 @@ const Index = () => {
               Join the <span className="bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">CDC Warriors</span> on their path to extraordinary achievement
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
               A community of high-performers who understand that greatness is not born, but forged through daily discipline and unwavering commitment.
             </p>
+
+            {/* Enhanced Active Warriors Counter */}
+            <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl p-8 mb-10 max-w-2xl mx-auto">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="w-12 h-12 rounded-full border-4 border-background bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center">
+                      <Icons.User className="h-6 w-6 text-white" />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <div className={`text-4xl md:text-5xl font-bold text-primary mb-2 transition-all duration-1000 ${animateWarriors ? 'scale-110' : ''}`}>
+                    {activeWarriors.toLocaleString()}+
+                  </div>
+                  <div className="text-lg font-semibold text-muted-foreground">
+                    Active Warriors Worldwide
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Training daily • Building discipline • Achieving excellence
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link to="/login">
@@ -187,7 +275,7 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Enhanced Philosophy Section */}
+        {/* Enhanced Three Pillars Section */}
         <section id="philosophy" className="py-16 md:py-24 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
@@ -200,22 +288,55 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8 mt-12">
-              <FeatureCard
-                icon={Icons.Target}
-                title="Commitment"
-                description="Make the decision before you have all the answers. Commitment precedes clarity. Warriors decide first, then figure out the how."
-              />
-              <FeatureCard
-                icon={Icons.Clock}
-                title="Discipline"
-                description="Do what needs to be done regardless of how you feel. Discipline is the ability to execute on your commitments even when motivation fades."
-              />
-              <FeatureCard
-                icon={Icons.RefreshCw}
-                title="Consistency"
-                description="Small actions, repeated with precision over time, lead to extraordinary outcomes. Consistency compounds into unstoppable momentum."
-              />
+            <div className="grid lg:grid-cols-3 gap-8 mt-12">
+              {threePillars.map((pillar, index) => (
+                <Card key={index} className="group hover:shadow-xl transition-all duration-500 border-0 shadow-lg overflow-hidden">
+                  <div className={`h-2 bg-gradient-to-r ${pillar.color}`}></div>
+                  <CardHeader className="text-center pb-4">
+                    <div className={`w-20 h-20 rounded-full ${pillar.bgColor} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                      <pillar.icon className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle className="text-2xl mb-2">{pillar.title}</CardTitle>
+                    <p className="text-sm font-medium text-primary">{pillar.subtitle}</p>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      {pillar.description}
+                    </p>
+                    <div className="space-y-3">
+                      {pillar.details.map((detail, detailIndex) => (
+                        <div key={detailIndex} className="flex items-start text-left">
+                          <div className="w-2 h-2 rounded-full bg-primary mt-2 mr-3 flex-shrink-0"></div>
+                          <p className="text-sm text-muted-foreground">{detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pillar Connection Visualization */}
+            <div className="mt-16 text-center">
+              <div className="max-w-4xl mx-auto">
+                <h3 className="text-xl font-semibold mb-6">The Warrior's Journey</h3>
+                <div className="flex items-center justify-center gap-4 flex-wrap">
+                  <Badge variant="outline" className="text-sm px-4 py-2">
+                    Commitment → Decision
+                  </Badge>
+                  <Icons.ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant="outline" className="text-sm px-4 py-2">
+                    Discipline → Action
+                  </Badge>
+                  <Icons.ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant="outline" className="text-sm px-4 py-2">
+                    Consistency → Results
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground mt-4 text-sm">
+                  Each pillar builds upon the next, creating an unbreakable foundation for success
+                </p>
+              </div>
             </div>
           </div>
         </section>
