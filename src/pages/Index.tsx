@@ -1,49 +1,137 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { FeatureCard } from "@/components/home/FeatureCard";
 import { FeaturePoint } from "@/components/home/FeaturePoint";
 import { FeatureBadge } from "@/components/home/FeatureBadge";
 import Icons from "@/utils/IconUtils";
+import { toast } from 'sonner';
 
 const Index = () => {
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const testimonials = [
+    {
+      quote: "The CDC philosophy changed everything for me. I stopped waiting for motivation and started showing up every day, no matter what.",
+      author: "Michael K.",
+      role: "Entrepreneur",
+      duration: "8 months in community",
+      avatar: "M"
+    },
+    {
+      quote: "The daily accountability has been game-changing. Knowing other warriors are expecting me to show up pushes me through the resistance.",
+      author: "Sarah T.",
+      role: "Fitness Coach",
+      duration: "1 year in community",
+      avatar: "S"
+    },
+    {
+      quote: "Consistency became my superpower. Small daily actions compound into extraordinary results when you stick with them.",
+      author: "David L.",
+      role: "Business Owner",
+      duration: "6 months in community",
+      avatar: "D"
+    }
+  ];
+
+  const features = [
+    {
+      icon: Icons.Target,
+      title: "Daily Accountability",
+      description: "Connect with warriors who hold you to your highest standards and push you beyond your limits.",
+      color: "bg-blue-50 text-blue-600"
+    },
+    {
+      icon: Icons.Users,
+      title: "Warrior Community",
+      description: "Join a tribe of high-performers committed to excellence through discipline and consistency.",
+      color: "bg-green-50 text-green-600"
+    },
+    {
+      icon: Icons.BookOpen,
+      title: "Strategic Resources",
+      description: "Access proven frameworks, tactics, and resources used by elite performers worldwide.",
+      color: "bg-purple-50 text-purple-600"
+    },
+    {
+      icon: Icons.Sparkles,
+      title: "Live Training",
+      description: "Weekly sessions on performance tactics, mindset frameworks, and implementation strategies.",
+      color: "bg-yellow-50 text-yellow-600"
+    }
+  ];
+
+  const stats = [
+    { number: "2,500+", label: "Active Warriors" },
+    { number: "95%", label: "Goal Achievement Rate" },
+    { number: "150+", label: "Countries Represented" },
+    { number: "4.9/5", label: "Community Rating" }
+  ];
+
+  // Auto-rotate testimonials
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [testimonials.length]);
+
+  // Loading animation
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const handleJoinClick = (source: string) => {
+    toast.success("Redirecting to join CDC Warriors!", {
+      description: `Joining from: ${source}`,
+    });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-opacity duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Enhanced Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <img 
           src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
           alt="Celestial whales background"
-          className="w-full h-full object-cover opacity-15 dark:opacity-30"
+          className="w-full h-full object-cover opacity-10 dark:opacity-20"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-background/50 to-background/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
       </div>
       
-      <header className="relative z-10 border-b bg-background/90 backdrop-blur-sm">
+      {/* Enhanced Header */}
+      <header className="relative z-10 border-b bg-background/95 backdrop-blur-md shadow-sm">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Icons.Sparkles className="h-6 w-6 text-primary" />
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Icons.Sparkles className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold">CDC Warriors</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              CDC Warriors
+            </span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
-            <Link to="#features" className="text-sm font-medium hover:text-primary transition-colors">CDC Philosophy</Link>
-            <Link to="#community" className="text-sm font-medium hover:text-primary transition-colors">Community</Link>
-            <Link to="#about" className="text-sm font-medium hover:text-primary transition-colors">About</Link>
+            <a href="#philosophy" className="text-sm font-medium hover:text-primary transition-colors">Philosophy</a>
+            <a href="#community" className="text-sm font-medium hover:text-primary transition-colors">Community</a>
+            <a href="#testimonials" className="text-sm font-medium hover:text-primary transition-colors">Success Stories</a>
+            <a href="#join" className="text-sm font-medium hover:text-primary transition-colors">Join</a>
           </nav>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link to="/login">
-              <Button variant="outline" size="sm" className="hidden md:flex">
-                Login
+              <Button variant="outline" size="sm" className="hidden md:flex hover:bg-primary/5">
+                Sign In
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="sm">
+              <Button size="sm" onClick={() => handleJoinClick("header")} className="shadow-md hover:shadow-lg transition-shadow">
+                <Icons.Sparkles className="h-4 w-4 mr-2" />
                 Join Warriors
               </Button>
             </Link>
@@ -52,40 +140,62 @@ const Index = () => {
       </header>
       
       <main className="flex-1 relative z-10">
-        {/* Hero Section */}
+        {/* Enhanced Hero Section */}
         <section className="py-20 md:py-32 container mx-auto px-4 text-center relative">
-          <FeatureBadge icon={Icons.Target} text="Commitment. Discipline. Consistency." />
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mt-4 mb-6 max-w-4xl mx-auto">
-            Join the <span className="text-primary">CDC Warriors</span> on their path to extraordinary achievement
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-            A community of high-performers who understand that greatness is not born, but forged through daily discipline and unwavering commitment.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/login">
-              <Button size="lg" className="gap-2">
-                <Icons.Target className="h-5 w-5" />
-                Start Your Journey
+          <div className="animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <Icons.Target className="h-4 w-4" />
+              Commitment. Discipline. Consistency.
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 max-w-5xl mx-auto">
+              Join the <span className="bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">CDC Warriors</span> on their path to extraordinary achievement
+            </h1>
+            
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
+              A community of high-performers who understand that greatness is not born, but forged through daily discipline and unwavering commitment.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Link to="/login">
+                <Button size="lg" onClick={() => handleJoinClick("hero")} className="gap-2 shadow-lg hover:shadow-xl transition-all group">
+                  <Icons.Target className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                  Start Your Journey
+                </Button>
+              </Link>
+              <Button variant="outline" size="lg" className="gap-2 hover:bg-primary/5" asChild>
+                <a href="#philosophy">
+                  <Icons.BookOpen className="h-5 w-5" />
+                  Learn More
+                </a>
               </Button>
-            </Link>
-            <Link to="#learn-more">
-              <Button variant="outline" size="lg" className="gap-2">
-                <Icons.BookOpen className="h-5 w-5" />
-                Learn More
-              </Button>
-            </Link>
+            </div>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+              {stats.map((stat, index) => (
+                <div key={index} className="text-center group">
+                  <div className="text-2xl md:text-3xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">
+                    {stat.number}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
         
-        {/* CDC Philosophy Section */}
-        <section id="features" className="py-16 md:py-24 bg-muted/50">
+        {/* Enhanced Philosophy Section */}
+        <section id="philosophy" className="py-16 md:py-24 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <FeatureBadge icon={Icons.Zap} text="The CDC Philosophy" />
               <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
                 Three Pillars of the Warrior Mindset
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-lg">
                 Warriors understand that extraordinary results don't come from talent or luck, but from a disciplined approach to consistent action.
               </p>
             </div>
@@ -109,152 +219,229 @@ const Index = () => {
             </div>
           </div>
         </section>
-        
-        {/* Community Section */}
-        <section id="community" className="py-16 md:py-24 container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="order-2 md:order-1">
-              <FeatureBadge icon={Icons.Users} text="The Warrior Community" />
-              <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
-                Join a tribe of like-minded warriors
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Connect with others who share your commitment to excellence and hold you accountable to your highest standards.
-              </p>
-              
-              <div className="space-y-6">
-                <FeaturePoint
-                  title="Accountability Partners"
-                  description="Connect with warriors who will hold you to your word and push you beyond your limits."
-                  icon={Icons.Users}
-                  text="Connect with warriors who will hold you to your word and push you beyond your limits."
-                />
-                <FeaturePoint
-                  title="Daily Check-ins"
-                  description="Share your victories, challenges, and insights with the community through daily check-ins."
-                  icon={Icons.MessageSquare}
-                  text="Share your victories, challenges, and insights with the community through daily check-ins."
-                />
-                <FeaturePoint
-                  title="Live Training Sessions"
-                  description="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
-                  icon={Icons.Video}
-                  text="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
-                />
-              </div>
-              
-              <div className="mt-8">
-                <Link to="/login">
-                  <Button className="gap-2">
-                    <Icons.ArrowRight className="h-4 w-4" />
-                    Join the Community
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            
-            <div className="order-1 md:order-2">
-              <Card className="overflow-hidden border-0 shadow-lg">
-                <CardHeader className="bg-primary text-primary-foreground py-6">
-                  <CardTitle>Community Highlights</CardTitle>
-                  <CardDescription className="text-primary-foreground/90">
-                    What our warriors are saying
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    <div className="p-6">
-                      <p className="italic mb-4">
-                        "The CDC philosophy changed everything for me. I stopped waiting for motivation and started showing up every day, no matter what."
-                      </p>
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                          <Icons.User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Michael K.</p>
-                          <p className="text-sm text-muted-foreground">Entrepreneur, 8 months in community</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <p className="italic mb-4">
-                        "The daily accountability has been game-changing. Knowing other warriors are expecting me to show up pushes me through the resistance."
-                      </p>
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                          <Icons.User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Sarah T.</p>
-                          <p className="text-sm text-muted-foreground">Fitness coach, 1 year in community</p>
-                        </div>
-                      </div>
-                    </div>
+
+        {/* New Features Section */}
+        <section className="py-16 md:py-24 container mx-auto px-4">
+          <div className="text-center mb-16">
+            <FeatureBadge icon={Icons.Sparkles} text="What You Get" />
+            <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
+              Everything You Need to Win
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Join thousands of warriors who have transformed their lives through our proven system and supportive community.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, index) => (
+              <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+                <CardHeader className="text-center pb-3">
+                  <div className={`w-16 h-16 rounded-full ${feature.color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                    <feature.icon className="h-8 w-8" />
                   </div>
+                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
                 </CardContent>
-                <CardFooter className="bg-muted p-6">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex -space-x-3">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <div key={i} className="h-8 w-8 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center">
-                          <Icons.User className="h-4 w-4 text-primary" />
+              </Card>
+            ))}
+          </div>
+        </section>
+        
+        {/* Enhanced Community Section */}
+        <section id="community" className="py-16 md:py-24 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="order-2 md:order-1">
+                <FeatureBadge icon={Icons.Users} text="The Warrior Community" />
+                <h2 className="text-3xl md:text-4xl font-bold mt-4 mb-6">
+                  Join a tribe of like-minded warriors
+                </h2>
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                  Connect with others who share your commitment to excellence and hold you accountable to your highest standards.
+                </p>
+                
+                <div className="space-y-6">
+                  <FeaturePoint
+                    title="Accountability Partners"
+                    icon={Icons.Users}
+                    text="Connect with warriors who will hold you to your word and push you beyond your limits."
+                  />
+                  <FeaturePoint
+                    title="Daily Check-ins"
+                    icon={Icons.MessageSquare}
+                    text="Share your victories, challenges, and insights with the community through daily check-ins."
+                  />
+                  <FeaturePoint
+                    title="Live Training Sessions"
+                    icon={Icons.Video}
+                    text="Weekly live sessions on tactics, strategies, and mental frameworks for peak performance."
+                  />
+                </div>
+                
+                <div className="mt-8">
+                  <Link to="/login">
+                    <Button className="gap-2 shadow-md" onClick={() => handleJoinClick("community")}>
+                      <Icons.ArrowRight className="h-4 w-4" />
+                      Join the Community
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              
+              <div className="order-1 md:order-2">
+                <Card className="overflow-hidden border-0 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-6">
+                    <CardTitle className="text-xl">Community Highlights</CardTitle>
+                    <CardDescription className="text-primary-foreground/90">
+                      What our warriors are saying
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {/* Rotating Testimonials */}
+                    <div className="relative h-64 overflow-hidden">
+                      {testimonials.map((testimonial, index) => (
+                        <div
+                          key={index}
+                          className={`absolute inset-0 p-6 transition-all duration-500 ${
+                            index === currentTestimonial
+                              ? 'translate-x-0 opacity-100'
+                              : index < currentTestimonial
+                              ? '-translate-x-full opacity-0'
+                              : 'translate-x-full opacity-0'
+                          }`}
+                        >
+                          <p className="italic mb-4 text-base leading-relaxed">
+                            "{testimonial.quote}"
+                          </p>
+                          <div className="flex items-center">
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                              <span className="font-semibold text-primary">{testimonial.avatar}</span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{testimonial.author}</p>
+                              <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                              <p className="text-xs text-muted-foreground">{testimonial.duration}</p>
+                            </div>
+                          </div>
                         </div>
                       ))}
-                      <div className="h-8 w-8 rounded-full border-2 border-background bg-primary flex items-center justify-center text-white text-xs">
-                        +248
-                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">Active warriors this week</p>
-                  </div>
-                </CardFooter>
-              </Card>
+                    
+                    {/* Testimonial Indicators */}
+                    <div className="flex justify-center space-x-2 py-4">
+                      {testimonials.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentTestimonial(index)}
+                          className={`w-2 h-2 rounded-full transition-colors ${
+                            index === currentTestimonial ? 'bg-primary' : 'bg-muted-foreground/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="bg-muted/50 p-6">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex -space-x-3">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className="h-8 w-8 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center">
+                            <Icons.User className="h-4 w-4 text-primary" />
+                          </div>
+                        ))}
+                        <div className="h-8 w-8 rounded-full border-2 border-background bg-primary flex items-center justify-center text-white text-xs font-semibold">
+                          +2.5K
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="font-medium">
+                        Active this week
+                      </Badge>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </div>
             </div>
           </div>
         </section>
         
-        {/* CTA Section */}
-        <section id="learn-more" className="py-16 md:py-24 bg-primary/5">
+        {/* Enhanced CTA Section */}
+        <section id="join" className="py-16 md:py-24 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <div className="container mx-auto px-4 text-center">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Icons.Clock className="h-4 w-4" />
+                Join 2,500+ Warriors Today
+              </div>
+              
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Ready to become a CDC Warrior?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
                 Join our community today and start your journey towards mastery through Commitment, Discipline, and Consistency.
               </p>
-              <Link to="/login">
-                <Button size="lg" className="gap-2">
-                  <Icons.Sparkles className="h-5 w-5" />
-                  Begin Your Journey
-                </Button>
-              </Link>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <Link to="/login">
+                  <Button size="lg" onClick={() => handleJoinClick("cta")} className="gap-2 shadow-lg hover:shadow-xl transition-all px-8 py-6 text-lg">
+                    <Icons.Sparkles className="h-6 w-6" />
+                    Begin Your Journey
+                  </Button>
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Free to join • No credit card required
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Icons.Check className="h-4 w-4 text-green-600" />
+                  <span>Instant access</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Icons.Check className="h-4 w-4 text-green-600" />
+                  <span>24/7 community support</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Icons.Check className="h-4 w-4 text-green-600" />
+                  <span>Weekly live sessions</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
       </main>
       
-      <footer className="relative z-10 bg-background/90 backdrop-blur-sm border-t py-12">
+      {/* Enhanced Footer */}
+      <footer className="relative z-10 bg-background/95 backdrop-blur-md border-t py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Icons.Sparkles className="h-4 w-4 text-primary" />
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div className="flex items-center space-x-3 mb-6 md:mb-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center">
+                <Icons.Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="font-bold">CDC Warriors</span>
+              <span className="font-bold text-lg">CDC Warriors</span>
             </div>
             
-            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center">
-              <Link to="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Terms & Conditions
-              </Link>
-              <Link to="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Contact Us
-              </Link>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
+              <div className="flex flex-wrap justify-center gap-6">
+                <a href="#philosophy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Philosophy
+                </a>
+                <a href="#community" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Community
+                </a>
+                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Privacy Policy
+                </a>
+                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Terms of Service
+                </a>
+              </div>
+              
+              <div className="flex items-center gap-3">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
                   <Icons.MessageSquare className="h-4 w-4" />
                 </Button>
@@ -268,8 +455,10 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} CDC Warriors. All rights reserved.
+          <div className="border-t pt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} CDC Warriors. Empowering warriors worldwide through Commitment, Discipline, and Consistency.
+            </p>
           </div>
         </div>
       </footer>
