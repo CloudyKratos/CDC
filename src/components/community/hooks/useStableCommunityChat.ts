@@ -1,10 +1,8 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { getUserName } from '@/utils/user-data';
 
 interface UseStableCommunityChat {
   messages: Message[];
@@ -259,7 +257,7 @@ export function useStableCommunityChat(channelName: string): UseStableCommunityC
         if (status === 'SUBSCRIBED') {
           await presenceChannelRef.current?.track({
             user_id: user.id,
-            username: getUserName(user) || 'Anonymous',
+            username: user.name || 'Anonymous',
             online_at: new Date().toISOString()
           });
         }
