@@ -570,6 +570,48 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          activity_status: boolean | null
+          created_at: string | null
+          data_collection: boolean | null
+          email_notifications: boolean | null
+          id: string
+          marketing_emails: boolean | null
+          profile_visibility: boolean | null
+          push_notifications: boolean | null
+          two_factor_auth: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_status?: boolean | null
+          created_at?: string | null
+          data_collection?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          profile_visibility?: boolean | null
+          push_notifications?: boolean | null
+          two_factor_auth?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_status?: boolean | null
+          created_at?: string | null
+          data_collection?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          profile_visibility?: boolean | null
+          push_notifications?: boolean | null
+          two_factor_auth?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       workspace_members: {
         Row: {
           id: string

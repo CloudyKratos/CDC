@@ -82,6 +82,7 @@ const ProfileSettings = () => {
   const fetchProfile = async () => {
     if (!user) return;
 
+    console.log('Fetching profile for user:', user.id);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -117,19 +118,21 @@ const ProfileSettings = () => {
   const fetchSettings = async () => {
     if (!user) return;
 
+    console.log('Fetching settings for user:', user.id);
     try {
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching settings:', error);
         return;
       }
 
       if (data) {
+        console.log('Settings fetched:', data);
         setSettings({
           emailNotifications: data.email_notifications ?? true,
           pushNotifications: data.push_notifications ?? true,
@@ -139,6 +142,8 @@ const ProfileSettings = () => {
           dataCollection: data.data_collection ?? true,
           twoFactorAuth: data.two_factor_auth ?? false
         });
+      } else {
+        console.log('No settings found, using defaults');
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -149,6 +154,7 @@ const ProfileSettings = () => {
     if (!user) return;
 
     setLoading(true);
+    console.log('Saving profile for user:', user.id);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -174,6 +180,7 @@ const ProfileSettings = () => {
     if (!user) return;
 
     setLoading(true);
+    console.log('Saving settings for user:', user.id);
     try {
       const { error } = await supabase
         .from('user_settings')
