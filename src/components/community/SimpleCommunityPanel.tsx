@@ -59,31 +59,33 @@ const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
     }
   }, [isMobile]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim()) {
       console.log('⚠️ Empty message, not sending');
-      return;
+      return false;
     }
 
     if (!user?.id) {
       console.log('⚠️ User not authenticated, cannot send message');
       toast.error("You must be logged in to send messages");
-      return;
+      return false;
     }
 
     if (!isConnected) {
       console.log('⚠️ Not connected to chat, cannot send message');
       toast.error("Unable to send message - connection lost");
-      return;
+      return false;
     }
 
     try {
       console.log('📤 Handling message send:', content.substring(0, 50) + '...');
       await sendMessage(content);
       console.log('✅ Message sent successfully');
+      return true;
     } catch (error) {
       console.error("💥 Error in handleSendMessage:", error);
       // Error is already handled in sendMessage with toast
+      return false;
     }
   }, [user?.id, isConnected, sendMessage]);
 

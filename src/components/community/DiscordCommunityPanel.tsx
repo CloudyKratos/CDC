@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import CommunityService from '@/services/community/CommunityService';
@@ -117,18 +116,19 @@ const DiscordCommunityPanel: React.FC<DiscordCommunityPanelProps> = ({
     };
   }, [user?.id, activeChannel]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string): Promise<boolean> => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
-      return;
+      return false;
     }
     
     try {
       await CommunityService.sendMessage(content, activeChannel);
+      return true;
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
-      throw error;
+      return false;
     }
   };
 

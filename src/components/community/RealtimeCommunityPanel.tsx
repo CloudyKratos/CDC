@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -58,22 +57,24 @@ const RealtimeCommunityPanel: React.FC<RealtimeCommunityPanelProps> = ({
     }
   }, [isMobile]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
-      return;
+      return false;
     }
 
     if (!isOnline) {
       toast.error("Cannot send message while offline");
-      return;
+      return false;
     }
 
     try {
       await sendMessage(content);
+      return true;
     } catch (error) {
       console.error("Error sending message:", error);
       // Error handling is done in the hook
+      return false;
     }
   }, [user?.id, isOnline, sendMessage]);
 

@@ -266,15 +266,15 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
   }, [user?.id]);
 
   // Enhanced send message function
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!isReady) {
       toast.error("Please sign in to send messages");
-      return;
+      return false;
     }
 
     if (!channelId) {
       toast.error("Channel not available");
-      return;
+      return false;
     }
 
     const success = await sendMessageWithRetry({
@@ -287,6 +287,8 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
     if (success) {
       console.log('✅ Message sent via enhanced sender');
     }
+    
+    return success;
   }, [channelId, isReady, sendMessageWithRetry]);
 
   // Handle retry with exponential backoff

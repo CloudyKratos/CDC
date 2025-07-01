@@ -107,31 +107,33 @@ const ImprovedCommunityChat: React.FC<ImprovedCommunityChatProps> = ({
     toast.success(`Switched to #${channelId}`, { duration: 1000 });
   }, [isMobile]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim()) {
       console.log('⚠️ Empty message, not sending');
-      return;
+      return false;
     }
 
     if (!user?.id) {
       console.log('⚠️ User not authenticated, cannot send message');
       toast.error("Please log in to send messages");
-      return;
+      return false;
     }
 
     if (!isConnected) {
       console.log('⚠️ Not connected to chat, cannot send message');
       toast.error("Connection lost - please wait for reconnection");
-      return;
+      return false;
     }
 
     try {
       console.log('📤 Sending message:', content.substring(0, 50) + '...');
       await sendMessage(content);
       console.log('✅ Message sent successfully');
+      return true;
     } catch (error) {
       console.error("💥 Error sending message:", error);
       toast.error("Failed to send message - please try again");
+      return false;
     }
   }, [user?.id, isConnected, sendMessage]);
 
