@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserName } from '@/utils/user-data';
 
 interface UseStableCommunityChat {
   messages: Message[];
@@ -258,12 +259,12 @@ export function useStableCommunityChat(channelName: string): UseStableCommunityC
         if (status === 'SUBSCRIBED') {
           await presenceChannelRef.current?.track({
             user_id: user.id,
-            username: user.user_metadata?.username || 'Anonymous',
+            username: getUserName(user) || 'Anonymous',
             online_at: new Date().toISOString()
           });
         }
       });
-  }, [user?.id]);
+  }, [user]);
 
   // Enhanced send message with retry logic
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
