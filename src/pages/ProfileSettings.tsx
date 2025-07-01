@@ -29,7 +29,7 @@ const ProfileSettings = () => {
     handleSettingChange,
     handleSaveProfile,
     handleSaveSettings
-  } = useProfileData(user as User);
+  } = useProfileData(user as unknown as User);
 
   const isAdmin = currentRole === 'admin';
 
@@ -84,7 +84,7 @@ const ProfileSettings = () => {
 
         <div className="grid gap-6 md:grid-cols-4">
           {/* Profile Card */}
-          <ProfileCard user={user as User} profile={profile} isAdmin={isAdmin} />
+          <ProfileCard user={user as unknown as User} profile={profile} isAdmin={isAdmin} />
 
           {/* Settings Tabs */}
           <Card className="md:col-span-3">
