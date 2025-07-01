@@ -391,10 +391,10 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                   </span>
                 )}
               </Button>
-            </div >
-          </div >
-        </div >
-      </div >
-    </nav >
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 };
