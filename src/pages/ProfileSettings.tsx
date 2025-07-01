@@ -14,6 +14,7 @@ import { AppearanceTab } from '@/components/profile-settings/AppearanceTab';
 import { NotificationsTab } from '@/components/profile-settings/NotificationsTab';
 import { PrivacyTab } from '@/components/profile-settings/PrivacyTab';
 import { useProfileData } from '@/hooks/useProfileData';
+import type { User } from '@supabase/supabase-js';
 
 const ProfileSettings = () => {
   const { user, logout } = useAuth();
@@ -28,7 +29,7 @@ const ProfileSettings = () => {
     handleSettingChange,
     handleSaveProfile,
     handleSaveSettings
-  } = useProfileData(user);
+  } = useProfileData(user as User);
 
   const isAdmin = currentRole === 'admin';
 
@@ -83,7 +84,7 @@ const ProfileSettings = () => {
 
         <div className="grid gap-6 md:grid-cols-4">
           {/* Profile Card */}
-          <ProfileCard user={user} profile={profile} isAdmin={isAdmin} />
+          <ProfileCard user={user as User} profile={profile} isAdmin={isAdmin} />
 
           {/* Settings Tabs */}
           <Card className="md:col-span-3">
