@@ -1,125 +1,115 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Wifi, WifiOff } from 'lucide-react';
+import { Send, Smile, Paperclip } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (content: string) => Promise<boolean>;
   isConnected?: boolean;
-  isSending?: boolean;
-  isLoading?: boolean; // Added for backward compatibility
+  isLoading?: boolean;
   activeChannel?: string;
-  channelName?: string; // Added for backward compatibility
-  placeholder?: string; // Added for backward compatibility
+  channelName?: string;
+  placeholder?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   isConnected = true,
-  isSending = false,
   isLoading = false,
   activeChannel,
   channelName,
   placeholder
 }) => {
   const [message, setMessage] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Use channelName if provided (backward compatibility), otherwise use activeChannel
-  const displayChannel = channelName || activeChannel || 'general';
-  
-  // Use isLoading or isSending for loading state
-  const isCurrentlyLoading = isLoading || isSending;
-  
-  // Use isConnected, but if isLoading is true, consider it as not connected
-  const isCurrentlyConnected = isConnected && !isLoading;
+  const [isSending, setIsSending] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim() || isCurrentlyLoading || !isCurrentlyConnected) return;
+    if (!message.trim() || isSending || !isConnected) return;
 
     const messageToSend = message.trim();
     setMessage(''); // Clear immediately for better UX
-    
+    setIsSending(true);
+
     try {
-      await onSendMessage(messageToSend);
+      const success = await onSendMessage(messageToSend);
+      if (!success) {
+        // Restore message if sending failed
+        setMessage(messageToSend);
+        toast.error('Failed to send message');
+      }
     } catch (error) {
       // Restore message on error
       setMessage(messageToSend);
-      inputRef.current?.focus();
+      toast.error('Failed to send message');
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSending(false);
+      textareaRef.current?.focus();
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmit(e as unknown as React.FormEvent);
     }
   };
 
-  // Auto-focus when connected
-  useEffect(() => {
-    if (isCurrentlyConnected && !isCurrentlyLoading) {
-      inputRef.current?.focus();
-    }
-  }, [isCurrentlyConnected, isCurrentlyLoading]);
-
-  const canSend = message.trim() && isCurrentlyConnected && !isCurrentlyLoading;
-
-  const defaultPlaceholder = isCurrentlyConnected 
-    ? `Message #${displayChannel}...` 
-    : 'Connecting to chat...';
+  const displayChannelName = activeChannel || channelName || 'general';
+  const inputPlaceholder = placeholder || `Message #${displayChannelName}...`;
+  const isDisabled = !isConnected || isSending || isLoading;
 
   return (
-    <div className="p-4">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          ref={inputRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={placeholder || defaultPlaceholder}
-          disabled={!isCurrentlyConnected || isCurrentlyLoading}
-          className="flex-1"
-          maxLength={2000}
-        />
-        <Button
-          type="submit"
-          disabled={!canSend}
-          size="sm"
-          className="px-4 min-w-[60px]"
-        >
-          {isCurrentlyLoading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </form>
-      
-      <div className="flex items-center justify-between mt-2 text-xs">
-        <div className="flex items-center gap-2">
-          {isCurrentlyConnected ? (
-            <>
-              <Wifi className="h-3 w-3 text-green-600" />
-              <span className="text-green-600">Connected</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-3 w-3 text-red-600" />
-              <span className="text-red-600">Reconnecting...</span>
-            </>
-          )}
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+        <div className="flex-1">
+          <Textarea
+            ref={textareaRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={isDisabled ? "Connecting..." : inputPlaceholder}
+            disabled={isDisabled}
+            className="min-h-[40px] max-h-[120px] resize-none"
+            rows={1}
+          />
         </div>
         
-        {message && (
-          <span className="text-gray-500">
-            {message.length}/2000
-          </span>
-        )}
-      </div>
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isDisabled}
+            onClick={() => toast.info('File sharing coming soon!')}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="submit"
+            disabled={!message.trim() || isDisabled}
+            size="sm"
+          >
+            {isSending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      {!isConnected && (
+        <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+          Reconnecting...
+        </div>
+      )}
     </div>
   );
 };

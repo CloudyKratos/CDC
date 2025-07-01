@@ -55,13 +55,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
-  // Handle sending messages
-  const handleSendMessage = async (content: string) => {
+  // Handle sending messages with proper Promise<boolean> handling
+  const handleSendMessage = async (content: string): Promise<boolean> => {
     if (!content.trim() || isSending || !isConnected) return false;
 
     setIsSending(true);
     try {
-      return await onSendMessage(content);
+      const success = await onSendMessage(content);
+      return success;
     } finally {
       setIsSending(false);
     }
@@ -137,7 +138,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <MessageInput
           onSendMessage={handleSendMessage}
           isConnected={isConnected}
-          isSending={isSending}
+          isLoading={isSending}
           activeChannel={activeChannel}
         />
       </div>
