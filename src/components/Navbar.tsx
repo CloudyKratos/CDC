@@ -5,8 +5,7 @@ import { Logo } from "./ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { ProfileDropdown } from "./navbar/ProfileDropdown";
-import { Menu, X, Bell, Search, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, Shield, LogOut, User } from "lucide-react";
+import { Menu, X, Bell, Search, Home, Sparkles, Users, ChevronRight, Shield, User } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +16,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
@@ -82,8 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const navItems = [
     { id: "home", label: "Home", icon: Home, url: "/" },
     { id: "features", label: "Features", icon: Sparkles, url: "#features" },
-    { id: "community", label: "Community", icon: Users, url: "#community" },
-    { id: "explore", label: "Explore", icon: Hash, url: "/explore" }
+    { id: "community", label: "Community", icon: Users, url: "#community" }
   ];
 
   return (
@@ -209,11 +206,13 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           
           <ThemeToggle />
           
-          {/* Enhanced Profile Dropdown */}
+          {/* Authentication Buttons */}
           {isAuthenticated ? (
-            <div className="hidden md:block">
-              <ProfileDropdown onLogout={handleLogout} />
-            </div>
+            <Link to="/dashboard" className="hidden md:block">
+              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
+                Dashboard
+              </Button>
+            </Link>
           ) : (
             <Link to="/login" className="hidden md:block">
               <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
@@ -223,13 +222,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           )}
           
           {/* CTA Button */}
-          {isAuthenticated ? (
-            <Link to="/dashboard" className="hidden md:block">
-              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
-                Dashboard
-              </Button>
-            </Link>
-          ) : (
+          {!isAuthenticated && (
             <Link to="/login" className="hidden md:block">
               <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
                 Get Started
@@ -251,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         </div>
       </div>
       
-      {/* Mobile Menu - Enhanced with Profile Integration */}
+      {/* Mobile Menu */}
       <div 
         className={cn(
           "absolute top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg transform transition-all duration-500 ease-in-out overflow-hidden",
@@ -262,17 +255,6 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
       >
         <div className="container mx-auto px-4 pt-24 pb-6">
           <div className="flex flex-col space-y-5 items-center">
-            {/* Mobile Profile Header */}
-            {isAuthenticated && (
-              <div className="w-full mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-blue-500/10 flex items-center gap-4">
-                <ProfileDropdown onLogout={handleLogout} />
-                <div className="flex-1">
-                  <p className="font-medium">{user?.name || "User"}</p>
-                  <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
-                </div>
-              </div>
-            )}
-            
             <div className="flex flex-col w-full space-y-3">
               {navItems.map((item, index) => (
                 <Link 
@@ -350,7 +332,7 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                   >
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-lg bg-red-200/50 dark:bg-red-900/20 flex items-center justify-center mr-3">
-                        <LogOut className="text-red-600 dark:text-red-400" size={20} />
+                        <User className="text-red-600 dark:text-red-400" size={20} />
                       </div>
                       <span className="text-base font-medium">Sign Out</span>
                     </div>
