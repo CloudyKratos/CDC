@@ -55,8 +55,8 @@ export function useChatManager(channelName: string = 'general') {
   }, [user?.id, channelName, isInitialized, channelManager, realtime]);
 
   // Send message with enhanced error handling
-  const sendMessage = useCallback(async (content: string) => {
-    if (!channelManager.activeChannelId || isSending || !content.trim()) return;
+  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
+    if (!channelManager.activeChannelId || isSending || !content.trim()) return false;
 
     setIsSending(true);
     try {
@@ -65,10 +65,13 @@ export function useChatManager(channelName: string = 'general') {
       const success = await realtime.sendMessage(channelManager.activeChannelId, content);
       if (!success) {
         toast.error('Failed to send message');
+        return false;
       }
+      return true;
     } catch (error) {
       console.error('💥 Send message error:', error);
       toast.error('Failed to send message');
+      return false;
     } finally {
       setIsSending(false);
     }

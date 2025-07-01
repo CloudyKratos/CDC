@@ -13,24 +13,32 @@ import { cn } from "@/lib/utils";
 interface EnhancedMessageInputProps {
   onSendMessage: (content: string) => Promise<boolean>;
   isLoading?: boolean;
+  isConnected?: boolean;
+  isSending?: boolean;
   channelName?: string;
   placeholder?: string;
   disabled?: boolean;
+  activeChannel?: string;
 }
 
 const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({ 
   onSendMessage,
   isLoading = false,
-  channelName = "general",
+  isConnected = true,
+  isSending = false,
+  channelName,
   placeholder,
-  disabled = false
+  disabled = false,
+  activeChannel
 }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastTypingTime = useRef<number>(0);
+  
+  // Use activeChannel or channelName or default to "general"
+  const displayChannelName = activeChannel || channelName || "general";
   
   // Auto-resize textarea
   useEffect(() => {
@@ -72,7 +80,6 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
     
     const messageToSend = message.trim();
     setMessage(""); // Clear input immediately for better UX
-    setIsSending(true);
     
     try {
       const success = await onSendMessage(messageToSend);
@@ -90,7 +97,6 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
       setMessage(messageToSend);
       console.error("Error sending message:", error);
     } finally {
-      setIsSending(false);
       textareaRef.current?.focus();
     }
   }, [message, isLoading, isSending, disabled, onSendMessage]);
@@ -109,7 +115,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
   }, []);
 
   const getChannelDisplayName = () => {
-    return channelName.replace(/-/g, ' ');
+    return displayChannelName.replace(/-/g, ' ');
   };
 
   const handleFileUpload = () => {
@@ -134,6 +140,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
   ];
 
   const defaultPlaceholder = placeholder || `Message #${getChannelDisplayName()}...`;
+  const isDisabled = disabled || !isConnected;
   
   return (
     <div className="relative">
@@ -156,7 +163,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
           {/* Main input container */}
           <div className={cn(
             "flex items-end gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl border transition-all duration-200 p-3 shadow-sm",
-            disabled ? "border-red-200 dark:border-red-800" : "border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20"
+            isDisabled ? "border-red-200 dark:border-red-800" : "border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20"
           )}>
             {/* File upload button */}
             <Button
@@ -165,7 +172,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
               size="sm"
               className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
               onClick={handleFileUpload}
-              disabled={disabled}
+              disabled={isDisabled}
             >
               <Paperclip size={18} />
             </Button>
@@ -177,12 +184,12 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={disabled ? "Chat temporarily unavailable..." : defaultPlaceholder}
+                placeholder={isDisabled ? "Chat temporarily unavailable..." : defaultPlaceholder}
                 className={cn(
                   "w-full bg-transparent border-0 outline-none resize-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 text-sm leading-relaxed min-h-[24px] max-h-[120px] overflow-y-auto",
-                  disabled && "cursor-not-allowed opacity-50"
+                  isDisabled && "cursor-not-allowed opacity-50"
                 )}
-                disabled={disabled || isLoading || isSending}
+                disabled={isDisabled || isLoading || isSending}
                 maxLength={2000}
                 rows={1}
               />
@@ -196,7 +203,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
-                  disabled={disabled}
+                  disabled={isDisabled}
                 >
                   <Smile size={18} />
                 </Button>
@@ -221,10 +228,10 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
             <Button
               type="submit"
               size="sm"
-              disabled={!message.trim() || isLoading || isSending || disabled}
+              disabled={!message.trim() || isLoading || isSending || isDisabled}
               className={cn(
                 "h-8 w-8 p-0 shrink-0 transition-all duration-200 rounded-lg",
-                message.trim() && !isLoading && !isSending && !disabled
+                message.trim() && !isLoading && !isSending && !isDisabled
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg hover:scale-105'
                   : 'bg-slate-300 dark:bg-slate-600 text-slate-500 cursor-not-allowed'
               )}
@@ -240,7 +247,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
           {/* Status and character count */}
           <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-1">
             <span>
-              {disabled ? "Reconnecting..." : "Press Enter to send, Shift+Enter for new line"}
+              {isDisabled ? "Reconnecting..." : "Press Enter to send, Shift+Enter for new line"}
             </span>
             <span className={message.length > 1800 ? 'text-orange-500' : ''}>
               {message.length}/2000

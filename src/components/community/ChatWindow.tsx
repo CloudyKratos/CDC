@@ -57,14 +57,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   // Handle sending messages
   const handleSendMessage = async (content: string) => {
-    if (!content.trim() || isSending || !isConnected) return;
+    if (!content.trim() || isSending || !isConnected) return false;
 
     setIsSending(true);
     try {
-      await onSendMessage(content);
+      return await onSendMessage(content);
     } finally {
       setIsSending(false);
     }
+  };
+
+  // Mock functions for reply and reaction (not implemented yet)
+  const handleReply = (messageId: string) => {
+    console.log('Reply to message:', messageId);
+  };
+
+  const handleReaction = async (messageId: string, reaction: string) => {
+    console.log('Add reaction:', reaction, 'to message:', messageId);
   };
 
   return (
@@ -102,6 +111,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   showAvatar={showAvatar}
                   isOwn={message.sender_id === user?.id}
                   onDelete={() => onDeleteMessage(message.id)}
+                  onReply={() => handleReply(message.id)}
+                  onReaction={(reaction) => handleReaction(message.id, reaction)}
                 />
               );
             })}
