@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Trash2, Copy } from 'lucide-react';
+import { MoreHorizontal, Trash2, Copy, Reply, Smile } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MessageBubbleProps {
@@ -14,13 +14,17 @@ interface MessageBubbleProps {
   showAvatar: boolean;
   isOwn: boolean;
   onDelete: () => void;
+  onReply: () => void;
+  onReaction: (reaction: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   showAvatar,
   isOwn,
-  onDelete
+  onDelete,
+  onReply,
+  onReaction
 }) => {
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(message.content);
@@ -75,6 +79,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             <DropdownMenuItem onClick={handleCopyMessage}>
               <Copy className="h-4 w-4 mr-2" />
               Copy message
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onReply}>
+              <Reply className="h-4 w-4 mr-2" />
+              Reply
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onReaction('👍')}>
+              <Smile className="h-4 w-4 mr-2" />
+              React
             </DropdownMenuItem>
             {isOwn && (
               <DropdownMenuItem 

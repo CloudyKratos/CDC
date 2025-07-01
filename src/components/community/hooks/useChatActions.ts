@@ -12,15 +12,15 @@ export function useChatActions(
 ) {
   const { user } = useAuth();
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim() || !user?.id) {
       if (!user?.id) toast.error("You must be logged in to send messages");
-      return;
+      return false;
     }
 
     if (!isOnline) {
       toast.error("Cannot send message while offline. Message will be sent when connection is restored.");
-      return;
+      return false;
     }
 
     try {
@@ -29,10 +29,11 @@ export function useChatActions(
         // Optional: Show success feedback for slow connections
         // toast.success("Message sent!", { duration: 1000 });
       }
+      return success;
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
-      throw error;
+      return false;
     }
   }, [user?.id, sendMessage, isOnline]);
 

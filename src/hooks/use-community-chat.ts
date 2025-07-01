@@ -1,3 +1,4 @@
+
 import { useChatManager } from './useChatManager';
 
 // Re-export the new hook for backward compatibility
