@@ -20,7 +20,9 @@ import {
   Map,
   ChevronLeft,
   ChevronRight,
-  Home
+  Home,
+  User,
+  Settings
 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { ActivePanel } from '@/types/dashboard';
@@ -141,6 +143,23 @@ const Dashboard = () => {
                 </Button>
               ))}
 
+              {/* Quick Profile Settings Access */}
+              <div className="pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                <Link to="/profile-settings">
+                  <Button
+                    variant="ghost"
+                    className={`w-full transition-all duration-200 hover:scale-105 group ${
+                      sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
+                    } h-12 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600`}
+                  >
+                    <User className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    {!sidebarCollapsed && (
+                      <span className="animate-fade-in">Profile Settings</span>
+                    )}
+                  </Button>
+                </Link>
+              </div>
+
               {isAdmin && (
                 <Link to="/admin">
                   <Button
@@ -162,21 +181,26 @@ const Dashboard = () => {
           {/* User Info */}
           {!sidebarCollapsed && (
             <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 animate-fade-in">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-semibold text-lg">
-                    {user.email?.charAt(0).toUpperCase() || 'U'}
-                  </span>
+              <Link to="/profile-settings" className="block">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 transition-all duration-200 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <span className="text-white font-semibold text-lg">
+                      {user.email?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {user.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {user.email}
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Click to edit profile →
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user.name || 'User'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
+              </Link>
             </div>
           )}
         </div>
