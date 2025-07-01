@@ -35,6 +35,13 @@ const MessageInputField: React.FC<MessageInputFieldProps> = ({
     }
   }, [value]);
 
+  // Auto-focus when enabled and not disabled
+  useEffect(() => {
+    if (!disabled && textareaRef.current && document.activeElement !== textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     if (newValue.length <= maxLength) {

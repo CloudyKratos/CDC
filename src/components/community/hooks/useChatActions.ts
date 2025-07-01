@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export function useChatActions(
-  sendMessage: (content: string) => Promise<void>,
+  sendMessage: (content: string) => Promise<boolean>,
   deleteMessage: (messageId: string) => Promise<void>,
   replyToMessage: (messageId: string) => void,
   addReaction: (messageId: string, reaction: string) => Promise<void>,
@@ -24,7 +24,11 @@ export function useChatActions(
     }
 
     try {
-      await sendMessage(content);
+      const success = await sendMessage(content);
+      if (success) {
+        // Optional: Show success feedback for slow connections
+        // toast.success("Message sent!", { duration: 1000 });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
