@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { ProfileDropdown } from "./navbar/ProfileDropdown";
-import { Menu, X, Bell, Search, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, Shield } from "lucide-react";
+import { Menu, X, Bell, Search, Home, Sparkles, MessageCircle, Hash, Users, ChevronRight, Shield, LogOut, User } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -66,6 +67,14 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     toast.success("You've been successfully logged out");
     navigate("/login");
     setMobileMenuOpen(false);
+  };
+
+  const handleNotificationRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      )
+    );
   };
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
