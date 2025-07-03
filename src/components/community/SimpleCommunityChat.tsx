@@ -90,7 +90,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
   const getConnectionStatus = () => {
     if (isConnected && isReady) {
       return (
-        <div className="flex items-center gap-2 text-green-600">
+        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <Wifi className="h-4 w-4" />
           <span className="text-sm font-medium">Live</span>
         </div>
@@ -99,15 +99,15 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
 
     if (isLoading) {
       return (
-        <div className="flex items-center gap-2 text-blue-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
+        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent" />
           <span className="text-sm font-medium">Connecting...</span>
         </div>
       );
     }
 
     return (
-      <div className="flex items-center gap-2 text-amber-600">
+      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
         <WifiOff className="h-4 w-4" />
         <span className="text-sm font-medium">Offline</span>
       </div>
@@ -117,14 +117,14 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
   // Authentication guard
   if (!user) {
     return (
-      <Card className={`h-full ${className} bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700`}>
+      <Card className={`h-full ${className} theme-card`}>
         <CardContent className="h-full flex items-center justify-center p-8">
           <div className="text-center">
-            <Hash className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <Hash className="h-12 w-12 theme-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold theme-text-primary mb-2">
               Sign in to join the chat
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="theme-text-secondary">
               You need to be signed in to participate in community discussions.
             </p>
           </div>
@@ -136,14 +136,14 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
   // Error state - only show critical errors
   if (error && !isLoading && !isConnected) {
     return (
-      <Card className={`h-full ${className} bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700`}>
+      <Card className={`h-full ${className} theme-card`}>
         <CardContent className="h-full flex items-center justify-center p-8">
           <div className="text-center max-w-md">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold theme-text-primary mb-2">
               Connection Error
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="theme-text-secondary mb-4">
               {error}
             </p>
             <Button onClick={reconnect} className="gap-2">
@@ -157,16 +157,16 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
   }
 
   return (
-    <Card className={`h-full flex flex-col ${className} bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700`}>
+    <Card className={`h-full flex flex-col ${className} theme-card`}>
       {/* Header */}
-      <CardHeader className="flex-none p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <CardHeader className="flex-none p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Hash className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Hash className="h-5 w-5 theme-text-muted" />
+            <h2 className="text-lg font-semibold theme-text-primary">
               {channelName}
             </h2>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm theme-text-muted">
               {messages.length} messages
             </span>
           </div>
@@ -194,7 +194,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
             </div>
           ) : messages.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-center text-gray-500 dark:text-gray-400">
+              <div className="text-center theme-text-muted">
                 <Users className="h-8 w-8 mx-auto mb-2" />
                 <p>No messages yet</p>
                 <p className="text-sm">Start the conversation!</p>
@@ -212,17 +212,17 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
                   <div className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarImage src={message.sender?.avatar_url || ''} alt={senderName} />
-                      <AvatarFallback className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                      <AvatarFallback className="text-xs bg-gray-200 dark:bg-gray-700 theme-text-secondary">
                         {senderName[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : ''}`}>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <span className="text-sm font-medium theme-text-primary truncate">
                           {isOwn ? 'You' : senderName}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs theme-text-muted">
                           {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                         </span>
                       </div>
@@ -232,7 +232,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
                           className={`px-3 py-2 rounded-lg max-w-xs break-words ${
                             isOwn
                               ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                              : 'bg-gray-100 dark:bg-gray-800 theme-text-primary border border-gray-200 dark:border-gray-700'
                           }`}
                         >
                           <p className="text-sm whitespace-pre-wrap">
@@ -244,7 +244,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400"
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 theme-text-muted hover:text-red-600 dark:hover:text-red-400"
                             onClick={() => handleDeleteMessage(message.id)}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -264,7 +264,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
       <Separator className="bg-gray-200 dark:bg-gray-700" />
 
       {/* Message Input */}
-      <div className="flex-none p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex-none p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             ref={inputRef}
@@ -276,7 +276,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
                 : 'Connecting...'
             }
             disabled={!isReady || isSending}
-            className="flex-1 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-primary dark:focus:border-primary"
+            className="flex-1 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-primary dark:focus:border-primary theme-text-primary"
             maxLength={1000}
           />
           <Button

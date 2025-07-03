@@ -48,6 +48,12 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
 
+    /* Light theme text colors */
+    --text-primary: 15 23% 4%;
+    --text-secondary: 15 5% 25%;
+    --text-muted: 15 5% 50%;
+    --text-accent: 221.2 83.2% 53.3%;
+
     /* Celestial theme colors */
     --celestial-primary: 223 47% 23%;
     --celestial-dark: 224 71% 4%;
@@ -94,6 +100,12 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 224.3 89.5% 70.8%;
 
+    /* Dark theme text colors */
+    --text-primary: 210 40% 98%;
+    --text-secondary: 210 40% 85%;
+    --text-muted: 215 20.2% 65.1%;
+    --text-accent: 217.2 91.2% 59.8%;
+
     /* Dark celestial theme colors */
     --celestial-primary: 223 47% 23%;
     --celestial-dark: 224 71% 4%;
@@ -112,13 +124,74 @@
     letter-spacing: -0.01em;
     line-height: 1.6;
     scroll-behavior: smooth;
+    color: hsl(var(--text-primary));
   }
 
   /* Ensure proper dark theme transitions */
   html,
   body,
   * {
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Text utility classes */
+  .text-primary {
+    color: hsl(var(--text-primary));
+  }
+
+  .text-secondary {
+    color: hsl(var(--text-secondary));
+  }
+
+  .text-muted {
+    color: hsl(var(--text-muted));
+  }
+
+  .text-accent {
+    color: hsl(var(--text-accent));
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: hsl(var(--text-primary));
+    font-weight: 600;
+  }
+
+  /* Paragraphs and body text */
+  p {
+    color: hsl(var(--text-secondary));
+  }
+
+  /* Links */
+  a {
+    color: hsl(var(--text-accent));
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: hsl(var(--text-accent));
+    opacity: 0.8;
+  }
+
+  /* Form elements */
+  input, textarea, select {
+    color: hsl(var(--text-primary));
+    background-color: hsl(var(--background));
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: hsl(var(--text-muted));
+  }
+
+  /* Buttons */
+  button {
+    color: hsl(var(--text-primary));
+  }
+
+  /* Labels */
+  label {
+    color: hsl(var(--text-secondary));
+    font-weight: 500;
   }
 }
 
@@ -184,7 +257,8 @@
   }
   
   .icon-button {
-    @apply h-8 w-8 rounded-full flex items-center justify-center bg-background hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors;
+    @apply h-8 w-8 rounded-full flex items-center justify-center bg-background hover:bg-gray-100 dark:hover:bg-gray-800;
+    color: hsl(var(--text-secondary));
   }
   
   .sidebar-width {
@@ -209,6 +283,7 @@
   
   .chat-message-other {
     @apply bg-gray-100 dark:bg-gray-800 rounded-tl-none;
+    color: hsl(var(--text-primary));
   }
   
   /* Enhanced Buttons */
@@ -256,6 +331,11 @@
   /* Modern Form Styling */
   .form-input-modern {
     @apply bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-primary focus:border-primary transition-all duration-300;
+    color: hsl(var(--text-primary));
+  }
+  
+  .form-input-modern::placeholder {
+    color: hsl(var(--text-muted));
   }
   
   /* Animation Utilities */
@@ -314,6 +394,40 @@
   
   .celestial-input {
     @apply bg-gray-700/50 dark:bg-gray-800/50 border-yellow-400/30 text-white placeholder:text-white/50 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50;
+  }
+
+  /* Theme-specific text colors */
+  .theme-text-primary {
+    color: hsl(var(--text-primary));
+  }
+
+  .theme-text-secondary {
+    color: hsl(var(--text-secondary));
+  }
+
+  .theme-text-muted {
+    color: hsl(var(--text-muted));
+  }
+
+  .theme-text-accent {
+    color: hsl(var(--text-accent));
+  }
+
+  /* Card styling with proper text colors */
+  .theme-card {
+    @apply bg-card text-card-foreground border border-border rounded-lg shadow-sm;
+  }
+
+  .theme-card h1, .theme-card h2, .theme-card h3, .theme-card h4, .theme-card h5, .theme-card h6 {
+    color: hsl(var(--text-primary));
+  }
+
+  .theme-card p {
+    color: hsl(var(--text-secondary));
+  }
+
+  .theme-card .muted {
+    color: hsl(var(--text-muted));
   }
 }
 

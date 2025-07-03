@@ -120,7 +120,7 @@ const Dashboard = () => {
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     CDC
                   </h1>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Elite Command Center</p>
+                  <p className="text-xs theme-text-muted">Elite Command Center</p>
                 </div>
               </div>
             )}
@@ -128,7 +128,7 @@ const Dashboard = () => {
               variant="ghost"
               size="icon"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="transition-all duration-200 hover:scale-110"
+              className="transition-all duration-200 hover:scale-110 theme-text-secondary"
             >
               {sidebarCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -155,8 +155,8 @@ const Dashboard = () => {
                   </div>
                   {!sidebarCollapsed && (
                     <div className="animate-fade-in">
-                      <div className="font-bold text-lg">CDC's Arena</div>
-                      <div className="text-xs text-gray-500">Elite Training Ground</div>
+                      <div className="font-bold text-lg theme-text-primary">CDC's Arena</div>
+                      <div className="text-xs theme-text-muted">Elite Training Ground</div>
                     </div>
                   )}
                 </Button>
@@ -171,7 +171,7 @@ const Dashboard = () => {
                   } h-12 ${
                     activePanel === item.id 
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 theme-text-primary'
                   }`}
                   onClick={() => handlePanelChange(item.id as ActivePanel)}
                 >
@@ -185,8 +185,12 @@ const Dashboard = () => {
                   </div>
                   {!sidebarCollapsed && (
                     <div className="animate-fade-in flex-1 text-left">
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-xs opacity-70">{item.description}</div>
+                      <div className={`font-medium ${activePanel === item.id ? 'text-white' : 'theme-text-primary'}`}>
+                        {item.label}
+                      </div>
+                      <div className={`text-xs ${activePanel === item.id ? 'text-white/70' : 'theme-text-muted'}`}>
+                        {item.description}
+                      </div>
                     </div>
                   )}
                   {!sidebarCollapsed && activePanel === item.id && (
@@ -204,7 +208,7 @@ const Dashboard = () => {
                     variant="ghost"
                     className={`w-full transition-all duration-200 hover:scale-105 group ${
                       sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                    } h-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600`}
+                    } h-10 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 theme-text-primary`}
                   >
                     <User className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                     {!sidebarCollapsed && (
@@ -217,7 +221,7 @@ const Dashboard = () => {
                   variant="ghost"
                   className={`w-full transition-all duration-200 hover:scale-105 group ${
                     sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                  } h-10 hover:bg-gray-50 dark:hover:bg-gray-700/50`}
+                  } h-10 hover:bg-gray-50 dark:hover:bg-gray-700/50 theme-text-primary`}
                 >
                   <Settings className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                   {!sidebarCollapsed && (
@@ -229,7 +233,7 @@ const Dashboard = () => {
                   variant="ghost"
                   className={`w-full transition-all duration-200 hover:scale-105 group ${
                     sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
-                  } h-10 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:text-yellow-600 relative`}
+                  } h-10 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:text-yellow-600 relative theme-text-primary`}
                 >
                   <Bell className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                   <div className="absolute top-2 left-6 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>

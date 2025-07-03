@@ -11,16 +11,16 @@ export const AppearanceTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Appearance Settings</h3>
+        <h3 className="text-lg font-semibold mb-4 theme-text-primary">Appearance Settings</h3>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
-                <Label className="text-gray-900 dark:text-white">Theme</Label>
+                <Label className="theme-text-primary">Theme</Label>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm theme-text-secondary">
                 Choose your preferred color theme
               </p>
             </div>
@@ -56,8 +56,8 @@ export const AppearanceTab: React.FC = () => {
           </div>
           
           <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
-            <h4 className="font-medium mb-2 text-gray-900 dark:text-white">Preview</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <h4 className="font-medium mb-2 theme-text-primary">Preview</h4>
+            <p className="text-sm theme-text-secondary mb-4">
               This is how your interface will look with the current theme settings.
             </p>
             <div className="flex gap-2">

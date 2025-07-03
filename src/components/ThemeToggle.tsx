@@ -22,14 +22,26 @@ export const ThemeToggle: React.FC = () => {
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <DropdownMenuItem onClick={() => setTheme("light")} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <DropdownMenuItem 
+          onClick={() => setTheme("light")} 
+          className="hover:bg-gray-100 dark:hover:bg-gray-700 theme-text-primary focus:bg-gray-100 dark:focus:bg-gray-700"
+        >
+          <Sun className="mr-2 h-4 w-4" />
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+        <DropdownMenuItem 
+          onClick={() => setTheme("dark")} 
+          className="hover:bg-gray-100 dark:hover:bg-gray-700 theme-text-primary focus:bg-gray-100 dark:focus:bg-gray-700"
+        >
+          <Moon className="mr-2 h-4 w-4" />
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+        <DropdownMenuItem 
+          onClick={() => setTheme("system")} 
+          className="hover:bg-gray-100 dark:hover:bg-gray-700 theme-text-primary focus:bg-gray-100 dark:focus:bg-gray-700"
+        >
+          <Monitor className="mr-2 h-4 w-4" />
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
