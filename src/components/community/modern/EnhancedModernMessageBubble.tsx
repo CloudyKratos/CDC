@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import React, { useState, useRef, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { 
-  MoreVertical,
-  Reply,
-  Smile,
-  Trash2,
+  MoreHorizontal, 
+  Reply, 
+  Trash2, 
   Copy,
-  Pin,
-  Flag
+  Flag,
+  Heart,
+  ThumbsUp,
+  Smile
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,39 +18,21 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MessageReactions } from './MessageReactions';
-import { MessageThread } from './MessageThread';
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/contexts/AuthContext';
+import { Message } from '@/types/chat';
 import { toast } from 'sonner';
-import type { Message } from '@/types/chat';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Reaction {
-  emoji: string;
-  count: number;
-  users: string[];
-  hasReacted: boolean;
-}
 
 interface EnhancedModernMessageBubbleProps {
-  message: Message & {
-    reactions?: Reaction[];
-    replies?: Message[];
-    isPinned?: boolean;
-  };
+  message: Message;
   isOwn: boolean;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
-  onRemoveReaction?: (messageId: string, emoji: string) => void;
-  onPin?: (messageId: string) => void;
-  onReport?: (messageId: string) => void;
-  onSendReply?: (content: string, parentId: string) => Promise<boolean>;
   showAvatar?: boolean;
   isConsecutive?: boolean;
   isThread?: boolean;
   hideActions?: boolean;
-  isConnected?: boolean;
   className?: string;
 }
 
@@ -58,195 +42,191 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   onDelete,
   onReply,
   onReact,
-  onRemoveReaction,
-  onPin,
-  onReport,
-  onSendReply,
   showAvatar = true,
   isConsecutive = false,
   isThread = false,
   hideActions = false,
-  isConnected = true,
   className = ''
 }) => {
+  const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
-  const [showReportDialog, setShowReportDialog] = useState(false);
-  const [reportReason, setReportReason] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
+  const messageRef = useRef<HTMLDivElement>(null);
 
-  const handleCopyMessage = () => {
-    navigator.clipboard.writeText(message.content);
-    toast.success('Message copied to clipboard');
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      toast.success('Message copied to clipboard');
+    } catch (error) {
+      toast.error('Failed to copy message');
+    }
   };
 
-  const handleReportMessage = async () => {
-    if (!reportReason.trim()) {
-      toast.error('Please provide a reason for reporting');
-      return;
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(message.id);
     }
+  };
 
-    try {
-      const { error } = await supabase
-        .from('message_reports')
-        .insert({
-          message_id: message.id,
-          reporter_id: (await supabase.auth.getUser()).data.user?.id,
-          reason: reportReason.trim()
-        });
-
-      if (error) throw error;
-
-      toast.success('Message reported successfully');
-      setShowReportDialog(false);
-      setReportReason('');
-    } catch (error) {
-      console.error('Error reporting message:', error);
-      toast.error('Failed to report message');
+  const handleReply = () => {
+    if (onReply) {
+      onReply(message.id);
     }
+  };
+
+  const handleReact = (emoji: string) => {
+    if (onReact) {
+      onReact(message.id, emoji);
+    }
+  };
+
+  const handleReport = () => {
+    toast.info('Report functionality coming soon');
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch {
+      return 'just now';
+    }
   };
 
-  const senderName = message.sender?.full_name || message.sender?.username || 'Unknown User';
-  const senderInitials = senderName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (name?: string) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const displayName = message.sender?.full_name || message.sender?.username || 'Unknown User';
 
   return (
-    <>
-      <div 
-        className={`group flex gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-          message.isPinned ? 'bg-yellow-50 dark:bg-yellow-900/10 border-l-4 border-yellow-400' : ''
-        } ${className}`}
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
-      >
+    <div
+      ref={messageRef}
+      className={`group relative px-4 py-2 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${className}`}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        setShowActions(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setShowActions(false);
+      }}
+    >
+      <div className="flex items-start gap-3">
         {/* Avatar */}
-        <div className="flex-shrink-0">
-          {showAvatar && !isConsecutive ? (
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={message.sender?.avatar_url || ''} alt={senderName} />
-              <AvatarFallback className="text-xs font-medium bg-blue-500 text-white">
-                {senderInitials}
+        {showAvatar && !isConsecutive && (
+          <div className="flex-shrink-0">
+            <Avatar className="h-10 w-10">
+              <AvatarImage 
+                src={message.sender?.avatar_url || undefined} 
+                alt={displayName}
+              />
+              <AvatarFallback className="text-sm font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
-          ) : (
-            <div className="w-8 h-8 flex items-center justify-center">
-              <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                {formatTime(message.created_at)}
-              </span>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Spacer for consecutive messages */}
+        {isConsecutive && <div className="w-10 flex-shrink-0" />}
 
         {/* Message Content */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          {showAvatar && !isConsecutive && (
+          {/* Header with name and timestamp */}
+          {!isConsecutive && (
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-semibold text-sm text-gray-900 dark:text-white">
-                {senderName}
+              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                {displayName}
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {formatTime(message.created_at)}
               </span>
-              {message.isPinned && (
-                <Pin className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+              {isOwn && (
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  You
+                </span>
               )}
             </div>
           )}
 
-          {/* Message Text */}
-          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+          {/* Message text */}
+          <div className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed break-words">
             {message.content}
           </div>
 
-          {/* Reactions */}
-          {message.reactions && message.reactions.length > 0 && (
-            <MessageReactions
-              messageId={message.id}
-              reactions={message.reactions}
-              onAddReaction={onReact || (() => {})}
-              onRemoveReaction={onRemoveReaction || (() => {})}
-              className="mt-1"
-            />
-          )}
-
-          {/* Thread Preview */}
-          {message.replies && message.replies.length > 0 && !isThread && onSendReply && (
-            <MessageThread
-              parentMessage={message}
-              replies={message.replies}
-              onSendReply={onSendReply}
-              isConnected={isConnected}
-              className="mt-2"
-            />
-          )}
+          {/* Reactions placeholder */}
+          <div className="flex items-center gap-1 mt-2">
+            {/* TODO: Add actual reactions here */}
+          </div>
         </div>
 
-        {/* Actions */}
-        {showActions && !hideActions && (
-          <div className="flex-shrink-0 flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Action buttons */}
+        {!hideActions && showActions && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Quick reactions */}
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-600"
-              onClick={() => onReact?.(message.id, '👍')}
+              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => handleReact('👍')}
             >
-              <Smile className="h-3 w-3" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-600"
-              onClick={() => onReply?.(message.id)}
-            >
-              <Reply className="h-3 w-3" />
+              <ThumbsUp className="h-4 w-4" />
             </Button>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => handleReact('❤️')}
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
+
+            {/* More options */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <MoreVertical className="h-3 w-3" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleCopyMessage}>
+                <DropdownMenuItem onClick={handleReply}>
+                  <Reply className="h-4 w-4 mr-2" />
+                  Reply
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onClick={handleCopy}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy message
                 </DropdownMenuItem>
-                
-                {onPin && (
-                  <DropdownMenuItem onClick={() => onPin(message.id)}>
-                    <Pin className="h-4 w-4 mr-2" />
-                    {message.isPinned ? 'Unpin message' : 'Pin message'}
-                  </DropdownMenuItem>
-                )}
-                
+
+                <DropdownMenuItem onClick={() => handleReact('😀')}>
+                  <Smile className="h-4 w-4 mr-2" />
+                  Add reaction
+                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
-                
-                {!isOwn && (
-                  <DropdownMenuItem onClick={() => setShowReportDialog(true)}>
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report message
-                  </DropdownMenuItem>
-                )}
-                
-                {isOwn && onDelete && (
+
+                {isOwn ? (
                   <DropdownMenuItem 
-                    onClick={() => onDelete(message.id)}
+                    onClick={handleDelete}
                     className="text-red-600 dark:text-red-400"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete message
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem 
+                    onClick={handleReport}
+                    className="text-red-600 dark:text-red-400"
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    Report message
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -254,29 +234,6 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
           </div>
         )}
       </div>
-
-      {/* Report Dialog */}
-      {showReportDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Report Message</h3>
-            <textarea
-              placeholder="Please describe why you're reporting this message..."
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              className="w-full p-3 border rounded-lg resize-none h-24"
-            />
-            <div className="flex gap-2 mt-4">
-              <Button onClick={handleReportMessage} variant="destructive">
-                Submit Report
-              </Button>
-              <Button onClick={() => setShowReportDialog(false)} variant="outline">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 };

@@ -1,99 +1,165 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface ChatUser {
+interface User {
   id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string | null;
-  is_online: boolean;
-  last_seen: string;
-  is_typing: boolean;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  is_online?: boolean;
 }
 
-interface ChatState {
+interface UseUnifiedCommunityChatReturn {
   messages: Message[];
-  users: ChatUser[];
+  users: User[];
   typingUsers: string[];
   isConnected: boolean;
   isLoading: boolean;
   error: string | null;
   hasMoreMessages: boolean;
   unreadCount: number;
+  sendMessage: (content: string, attachments?: Array<{url: string, name: string, type: string, size: number}>) => Promise<boolean>;
+  deleteMessage: (messageId: string) => Promise<void>;
+  startTyping: () => void;
+  loadMoreMessages: () => Promise<void>;
+  clearUnreadCount: () => void;
+  reconnect: () => void;
+  isReady: boolean;
 }
 
-export function useUnifiedCommunityChat(channelName: string = 'general') {
+export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunityChatReturn {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [channelId, setChannelId] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  
   const { user } = useAuth();
-  const [state, setState] = useState<ChatState>({
-    messages: [],
-    users: [],
-    typingUsers: [],
-    isConnected: false,
-    isLoading: true,
-    error: null,
-    hasMoreMessages: true,
-    unreadCount: 0
-  });
-
   const subscriptionRef = useRef<any>(null);
-  const presenceRef = useRef<any>(null);
-  const channelIdRef = useRef<string | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceChannelRef = useRef<any>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const messageCache = useRef<Map<string, Message>>(new Map());
-  const lastMessageId = useRef<string | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  // Update state helper
-  const updateState = useCallback((updates: Partial<ChatState>) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  // Get or create channel
-  const getOrCreateChannel = useCallback(async (name: string): Promise<string | null> => {
-    if (!user?.id) return null;
+  // Initialize chat connection
+  const initializeChat = useCallback(async () => {
+    if (!user?.id || !channelName) {
+      console.log('❌ Missing user or channel name');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      let { data: channel, error } = await supabase
+      setIsLoading(true);
+      setError(null);
+      console.log('🚀 Initializing unified chat for:', channelName);
+
+      // Get or create channel
+      let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
-        .eq('name', name)
+        .eq('name', channelName)
         .eq('type', 'public')
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (channelError && channelError.code !== 'PGRST116') {
+        throw new Error(`Channel lookup failed: ${channelError.message}`);
+      }
 
       if (!channel) {
+        console.log('📝 Creating new channel:', channelName);
         const { data: newChannel, error: createError } = await supabase
           .from('channels')
           .insert({
-            name,
+            name: channelName,
             type: 'public',
-            description: `${name.charAt(0).toUpperCase() + name.slice(1)} discussion`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
             created_by: user.id
           })
           .select('id')
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          throw new Error(`Failed to create channel: ${createError.message}`);
+        }
         channel = newChannel;
       }
 
-      return channel.id;
-    } catch (error) {
-      console.error('❌ Channel error:', error);
-      updateState({ error: 'Failed to access channel' });
-      return null;
-    }
-  }, [user?.id, updateState]);
+      setChannelId(channel.id);
 
-  // Load messages with pagination
-  const loadMessages = useCallback(async (channelId: string, before?: string) => {
+      // Auto-join user to channel
+      await ensureUserInChannel(channel.id, user.id);
+
+      // Load messages
+      await loadMessages(channel.id);
+
+      // Setup real-time subscriptions
+      setupRealtimeSubscription(channel.id);
+      setupPresenceTracking(channelName);
+      
+      setIsConnected(true);
+      setIsReady(true);
+      setIsLoading(false);
+      reconnectAttempts.current = 0;
+      
+      console.log('✅ Unified chat initialized successfully');
+
+    } catch (err) {
+      console.error('💥 Failed to initialize chat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+      setIsConnected(false);
+      setIsReady(false);
+      setIsLoading(false);
+      
+      // Auto-retry with exponential backoff
+      if (reconnectAttempts.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+        reconnectAttempts.current++;
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log(`🔄 Retry attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
+          initializeChat();
+        }, delay);
+      }
+    }
+  }, [user?.id, channelName]);
+
+  // Ensure user is member of channel
+  const ensureUserInChannel = useCallback(async (channelId: string, userId: string) => {
     try {
-      let query = supabase
+      const { error } = await supabase
+        .from('channel_members')
+        .insert({
+          channel_id: channelId,
+          user_id: userId,
+          role: 'member'
+        });
+
+      // Ignore unique constraint violations (user already in channel)
+      if (error && !error.message.includes('duplicate key') && !error.message.includes('unique')) {
+        console.warn('⚠️ Could not add user to channel:', error);
+      }
+    } catch (error) {
+      console.warn('⚠️ Error ensuring user in channel:', error);
+    }
+  }, []);
+
+  // Load messages
+  const loadMessages = useCallback(async (channelId: string, offset = 0) => {
+    try {
+      console.log('📥 Loading messages for channel:', channelId);
+      
+      const { data: messagesData, error } = await supabase
         .from('community_messages')
         .select(`
           id,
@@ -109,62 +175,50 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
         `)
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: true })
+        .range(offset, offset + 49);
 
-      if (before) {
-        query = query.lt('created_at', before);
+      if (error) {
+        console.error('❌ Error loading messages:', error);
+        return;
       }
 
-      const { data: messages, error } = await query;
-      if (error) throw error;
-
-      const formattedMessages = (messages || []).map(msg => ({
+      const formattedMessages = (messagesData || []).map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
         sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
-          username: 'Unknown',
+          username: 'Unknown User',
           full_name: 'Unknown User',
           avatar_url: null
         }
-      })).reverse();
+      }));
 
-      // Cache messages
-      formattedMessages.forEach(msg => {
-        messageCache.current.set(msg.id, msg);
-      });
-
-      if (before) {
-        updateState({ 
-          messages: [...formattedMessages, ...state.messages],
-          hasMoreMessages: messages?.length === 50
-        });
+      if (offset === 0) {
+        setMessages(formattedMessages);
       } else {
-        updateState({ 
-          messages: formattedMessages,
-          hasMoreMessages: messages?.length === 50
-        });
+        setMessages(prev => [...formattedMessages, ...prev]);
       }
 
-      if (formattedMessages.length > 0) {
-        lastMessageId.current = formattedMessages[formattedMessages.length - 1].id;
-      }
+      setHasMoreMessages(formattedMessages.length === 50);
+      console.log(`✅ Loaded ${formattedMessages.length} messages`);
     } catch (error) {
-      console.error('❌ Failed to load messages:', error);
-      updateState({ error: 'Failed to load messages' });
+      console.error('💥 Exception loading messages:', error);
     }
-  }, [updateState, state.messages]);
+  }, []);
 
   // Setup real-time subscription
   const setupRealtimeSubscription = useCallback((channelId: string) => {
     if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up old subscription');
       supabase.removeChannel(subscriptionRef.current);
     }
 
-    const subscription = supabase
+    console.log('📡 Setting up real-time subscription');
+    
+    subscriptionRef.current = supabase
       .channel(`unified_chat_${channelId}`)
       .on(
         'postgres_changes',
@@ -175,11 +229,10 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
           filter: `channel_id=eq.${channelId}`
         },
         async (payload) => {
+          console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Avoid duplicates
-          if (messageCache.current.has(newMessage.id)) return;
-
+          // Get sender profile
           const { data: sender } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
@@ -193,18 +246,22 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
             sender_id: newMessage.sender_id,
             sender: sender || {
               id: newMessage.sender_id,
-              username: 'Unknown',
+              username: 'Unknown User',
               full_name: 'Unknown User',
               avatar_url: null
             }
           };
 
-          messageCache.current.set(message.id, message);
-          setState(prev => ({
-            ...prev,
-            messages: [...prev.messages, message],
-            unreadCount: message.sender_id !== user?.id ? prev.unreadCount + 1 : prev.unreadCount
-          }));
+          setMessages(prev => {
+            const exists = prev.some(msg => msg.id === message.id);
+            if (exists) return prev;
+            return [...prev, message];
+          });
+
+          // Increment unread count if message is not from current user
+          if (newMessage.sender_id !== user?.id) {
+            setUnreadCount(prev => prev + 1);
+          }
         }
       )
       .on(
@@ -218,94 +275,106 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
         (payload) => {
           const updatedMessage = payload.new as any;
           if (updatedMessage.is_deleted) {
-            messageCache.current.delete(updatedMessage.id);
-            setState(prev => ({
-              ...prev,
-              messages: prev.messages.filter(msg => msg.id !== updatedMessage.id)
-            }));
+            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
           }
         }
       )
       .subscribe((status) => {
-        updateState({ isConnected: status === 'SUBSCRIBED' });
+        console.log('📡 Subscription status:', status);
+        setIsConnected(status === 'SUBSCRIBED');
         
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          // Auto-reconnect with exponential backoff
-          const delay = Math.min(1000 * Math.pow(2, Math.floor(Math.random() * 5)), 30000);
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (channelIdRef.current) {
-              setupRealtimeSubscription(channelIdRef.current);
+          setIsConnected(false);
+          // Auto-reconnect after delay
+          setTimeout(() => {
+            if (reconnectAttempts.current < maxReconnectAttempts) {
+              reconnect();
             }
-          }, delay);
+          }, 3000);
         }
       });
-
-    subscriptionRef.current = subscription;
-  }, [user?.id, updateState]);
+  }, [user?.id]);
 
   // Setup presence tracking
-  const setupPresence = useCallback((channelId: string) => {
+  const setupPresenceTracking = useCallback((channelName: string) => {
     if (!user?.id) return;
 
-    const presence = supabase.channel(`presence_${channelId}`)
+    if (presenceChannelRef.current) {
+      supabase.removeChannel(presenceChannelRef.current);
+    }
+
+    presenceChannelRef.current = supabase
+      .channel(`presence_${channelName}`)
       .on('presence', { event: 'sync' }, () => {
-        const presenceState = presence.presenceState();
-        const onlineUsers = Object.values(presenceState).flat() as any[];
-        
-        updateState({
-          users: onlineUsers.map(u => ({
-            id: u.user_id,
-            username: u.username,
-            full_name: u.full_name,
-            avatar_url: u.avatar_url,
-            is_online: true,
-            last_seen: new Date().toISOString(),
-            is_typing: false
-          }))
-        });
+        const state = presenceChannelRef.current?.presenceState();
+        const onlineUsers = Object.values(state || {}).flat().map((presence: any) => ({
+          id: presence.user_id,
+          username: presence.username,
+          full_name: presence.full_name,
+          is_online: true
+        }));
+        setUsers(onlineUsers);
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
-        console.log('👋 User joined:', newPresences);
+        const newUsers = newPresences.map((presence: any) => ({
+          id: presence.user_id,
+          username: presence.username,
+          full_name: presence.full_name,
+          is_online: true
+        }));
+        setUsers(prev => [...prev.filter(u => !newUsers.find(nu => nu.id === u.id)), ...newUsers]);
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        console.log('👋 User left:', leftPresences);
+        const leftUserIds = leftPresences.map((p: any) => p.user_id);
+        setUsers(prev => prev.filter(u => !leftUserIds.includes(u.id)));
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await presence.track({
+          await presenceChannelRef.current?.track({
             user_id: user.id,
-            username: user.email?.split('@')[0] || 'Anonymous',
-            full_name: user.email?.split('@')[0] || 'Anonymous User',
-            avatar_url: null,
+            username: user.user_metadata?.username || user.email?.split('@')[0] || 'Anonymous',
+            full_name: user.user_metadata?.full_name || user.email || 'Anonymous User',
             online_at: new Date().toISOString()
           });
         }
       });
-
-    presenceRef.current = presence;
-  }, [user, updateState]);
+  }, [user]);
 
   // Send message
-  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-    if (!user?.id || !channelIdRef.current || !content.trim()) return false;
+  const sendMessage = useCallback(async (content: string, attachments?: Array<{url: string, name: string, type: string, size: number}>): Promise<boolean> => {
+    if (!user?.id || !channelId || !content.trim()) {
+      toast.error("Cannot send message");
+      return false;
+    }
+
+    if (!isConnected) {
+      toast.error("Not connected - please wait for connection to be restored");
+      return false;
+    }
 
     try {
+      console.log('📤 Sending message');
+      
       const { error } = await supabase
         .from('community_messages')
         .insert({
-          channel_id: channelIdRef.current,
+          channel_id: channelId,
           sender_id: user.id,
           content: content.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to send message: ${error.message}`);
+      }
+
+      console.log('✅ Message sent successfully');
       return true;
     } catch (error) {
-      console.error('❌ Failed to send message:', error);
+      console.error('💥 Failed to send message:', error);
       toast.error('Failed to send message');
       return false;
     }
-  }, [user?.id]);
+  }, [user?.id, channelId, isConnected]);
 
   // Delete message
   const deleteMessage = useCallback(async (messageId: string) => {
@@ -318,87 +387,48 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
         .eq('id', messageId)
         .eq('sender_id', user.id);
 
-      if (error) throw error;
-      toast.success('Message deleted');
+      if (error) {
+        throw new Error(`Failed to delete message: ${error.message}`);
+      }
+
+      console.log('✅ Message deleted successfully');
+      toast.success("Message deleted", { duration: 1000 });
     } catch (error) {
-      console.error('❌ Failed to delete message:', error);
+      console.error('💥 Failed to delete message:', error);
       toast.error('Failed to delete message');
     }
   }, [user?.id]);
 
   // Typing indicators
   const startTyping = useCallback(() => {
-    if (!channelIdRef.current || !user?.id) return;
-
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-
-    // Broadcast typing status
-    const typingChannel = supabase.channel(`typing_${channelIdRef.current}`);
-    typingChannel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { user_id: user.id, is_typing: true }
-    });
-
-    // Auto-stop typing after 3 seconds
+    
     typingTimeoutRef.current = setTimeout(() => {
-      typingChannel.send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: { user_id: user.id, is_typing: false }
-      });
+      // Remove typing indicator after 3 seconds
     }, 3000);
-  }, [user?.id]);
+  }, []);
 
   // Load more messages
   const loadMoreMessages = useCallback(async () => {
-    if (!channelIdRef.current || !state.hasMoreMessages || state.isLoading) return;
-
-    const oldestMessage = state.messages[0];
-    if (oldestMessage) {
-      updateState({ isLoading: true });
-      await loadMessages(channelIdRef.current, oldestMessage.created_at);
-      updateState({ isLoading: false });
-    }
-  }, [channelIdRef.current, state.hasMoreMessages, state.isLoading, state.messages, loadMessages, updateState]);
+    if (!channelId || isLoading || !hasMoreMessages) return;
+    
+    setIsLoading(true);
+    await loadMessages(channelId, messages.length);
+    setIsLoading(false);
+  }, [channelId, isLoading, hasMoreMessages, messages.length, loadMessages]);
 
   // Clear unread count
   const clearUnreadCount = useCallback(() => {
-    updateState({ unreadCount: 0 });
-  }, [updateState]);
-
-  // Initialize chat
-  const initializeChat = useCallback(async () => {
-    if (!user?.id) {
-      updateState({ isLoading: false, error: 'Please log in to access chat' });
-      return;
-    }
-
-    updateState({ isLoading: true, error: null });
-
-    try {
-      const channelId = await getOrCreateChannel(channelName);
-      if (!channelId) return;
-
-      channelIdRef.current = channelId;
-      await loadMessages(channelId);
-      setupRealtimeSubscription(channelId);
-      setupPresence(channelId);
-      
-      updateState({ isLoading: false });
-    } catch (error) {
-      console.error('❌ Failed to initialize chat:', error);
-      updateState({ 
-        isLoading: false, 
-        error: 'Failed to connect to chat' 
-      });
-    }
-  }, [user?.id, channelName, getOrCreateChannel, loadMessages, setupRealtimeSubscription, setupPresence, updateState]);
+    setUnreadCount(0);
+  }, []);
 
   // Reconnect
   const reconnect = useCallback(() => {
+    console.log('🔄 Manual reconnect triggered');
+    setError(null);
+    reconnectAttempts.current = 0;
     initializeChat();
   }, [initializeChat]);
 
@@ -410,26 +440,33 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
       }
-      if (presenceRef.current) {
-        supabase.removeChannel(presenceRef.current);
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+      if (presenceChannelRef.current) {
+        supabase.removeChannel(presenceChannelRef.current);
       }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, [initializeChat]);
 
   return {
-    ...state,
+    messages,
+    users,
+    typingUsers,
+    isConnected,
+    isLoading,
+    error,
+    hasMoreMessages,
+    unreadCount,
     sendMessage,
     deleteMessage,
     startTyping,
     loadMoreMessages,
     clearUnreadCount,
     reconnect,
-    isReady: !!user?.id && !!channelIdRef.current
+    isReady
   };
 }

@@ -1,15 +1,15 @@
 
 import React, { useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { ModernMessageBubble } from './ModernMessageBubble';
-import type { Message } from '@/types/chat';
+import { EnhancedModernMessageBubble } from './EnhancedModernMessageBubble';
+import { Message } from '@/types/chat';
 
 interface VirtualizedMessageListProps {
   messages: Message[];
   height: number;
   onDeleteMessage?: (messageId: string) => void;
   onReplyMessage?: (messageId: string) => void;
-  onReactionAdd?: (messageId: string, reaction: string) => void;
+  onReactionAdd?: (messageId: string, emoji: string) => void;
   currentUserId?: string;
 }
 
@@ -20,7 +20,7 @@ interface MessageItemProps {
     messages: Message[];
     onDeleteMessage?: (messageId: string) => void;
     onReplyMessage?: (messageId: string) => void;
-    onReactionAdd?: (messageId: string, reaction: string) => void;
+    onReactionAdd?: (messageId: string, emoji: string) => void;
     currentUserId?: string;
   };
 }
@@ -28,17 +28,18 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({ index, style, data }) => {
   const { messages, onDeleteMessage, onReplyMessage, onReactionAdd, currentUserId } = data;
   const message = messages[index];
-  const previousMessage = index > 0 ? messages[index - 1] : undefined;
+  const prevMessage = messages[index - 1];
   
-  const isConsecutive = previousMessage && 
-    previousMessage.sender_id === message.sender_id &&
-    new Date(message.created_at).getTime() - new Date(previousMessage.created_at).getTime() < 60000;
+  const isOwn = message.sender_id === currentUserId;
+  const isConsecutive = prevMessage && 
+    prevMessage.sender_id === message.sender_id &&
+    new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
 
   return (
     <div style={style}>
-      <ModernMessageBubble
+      <EnhancedModernMessageBubble
         message={message}
-        isOwn={message.sender_id === currentUserId}
+        isOwn={isOwn}
         onDelete={onDeleteMessage}
         onReply={onReplyMessage}
         onReact={onReactionAdd}
@@ -68,9 +69,7 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <p>No messages yet. Start the conversation!</p>
-        </div>
+        <p className="text-gray-500 dark:text-gray-400">No messages yet</p>
       </div>
     );
   }
@@ -81,7 +80,6 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
       itemCount={messages.length}
       itemSize={80} // Average message height
       itemData={itemData}
-      className="scrollbar-thin"
     >
       {MessageItem}
     </List>

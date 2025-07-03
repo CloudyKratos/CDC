@@ -5,13 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Hash, 
   Users, 
-  Wifi, 
-  WifiOff, 
+  Phone, 
+  Video, 
+  Settings, 
   RefreshCw,
-  Settings,
-  Search,
-  Phone,
-  Video
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface ModernChatHeaderProps {
@@ -21,9 +20,9 @@ interface ModernChatHeaderProps {
   isConnected: boolean;
   isLoading: boolean;
   onReconnect: () => void;
-  onOpenSettings?: () => void;
   onStartCall?: () => void;
   onStartVideo?: () => void;
+  onSettings?: () => void;
 }
 
 export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
@@ -33,50 +32,23 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
   isConnected,
   isLoading,
   onReconnect,
-  onOpenSettings,
   onStartCall,
-  onStartVideo
+  onStartVideo,
+  onSettings
 }) => {
-  const getConnectionStatus = () => {
-    if (isConnected) {
-      return (
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-sm font-medium">Live</span>
-        </div>
-      );
-    }
-
-    if (isLoading) {
-      return (
-        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent" />
-          <span className="text-sm font-medium">Connecting...</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-        <WifiOff className="h-4 w-4" />
-        <span className="text-sm font-medium">Offline</span>
-      </div>
-    );
-  };
-
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Hash className="h-6 w-6 text-blue-600 dark:text-accent" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 dark:bg-accent rounded-full animate-pulse"></div>
+    <div className="flex items-center justify-between p-4 border-b bg-white dark:bg-gray-900 theme-border">
+      {/* Left side - Channel info */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+            <Hash className="h-5 w-5 text-blue-600 dark:text-accent" />
           </div>
           <div>
-            <h2 className="text-xl font-bold theme-text-primary">
+            <h2 className="text-lg font-semibold theme-text-primary">
               {channelName}
             </h2>
-            <div className="flex items-center gap-4 text-sm theme-text-muted">
+            <div className="flex items-center gap-3 text-sm theme-text-secondary">
               <span>{messageCount} messages</span>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
@@ -87,54 +59,72 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
         </div>
       </div>
 
+      {/* Right side - Actions and status */}
       <div className="flex items-center gap-2">
-        {getConnectionStatus()}
-        
-        <div className="flex items-center gap-1 ml-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-accent"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onStartCall}
-            className="h-9 w-9 p-0 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400"
-          >
-            <Phone className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onStartVideo}
-            className="h-9 w-9 p-0 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400"
-          >
-            <Video className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReconnect}
-            disabled={isLoading}
-            className="h-9 w-9 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenSettings}
-            className="h-9 w-9 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+        {/* Connection status */}
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400">
+              <Wifi className="h-3 w-3 mr-1" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+              <WifiOff className="h-3 w-3 mr-1" />
+              {isLoading ? 'Connecting...' : 'Disconnected'}
+            </Badge>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1">
+          {!isConnected && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReconnect}
+              disabled={isLoading}
+              className="h-9 px-3"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Reconnect
+            </Button>
+          )}
+
+          {onStartCall && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartCall}
+              disabled={!isConnected}
+              className="h-9 w-9 p-0"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+          )}
+
+          {onStartVideo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartVideo}
+              disabled={!isConnected}
+              className="h-9 w-9 p-0"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+          )}
+
+          {onSettings && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSettings}
+              className="h-9 w-9 p-0"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
