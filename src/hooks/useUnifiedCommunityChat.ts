@@ -275,8 +275,8 @@ export function useUnifiedCommunityChat(channelName: string = 'general') {
           await presence.track({
             user_id: user.id,
             username: user.email?.split('@')[0] || 'Anonymous',
-            full_name: user.user_metadata?.full_name || 'Anonymous User',
-            avatar_url: user.user_metadata?.avatar_url || null,
+            full_name: user.email?.split('@')[0] || 'Anonymous User',
+            avatar_url: null,
             online_at: new Date().toISOString()
           });
         }
