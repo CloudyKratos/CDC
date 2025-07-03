@@ -1,6 +1,6 @@
 
 import React from 'react';
-import ProductionCommunityChat from './community/ProductionCommunityChat';
+import SimpleCommunityChat from './community/SimpleCommunityChat';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -11,7 +11,7 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({
 }) => {
   return (
     <div className="h-full bg-gray-100 dark:bg-gray-950 p-4">
-      <ProductionCommunityChat 
+      <SimpleCommunityChat 
         channelName={channelName}
         className="mx-auto max-w-4xl"
       />
