@@ -24,11 +24,7 @@ import {
   Sword,
   User,
   Settings,
-  Bell,
-  Activity,
-  Zap,
-  Target,
-  Trophy
+  Bell
 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { ActivePanel } from '@/types/dashboard';
@@ -141,26 +137,6 @@ const Dashboard = () => {
               )}
             </Button>
           </div>
-          
-          {/* Quick Stats */}
-          {!sidebarCollapsed && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 m-4 rounded-xl">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2">
-                  <Activity className="h-4 w-4 mx-auto text-blue-600 mb-1" />
-                  <div className="text-xs font-bold">Live</div>
-                </div>
-                <div className="p-2">
-                  <Trophy className="h-4 w-4 mx-auto text-yellow-600 mb-1" />
-                  <div className="text-xs font-bold">Elite</div>
-                </div>
-                <div className="p-2">
-                  <Target className="h-4 w-4 mx-auto text-green-600 mb-1" />
-                  <div className="text-xs font-bold">Ready</div>
-                </div>
-              </div>
-            </div>
-          )}
           
           {/* Navigation */}
           <div className="flex-grow p-4">
