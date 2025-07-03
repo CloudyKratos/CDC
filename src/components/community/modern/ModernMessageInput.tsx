@@ -116,13 +116,6 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      {/* Typing Indicators */}
-      <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-        <div className="text-xs theme-text-muted">
-          {/* Typing indicators would go here */}
-        </div>
-      </div>
-
       {/* Input Area */}
       <div className="p-4">
         <form onSubmit={handleSubmit} className="flex items-end gap-3">

@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { ModernChatHeader } from './ModernChatHeader';
 import { ModernMessageBubble } from './ModernMessageBubble';
 import { ModernMessageInput } from './ModernMessageInput';
+import { TypingIndicator } from './TypingIndicator';
+import { UserListSidebar } from './UserListSidebar';
 import { 
   Hash, 
   Users, 
   Loader2, 
   ArrowUp,
   Phone,
-  Video
+  Video,
+  Sidebar
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +31,7 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
 }) => {
   const { user } = useAuth();
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -148,123 +152,148 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
   const onlineUsers = users.filter(u => u.is_online).length;
 
   return (
-    <Card className={`h-full flex flex-col ${className} theme-card shadow-xl border-0 overflow-hidden`}>
-      {/* Header */}
-      <ModernChatHeader
-        channelName={channelName}
-        messageCount={messages.length}
-        onlineUsers={onlineUsers}
-        isConnected={isConnected}
-        isLoading={isLoading}
-        onReconnect={reconnect}
-        onStartCall={handleStartCall}
-        onStartVideo={handleStartVideo}
-      />
+    <div className={`h-full flex ${className}`}>
+      {/* Main Chat Area */}
+      <Card className="flex-1 flex flex-col theme-card shadow-xl border-0 overflow-hidden">
+        {/* Header */}
+        <ModernChatHeader
+          channelName={channelName}
+          messageCount={messages.length}
+          onlineUsers={onlineUsers}
+          isConnected={isConnected}
+          isLoading={isLoading}
+          onReconnect={reconnect}
+          onStartCall={handleStartCall}
+          onStartVideo={handleStartVideo}
+        />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-hidden relative">
-        <div
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-          className="h-full overflow-y-auto bg-gradient-to-b from-gray-50/30 to-white dark:from-gray-900/30 dark:to-gray-800 scrollbar-thin"
-        >
-          {isLoading && messages.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3 text-blue-600 dark:text-accent">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="font-medium">Loading messages...</span>
-              </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center theme-text-muted max-w-md">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-blue-600 dark:text-accent" />
+        {/* Messages */}
+        <div className="flex-1 overflow-hidden relative">
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="h-full overflow-y-auto bg-gradient-to-b from-gray-50/30 to-white dark:from-gray-900/30 dark:to-gray-800 scrollbar-thin"
+          >
+            {isLoading && messages.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center gap-3 text-blue-600 dark:text-accent">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="font-medium">Loading messages...</span>
                 </div>
-                <h3 className="text-lg font-semibold theme-text-primary mb-2">
-                  Welcome to #{channelName}
-                </h3>
-                <p className="text-sm">
-                  No messages yet. Start the conversation and connect with the community!
-                </p>
               </div>
-            </div>
-          ) : (
-            <div className="py-4">
-              {/* Load More Messages */}
-              {hasMoreMessages && (
-                <div className="flex justify-center py-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={loadMoreMessages}
-                    disabled={isLoading}
-                    className="text-sm theme-text-muted hover:theme-text-primary"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Load earlier messages'
-                    )}
-                  </Button>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center theme-text-muted max-w-md">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-blue-600 dark:text-accent" />
+                  </div>
+                  <h3 className="text-lg font-semibold theme-text-primary mb-2">
+                    Welcome to #{channelName}
+                  </h3>
+                  <p className="text-sm">
+                    No messages yet. Start the conversation and connect with the community!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4">
+                {/* Load More Messages */}
+                {hasMoreMessages && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadMoreMessages}
+                      disabled={isLoading}
+                      className="text-sm theme-text-muted hover:theme-text-primary"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Loading...
+                        </>
+                      ) : (
+                        'Load earlier messages'
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Messages */}
+                {messages.map((message, index) => {
+                  const prevMessage = messages[index - 1];
+                  const isConsecutive = prevMessage && 
+                    prevMessage.sender_id === message.sender_id &&
+                    new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
+
+                  return (
+                    <ModernMessageBubble
+                      key={message.id}
+                      message={message}
+                      isOwn={message.sender_id === user?.id}
+                      onDelete={deleteMessage}
+                      onReply={() => toast.info('Reply feature coming soon!')}
+                      onReact={() => toast.info('Reactions coming soon!')}
+                      showAvatar={!isConsecutive}
+                      isConsecutive={isConsecutive}
+                    />
+                  );
+                })}
+                
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Scroll to Bottom Button */}
+          {showScrollToBottom && (
+            <div className="absolute bottom-4 right-4">
+              <Button
+                onClick={() => scrollToBottom()}
+                className="h-10 w-10 p-0 rounded-full shadow-lg bg-blue-500 hover:bg-blue-600 dark:bg-accent dark:hover:bg-accent/90"
+              >
+                <ArrowUp className="h-4 w-4 text-white" />
+              </Button>
+              {unreadCount > 0 && (
+                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </div>
               )}
-
-              {/* Messages */}
-              {messages.map((message, index) => {
-                const prevMessage = messages[index - 1];
-                const isConsecutive = prevMessage && 
-                  prevMessage.sender_id === message.sender_id &&
-                  new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
-
-                return (
-                  <ModernMessageBubble
-                    key={message.id}
-                    message={message}
-                    isOwn={message.sender_id === user?.id}
-                    onDelete={deleteMessage}
-                    onReply={() => toast.info('Reply feature coming soon!')}
-                    onReact={() => toast.info('Reactions coming soon!')}
-                    showAvatar={!isConsecutive}
-                    isConsecutive={isConsecutive}
-                  />
-                );
-              })}
-              
-              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
-        {/* Scroll to Bottom Button */}
-        {showScrollToBottom && (
-          <div className="absolute bottom-4 right-4">
-            <Button
-              onClick={() => scrollToBottom()}
-              className="h-10 w-10 p-0 rounded-full shadow-lg bg-blue-500 hover:bg-blue-600 dark:bg-accent dark:hover:bg-accent/90"
-            >
-              <ArrowUp className="h-4 w-4 text-white" />
-            </Button>
-            {unreadCount > 0 && (
-              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        {/* Typing Indicator */}
+        <TypingIndicator typingUsers={typingUsers} />
 
-      {/* Input */}
-      <ModernMessageInput
-        onSendMessage={sendMessage}
-        onStartTyping={startTyping}
-        isConnected={isConnected && isReady}
-        isLoading={isLoading}
-        channelName={channelName}
-      />
-    </Card>
+        {/* Input */}
+        <ModernMessageInput
+          onSendMessage={sendMessage}
+          onStartTyping={startTyping}
+          isConnected={isConnected && isReady}
+          isLoading={isLoading}
+          channelName={channelName}
+        />
+      </Card>
+
+      {/* User List Sidebar */}
+      {showUserList && (
+        <div className="w-64 ml-4">
+          <UserListSidebar users={users} />
+        </div>
+      )}
+
+      {/* Toggle User List Button */}
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowUserList(!showUserList)}
+          className="h-9 w-9 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <Sidebar className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 };
