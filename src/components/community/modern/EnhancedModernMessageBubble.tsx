@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,15 @@ interface EnhancedModernMessageBubbleProps {
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string, emoji: string) => void;
+  onPin?: (messageId: string) => void;
+  onReport?: (messageId: string) => void;
+  onSendReply?: (content: string, parentId: string) => Promise<boolean>;
   showAvatar?: boolean;
   isConsecutive?: boolean;
   isThread?: boolean;
   hideActions?: boolean;
+  isConnected?: boolean;
   className?: string;
 }
 
@@ -42,10 +48,15 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   onDelete,
   onReply,
   onReact,
+  onRemoveReaction,
+  onPin,
+  onReport,
+  onSendReply,
   showAvatar = true,
   isConsecutive = false,
   isThread = false,
   hideActions = false,
+  isConnected = true,
   className = ''
 }) => {
   const { user } = useAuth();
@@ -81,7 +92,19 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   };
 
   const handleReport = () => {
-    toast.info('Report functionality coming soon');
+    if (onReport) {
+      onReport(message.id);
+    } else {
+      toast.info('Report functionality coming soon');
+    }
+  };
+
+  const handlePin = () => {
+    if (onPin) {
+      onPin(message.id);
+    } else {
+      toast.info('Pin functionality coming soon');
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -162,7 +185,7 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
         </div>
 
         {/* Action buttons */}
-        {!hideActions && showActions && (
+        {!hideActions && showActions && isConnected && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* Quick reactions */}
             <Button

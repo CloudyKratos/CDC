@@ -332,8 +332,8 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
         if (status === 'SUBSCRIBED') {
           await presenceChannelRef.current?.track({
             user_id: user.id,
-            username: user.user_metadata?.username || user.email?.split('@')[0] || 'Anonymous',
-            full_name: user.user_metadata?.full_name || user.email || 'Anonymous User',
+            username: user.email?.split('@')[0] || 'Anonymous',
+            full_name: user.email || 'Anonymous User',
             online_at: new Date().toISOString()
           });
         }
