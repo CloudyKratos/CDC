@@ -30,12 +30,12 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Initialize chat
+  // Initialize chat with better error handling
   const initializeChat = useCallback(async () => {
     if (!user?.id || initializingRef.current) {
       if (!user?.id) {
         updateState({ 
-          error: 'Please sign in to use chat',
+          error: null, // Don't show error when user is not authenticated
           isLoading: false,
           isConnected: false 
         });
@@ -49,7 +49,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     try {
       console.log('🚀 Initializing chat for channel:', channelName);
 
-      // Get or create channel
+      // Get or create channel with simplified logic
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
@@ -59,7 +59,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
       if (channelError) {
         console.error('❌ Channel query error:', channelError);
-        throw new Error(`Channel error: ${channelError.message}`);
+        throw new Error(`Failed to check channel: ${channelError.message}`);
       }
 
       if (!channel) {
@@ -77,7 +77,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
         if (createError) {
           console.error('❌ Create channel error:', createError);
-          throw new Error(`Create channel error: ${createError.message}`);
+          throw new Error(`Failed to create channel: ${createError.message}`);
         }
         channel = newChannel;
       }
@@ -102,13 +102,13 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         isLoading: false,
         isConnected: false 
       });
-      toast.error(`Chat Error: ${errorMessage}`);
+      toast.error(`Chat initialization failed: ${errorMessage}`);
     } finally {
       initializingRef.current = false;
     }
   }, [user?.id, channelName, updateState]);
 
-  // Load messages
+  // Load messages with improved error handling
   const loadMessages = useCallback(async (channelId: string) => {
     try {
       console.log('📥 Loading messages for channel:', channelId);
@@ -134,7 +134,9 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
       if (error) {
         console.error('❌ Load messages error:', error);
-        throw new Error(`Load messages error: ${error.message}`);
+        // Don't throw error, just log and continue with empty messages
+        updateState({ messages: [] });
+        return;
       }
 
       const formattedMessages = (messages || []).map(msg => ({
@@ -156,11 +158,10 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     } catch (error) {
       console.error('💥 Failed to load messages:', error);
       updateState({ messages: [] });
-      toast.error('Failed to load messages');
     }
   }, [updateState]);
 
-  // Setup realtime subscription
+  // Setup realtime subscription with improved error handling
   const setupRealtimeSubscription = useCallback((channelId: string) => {
     if (subscriptionRef.current) {
       supabase.removeChannel(subscriptionRef.current);
@@ -212,18 +213,36 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        (payload) => {
+          const updatedMessage = payload.new as any;
+          if (updatedMessage.is_deleted) {
+            setState(prev => ({
+              ...prev,
+              messages: prev.messages.filter(msg => msg.id !== updatedMessage.id)
+            }));
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('📡 Subscription status:', status);
         updateState({ 
           isConnected: status === 'SUBSCRIBED',
-          error: status === 'SUBSCRIBED' ? null : 'Connection lost'
+          error: status === 'SUBSCRIBED' ? null : (status === 'CLOSED' ? 'Connection lost' : null)
         });
       });
 
     subscriptionRef.current = subscription;
   }, [updateState]);
 
-  // Send message
+  // Send message with better error handling
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!user?.id || !state.channelId || !content.trim()) {
       if (!user?.id) toast.error("Please sign in to send messages");
@@ -244,7 +263,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
       if (error) {
         console.error('❌ Send message error:', error);
-        throw new Error(`Send message error: ${error.message}`);
+        throw new Error(`Failed to send message: ${error.message}`);
       }
 
       console.log('✅ Message sent successfully');
@@ -271,17 +290,10 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
       if (error) {
         console.error('❌ Delete message error:', error);
-        throw new Error(`Delete message error: ${error.message}`);
+        throw new Error(`Failed to delete message: ${error.message}`);
       }
 
       console.log('✅ Message deleted successfully');
-      
-      // Remove from local state
-      setState(prev => ({
-        ...prev,
-        messages: prev.messages.filter(msg => msg.id !== messageId)
-      }));
-      
       return true;
     } catch (error) {
       console.error('💥 Failed to delete message:', error);
@@ -290,7 +302,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     }
   }, [user?.id]);
 
-  // Reconnect
+  // Reconnect function
   const reconnect = useCallback(() => {
     console.log('🔄 Reconnecting...');
     updateState({ error: null, isLoading: true });

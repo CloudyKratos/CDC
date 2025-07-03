@@ -3,7 +3,7 @@ import React from 'react';
 import SimpleCommunityChat from './community/SimpleCommunityChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Loader2 } from 'lucide-react';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -18,7 +18,10 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({
   if (isLoading) {
     return (
       <div className="h-full bg-gray-100 dark:bg-gray-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent" />
+        <div className="flex items-center gap-2 text-blue-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
       </div>
     );
   }

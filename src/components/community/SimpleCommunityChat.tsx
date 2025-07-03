@@ -92,7 +92,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
       return (
         <div className="flex items-center gap-2 text-green-600">
           <Wifi className="h-4 w-4" />
-          <span className="text-sm font-medium">Connected</span>
+          <span className="text-sm font-medium">Live</span>
         </div>
       );
     }
@@ -107,9 +107,9 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
     }
 
     return (
-      <div className="flex items-center gap-2 text-red-600">
+      <div className="flex items-center gap-2 text-amber-600">
         <WifiOff className="h-4 w-4" />
-        <span className="text-sm font-medium">Disconnected</span>
+        <span className="text-sm font-medium">Offline</span>
       </div>
     );
   };
@@ -133,8 +133,8 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
     );
   }
 
-  // Error state
-  if (error && !isLoading) {
+  // Error state - only show critical errors
+  if (error && !isLoading && !isConnected) {
     return (
       <Card className={`h-full ${className}`}>
         <CardContent className="h-full flex items-center justify-center p-8">
@@ -166,6 +166,9 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {channelName}
             </h2>
+            <span className="text-sm text-gray-500">
+              {messages.length} messages
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {getConnectionStatus()}
@@ -174,6 +177,7 @@ const SimpleCommunityChat: React.FC<SimpleCommunityChat> = ({
               size="sm"
               onClick={reconnect}
               disabled={isLoading}
+              className="h-8 w-8 p-0"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
