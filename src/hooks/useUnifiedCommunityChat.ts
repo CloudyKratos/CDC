@@ -1,9 +1,10 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCircuitBreaker } from './useCircuitBreaker';
+import { useConnectionDiagnostics } from './useConnectionDiagnostics';
 
 interface User {
   id: string;
@@ -29,6 +30,8 @@ interface UseUnifiedCommunityChatReturn {
   clearUnreadCount: () => void;
   reconnect: () => void;
   isReady: boolean;
+  connectionHealth: 'healthy' | 'degraded' | 'failed';
+  diagnostics: any;
 }
 
 export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunityChatReturn {
@@ -42,6 +45,7 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
   const [unreadCount, setUnreadCount] = useState(0);
   const [channelId, setChannelId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<'healthy' | 'degraded' | 'failed'>('failed');
   
   const { user } = useAuth();
   const subscriptionRef = useRef<any>(null);
@@ -51,7 +55,108 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  // Initialize chat connection
+  // Enhanced error handling with circuit breaker
+  const circuitBreaker = useCircuitBreaker({
+    failureThreshold: 3,
+    resetTimeoutMs: 30000,
+    successThreshold: 2
+  });
+
+  const { diagnostics, runDiagnostics, startPeriodicCheck, stopPeriodicCheck } = useConnectionDiagnostics();
+
+  // Enhanced channel creation with better error handling
+  const ensureUserInChannel = useCallback(async (channelId: string, userId: string) => {
+    try {
+      await circuitBreaker.execute(async () => {
+        const { error } = await supabase
+          .from('channel_members')
+          .insert({
+            channel_id: channelId,
+            user_id: userId,
+            role: 'member'
+          });
+
+        // Ignore unique constraint violations (user already in channel)
+        if (error && !error.message.includes('duplicate key') && !error.message.includes('unique')) {
+          console.warn('⚠️ Could not add user to channel:', error);
+          throw error;
+        }
+      });
+    } catch (error) {
+      console.warn('⚠️ Error ensuring user in channel:', error);
+      // Don't throw - this is not critical for chat functionality
+    }
+  }, [circuitBreaker]);
+
+  // Enhanced message loading with circuit breaker
+  const loadMessages = useCallback(async (channelId: string, offset = 0) => {
+    try {
+      console.log('📥 Loading messages for channel:', channelId);
+      
+      const messagesData = await circuitBreaker.execute(async () => {
+        const { data, error } = await supabase
+          .from('community_messages')
+          .select(`
+            id,
+            content,
+            created_at,
+            sender_id,
+            profiles!community_messages_sender_id_fkey (
+              id,
+              username,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('channel_id', channelId)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: true })
+          .range(offset, offset + 49);
+
+        if (error) {
+          console.error('❌ Error loading messages:', error);
+          throw error;
+        }
+
+        return data || [];
+      });
+
+      const formattedMessages = messagesData.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+          id: msg.sender_id,
+          username: 'Unknown User',
+          full_name: 'Unknown User',
+          avatar_url: null
+        }
+      }));
+
+      if (offset === 0) {
+        setMessages(formattedMessages);
+      } else {
+        setMessages(prev => [...formattedMessages, ...prev]);
+      }
+
+      setHasMoreMessages(formattedMessages.length === 50);
+      console.log(`✅ Loaded ${formattedMessages.length} messages`);
+      
+      // Update connection health on success
+      setConnectionHealth('healthy');
+    } catch (error) {
+      console.error('💥 Exception loading messages:', error);
+      setConnectionHealth('degraded');
+      
+      // Still allow chat to function with existing messages
+      if (offset === 0 && messages.length === 0) {
+        setMessages([]);
+      }
+    }
+  }, [circuitBreaker, messages.length]);
+
+  // Initialize chat connection with enhanced error handling
   const initializeChat = useCallback(async () => {
     if (!user?.id || !channelName) {
       console.log('❌ Missing user or channel name');
@@ -64,36 +169,49 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
       setError(null);
       console.log('🚀 Initializing unified chat for:', channelName);
 
-      // Get or create channel
-      let { data: channel, error: channelError } = await supabase
-        .from('channels')
-        .select('id')
-        .eq('name', channelName)
-        .eq('type', 'public')
-        .maybeSingle();
-
-      if (channelError && channelError.code !== 'PGRST116') {
-        throw new Error(`Channel lookup failed: ${channelError.message}`);
+      // Run diagnostics first
+      const healthCheck = await runDiagnostics();
+      if (!healthCheck.isHealthy) {
+        console.warn('⚠️ Connection diagnostics show issues, proceeding with degraded mode');
+        setConnectionHealth('degraded');
+      } else {
+        setConnectionHealth('healthy');
       }
 
-      if (!channel) {
-        console.log('📝 Creating new channel:', channelName);
-        const { data: newChannel, error: createError } = await supabase
+      // Get or create channel with circuit breaker protection
+      const channel = await circuitBreaker.execute(async () => {
+        let { data: existingChannel, error: channelError } = await supabase
           .from('channels')
-          .insert({
-            name: channelName,
-            type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
-            created_by: user.id
-          })
           .select('id')
-          .single();
+          .eq('name', channelName)
+          .eq('type', 'public')
+          .maybeSingle();
 
-        if (createError) {
-          throw new Error(`Failed to create channel: ${createError.message}`);
+        if (channelError && channelError.code !== 'PGRST116') {
+          throw new Error(`Channel lookup failed: ${channelError.message}`);
         }
-        channel = newChannel;
-      }
+
+        if (!existingChannel) {
+          console.log('📝 Creating new channel:', channelName);
+          const { data: newChannel, error: createError } = await supabase
+            .from('channels')
+            .insert({
+              name: channelName,
+              type: 'public',
+              description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
+              created_by: user.id
+            })
+            .select('id')
+            .single();
+
+          if (createError) {
+            throw new Error(`Failed to create channel: ${createError.message}`);
+          }
+          existingChannel = newChannel;
+        }
+
+        return existingChannel;
+      });
 
       setChannelId(channel.id);
 
@@ -116,10 +234,12 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
 
     } catch (err) {
       console.error('💥 Failed to initialize chat:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize chat';
+      setError(errorMessage);
       setIsConnected(false);
       setIsReady(false);
       setIsLoading(false);
+      setConnectionHealth('failed');
       
       // Auto-retry with exponential backoff
       if (reconnectAttempts.current < maxReconnectAttempts) {
@@ -130,86 +250,12 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
           console.log(`🔄 Retry attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
           initializeChat();
         }, delay);
-      }
-    }
-  }, [user?.id, channelName]);
-
-  // Ensure user is member of channel
-  const ensureUserInChannel = useCallback(async (channelId: string, userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('channel_members')
-        .insert({
-          channel_id: channelId,
-          user_id: userId,
-          role: 'member'
-        });
-
-      // Ignore unique constraint violations (user already in channel)
-      if (error && !error.message.includes('duplicate key') && !error.message.includes('unique')) {
-        console.warn('⚠️ Could not add user to channel:', error);
-      }
-    } catch (error) {
-      console.warn('⚠️ Error ensuring user in channel:', error);
-    }
-  }, []);
-
-  // Load messages
-  const loadMessages = useCallback(async (channelId: string, offset = 0) => {
-    try {
-      console.log('📥 Loading messages for channel:', channelId);
-      
-      const { data: messagesData, error } = await supabase
-        .from('community_messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          profiles!community_messages_sender_id_fkey (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('channel_id', channelId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .range(offset, offset + 49);
-
-      if (error) {
-        console.error('❌ Error loading messages:', error);
-        return;
-      }
-
-      const formattedMessages = (messagesData || []).map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        created_at: msg.created_at,
-        sender_id: msg.sender_id,
-        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
-          id: msg.sender_id,
-          username: 'Unknown User',
-          full_name: 'Unknown User',
-          avatar_url: null
-        }
-      }));
-
-      if (offset === 0) {
-        setMessages(formattedMessages);
       } else {
-        setMessages(prev => [...formattedMessages, ...prev]);
+        toast.error('Failed to connect to chat. Please refresh the page.');
       }
-
-      setHasMoreMessages(formattedMessages.length === 50);
-      console.log(`✅ Loaded ${formattedMessages.length} messages`);
-    } catch (error) {
-      console.error('💥 Exception loading messages:', error);
     }
-  }, []);
+  }, [user?.id, channelName, circuitBreaker, runDiagnostics, ensureUserInChannel, loadMessages]);
 
-  // Setup real-time subscription
   const setupRealtimeSubscription = useCallback((channelId: string) => {
     if (subscriptionRef.current) {
       console.log('🧹 Cleaning up old subscription');
@@ -283,19 +329,24 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
         console.log('📡 Subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
         
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        if (status === 'SUBSCRIBED') {
+          circuitBreaker.recordSuccess();
+          setConnectionHealth('healthy');
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
+          circuitBreaker.recordFailure();
+          setConnectionHealth('degraded');
+          
           // Auto-reconnect after delay
           setTimeout(() => {
-            if (reconnectAttempts.current < maxReconnectAttempts) {
+            if (reconnectAttempts.current < maxReconnectAttempts && circuitBreaker.canExecute()) {
               reconnect();
             }
           }, 3000);
         }
       });
-  }, [user?.id]);
+  }, [user?.id, circuitBreaker]);
 
-  // Setup presence tracking
   const setupPresenceTracking = useCallback((channelName: string) => {
     if (!user?.id) return;
 
@@ -340,32 +391,34 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
       });
   }, [user]);
 
-  // Send message
+  // Enhanced send message with circuit breaker
   const sendMessage = useCallback(async (content: string, attachments?: Array<{url: string, name: string, type: string, size: number}>): Promise<boolean> => {
     if (!user?.id || !channelId || !content.trim()) {
       toast.error("Cannot send message");
       return false;
     }
 
-    if (!isConnected) {
-      toast.error("Not connected - please wait for connection to be restored");
+    if (!circuitBreaker.canExecute()) {
+      toast.error("Connection is temporarily unavailable - please wait");
       return false;
     }
 
     try {
       console.log('📤 Sending message');
       
-      const { error } = await supabase
-        .from('community_messages')
-        .insert({
-          channel_id: channelId,
-          sender_id: user.id,
-          content: content.trim()
-        });
+      await circuitBreaker.execute(async () => {
+        const { error } = await supabase
+          .from('community_messages')
+          .insert({
+            channel_id: channelId,
+            sender_id: user.id,
+            content: content.trim()
+          });
 
-      if (error) {
-        throw new Error(`Failed to send message: ${error.message}`);
-      }
+        if (error) {
+          throw new Error(`Failed to send message: ${error.message}`);
+        }
+      });
 
       console.log('✅ Message sent successfully');
       return true;
@@ -374,22 +427,23 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
       toast.error('Failed to send message');
       return false;
     }
-  }, [user?.id, channelId, isConnected]);
+  }, [user?.id, channelId, circuitBreaker]);
 
-  // Delete message
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('community_messages')
-        .update({ is_deleted: true })
-        .eq('id', messageId)
-        .eq('sender_id', user.id);
+      await circuitBreaker.execute(async () => {
+        const { error } = await supabase
+          .from('community_messages')
+          .update({ is_deleted: true })
+          .eq('id', messageId)
+          .eq('sender_id', user.id);
 
-      if (error) {
-        throw new Error(`Failed to delete message: ${error.message}`);
-      }
+        if (error) {
+          throw new Error(`Failed to delete message: ${error.message}`);
+        }
+      });
 
       console.log('✅ Message deleted successfully');
       toast.success("Message deleted", { duration: 1000 });
@@ -397,9 +451,8 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
       console.error('💥 Failed to delete message:', error);
       toast.error('Failed to delete message');
     }
-  }, [user?.id]);
+  }, [user?.id, circuitBreaker]);
 
-  // Typing indicators
   const startTyping = useCallback(() => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -410,7 +463,6 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
     }, 3000);
   }, []);
 
-  // Load more messages
   const loadMoreMessages = useCallback(async () => {
     if (!channelId || isLoading || !hasMoreMessages) return;
     
@@ -419,22 +471,22 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
     setIsLoading(false);
   }, [channelId, isLoading, hasMoreMessages, messages.length, loadMessages]);
 
-  // Clear unread count
   const clearUnreadCount = useCallback(() => {
     setUnreadCount(0);
   }, []);
 
-  // Reconnect
   const reconnect = useCallback(() => {
     console.log('🔄 Manual reconnect triggered');
     setError(null);
     reconnectAttempts.current = 0;
+    circuitBreaker.reset();
     initializeChat();
-  }, [initializeChat]);
+  }, [initializeChat, circuitBreaker]);
 
-  // Initialize on mount
+  // Initialize on mount and start health monitoring
   useEffect(() => {
     initializeChat();
+    startPeriodicCheck(30000); // Check health every 30 seconds
     
     return () => {
       if (subscriptionRef.current) {
@@ -449,8 +501,9 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      stopPeriodicCheck();
     };
-  }, [initializeChat]);
+  }, [initializeChat, startPeriodicCheck, stopPeriodicCheck]);
 
   return {
     messages,
@@ -467,6 +520,8 @@ export function useUnifiedCommunityChat(channelName: string): UseUnifiedCommunit
     loadMoreMessages,
     clearUnreadCount,
     reconnect,
-    isReady
+    isReady,
+    connectionHealth,
+    diagnostics
   };
 }
