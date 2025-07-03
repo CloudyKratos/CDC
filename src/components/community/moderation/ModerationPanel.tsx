@@ -12,12 +12,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+type ActionType = 'ban' | 'kick' | 'mute' | 'warn' | 'timeout';
+type ReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+
 interface ModerationAction {
   id: string;
   moderator_id: string;
   target_user_id: string;
   channel_id?: string;
-  action_type: 'ban' | 'kick' | 'mute' | 'warn' | 'timeout';
+  action_type: ActionType;
   reason?: string;
   duration_minutes?: number;
   expires_at?: string;
@@ -34,7 +37,7 @@ interface MessageReport {
   reporter_id: string;
   message_id: string;
   reason: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  status: ReportStatus;
   created_at: string;
   community_messages?: {
     content: string;
@@ -51,7 +54,7 @@ export const ModerationPanel: React.FC = () => {
   const [reports, setReports] = useState<MessageReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState('');
-  const [actionType, setActionType] = useState<'ban' | 'kick' | 'mute' | 'warn' | 'timeout'>('warn');
+  const [actionType, setActionType] = useState<ActionType>('warn');
   const [reason, setReason] = useState('');
   const [duration, setDuration] = useState('');
 
@@ -94,8 +97,17 @@ export const ModerationPanel: React.FC = () => {
 
       if (reportsError) throw reportsError;
 
-      setActions(actionsData || []);
-      setReports(reportsData || []);
+      // Type assertions to ensure proper typing
+      setActions((actionsData || []).map(action => ({
+        ...action,
+        action_type: action.action_type as ActionType
+      })));
+      
+      setReports((reportsData || []).map(report => ({
+        ...report,
+        status: report.status as ReportStatus
+      })));
+      
     } catch (error) {
       console.error('Error loading moderation data:', error);
       toast.error('Failed to load moderation data');
@@ -142,7 +154,7 @@ export const ModerationPanel: React.FC = () => {
     }
   };
 
-  const handleReportReview = async (reportId: string, status: 'reviewed' | 'resolved' | 'dismissed') => {
+  const handleReportReview = async (reportId: string, status: ReportStatus) => {
     try {
       const { error } = await supabase
         .from('message_reports')
@@ -305,7 +317,7 @@ export const ModerationPanel: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Action Type</label>
-                <Select value={actionType} onValueChange={(value: any) => setActionType(value)}>
+                <Select value={actionType} onValueChange={(value: ActionType) => setActionType(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 export interface ModernMessageInputProps {
   onSendMessage: (content: string, attachments?: Array<{url: string, name: string, type: string, size: number}>) => Promise<boolean>;
+  onStartTyping?: () => void;
   isConnected: boolean;
   isLoading: boolean;
   channelName: string;
@@ -18,6 +19,7 @@ export interface ModernMessageInputProps {
 
 export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
   onSendMessage,
+  onStartTyping,
   isConnected,
   isLoading,
   channelName,
@@ -73,6 +75,11 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
+    
+    // Call onStartTyping if provided
+    if (onStartTyping) {
+      onStartTyping();
+    }
     
     // Auto-resize textarea
     const textarea = e.target;
