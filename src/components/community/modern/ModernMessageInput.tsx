@@ -1,212 +1,162 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Send, 
-  Paperclip, 
-  Smile, 
-  Mic, 
-  Image as ImageIcon,
-  X,
-  Plus
-} from 'lucide-react';
+import { Send, Loader2, Smile } from 'lucide-react';
+import { FileUploadButton } from './FileUploadButton';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface ModernMessageInputProps {
-  onSendMessage: (content: string) => Promise<boolean>;
-  onStartTyping?: () => void;
+export interface ModernMessageInputProps {
+  onSendMessage: (content: string, attachments?: Array<{url: string, name: string, type: string, size: number}>) => Promise<boolean>;
   isConnected: boolean;
   isLoading: boolean;
   channelName: string;
   placeholder?: string;
+  maxLength?: number;
 }
 
 export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
   onSendMessage,
-  onStartTyping,
   isConnected,
   isLoading,
   channelName,
-  placeholder
+  placeholder = "Type a message...",
+  maxLength = 2000
 }) => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [attachments, setAttachments] = useState<Array<{url: string, name: string, type: string, size: number}>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleInputChange = (value: string) => {
-    setMessage(value);
-    
-    // Trigger typing indicator
-    if (onStartTyping && value.trim()) {
-      onStartTyping();
-      
-      // Clear existing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set new timeout to stop typing
-      typingTimeoutRef.current = setTimeout(() => {
-        // Stop typing indicator after 3 seconds
-      }, 3000);
-    }
-
-    // Auto-resize textarea
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim() || isSending || !isConnected) return;
-
-    const messageToSend = message.trim();
-    setMessage('');
-    setIsSending(true);
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    if ((!message.trim() && attachments.length === 0) || isSending || !isConnected) {
+      return;
     }
 
+    setIsSending(true);
+    
     try {
-      const success = await onSendMessage(messageToSend);
-      if (!success) {
-        setMessage(messageToSend);
-        toast.error('Failed to send message');
+      let content = message.trim();
+      
+      // If there are attachments, add them to the message content
+      if (attachments.length > 0) {
+        const attachmentText = attachments.map(att => `[File: ${att.name}](${att.url})`).join('\n');
+        content = content ? `${content}\n\n${attachmentText}` : attachmentText;
+      }
+      
+      const success = await onSendMessage(content, attachments);
+      
+      if (success) {
+        setMessage('');
+        setAttachments([]);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
       }
     } catch (error) {
-      setMessage(messageToSend);
+      console.error('Error sending message:', error);
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);
-      textareaRef.current?.focus();
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as any);
+      handleSubmit(e);
     }
   };
 
-  const handleFileUpload = () => {
-    toast.info('File upload coming soon!');
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   };
 
-  const handleVoiceRecord = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      toast.info('Voice recording stopped');
-    } else {
-      setIsRecording(true);
-      toast.info('Voice recording started');
-    }
+  const handleFileUploaded = (fileUrl: string, fileName: string, fileType: string, fileSize: number) => {
+    setAttachments(prev => [...prev, { url: fileUrl, name: fileName, type: fileType, size: fileSize }]);
+    toast.success(`File "${fileName}" attached`);
   };
 
-  const isDisabled = !isConnected || isSending || isLoading;
-  const inputPlaceholder = placeholder || `Message #${channelName}...`;
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      {/* Input Area */}
-      <div className="p-4">
-        <form onSubmit={handleSubmit} className="flex items-end gap-3">
-          {/* Attachment Button */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={isDisabled}
-            onClick={handleFileUpload}
-            className="h-10 w-10 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
-          >
-            <Plus className="h-5 w-5 theme-text-muted" />
-          </Button>
-
-          {/* Message Input */}
-          <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={isDisabled ? "Connecting..." : inputPlaceholder}
-              disabled={isDisabled}
-              className="min-h-[44px] max-h-[120px] resize-none rounded-2xl border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-accent focus:ring-blue-500 dark:focus:ring-accent bg-gray-50 dark:bg-gray-700 pr-20"
-              rows={1}
-            />
-            
-            {/* Inline Actions */}
-            <div className="absolute right-2 bottom-2 flex items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={isDisabled}
-                className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+    <div className="border-t bg-white dark:bg-gray-900 p-4">
+      {/* Attachments Preview */}
+      {attachments.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {attachments.map((attachment, index) => (
+            <div key={index} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm">
+              <span className="truncate max-w-32">{attachment.name}</span>
+              <button
+                onClick={() => removeAttachment(index)}
+                className="text-gray-500 hover:text-red-500"
               >
-                <Smile className="h-4 w-4 theme-text-muted" />
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={isDisabled}
-                onClick={handleFileUpload}
-                className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
-              >
-                <ImageIcon className="h-4 w-4 theme-text-muted" />
-              </Button>
+                ×
+              </button>
             </div>
-          </div>
-
-          {/* Voice/Send Button */}
-          {message.trim() ? (
-            <Button
-              type="submit"
-              disabled={isDisabled}
-              className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-600 dark:bg-accent dark:hover:bg-accent/90 flex-shrink-0"
-            >
-              {isSending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              ) : (
-                <Send className="h-4 w-4 text-white" />
-              )}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleVoiceRecord}
-              disabled={isDisabled}
-              className={`h-10 w-10 p-0 rounded-full flex-shrink-0 ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              <Mic className={`h-4 w-4 ${isRecording ? 'text-white' : 'theme-text-muted'}`} />
-            </Button>
+          ))}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="flex-1 relative">
+          <Textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder={!isConnected ? "Disconnected..." : placeholder}
+            disabled={!isConnected || isSending}
+            maxLength={maxLength}
+            className="min-h-[44px] max-h-[120px] resize-none pr-20"
+            rows={1}
+          />
+          
+          {/* Character counter */}
+          {message.length > maxLength * 0.8 && (
+            <div className="absolute bottom-2 right-12 text-xs text-gray-500">
+              {message.length}/{maxLength}
+            </div>
           )}
-        </form>
-
-        {/* Status */}
-        {!isConnected && (
-          <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-            Reconnecting...
-          </div>
-        )}
-      </div>
+        </div>
+        
+        <div className="flex items-end gap-1">
+          <FileUploadButton
+            onFileUploaded={handleFileUploaded}
+            disabled={!isConnected || isSending}
+          />
+          
+          <Button
+            type="submit"
+            disabled={(!message.trim() && attachments.length === 0) || !isConnected || isSending}
+            size="sm"
+            className="h-11"
+          >
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      {!isConnected && (
+        <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
+          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+          Disconnected from {channelName}
+        </div>
+      )}
     </div>
   );
 };
