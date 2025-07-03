@@ -26,7 +26,7 @@ interface ModerationAction {
   expires_at?: string;
   created_at: string;
   is_active: boolean;
-  profiles?: {
+  target_user?: {
     full_name?: string;
     username?: string;
   };
@@ -64,32 +64,38 @@ export const ModerationPanel: React.FC = () => {
 
   const loadModerationData = async () => {
     try {
-      // Load moderation actions
+      // Load moderation actions with proper join to profiles table
       const { data: actionsData, error: actionsError } = await supabase
         .from('moderation_actions')
         .select(`
-          *,
-          profiles!moderation_actions_target_user_id_fkey (
-            full_name,
-            username
-          )
+          id,
+          moderator_id,
+          target_user_id,
+          channel_id,
+          action_type,
+          reason,
+          duration_minutes,
+          expires_at,
+          created_at,
+          is_active
         `)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (actionsError) throw actionsError;
 
-      // Load message reports
+      // Load message reports with proper join
       const { data: reportsData, error: reportsError } = await supabase
         .from('message_reports')
         .select(`
-          *,
+          id,
+          reporter_id,
+          message_id,
+          reason,
+          status,
+          created_at,
           community_messages (
-            content,
-            profiles!community_messages_sender_id_fkey (
-              full_name,
-              username
-            )
+            content
           )
         `)
         .order('created_at', { ascending: false })
@@ -97,16 +103,34 @@ export const ModerationPanel: React.FC = () => {
 
       if (reportsError) throw reportsError;
 
-      // Type assertions to ensure proper typing
-      setActions((actionsData || []).map(action => ({
-        ...action,
-        action_type: action.action_type as ActionType
-      })));
-      
-      setReports((reportsData || []).map(report => ({
+      // Get user profiles for actions
+      if (actionsData && actionsData.length > 0) {
+        const userIds = [...new Set(actionsData.map(action => action.target_user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', userIds);
+
+        const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+        
+        const actionsWithProfiles = actionsData.map(action => ({
+          ...action,
+          action_type: action.action_type as ActionType,
+          target_user: profilesMap.get(action.target_user_id)
+        }));
+
+        setActions(actionsWithProfiles);
+      } else {
+        setActions([]);
+      }
+
+      // Process reports data
+      const processedReports = (reportsData || []).map(report => ({
         ...report,
         status: report.status as ReportStatus
-      })));
+      }));
+      
+      setReports(processedReports);
       
     } catch (error) {
       console.error('Error loading moderation data:', error);
@@ -218,7 +242,7 @@ export const ModerationPanel: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {action.profiles?.full_name || action.profiles?.username || 'Unknown User'}
+                          {action.target_user?.full_name || action.target_user?.username || 'Unknown User'}
                         </p>
                         <p className="text-sm text-gray-500">{action.reason}</p>
                         <p className="text-xs text-gray-400">
