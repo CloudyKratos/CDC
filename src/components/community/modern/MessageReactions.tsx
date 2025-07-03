@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Heart, ThumbsUp, Laugh, Angry, Sad } from 'lucide-react';
+import { Plus, Heart, ThumbsUp, Laugh, Angry, Frown } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -27,7 +26,7 @@ const QUICK_REACTIONS = [
   { emoji: '👍', icon: ThumbsUp },
   { emoji: '❤️', icon: Heart },
   { emoji: '😂', icon: Laugh },
-  { emoji: '😢', icon: Sad },
+  { emoji: '😢', icon: Frown },
   { emoji: '😠', icon: Angry },
 ];
 
