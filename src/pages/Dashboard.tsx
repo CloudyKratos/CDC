@@ -118,11 +118,11 @@ const Dashboard = () => {
             {!sidebarCollapsed && (
               <div className="flex items-center gap-3 animate-fade-in">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-lg">W</span>
+                  <span className="text-white font-bold text-lg">C</span>
                 </div>
                 <div>
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Warrior Space
+                    CDC
                   </h1>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Elite Command Center</p>
                 </div>
