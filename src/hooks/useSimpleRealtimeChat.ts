@@ -58,6 +58,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         .maybeSingle();
 
       if (channelError) {
+        console.error('❌ Channel query error:', channelError);
         throw new Error(`Channel error: ${channelError.message}`);
       }
 
@@ -75,11 +76,13 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
           .single();
 
         if (createError) {
+          console.error('❌ Create channel error:', createError);
           throw new Error(`Create channel error: ${createError.message}`);
         }
         channel = newChannel;
       }
 
+      console.log('✅ Channel ready:', channel.id);
       updateState({ channelId: channel.id });
 
       // Load messages
@@ -99,6 +102,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         isLoading: false,
         isConnected: false 
       });
+      toast.error(`Chat Error: ${errorMessage}`);
     } finally {
       initializingRef.current = false;
     }
@@ -107,6 +111,8 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
   // Load messages
   const loadMessages = useCallback(async (channelId: string) => {
     try {
+      console.log('📥 Loading messages for channel:', channelId);
+      
       const { data: messages, error } = await supabase
         .from('community_messages')
         .select(`
@@ -127,6 +133,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         .limit(50);
 
       if (error) {
+        console.error('❌ Load messages error:', error);
         throw new Error(`Load messages error: ${error.message}`);
       }
 
@@ -149,6 +156,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     } catch (error) {
       console.error('💥 Failed to load messages:', error);
       updateState({ messages: [] });
+      toast.error('Failed to load messages');
     }
   }, [updateState]);
 
@@ -158,7 +166,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
       supabase.removeChannel(subscriptionRef.current);
     }
 
-    console.log('📡 Setting up realtime subscription');
+    console.log('📡 Setting up realtime subscription for channel:', channelId);
 
     const subscription = supabase
       .channel(`messages_${channelId}`)
@@ -219,10 +227,13 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!user?.id || !state.channelId || !content.trim()) {
       if (!user?.id) toast.error("Please sign in to send messages");
+      if (!state.channelId) toast.error("No channel available");
       return false;
     }
 
     try {
+      console.log('📤 Sending message:', content.substring(0, 50) + '...');
+      
       const { error } = await supabase
         .from('community_messages')
         .insert({
@@ -232,9 +243,11 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         });
 
       if (error) {
+        console.error('❌ Send message error:', error);
         throw new Error(`Send message error: ${error.message}`);
       }
 
+      console.log('✅ Message sent successfully');
       return true;
     } catch (error) {
       console.error('💥 Failed to send message:', error);
@@ -248,6 +261,8 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
     if (!user?.id) return false;
 
     try {
+      console.log('🗑️ Deleting message:', messageId);
+      
       const { error } = await supabase
         .from('community_messages')
         .update({ is_deleted: true })
@@ -255,9 +270,18 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
         .eq('sender_id', user.id);
 
       if (error) {
+        console.error('❌ Delete message error:', error);
         throw new Error(`Delete message error: ${error.message}`);
       }
 
+      console.log('✅ Message deleted successfully');
+      
+      // Remove from local state
+      setState(prev => ({
+        ...prev,
+        messages: prev.messages.filter(msg => msg.id !== messageId)
+      }));
+      
       return true;
     } catch (error) {
       console.error('💥 Failed to delete message:', error);
@@ -269,8 +293,9 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
   // Reconnect
   const reconnect = useCallback(() => {
     console.log('🔄 Reconnecting...');
+    updateState({ error: null, isLoading: true });
     initializeChat();
-  }, [initializeChat]);
+  }, [initializeChat, updateState]);
 
   // Initialize on mount
   useEffect(() => {
@@ -278,6 +303,7 @@ export function useSimpleRealtimeChat(channelName: string = 'general') {
 
     return () => {
       if (subscriptionRef.current) {
+        console.log('🧹 Cleaning up subscription');
         supabase.removeChannel(subscriptionRef.current);
       }
     };
