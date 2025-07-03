@@ -11,7 +11,6 @@ interface RealtimeChatState {
   isConnected: boolean;
   error: string | null;
   onlineUsers: string[];
-  typingUsers: string[];
   channelId: string | null;
 }
 
@@ -23,7 +22,6 @@ export function useRealtimeChat(channelName: string = 'general') {
     isConnected: false,
     error: null,
     onlineUsers: [],
-    typingUsers: [],
     channelId: null
   });
 
@@ -52,7 +50,7 @@ export function useRealtimeChat(channelName: string = 'general') {
       updateState({ isLoading: true, error: null });
       console.log('🚀 Initializing realtime chat for:', channelName);
 
-      // Get or create channel
+      // Get or create channel with simplified approach
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
@@ -204,11 +202,6 @@ export function useRealtimeChat(channelName: string = 'general') {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
 
-          // Skip if it's from current user (avoid duplication)
-          if (newMessage.sender_id === user?.id) {
-            return;
-          }
-
           // Get sender profile
           const { data: sender } = await supabase
             .from('profiles')
@@ -276,7 +269,7 @@ export function useRealtimeChat(channelName: string = 'general') {
       });
 
     subscriptionRef.current = subscription;
-  }, [user?.id, updateState]);
+  }, [updateState]);
 
   // Setup presence tracking
   const setupPresenceTracking = useCallback((channelName: string) => {
