@@ -9,83 +9,97 @@
 
 @layer base {
   :root {
-    --background: 220 30% 95%;
-    --foreground: 220 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 47% 11%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 47% 11%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 225 55% 40%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
 
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 45 80% 52%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 225 55% 40%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 225 55% 40%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 214 32% 91%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 225 55% 40%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
+
+    /* Celestial theme colors */
+    --celestial-primary: 223 47% 23%;
+    --celestial-dark: 224 71% 4%;
+    --celestial-light: 223 47% 30%;
+    --celestial-gold: 45 93% 47%;
+    --celestial-silver: 210 4% 73%;
   }
 
   .dark {
-    --background: 225 30% 10%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 224 25% 12%;
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 224 25% 12%;
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 45 80% 52%;
-    --primary-foreground: 225 30% 10%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
 
-    --secondary: 225 25% 20%;
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 224 25% 18%;
-    --muted-foreground: 217 10% 64%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 45 80% 52%;
-    --accent-foreground: 225 30% 10%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 224 25% 20%;
-    --input: 224 25% 20%;
-    --ring: 45 80% 52%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 89.5% 70.8%;
 
-    --sidebar-background: 224 25% 12%;
+    --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 45 80% 52%;
-    --sidebar-primary-foreground: 225 30% 10%;
-    --sidebar-accent: 224 25% 20%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 224 25% 20%;
-    --sidebar-ring: 45 80% 52%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 89.5% 70.8%;
+
+    /* Dark celestial theme colors */
+    --celestial-primary: 223 47% 23%;
+    --celestial-dark: 224 71% 4%;
+    --celestial-light: 223 47% 30%;
+    --celestial-gold: 45 93% 47%;
+    --celestial-silver: 210 4% 73%;
   }
 
   * {
@@ -99,11 +113,18 @@
     line-height: 1.6;
     scroll-behavior: smooth;
   }
+
+  /* Ensure proper dark theme transitions */
+  html,
+  body,
+  * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
 }
 
 @layer components {
   .celestial-bg {
-    background-color: theme('colors.celestial.DEFAULT');
+    background-color: hsl(var(--celestial-primary));
     background-image: url('/public/lovable-uploads/f61a938f-4bf8-44f0-8e79-84bbe1a177b0.png');
     background-size: cover;
     background-position: center;
@@ -111,15 +132,15 @@
   }
 
   .celestial-card {
-    @apply bg-celestial-dark/80 backdrop-blur-md border border-celestial-gold/30 text-white shadow-lg;
+    @apply bg-gray-900/80 dark:bg-gray-800/80 backdrop-blur-md border border-yellow-400/30 text-white shadow-lg;
   }
   
   .glass-card {
-    @apply bg-white/70 dark:bg-gray-900/60 backdrop-blur-md border border-white/20 dark:border-gray-700/20 shadow-sm transition-all duration-300;
+    @apply bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 shadow-sm transition-all duration-300;
   }
   
   .glass-morphism {
-    @apply bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl border border-white/30 dark:border-gray-800/30 shadow-sm;
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm;
   }
   
   .bento-grid {
@@ -155,7 +176,7 @@
   }
 
   .chat-bubble-tail-left {
-    @apply after:-left-1.5 after:border-l after:border-t dark:after:border-gray-700 after:rounded-tl-md after:bg-white dark:after:bg-gray-800;
+    @apply after:-left-1.5 after:border-l after:border-t after:border-gray-300 dark:after:border-gray-600 after:rounded-tl-md after:bg-white dark:after:bg-gray-800;
   }
 
   .chat-bubble-tail-right {
@@ -171,7 +192,7 @@
   }
   
   .content-width {
-    width: calc(100% - 216px); /* 200px sidebar + 16px gap */
+    width: calc(100% - 216px);
     max-width: 1140px;
     margin-left: auto;
     margin-right: auto;
@@ -205,11 +226,11 @@
   
   /* Call UI Styling */
   .call-container {
-    @apply rounded-2xl overflow-hidden bg-celestial-dark border border-celestial-gold/20 shadow-xl;
+    @apply rounded-2xl overflow-hidden bg-gray-900 dark:bg-gray-800 border border-yellow-400/20 shadow-xl;
   }
   
   .call-overlay {
-    @apply absolute inset-0 bg-celestial-dark/60 backdrop-blur-sm z-10;
+    @apply absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-sm z-10;
   }
   
   .call-controls {
@@ -225,11 +246,11 @@
   }
   
   .call-button-mute {
-    @apply bg-celestial-light hover:bg-celestial-light/80;
+    @apply bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600;
   }
   
   .call-button-video {
-    @apply bg-celestial-light hover:bg-celestial-light/80;
+    @apply bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600;
   }
   
   /* Modern Form Styling */
@@ -270,17 +291,17 @@
   }
   
   .celestial-text {
-    @apply font-serif text-celestial-gold;
+    @apply font-serif text-yellow-400;
     font-family: 'Playfair Display', serif;
   }
   
   .celestial-heading {
-    @apply font-serif text-celestial-gold text-3xl md:text-4xl font-semibold;
+    @apply font-serif text-yellow-400 text-3xl md:text-4xl font-semibold;
     font-family: 'Playfair Display', serif;
   }
   
   .celestial-button {
-    @apply bg-celestial-gold/90 hover:bg-celestial-gold text-celestial-dark font-medium px-4 py-2 rounded-md transition-all;
+    @apply bg-yellow-400/90 hover:bg-yellow-400 text-gray-900 font-medium px-4 py-2 rounded-md transition-all;
   }
   
   .celestial-gradient {
@@ -292,9 +313,11 @@
   }
   
   .celestial-input {
-    @apply bg-celestial-light/50 border-celestial-gold/30 text-white placeholder:text-white/50 focus:border-celestial-gold focus:ring-1 focus:ring-celestial-gold/50;
+    @apply bg-gray-700/50 dark:bg-gray-800/50 border-yellow-400/30 text-white placeholder:text-white/50 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50;
   }
 }
+
+/* ... keep existing code (scrollbar styles, animations, and utility classes) */
 
 .scrollbar-thin {
   scrollbar-width: thin;
