@@ -1,13 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectCommunityChat } from '@/hooks/useDirectCommunityChat';
+import { useSimpleChatSystem } from '@/hooks/useSimpleChatSystem';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ModernChatHeader } from './ModernChatHeader';
 import { EnhancedModernMessageBubble } from './EnhancedModernMessageBubble';
 import { ModernMessageInput } from './ModernMessageInput';
-import { TypingIndicator } from './TypingIndicator';
 import { 
   Hash, 
   Users, 
@@ -41,7 +40,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     sendMessage,
     deleteMessage,
     reconnect
-  } = useDirectCommunityChat(channelName);
+  } = useSimpleChatSystem(channelName);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -52,25 +51,8 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 SimpleCommunityChat Status:', {
-      channelName,
-      user: user?.id,
-      messagesCount: messages.length,
-      isConnected,
-      isLoading,
-      isReady,
-      error
-    });
-  }, [channelName, user?.id, messages.length, isConnected, isLoading, isReady, error]);
-
   const handleSendMessage = async () => {
     if (!messageText.trim() || !isReady) {
-      console.log('⚠️ Cannot send message:', { 
-        hasText: !!messageText.trim(), 
-        isReady 
-      });
       return;
     }
 
