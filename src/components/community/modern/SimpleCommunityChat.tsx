@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSimpleCommunityChat } from '@/hooks/useSimpleCommunityChat';
+import { useDirectCommunityChat } from '@/hooks/useDirectCommunityChat';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ModernChatHeader } from './ModernChatHeader';
@@ -34,16 +34,14 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
 
   const {
     messages,
-    users,
-    isConnected,
     isLoading,
+    isConnected,
     error,
+    isReady,
     sendMessage,
     deleteMessage,
-    startTyping,
-    reconnect,
-    isReady
-  } = useSimpleCommunityChat(channelName);
+    reconnect
+  } = useDirectCommunityChat(channelName);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -56,7 +54,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 SimpleCommunityChat Debug:', {
+    console.log('🔍 SimpleCommunityChat Status:', {
       channelName,
       user: user?.id,
       messagesCount: messages.length,
@@ -68,10 +66,9 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
   }, [channelName, user?.id, messages.length, isConnected, isLoading, isReady, error]);
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !isConnected || !isReady) {
+    if (!messageText.trim() || !isReady) {
       console.log('⚠️ Cannot send message:', { 
         hasText: !!messageText.trim(), 
-        isConnected, 
         isReady 
       });
       return;
@@ -92,7 +89,6 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
 
   const handleInputChange = (value: string) => {
     setMessageText(value);
-    startTyping();
   };
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -260,11 +256,9 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
           onChange={handleInputChange}
           onSend={handleSendMessage}
           onKeyPress={handleKeyPress}
-          disabled={!isConnected || !isReady}
+          disabled={!isReady}
           placeholder={
-            !isConnected 
-              ? "Reconnecting..." 
-              : !isReady
+            !isReady
               ? "Initializing..."
               : `Message #${channelName}...`
           }
