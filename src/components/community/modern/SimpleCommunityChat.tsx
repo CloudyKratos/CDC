@@ -13,7 +13,9 @@ import {
   Users, 
   Loader2, 
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -52,8 +54,28 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 SimpleCommunityChat Debug:', {
+      channelName,
+      user: user?.id,
+      messagesCount: messages.length,
+      isConnected,
+      isLoading,
+      isReady,
+      error
+    });
+  }, [channelName, user?.id, messages.length, isConnected, isLoading, isReady, error]);
+
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !isConnected) return;
+    if (!messageText.trim() || !isConnected || !isReady) {
+      console.log('⚠️ Cannot send message:', { 
+        hasText: !!messageText.trim(), 
+        isConnected, 
+        isReady 
+      });
+      return;
+    }
 
     const success = await sendMessage(messageText.trim());
     if (success) {
@@ -102,21 +124,66 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     );
   }
 
+  // Connection status indicator
+  const getConnectionStatus = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Connecting...</span>
+        </div>
+      );
+    }
+    
+    if (isConnected && isReady) {
+      return (
+        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+          <Wifi className="h-4 w-4" />
+          <span className="text-sm">Live</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+        <WifiOff className="h-4 w-4" />
+        <span className="text-sm">Offline</span>
+      </div>
+    );
+  };
+
   return (
     <Card className={`h-full flex flex-col ${className}`}>
       {/* Header */}
-      <ModernChatHeader
-        channelName={channelName}
-        messageCount={messages.length}
-        onlineUsers={users.filter(u => u.is_online).length}
-        isConnected={isConnected}
-        isLoading={isLoading}
-        onReconnect={reconnect}
-      />
+      <div className="flex-shrink-0 p-4 border-b bg-gray-50 dark:bg-gray-800/50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Hash className="h-5 w-5 text-blue-600 dark:text-accent" />
+            <h2 className="text-lg font-semibold theme-text-primary">
+              {channelName}
+            </h2>
+            <span className="text-sm theme-text-muted">
+              {messages.length} messages
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {getConnectionStatus()}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={reconnect}
+              disabled={isLoading}
+              className="h-8 w-8 p-0"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Error Alert */}
       {error && (
-        <Alert className="m-4 border-red-200 bg-red-50 dark:bg-red-900/20">
+        <Alert className="m-4 border-red-200 bg-red-50 dark:bg-red-900/20 flex-shrink-0">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-red-800 dark:text-red-400 flex items-center justify-between">
             <span>{error}</span>
@@ -186,12 +253,6 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
         </div>
       </div>
 
-      {/* Typing Indicator */}
-      <TypingIndicator 
-        typingUsers={[]}
-        className="flex-shrink-0"
-      />
-
       {/* Message Input */}
       <div className="flex-shrink-0 border-t">
         <ModernMessageInput
@@ -203,6 +264,8 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
           placeholder={
             !isConnected 
               ? "Reconnecting..." 
+              : !isReady
+              ? "Initializing..."
               : `Message #${channelName}...`
           }
         />
