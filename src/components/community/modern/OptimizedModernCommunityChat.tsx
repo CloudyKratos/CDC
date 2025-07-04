@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedCommunityChat } from '@/hooks/useUnifiedCommunityChat';
@@ -37,6 +36,7 @@ export const OptimizedModernCommunityChat: React.FC<OptimizedModernCommunityChat
   className = ''
 }) => {
   const { user } = useAuth();
+  const [messageText, setMessageText] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
   const [useVirtualization, setUseVirtualization] = useState(false);
@@ -153,6 +153,27 @@ export const OptimizedModernCommunityChat: React.FC<OptimizedModernCommunityChat
   const handleStartVideo = useCallback(() => {
     toast.info('Video call feature coming soon!');
   }, []);
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !isConnected) return;
+
+    const success = await sendMessage(messageText.trim());
+    if (success) {
+      setMessageText('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleInputChange = (value: string) => {
+    setMessageText(value);
+    startTyping();
+  };
 
   // Authentication guard
   if (!user) {
@@ -339,11 +360,16 @@ export const OptimizedModernCommunityChat: React.FC<OptimizedModernCommunityChat
 
         {/* Input */}
         <ModernMessageInput
-          onSendMessage={sendMessage}
-          onStartTyping={startTyping}
-          isConnected={isConnected && isReady}
-          isLoading={isLoading}
-          channelName={channelName}
+          value={messageText}
+          onChange={handleInputChange}
+          onSend={handleSendMessage}
+          onKeyPress={handleKeyPress}
+          disabled={!isConnected || !isReady}
+          placeholder={
+            !isConnected 
+              ? "Reconnecting..." 
+              : `Message #${channelName}...`
+          }
         />
       </Card>
 

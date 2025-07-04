@@ -29,9 +29,22 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [replyText, setReplyText] = useState('');
 
-  const handleSendReply = async (content: string) => {
-    return await onSendReply(content, parentMessage.id);
+  const handleSendReply = async () => {
+    if (!replyText.trim()) return;
+    
+    const success = await onSendReply(replyText.trim(), parentMessage.id);
+    if (success) {
+      setReplyText('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendReply();
+    }
   };
 
   return (
@@ -91,10 +104,11 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
         {/* Reply Input */}
         <div className="border-t">
           <ModernMessageInput
-            onSendMessage={handleSendReply}
-            isConnected={isConnected}
-            isLoading={false}
-            channelName="thread"
+            value={replyText}
+            onChange={setReplyText}
+            onSend={handleSendReply}
+            onKeyPress={handleKeyPress}
+            disabled={!isConnected}
             placeholder="Reply to thread..."
           />
         </div>
