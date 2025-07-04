@@ -1,6 +1,7 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ConnectionDiagnostics {
   isHealthy: boolean;
@@ -19,146 +20,108 @@ export function useConnectionDiagnostics() {
     errors: []
   });
 
-  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const validatePolicies = useCallback(async (): Promise<boolean> => {
-    try {
-      console.log('🔍 Validating database policies...');
-      
-      // Test basic connectivity and policy execution
-      const startTime = Date.now();
-      
-      // Test channels access
-      const { data: channelsTest, error: channelsError } = await supabase
-        .from('channels')
-        .select('id')
-        .limit(1);
-
-      if (channelsError) {
-        console.error('❌ Channels policy test failed:', channelsError);
-        return false;
-      }
-
-      // Test workspace access
-      const { data: workspacesTest, error: workspacesError } = await supabase
-        .from('workspaces')
-        .select('id')
-        .limit(1);
-
-      if (workspacesError) {
-        console.error('❌ Workspaces policy test failed:', workspacesError);
-        return false;
-      }
-
-      const latency = Date.now() - startTime;
-      console.log(`✅ Policy validation successful (${latency}ms)`);
-      
-      setDiagnostics(prev => ({
-        ...prev,
-        networkLatency: latency,
-        policyValidation: true
-      }));
-
-      return true;
-    } catch (error) {
-      console.error('💥 Policy validation exception:', error);
-      return false;
-    }
-  }, []);
+  const { user } = useAuth();
 
   const runDiagnostics = useCallback(async (): Promise<ConnectionDiagnostics> => {
     const startTime = Date.now();
     const errors: string[] = [];
-    
+    let policyValidation = false;
+
+    console.log('🔍 Running connection diagnostics...');
+
     try {
-      console.log('🏥 Running connection diagnostics...');
-      
-      // Test policy validation
-      const policyValidation = await validatePolicies();
-      if (!policyValidation) {
-        errors.push('Policy validation failed');
+      // Test basic connectivity
+      const { error: pingError } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+
+      if (pingError) {
+        errors.push(`Connection test failed: ${pingError.message}`);
       }
 
-      // Test real-time connectivity
-      let realtimeHealthy = false;
-      try {
-        const testChannel = supabase.channel('diagnostics-test');
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Realtime timeout')), 5000);
-          
-          testChannel.subscribe((status) => {
-            clearTimeout(timeout);
-            if (status === 'SUBSCRIBED') {
-              realtimeHealthy = true;
-              resolve(true);
-            } else {
-              reject(new Error(`Realtime failed: ${status}`));
-            }
-          });
-        });
-        
-        supabase.removeChannel(testChannel);
-      } catch (error) {
-        console.error('❌ Realtime connectivity test failed:', error);
-        errors.push('Realtime connectivity failed');
+      // Test RLS policies if user is authenticated
+      if (user?.id) {
+        // Test profile access
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          errors.push(`Profile access failed: ${profileError.message}`);
+        } else {
+          policyValidation = true;
+        }
+
+        // Test channel access
+        const { data: channels, error: channelsError } = await supabase
+          .from('channels')
+          .select('id, name')
+          .limit(1);
+
+        if (channelsError) {
+          errors.push(`Channel access failed: ${channelsError.message}`);
+        }
+
+        // Test message posting ability
+        const { data: testMessage, error: messageError } = await supabase
+          .from('community_messages')
+          .select('id')
+          .eq('sender_id', user.id)
+          .limit(1);
+
+        if (messageError) {
+          errors.push(`Message access failed: ${messageError.message}`);
+        }
       }
 
-      const latency = Date.now() - startTime;
-      const isHealthy = policyValidation && realtimeHealthy && errors.length === 0;
+      const networkLatency = Date.now() - startTime;
+      const isHealthy = errors.length === 0;
 
       const result: ConnectionDiagnostics = {
         isHealthy,
         policyValidation,
-        networkLatency: latency,
+        networkLatency,
         lastChecked: new Date(),
         errors
       };
 
       setDiagnostics(result);
-      console.log(`🏥 Diagnostics complete: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`, result);
+      console.log('🔍 Diagnostics complete:', result);
       
       return result;
+
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      errors.push(errorMsg);
-      
+      const networkLatency = Date.now() - startTime;
       const result: ConnectionDiagnostics = {
         isHealthy: false,
         policyValidation: false,
-        networkLatency: Date.now() - startTime,
+        networkLatency,
         lastChecked: new Date(),
-        errors
+        errors: [`Diagnostics failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
       };
 
       setDiagnostics(result);
+      console.error('💥 Diagnostics failed:', error);
+      
       return result;
     }
-  }, [validatePolicies]);
+  }, [user?.id]);
 
   const startPeriodicCheck = useCallback((intervalMs: number = 30000) => {
-    if (checkTimeoutRef.current) {
-      clearInterval(checkTimeoutRef.current);
-    }
-
-    checkTimeoutRef.current = setInterval(() => {
-      runDiagnostics();
-    }, intervalMs);
-
-    // Run initial check
-    runDiagnostics();
+    const interval = setInterval(runDiagnostics, intervalMs);
+    return () => clearInterval(interval);
   }, [runDiagnostics]);
 
   const stopPeriodicCheck = useCallback(() => {
-    if (checkTimeoutRef.current) {
-      clearInterval(checkTimeoutRef.current);
-      checkTimeoutRef.current = null;
-    }
+    // This would be handled by the cleanup function returned by startPeriodicCheck
   }, []);
 
   return {
     diagnostics,
     runDiagnostics,
-    validatePolicies,
     startPeriodicCheck,
     stopPeriodicCheck
   };
