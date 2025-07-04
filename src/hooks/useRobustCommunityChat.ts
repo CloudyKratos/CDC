@@ -107,7 +107,7 @@ export function useRobustCommunityChat(channelName: string = 'general') {
     try {
       console.log('📥 Loading messages for channel:', channelId);
       
-      // First get messages without complex joins
+      // Get messages without complex joins to avoid foreign key issues
       const { data: rawMessages, error: messagesError } = await supabase
         .from('community_messages')
         .select('id, content, created_at, sender_id')
@@ -131,7 +131,7 @@ export function useRobustCommunityChat(channelName: string = 'general') {
       // Get unique sender IDs
       const senderIds = [...new Set(rawMessages.map(msg => msg.sender_id))];
       
-      // Fetch profiles for all senders
+      // Fetch profiles for all senders separately
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
