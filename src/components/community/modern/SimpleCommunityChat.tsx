@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useDirectCommunityChat } from '@/hooks/useDirectCommunityChat';
+import { useSimpleChatSystem } from '@/hooks/useSimpleChatSystem';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     sendMessage,
     deleteMessage,
     reconnect
-  } = useDirectCommunityChat(channelName);
+  } = useSimpleChatSystem(channelName);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
