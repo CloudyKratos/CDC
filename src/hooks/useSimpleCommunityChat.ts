@@ -42,7 +42,7 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
   // Initialize chat
   const initializeChat = useCallback(async () => {
     if (!user?.id) {
-      console.log('❌ No user ID available');
+      console.log('❌ No user available');
       setIsLoading(false);
       setError('Please sign in to use chat');
       return;
@@ -51,9 +51,9 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
     try {
       setIsLoading(true);
       setError(null);
-      console.log('🚀 Initializing simple chat for:', channelName, 'User:', user.id);
+      console.log('🚀 Initializing chat for:', channelName, 'User:', user.id);
 
-      // Ensure user profile exists
+      // Ensure user profile exists - this should now work with fixed policies
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
@@ -81,10 +81,10 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
         }
       }
 
-      // Get or create channel with proper created_by
+      // Get or create channel - this should now work with fixed policies
       let { data: channel, error: channelError } = await supabase
         .from('channels')
-        .select('id, created_by')
+        .select('id')
         .eq('name', channelName)
         .eq('type', 'public')
         .maybeSingle();
@@ -104,7 +104,7 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
             description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
             created_by: user.id
           })
-          .select('id, created_by')
+          .select('id')
           .single();
 
         if (createError) {
@@ -114,35 +114,8 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
         channel = newChannel;
       }
 
-      // Fix channel if it has null created_by
-      if (!channel.created_by) {
-        console.log('🔧 Fixing channel created_by field');
-        const { error: updateError } = await supabase
-          .from('channels')
-          .update({ created_by: user.id })
-          .eq('id', channel.id);
-
-        if (updateError) {
-          console.warn('⚠️ Could not fix channel created_by:', updateError);
-        }
-      }
-
       setChannelId(channel.id);
       console.log('✅ Channel ready:', channel.id);
-
-      // Ensure user is in channel
-      const { error: memberError } = await supabase
-        .from('channel_members')
-        .insert({
-          channel_id: channel.id,
-          user_id: user.id,
-          role: 'member'
-        });
-
-      // Ignore duplicate key errors
-      if (memberError && !memberError.message.includes('duplicate key')) {
-        console.warn('⚠️ Could not add user to channel:', memberError);
-      }
 
       // Load existing messages
       const { data: existingMessages, error: messagesError } = await supabase
@@ -187,13 +160,12 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
 
       // Setup real-time subscriptions
       setupRealtimeSubscriptions(channel.id);
-      setupPresenceTracking(channelName);
       
       setIsConnected(true);
       setIsReady(true);
       setIsLoading(false);
       
-      console.log('✅ Simple chat initialized successfully');
+      console.log('✅ Chat initialized successfully');
 
     } catch (err) {
       console.error('💥 Failed to initialize chat:', err);
@@ -274,51 +246,6 @@ export function useSimpleCommunityChat(channelName: string): UseSimpleCommunityC
         setIsConnected(status === 'SUBSCRIBED');
       });
   }, []);
-
-  // Setup presence tracking
-  const setupPresenceTracking = useCallback((channelName: string) => {
-    if (!user?.id) return;
-
-    if (presenceChannelRef.current) {
-      supabase.removeChannel(presenceChannelRef.current);
-    }
-
-    presenceChannelRef.current = supabase
-      .channel(`presence_${channelName}`)
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannelRef.current?.presenceState();
-        const onlineUsers = Object.values(state || {}).flat().map((presence: any) => ({
-          id: presence.user_id,
-          username: presence.username,
-          full_name: presence.full_name,
-          is_online: true
-        }));
-        setUsers(onlineUsers);
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        const newUsers = newPresences.map((presence: any) => ({
-          id: presence.user_id,
-          username: presence.username,
-          full_name: presence.full_name,
-          is_online: true
-        }));
-        setUsers(prev => [...prev.filter(u => !newUsers.find(nu => nu.id === u.id)), ...newUsers]);
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        const leftUserIds = leftPresences.map((p: any) => p.user_id);
-        setUsers(prev => prev.filter(u => !leftUserIds.includes(u.id)));
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannelRef.current?.track({
-            user_id: user.id,
-            username: user.email?.split('@')[0] || 'Anonymous',
-            full_name: user.email || 'Anonymous User',
-            online_at: new Date().toISOString()
-          });
-        }
-      });
-  }, [user]);
 
   // Send message
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
