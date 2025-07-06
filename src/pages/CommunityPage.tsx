@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ReliableCommunityChat } from '@/components/community/ReliableCommunityChat';
+import { SimpleCommunityChat } from '@/components/community/SimpleCommunityChat';
 
 const CommunityPage = () => {
   return (
@@ -16,7 +16,7 @@ const CommunityPage = () => {
         </div>
         
         <div className="h-[calc(100vh-200px)]">
-          <ReliableCommunityChat />
+          <SimpleCommunityChat />
         </div>
       </div>
     </div>
