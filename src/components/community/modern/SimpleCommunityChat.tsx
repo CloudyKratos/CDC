@@ -39,7 +39,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     isReady,
     sendMessage,
     deleteMessage,
-    reconnect
+    reload
   } = useSimpleChatSystem(channelName);
 
   // Auto-scroll to bottom when new messages arrive
@@ -138,7 +138,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={reconnect}
+              onClick={reload}
               disabled={isLoading}
               className="h-8 w-8 p-0"
             >
@@ -160,7 +160,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={reconnect}
+              onClick={reload}
               className="ml-2 h-auto p-2"
             >
               <RefreshCw className="h-4 w-4" />
