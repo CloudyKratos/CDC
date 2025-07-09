@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ interface SimpleChatState {
 }
 
 export function useSimpleChatSystem(channelName: string = 'general') {
-  const { user } = useSimpleAuth();
+  const { user } = useAuth();
   const [state, setState] = useState<SimpleChatState>({
     messages: [],
     isLoading: true,

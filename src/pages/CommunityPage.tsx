@@ -1,14 +1,15 @@
 
 import React from 'react';
 import { SimpleCommunityChat } from '@/components/community/modern/SimpleCommunityChat';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Users, LogIn } from 'lucide-react';
 
 const CommunityPage = () => {
-  const { isAuthenticated, user } = useSimpleAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   if (!isAuthenticated) {
     return (
@@ -24,7 +25,7 @@ const CommunityPage = () => {
             Sign in to participate in real-time discussions and connect with other community members.
           </p>
           <div className="space-y-3">
-            <Link to="/simple-login" className="w-full">
+            <Link to="/login" className="w-full">
               <Button className="w-full">
                 <LogIn className="h-4 w-4 mr-2" />
                 Sign In to Join Chat

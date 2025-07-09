@@ -27,7 +27,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
     { id: 'home', label: 'Home', icon: Home, requiresAuth: false },
     { id: 'community', label: 'Community', icon: Users, requiresAuth: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, requiresAuth: true },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
     { id: 'stage-call', label: 'Stage Call', icon: Phone, requiresAuth: true },
     { id: 'world-map', label: 'World Map', icon: Globe, requiresAuth: true },
     { id: 'command-room', label: 'Command Room', icon: Compass, requiresAuth: true },
