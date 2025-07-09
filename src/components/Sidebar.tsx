@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Home, 
   Users, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRole } from '@/contexts/RoleContext';
+import { WorkInProgressModal } from '@/components/modals/WorkInProgressModal';
 
 interface SidebarProps {
   activePanel: string;
@@ -22,6 +23,18 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
   const { currentRole, canManageCalendar, canManageUsers } = useRole();
+  const [showWorkInProgress, setShowWorkInProgress] = useState(false);
+  const [wipFeature, setWipFeature] = useState('Stage Rooms');
+
+  const handlePanelClick = (panelId: string) => {
+    // Intercept stage-call clicks to show work in progress
+    if (panelId === 'stage-call') {
+      setWipFeature('Stage Call');
+      setShowWorkInProgress(true);
+      return;
+    }
+    onPanelChange(panelId);
+  };
 
   const navigationItems = [
     { id: 'home', label: 'Home', icon: Home, requiresAuth: false },
@@ -50,8 +63,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
             <Button
               key={item.id}
               variant={activePanel === item.id ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => onPanelChange(item.id)}
+              className="w-full justify-start transition-all duration-300 hover:scale-105"
+              onClick={() => handlePanelClick(item.id)}
             >
               <Icon className="mr-2 h-4 w-4" />
               {item.label}
@@ -87,6 +100,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
           Settings
         </Button>
       </div>
+
+      {/* Work in Progress Modal */}
+      <WorkInProgressModal 
+        isOpen={showWorkInProgress}
+        onClose={() => setShowWorkInProgress(false)}
+        feature={wipFeature}
+      />
     </div>
   );
 };

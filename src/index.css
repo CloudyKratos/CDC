@@ -293,11 +293,39 @@
   }
   
   .btn-glow::after {
-    @apply content-[''] absolute top-0 left-0 right-0 bottom-0 bg-white/20 opacity-0 transition-opacity duration-300;
+    @apply content-[''] absolute top-0 left-0 right-0 bottom-0 bg-white/20 opacity-0 transition-all duration-500 ease-out;
   }
   
   .btn-glow:hover::after {
     @apply opacity-100;
+  }
+  
+  /* Smooth animations for interactive elements */
+  .smooth-hover {
+    @apply transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg;
+  }
+  
+  .smooth-press {
+    @apply transition-all duration-150 ease-out active:scale-95;
+  }
+  
+  /* Enhanced navbar styling */
+  .navbar-blur {
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  
+  /* Ripple effect for buttons */
+  .ripple-effect {
+    @apply relative overflow-hidden;
+  }
+  
+  .ripple-effect::before {
+    @apply content-[''] absolute top-1/2 left-1/2 w-0 h-0 bg-white/30 rounded-full transition-all duration-500 ease-out transform -translate-x-1/2 -translate-y-1/2;
+  }
+  
+  .ripple-effect:active::before {
+    @apply w-full h-full scale-150;
   }
   
   /* Call UI Styling */

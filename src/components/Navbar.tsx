@@ -87,20 +87,24 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     <nav
       ref={navbarRef}
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out backdrop-blur-md",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-out backdrop-blur-xl",
         scrolled || !transparent
-          ? "py-3 bg-white/90 dark:bg-gray-900/90 shadow-sm border-b border-gray-100 dark:border-gray-800"
+          ? "py-3 bg-white/95 dark:bg-gray-900/95 shadow-lg border-b border-gray-100/60 dark:border-gray-800/60"
           : "py-5 bg-transparent"
       )}
+      style={{
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      }}
     >
       <div className="container mx-auto flex items-center justify-between px-4 md:px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center z-20 group">
           <div className="relative">
-            <Logo className="mr-2 group-hover:scale-110 transition-transform duration-300" />
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-400 rounded-full blur opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
+            <Logo className="mr-2 group-hover:scale-110 transition-all duration-500 ease-out" />
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 rounded-full blur-md opacity-0 group-hover:opacity-30 transition-all duration-700 ease-out animate-pulse"></div>
           </div>
-          <span className="text-lg font-bold bg-gradient-to-r from-primary to-blue-500 text-transparent bg-clip-text group-hover:from-blue-500 group-hover:to-primary transition-all duration-500">
+          <span className="text-lg font-bold bg-gradient-to-r from-primary via-purple-500 to-blue-500 text-transparent bg-clip-text group-hover:from-blue-500 group-hover:via-cyan-400 group-hover:to-primary transition-all duration-700 ease-out">
             Nexus
           </span>
         </Link>
@@ -113,15 +117,15 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                 <TooltipTrigger asChild>
                   <Link 
                     to={item.url} 
-                    className="relative px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors font-medium flex items-center gap-1 group overflow-hidden"
+                    className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-all duration-500 ease-out font-medium flex items-center gap-2 group overflow-hidden rounded-full"
                   >
-                    <div className="absolute inset-0 bg-primary/5 dark:bg-primary/10 rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 origin-bottom"></div>
-                    <item.icon size={16} className="transition-transform duration-300 group-hover:scale-110" />
-                    <span className="relative">{item.label}</span>
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 rounded-full scale-0 group-hover:scale-100 transition-all duration-500 ease-out origin-center"></div>
+                    <item.icon size={16} className="transition-all duration-500 ease-out group-hover:scale-125 group-hover:rotate-12" />
+                    <span className="relative group-hover:font-semibold transition-all duration-500">{item.label}</span>
+                    <div className="absolute bottom-1 left-1/2 w-1 h-1 bg-primary rounded-full scale-0 group-hover:scale-100 transition-all duration-500 ease-out transform -translate-x-1/2"></div>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black/90 text-white border-0 text-xs">
+                <TooltipContent side="bottom" className="bg-black/95 text-white border-0 text-xs backdrop-blur-sm">
                   <p>{item.label}</p>
                 </TooltipContent>
               </Tooltip>
@@ -131,8 +135,9 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
 
         <div className="flex items-center space-x-2 z-20">
           {/* Search Button */}
-          <Button variant="ghost" size="icon" className="hidden md:flex relative hover:bg-primary/10 transition-colors rounded-full">
-            <Search size={18} />
+          <Button variant="ghost" size="icon" className="hidden md:flex relative hover:bg-primary/10 transition-all duration-500 ease-out rounded-full group hover:scale-110">
+            <Search size={18} className="group-hover:scale-110 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-full scale-0 group-hover:scale-100 transition-all duration-500 ease-out opacity-0 group-hover:opacity-100"></div>
           </Button>
           
           {/* Admin Panel Button - Only show for admins */}
@@ -156,13 +161,14 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hidden md:flex relative hover:bg-primary/10 transition-colors rounded-full">
-                <Bell size={18} />
+              <Button variant="ghost" size="icon" className="hidden md:flex relative hover:bg-primary/10 transition-all duration-500 ease-out rounded-full group hover:scale-110">
+                <Bell size={18} className="group-hover:scale-110 group-hover:rotate-12 transition-all duration-500" />
                 {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-red-500 to-pink-500 text-[10px] font-bold text-white rounded-full flex items-center justify-center animate-pulse shadow-lg">
                     {unreadNotifications}
                   </span>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-full scale-0 group-hover:scale-100 transition-all duration-500 ease-out opacity-0 group-hover:opacity-100"></div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 p-2 glass-morphism animate-scale-in">
@@ -209,13 +215,13 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           {/* Authentication Buttons */}
           {isAuthenticated ? (
             <Link to="/dashboard" className="hidden md:block">
-              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
-                Dashboard
+              <Button variant="default" className="bg-gradient-to-r from-primary via-blue-500 to-purple-600 hover:from-primary/90 hover:via-blue-600 hover:to-purple-700 shadow-lg rounded-full transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl group">
+                <span className="group-hover:scale-110 transition-transform duration-500">Dashboard</span>
               </Button>
             </Link>
           ) : (
             <Link to="/login" className="hidden md:block">
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 transition-all duration-500 ease-out hover:scale-105 hover:shadow-md rounded-full">
                 Sign In
               </Button>
             </Link>
@@ -224,8 +230,8 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           {/* CTA Button */}
           {!isAuthenticated && (
             <Link to="/login" className="hidden md:block">
-              <Button variant="default" className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 shadow-sm rounded-full">
-                Get Started
+              <Button variant="default" className="bg-gradient-to-r from-primary via-blue-500 to-purple-600 hover:from-primary/90 hover:via-blue-600 hover:to-purple-700 shadow-lg rounded-full transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl group">
+                <span className="group-hover:scale-110 transition-transform duration-500">Get Started</span>
               </Button>
             </Link>
           )}
@@ -234,12 +240,12 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
             variant="ghost" 
             size="icon" 
             className={cn(
-              "md:hidden transition-all duration-500",
-              mobileMenuOpen ? "rotate-90 opacity-70" : ""
+              "md:hidden transition-all duration-700 ease-out hover:scale-110 rounded-full",
+              mobileMenuOpen ? "rotate-180 scale-110 bg-primary/10" : "hover:bg-primary/5"
             )}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X /> : <Menu />}
+            {mobileMenuOpen ? <X className="transition-transform duration-500" /> : <Menu className="transition-transform duration-500" />}
           </Button>
         </div>
       </div>
@@ -247,11 +253,15 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
       {/* Mobile Menu */}
       <div 
         className={cn(
-          "absolute top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg transform transition-all duration-500 ease-in-out overflow-hidden",
+          "absolute top-0 left-0 right-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-2xl transform transition-all duration-700 ease-out overflow-hidden shadow-2xl",
           mobileMenuOpen 
             ? "h-screen translate-y-0 opacity-100" 
-            : "h-0 -translate-y-10 opacity-0 pointer-events-none"
+            : "h-0 -translate-y-20 opacity-0 pointer-events-none"
         )}
+        style={{
+          backdropFilter: 'blur(32px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+        }}
       >
         <div className="container mx-auto px-4 pt-24 pb-6">
           <div className="flex flex-col space-y-5 items-center">
