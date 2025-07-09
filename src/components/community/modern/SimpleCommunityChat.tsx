@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useSimpleChatSystem } from '@/hooks/useSimpleChatSystem';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,7 +27,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
   channelName = 'general',
   className = ''
 }) => {
-  const { user } = useAuth();
+  const { user } = useSimpleAuth();
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

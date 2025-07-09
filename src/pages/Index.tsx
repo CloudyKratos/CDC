@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
 import { FeatureCard } from "@/components/home/FeatureCard";
 import { FeaturePoint } from "@/components/home/FeaturePoint";
 import { FeatureBadge } from "@/components/home/FeatureBadge";
@@ -188,12 +188,17 @@ const Index = () => {
           </nav>
           
           <div className="flex items-center gap-3">
-            <Link to="/login">
+            <Link to="/community">
+              <Button variant="outline" size="sm" className="hover:bg-primary/5">
+                💬 Community
+              </Button>
+            </Link>
+            <Link to="/simple-login">
               <Button variant="outline" size="sm" className="hidden md:flex hover:bg-primary/5">
                 Sign In
               </Button>
             </Link>
-            <Link to="/login">
+            <Link to="/simple-login">
               <Button size="sm" onClick={() => handleJoinClick("header")} className="shadow-md hover:shadow-lg transition-shadow">
                 <Icons.Sparkles className="h-4 w-4 mr-2" />
                 Join Warriors
