@@ -73,7 +73,6 @@ const Index = () => {
     { number: "4.9/5", label: "Community Rating" }
   ];
 
-  // Enhanced Three Pillars with detailed content
   const threePillars = [
     {
       icon: Icons.Target,
@@ -116,7 +115,6 @@ const Index = () => {
     }
   ];
 
-  // Auto-rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
@@ -124,12 +122,10 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [testimonials.length]);
 
-  // Loading animation
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
-  // Animate active warriors counter
   useEffect(() => {
     setAnimateWarriors(true);
     const timer = setTimeout(() => {
@@ -157,7 +153,6 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen flex flex-col transition-opacity duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Enhanced Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <img 
           src="/lovable-uploads/164358ca-4f3f-427d-8763-57b886bb4b8f.png" 
@@ -168,39 +163,45 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
       </div>
       
-      {/* Enhanced Header */}
-      <header className="relative z-10 border-b bg-background/95 backdrop-blur-md shadow-sm">
+      <header className="relative z-10 border-b bg-background/95 backdrop-blur-xl shadow-sm transition-all duration-500 ease-out">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Icons.Sparkles className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-xl">
+              <Icons.Sparkles className="h-6 w-6 text-white group-hover:rotate-12 transition-transform duration-300" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent group-hover:from-primary/80 group-hover:to-primary transition-all duration-300">
               CDC Warriors
             </span>
           </Link>
           
-          <nav className="hidden md:flex items-center space-x-6">
-            <a href="#philosophy" className="text-sm font-medium hover:text-primary transition-colors">Philosophy</a>
-            <a href="#community" className="text-sm font-medium hover:text-primary transition-colors">Community</a>
-            <a href="#testimonials" className="text-sm font-medium hover:text-primary transition-colors">Success Stories</a>
-            <a href="#join" className="text-sm font-medium hover:text-primary transition-colors">Join</a>
+          <nav className="hidden md:flex items-center space-x-8">
+            <a href="#philosophy" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
+              Philosophy
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#testimonials" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
+              Success Stories
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#join" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
+              Join
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
           </nav>
           
           <div className="flex items-center gap-3">
-            <Link to="/community">
-              <Button variant="outline" size="sm" className="hover:bg-primary/5">
-                💬 Community
-              </Button>
-            </Link>
-            <Link to="/simple-login">
-              <Button variant="outline" size="sm" className="hidden md:flex hover:bg-primary/5">
+            <Link to="/login">
+              <Button variant="outline" size="sm" className="hidden md:flex hover:bg-primary/10 transition-all duration-300 hover:scale-105 hover:shadow-md border-primary/20">
                 Sign In
               </Button>
             </Link>
-            <Link to="/simple-login">
-              <Button size="sm" onClick={() => handleJoinClick("header")} className="shadow-md hover:shadow-lg transition-shadow">
-                <Icons.Sparkles className="h-4 w-4 mr-2" />
+            <Link to="/login">
+              <Button 
+                size="sm" 
+                onClick={() => handleJoinClick("header")} 
+                className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary group"
+              >
+                <Icons.Sparkles className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
                 Join Warriors
               </Button>
             </Link>
@@ -209,69 +210,76 @@ const Index = () => {
       </header>
       
       <main className="flex-1 relative z-10">
-        {/* Enhanced Hero Section with Active Warriors Counter */}
         <section className="py-20 md:py-32 container mx-auto px-4 text-center relative">
           <div className="animate-fade-in">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Icons.Target className="h-4 w-4" />
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10 text-primary px-6 py-3 rounded-full text-sm font-medium mb-8 border border-primary/20 shadow-lg backdrop-blur-sm">
+              <Icons.Target className="h-4 w-4 animate-pulse" />
               Commitment. Discipline. Consistency.
             </div>
             
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 max-w-5xl mx-auto">
-              Join the <span className="bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">CDC Warriors</span> on their path to extraordinary achievement
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-8 max-w-5xl mx-auto leading-tight">
+              Join the <span className="bg-gradient-to-r from-primary via-purple-600 to-blue-600 bg-clip-text text-transparent animate-gradient">CDC Warriors</span> on their path to extraordinary achievement
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
               A community of high-performers who understand that greatness is not born, but forged through daily discipline and unwavering commitment.
             </p>
 
-            {/* Enhanced Active Warriors Counter */}
-            <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl p-8 mb-10 max-w-2xl mx-auto">
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <div className="flex -space-x-2">
+            <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-3xl p-8 mb-12 max-w-2xl mx-auto border border-primary/10 shadow-xl backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-6 mb-4">
+                <div className="flex -space-x-3">
                   {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="w-12 h-12 rounded-full border-4 border-background bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center">
+                    <div key={i} className="w-14 h-14 rounded-full border-4 border-background bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
                       <Icons.User className="h-6 w-6 text-white" />
                     </div>
                   ))}
                 </div>
                 <div className="text-center">
-                  <div className={`text-4xl md:text-5xl font-bold text-primary mb-2 transition-all duration-1000 ${animateWarriors ? 'scale-110' : ''}`}>
+                  <div className={`text-4xl md:text-6xl font-bold text-primary mb-2 transition-all duration-1000 ${animateWarriors ? 'scale-110' : ''}`}>
                     {activeWarriors.toLocaleString()}+
                   </div>
                   <div className="text-lg font-semibold text-muted-foreground">
                     Active Warriors Worldwide
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
+                  <div className="text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Training daily • Building discipline • Achieving excellence
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
               <Link to="/login">
-                <Button size="lg" onClick={() => handleJoinClick("hero")} className="gap-2 shadow-lg hover:shadow-xl transition-all group">
-                  <Icons.Target className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                <Button 
+                  size="lg" 
+                  onClick={() => handleJoinClick("hero")} 
+                  className="gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 group bg-gradient-to-r from-primary via-purple-600 to-blue-600 hover:from-primary/90 hover:via-purple-700 hover:to-blue-700 px-8 py-6 text-lg font-semibold hover:scale-105"
+                >
+                  <Icons.Target className="h-6 w-6 group-hover:rotate-12 transition-transform duration-300" />
                   Start Your Journey
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="gap-2 hover:bg-primary/5" asChild>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="gap-3 hover:bg-primary/10 transition-all duration-300 hover:scale-105 border-primary/30 hover:border-primary/50 px-8 py-6 text-lg font-semibold backdrop-blur-sm" 
+                asChild
+              >
                 <a href="#philosophy">
-                  <Icons.BookOpen className="h-5 w-5" />
+                  <Icons.BookOpen className="h-6 w-6" />
                   Learn More
                 </a>
               </Button>
             </div>
 
-            {/* Stats Section */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
               {stats.map((stat, index) => (
                 <div key={index} className="text-center group">
-                  <div className="text-2xl md:text-3xl font-bold text-primary mb-1 group-hover:scale-110 transition-transform">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2 group-hover:scale-110 transition-all duration-300 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                     {stat.number}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm font-medium text-muted-foreground">
                     {stat.label}
                   </div>
                 </div>
@@ -280,7 +288,6 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Enhanced Three Pillars Section */}
         <section id="philosophy" className="py-16 md:py-24 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
@@ -321,7 +328,6 @@ const Index = () => {
               ))}
             </div>
 
-            {/* Pillar Connection Visualization */}
             <div className="mt-16 text-center">
               <div className="max-w-4xl mx-auto">
                 <h3 className="text-xl font-semibold mb-6">The Warrior's Journey</h3>
@@ -346,7 +352,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* New Features Section */}
         <section className="py-16 md:py-24 container mx-auto px-4">
           <div className="text-center mb-16">
             <FeatureBadge icon={Icons.Sparkles} text="What You Get" />
@@ -377,7 +382,6 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Enhanced Community Section */}
         <section id="community" className="py-16 md:py-24 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -427,7 +431,6 @@ const Index = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {/* Rotating Testimonials */}
                     <div className="relative h-64 overflow-hidden">
                       {testimonials.map((testimonial, index) => (
                         <div
@@ -457,7 +460,6 @@ const Index = () => {
                       ))}
                     </div>
                     
-                    {/* Testimonial Indicators */}
                     <div className="flex justify-center space-x-2 py-4">
                       {testimonials.map((_, index) => (
                         <button
@@ -493,46 +495,49 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Enhanced CTA Section */}
         <section id="join" className="py-16 md:py-24 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Icons.Clock className="h-4 w-4" />
+              <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-6 py-3 rounded-full text-sm font-medium mb-8 border border-primary/20 shadow-lg backdrop-blur-sm">
+                <Icons.Clock className="h-4 w-4 animate-pulse" />
                 Join 2,500+ Warriors Today
               </div>
               
-              <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              <h2 className="text-3xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                 Ready to become a CDC Warrior?
               </h2>
-              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
                 Join our community today and start your journey towards mastery through Commitment, Discipline, and Consistency.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-10">
                 <Link to="/login">
-                  <Button size="lg" onClick={() => handleJoinClick("cta")} className="gap-2 shadow-lg hover:shadow-xl transition-all px-8 py-6 text-lg">
+                  <Button 
+                    size="lg" 
+                    onClick={() => handleJoinClick("cta")} 
+                    className="gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 px-10 py-6 text-lg font-semibold bg-gradient-to-r from-primary via-purple-600 to-blue-600 hover:from-primary/90 hover:via-purple-700 hover:to-blue-700 hover:scale-105"
+                  >
                     <Icons.Sparkles className="h-6 w-6" />
                     Begin Your Journey
                   </Button>
                 </Link>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground font-medium">
                   Free to join • No credit card required
                 </p>
               </div>
               
-              <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full">
                   <Icons.Check className="h-4 w-4 text-green-600" />
-                  <span>Instant access</span>
+                  <span className="font-medium">Instant access</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full">
                   <Icons.Check className="h-4 w-4 text-green-600" />
-                  <span>24/7 community support</span>
+                  <span className="font-medium">24/7 community support</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full">
                   <Icons.Check className="h-4 w-4 text-green-600" />
-                  <span>Weekly live sessions</span>
+                  <span className="font-medium">Weekly live sessions</span>
                 </div>
               </div>
             </div>
@@ -540,7 +545,6 @@ const Index = () => {
         </section>
       </main>
       
-      {/* Enhanced Footer */}
       <footer className="relative z-10 bg-background/95 backdrop-blur-md border-t py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
