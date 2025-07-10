@@ -195,7 +195,7 @@ const Index = () => {
                 Sign In
               </Button>
             </Link>
-            <Link to="/community-landing">
+            <Link to="/login">
               <Button 
                 size="sm" 
                 onClick={() => handleJoinClick("header")} 
@@ -250,7 +250,7 @@ const Index = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-              <Link to="/community-landing">
+              <Link to="/login">
                 <Button 
                   size="lg" 
                   onClick={() => handleJoinClick("hero")} 
@@ -413,7 +413,7 @@ const Index = () => {
                 </div>
                 
                 <div className="mt-8">
-                  <Link to="/community-landing">
+                  <Link to="/login">
                     <Button className="gap-2 shadow-md" onClick={() => handleJoinClick("community")}>
                       <Icons.ArrowRight className="h-4 w-4" />
                       Join the Community
@@ -511,7 +511,7 @@ const Index = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-10">
-                <Link to="/community-landing">
+                <Link to="/login">
                   <Button 
                     size="lg" 
                     onClick={() => handleJoinClick("cta")} 
