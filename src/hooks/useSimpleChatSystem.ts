@@ -1,304 +1,169 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Message } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
+import { Message } from '@/types/chat';
 import { toast } from 'sonner';
 
-interface SimpleChatState {
-  messages: Message[];
-  isLoading: boolean;
-  isConnected: boolean;
-  error: string | null;
-  isReady: boolean;
-  isSending: boolean;
-}
-
 export function useSimpleChatSystem(channelName: string = 'general') {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [channelId, setChannelId] = useState<string | null>(null);
+  
   const { user } = useAuth();
-  const [state, setState] = useState<SimpleChatState>({
-    messages: [],
-    isLoading: true,
-    isConnected: false,
-    error: null,
-    isReady: false,
-    isSending: false
-  });
-
   const subscriptionRef = useRef<any>(null);
 
-  // Load messages with better error handling
-  const loadMessages = useCallback(async () => {
-    if (!user?.id) {
-      setState(prev => ({ ...prev, isLoading: false, isReady: false }));
-      return;
-    }
+  // Get or create channel by name
+  const getOrCreateChannel = useCallback(async (name: string): Promise<string | null> => {
+    if (!user?.id) return null;
 
     try {
-      console.log('📥 Loading messages for', channelName, 'channel...');
+      console.log('🔍 Looking for channel:', name);
       
-      // Try to load messages directly without complex joins first
+      // First try to find existing channel
+      const { data: existingChannel, error: findError } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('name', name)
+        .eq('type', 'public')
+        .maybeSingle();
+
+      if (findError && findError.code !== 'PGRST116') {
+        console.error('❌ Error finding channel:', findError);
+        throw findError;
+      }
+
+      if (existingChannel) {
+        console.log('✅ Found existing channel:', existingChannel.id);
+        return existingChannel.id;
+      }
+
+      // Create new channel if it doesn't exist
+      console.log('📝 Creating new channel:', name);
+      const { data: newChannel, error: createError } = await supabase
+        .from('channels')
+        .insert({
+          name,
+          type: 'public',
+          created_by: user.id,
+          description: `${name} community chat`
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('❌ Error creating channel:', createError);
+        throw createError;
+      }
+
+      console.log('✅ Created new channel:', newChannel.id);
+      return newChannel.id;
+    } catch (error) {
+      console.error('💥 Channel resolution failed:', error);
+      return null;
+    }
+  }, [user?.id]);
+
+  // Load messages for the channel
+  const loadMessages = useCallback(async (channelUuid: string) => {
+    try {
+      console.log('📥 Loading messages for channel:', channelUuid);
+      
       const { data: messages, error } = await supabase
         .from('community_messages')
         .select(`
           id,
           content,
           created_at,
-          sender_id
+          sender_id,
+          profiles!community_messages_sender_id_fkey (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
         `)
-        .eq('channel_id', 'general-channel')
+        .eq('channel_id', channelUuid)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('❌ Messages load error:', error);
-        // Don't throw error, just set empty messages and continue
-        setState(prev => ({ 
-          ...prev, 
-          messages: [],
-          error: null,
-          isLoading: false
-        }));
-        return;
+        throw error;
       }
 
-      // Get sender profiles separately to avoid foreign key issues
-      const senderIds = [...new Set((messages || []).map(msg => msg.sender_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', senderIds);
-
-      const profileMap = new Map(
-        (profiles || []).map(profile => [profile.id, profile])
-      );
+      console.log('✅ Messages loaded:', messages?.length || 0);
 
       const formattedMessages: Message[] = (messages || []).map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: profileMap.get(msg.sender_id) || {
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
-          username: 'User',
-          full_name: 'User',
+          username: 'Unknown',
+          full_name: 'Unknown User',
           avatar_url: null
         }
       }));
 
-      setState(prev => ({ 
-        ...prev, 
-        messages: formattedMessages,
-        error: null,
-        isLoading: false
-      }));
-      
-      console.log('✅ Messages loaded successfully:', formattedMessages.length);
-
+      setMessages(formattedMessages);
     } catch (error) {
-      console.error('💥 Load messages failed:', error);
-      setState(prev => ({ 
-        ...prev, 
-        messages: [],
-        error: null, // Don't show error to user, just continue
-        isLoading: false
-      }));
+      console.error('💥 Failed to load messages:', error);
+      setError('Failed to load messages');
     }
-  }, [user?.id, channelName]);
+  }, []);
 
-  // Ensure user profile exists
-  const ensureUserProfile = useCallback(async () => {
-    if (!user?.id) return false;
-
-    try {
-      // Check if profile exists
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!profile) {
-        // Create profile
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            full_name: user.email?.split('@')[0] || 'User',
-            username: user.email?.split('@')[0] || 'user',
-            email: user.email
-          });
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          return false;
-        }
-        console.log('✅ User profile created');
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Profile setup failed:', error);
-      return false;
-    }
-  }, [user]);
-
-  // Send message with simplified approach
+  // Send message
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-    if (!user?.id || !content.trim() || state.isSending) {
+    if (!channelId || !user?.id || !content.trim()) {
+      console.error('❌ Cannot send message: missing requirements');
       return false;
     }
 
-    setState(prev => ({ ...prev, isSending: true }));
-
     try {
-      console.log('📤 Sending message...');
+      console.log('📤 Sending message to channel:', channelId);
       
-      // Ensure profile exists first
-      const profileReady = await ensureUserProfile();
-      if (!profileReady) {
-        throw new Error('Profile setup failed');
-      }
-
-      // Send message directly to general-channel
       const { data, error } = await supabase
         .from('community_messages')
         .insert({
-          channel_id: 'general-channel',
+          channel_id: channelId,
           sender_id: user.id,
-          content: content.trim()
+          content: content.trim(),
+          is_deleted: false
         })
-        .select('id, content, created_at, sender_id')
+        .select(`
+          id,
+          content,
+          created_at,
+          sender_id
+        `)
         .single();
 
       if (error) {
         console.error('❌ Send message error:', error);
-        throw new Error('Failed to send message');
+        throw error;
       }
 
-      console.log('✅ Message sent successfully');
-      setState(prev => ({ ...prev, isSending: false }));
+      console.log('✅ Message sent successfully:', data.id);
       return true;
-
     } catch (error) {
-      console.error('💥 Send message failed:', error);
-      setState(prev => ({ ...prev, isSending: false }));
-      toast.error('Failed to send message. Please try again.');
+      console.error('💥 Failed to send message:', error);
+      toast.error('Failed to send message');
       return false;
     }
-  }, [user?.id, state.isSending, ensureUserProfile]);
-
-  // Setup realtime subscription
-  const setupRealtime = useCallback(() => {
-    if (subscriptionRef.current) {
-      supabase.removeChannel(subscriptionRef.current);
-    }
-
-    console.log('📡 Setting up realtime subscription...');
-
-    const channel = supabase
-      .channel('general-chat')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'community_messages',
-          filter: 'channel_id=eq.general-channel'
-        },
-        async (payload) => {
-          console.log('📨 New message received:', payload);
-          const newMessage = payload.new as any;
-
-          // Get sender profile
-          const { data: sender } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', newMessage.sender_id)
-            .single();
-
-          const message: Message = {
-            id: newMessage.id,
-            content: newMessage.content,
-            created_at: newMessage.created_at,
-            sender_id: newMessage.sender_id,
-            sender: sender || {
-              id: newMessage.sender_id,
-              username: 'User',
-              full_name: 'User',
-              avatar_url: null
-            }
-          };
-
-          setState(prev => {
-            // Avoid duplicates
-            const exists = prev.messages.some(msg => msg.id === message.id);
-            if (exists) return prev;
-            
-            return {
-              ...prev,
-              messages: [...prev.messages, message]
-            };
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
-        setState(prev => ({
-          ...prev,
-          isConnected: status === 'SUBSCRIBED'
-        }));
-      });
-
-    subscriptionRef.current = channel;
-  }, []);
-
-  // Initialize chat system
-  const initializeChat = useCallback(async () => {
-    if (!user?.id) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        isReady: false 
-      }));
-      return;
-    }
-
-    try {
-      console.log('🚀 Initializing simple chat system...');
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Load messages
-      await loadMessages();
-
-      // Setup realtime
-      setupRealtime();
-
-      setState(prev => ({
-        ...prev,
-        isReady: true,
-        error: null
-      }));
-
-      console.log('✅ Simple chat system initialized');
-
-    } catch (error) {
-      console.error('💥 Chat initialization failed:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'Failed to initialize chat',
-        isLoading: false,
-        isReady: false
-      }));
-    }
-  }, [user?.id, loadMessages, setupRealtime]);
+  }, [channelId, user?.id]);
 
   // Delete message
-  const deleteMessage = useCallback(async (messageId: string): Promise<boolean> => {
-    if (!user?.id) return false;
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
 
     try {
+      console.log('🗑️ Deleting message:', messageId);
+      
       const { error } = await supabase
         .from('community_messages')
         .update({ is_deleted: true })
@@ -306,39 +171,160 @@ export function useSimpleChatSystem(channelName: string = 'general') {
         .eq('sender_id', user.id);
 
       if (error) {
-        console.error('Delete error:', error);
-        return false;
+        console.error('❌ Delete message error:', error);
+        throw error;
       }
 
-      // Remove from local state
-      setState(prev => ({
-        ...prev,
-        messages: prev.messages.filter(msg => msg.id !== messageId)
-      }));
-
-      return true;
+      console.log('✅ Message deleted successfully');
     } catch (error) {
-      console.error('Delete failed:', error);
-      return false;
+      console.error('💥 Failed to delete message:', error);
+      toast.error('Failed to delete message');
     }
   }, [user?.id]);
 
-  // Initialize on mount
+  // Setup realtime subscription
+  const setupRealtimeSubscription = useCallback((channelUuid: string) => {
+    if (subscriptionRef.current) {
+      console.log('🔌 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+    }
+
+    console.log('📡 Setting up realtime subscription...');
+    
+    const subscription = supabase
+      .channel(`community_messages:${channelUuid}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelUuid}`
+        },
+        async (payload) => {
+          console.log('📨 New message received:', payload.new);
+          
+          // Get sender profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', payload.new.sender_id)
+            .single();
+
+          const newMessage: Message = {
+            id: payload.new.id,
+            content: payload.new.content,
+            created_at: payload.new.created_at,
+            sender_id: payload.new.sender_id,
+            sender: profile || {
+              id: payload.new.sender_id,
+              username: 'Unknown',
+              full_name: 'Unknown User',
+              avatar_url: null
+            }
+          };
+
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelUuid}`
+        },
+        (payload) => {
+          console.log('📝 Message updated:', payload.new);
+          
+          if (payload.new.is_deleted) {
+            setMessages(prev => prev.filter(msg => msg.id !== payload.new.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    subscriptionRef.current = subscription;
+    return subscription;
+  }, []);
+
+  // Initialize chat system
+  const initializeChat = useCallback(async () => {
+    if (!user?.id) {
+      console.log('⏳ Waiting for user authentication...');
+      return;
+    }
+
+    console.log('🚀 Initializing simple chat system...');
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get or create channel
+      const resolvedChannelId = await getOrCreateChannel(channelName);
+      if (!resolvedChannelId) {
+        throw new Error('Failed to resolve channel');
+      }
+
+      setChannelId(resolvedChannelId);
+
+      // Load messages
+      console.log('📥 Loading messages for', channelName, 'channel...');
+      await loadMessages(resolvedChannelId);
+
+      // Setup realtime subscription
+      console.log('📡 Setting up realtime subscription...');
+      setupRealtimeSubscription(resolvedChannelId);
+
+      setIsReady(true);
+      console.log('✅ Simple chat system initialized');
+    } catch (error) {
+      console.error('💥 Chat initialization failed:', error);
+      setError('Failed to initialize chat');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, channelName, getOrCreateChannel, loadMessages, setupRealtimeSubscription]);
+
+  // Reload function
+  const reload = useCallback(() => {
+    console.log('🔄 Reloading chat system...');
+    setIsReady(false);
+    setChannelId(null);
+    setMessages([]);
+    initializeChat();
+  }, [initializeChat]);
+
+  // Initialize on mount and when dependencies change
   useEffect(() => {
     initializeChat();
 
     return () => {
-      console.log('🧹 Chat cleanup');
       if (subscriptionRef.current) {
+        console.log('🔌 Cleaning up subscription on unmount');
         supabase.removeChannel(subscriptionRef.current);
       }
     };
   }, [initializeChat]);
 
   return {
-    ...state,
+    messages,
+    isLoading,
+    isConnected,
+    error,
+    isReady,
     sendMessage,
     deleteMessage,
-    reload: initializeChat
+    reload
   };
 }
