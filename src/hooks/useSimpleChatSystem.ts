@@ -11,6 +11,7 @@ export function useSimpleChatSystem(channelName: string = 'general') {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [channelId, setChannelId] = useState<string | null>(null);
   
   const { user } = useAuth();
@@ -124,6 +125,7 @@ export function useSimpleChatSystem(channelName: string = 'general') {
       return false;
     }
 
+    setIsSending(true);
     try {
       console.log('📤 Sending message to channel:', channelId);
       
@@ -154,6 +156,8 @@ export function useSimpleChatSystem(channelName: string = 'general') {
       console.error('💥 Failed to send message:', error);
       toast.error('Failed to send message');
       return false;
+    } finally {
+      setIsSending(false);
     }
   }, [channelId, user?.id]);
 
@@ -323,6 +327,7 @@ export function useSimpleChatSystem(channelName: string = 'general') {
     isConnected,
     error,
     isReady,
+    isSending,
     sendMessage,
     deleteMessage,
     reload
