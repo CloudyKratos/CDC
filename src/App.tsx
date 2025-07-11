@@ -49,9 +49,9 @@ function App() {
                     <Toaster />
                   </div>
                 </Router>
-                </WorkspaceProvider>
-              </RoleProvider>
-            </AuthProvider>
+              </WorkspaceProvider>
+            </RoleProvider>
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
