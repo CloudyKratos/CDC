@@ -269,12 +269,26 @@ const WarriorSpace = () => {
         </div>
       </div>
 
-      {/* Enhanced Mobile overlay with better backdrop */}
+      {/* Enhanced Mobile overlay with better backdrop and improved UX */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 lg:hidden transition-all duration-500"
+          className="fixed inset-0 z-40 lg:hidden transition-all duration-500"
           onClick={() => setSidebarOpen(false)}
-        />
+        >
+          {/* Enhanced backdrop with gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-purple-900/20 to-black/70 backdrop-blur-md" />
+          
+          {/* Subtle animated elements in backdrop */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl animate-pulse" />
+            <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl animate-pulse delay-1000" />
+          </div>
+          
+          {/* Close instruction */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/60 text-sm pointer-events-none">
+            Tap anywhere to close dashboard
+          </div>
+        </div>
       )}
 
       {/* Progress save indicator */}

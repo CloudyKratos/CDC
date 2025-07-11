@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Zap } from "lucide-react";
 import EnhancedStatsCard from "./EnhancedStatsCard";
 import ImprovedQuickActionsPanel from "./ImprovedQuickActionsPanel";
 import OptionalAddOns from "@/components/home/OptionalAddOns";
@@ -37,7 +37,26 @@ const WarriorSpaceSidebar = ({
   sidebarOpen 
 }: WarriorSpaceSidebarProps) => {
   return (
-    <div className={`space-y-6 transition-all duration-300 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
+    <div className={`space-y-6 transition-all duration-500 ease-in-out transform ${
+      sidebarOpen 
+        ? 'translate-x-0 opacity-100 scale-100' 
+        : 'hidden lg:translate-x-0 lg:opacity-100 lg:scale-100 lg:block'
+    }`}>
+      {/* Welcome message for mobile users */}
+      {sidebarOpen && (
+        <div className="lg:hidden bg-gradient-to-r from-purple-900/50 to-blue-900/50 backdrop-blur-sm rounded-xl p-4 border border-purple-500/30 mb-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg">
+              <Zap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold">Dashboard Opened!</h3>
+              <p className="text-purple-200 text-sm">Access all your warrior tools below</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <EnhancedStatsCard 
         stats={{
           level: progress.level,
