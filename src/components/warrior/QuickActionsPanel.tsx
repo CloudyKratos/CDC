@@ -14,7 +14,7 @@ const QuickActionsPanel = ({ isCollapsed, onToggle }: QuickActionsPanelProps) =>
   const quickActions = [
     { icon: Calendar, label: "Calendar", path: "/dashboard?tab=calendar", color: "purple" },
     { icon: Users, label: "Community", path: "/dashboard?tab=community", color: "blue" },
-    { icon: MessageSquare, label: "World Map", path: "/dashboard?tab=worldmap", color: "green" },
+    { icon: MessageSquare, label: "Command Room", path: "/dashboard?tab=command-room", color: "green" },
     { icon: BookOpen, label: "Learning", path: "/dashboard?tab=command-room", color: "orange" }
   ];
 

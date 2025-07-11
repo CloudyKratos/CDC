@@ -4,8 +4,7 @@ import {
   LayoutGrid,
   Calendar,
   Users,
-  Video,
-  Map
+  Video
 } from 'lucide-react';
 import { ActivePanel } from '@/types/dashboard';
 
@@ -25,8 +24,6 @@ const PanelInfo: React.FC<PanelInfoProps> = ({ activePanel, userName }) => {
         return "Community";
       case "stage":
         return "Stage Call";
-      case "worldmap":
-        return "World Map";
       default:
         return "Dashboard";
     }
@@ -42,8 +39,6 @@ const PanelInfo: React.FC<PanelInfoProps> = ({ activePanel, userName }) => {
         return <Users className="h-5 w-5" />;
       case "stage":
         return <Video className="h-5 w-5" />;
-      case "worldmap":
-        return <Map className="h-5 w-5" />;
       default:
         return <LayoutGrid className="h-5 w-5" />;
     }

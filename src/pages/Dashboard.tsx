@@ -8,7 +8,6 @@ import CalendarPanel from '@/components/CalendarPanel';
 import CommunityPanel from '@/components/CommunityPanel';
 import StageRoomPanel from '@/components/stage/StageRoomPanel';
 import CommandRoomPanel from '@/components/CommandRoomPanel';
-import WorldMapPanel from '@/components/WorldMapPanel';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import MobileMenu from '@/components/dashboard/MobileMenu';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ import {
   Users, 
   Video, 
   Shield,
-  Map,
   ChevronLeft,
   ChevronRight,
   Sword,
@@ -64,8 +62,6 @@ const Dashboard = () => {
         return <CommunityPanel channelName="general" />;
       case "stage":
         return <StageRoomPanel />;
-      case "worldmap":
-        return <WorldMapPanel />;
       default:
         return <CommandRoomPanel />;
     }
@@ -101,13 +97,6 @@ const Dashboard = () => {
       icon: Video, 
       description: "Live sessions",
       color: "red"
-    },
-    { 
-      id: "worldmap", 
-      label: "World Map", 
-      icon: Map, 
-      description: "Global view",
-      color: "yellow"
     },
   ];
 

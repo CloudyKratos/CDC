@@ -9,7 +9,6 @@ import {
   Users, 
   Video, 
   Shield,
-  Map,
   X,
   Home
 } from 'lucide-react';
@@ -34,7 +33,6 @@ const MobileMenu = ({ isOpen, onClose, activePanel, onPanelChange }: MobileMenuP
     { id: "calendar" as const, label: "Calendar", icon: Calendar },
     { id: "community" as const, label: "Community", icon: Users },
     { id: "stage" as const, label: "Stage Call", icon: Video },
-    { id: "worldmap" as const, label: "World Map", icon: Map },
   ];
 
   const handlePanelSelect = (panel: ActivePanel) => {

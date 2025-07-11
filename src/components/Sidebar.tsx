@@ -9,7 +9,6 @@ import {
   Settings, 
   Shield,
   Compass,
-  Globe,
   Gamepad2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
     { id: 'community', label: 'Community', icon: Users, requiresAuth: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, requiresAuth: true },
     { id: 'stage-call', label: 'Stage Call', icon: Phone, requiresAuth: true },
-    { id: 'world-map', label: 'World Map', icon: Globe, requiresAuth: true },
     { id: 'command-room', label: 'Command Room', icon: Compass, requiresAuth: true },
     { id: 'warrior-space', label: 'Warrior Space', icon: Gamepad2, requiresAuth: true },
   ];
