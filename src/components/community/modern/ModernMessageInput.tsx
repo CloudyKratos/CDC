@@ -1,18 +1,30 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, Paperclip } from 'lucide-react';
-import { FileUploadButton } from './FileUploadButton';
+import { 
+  Send, 
+  Smile, 
+  Paperclip, 
+  Image, 
+  Mic,
+  Plus,
+  Sparkles
+} from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
-export interface ModernMessageInputProps {
+interface ModernMessageInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: () => Promise<void>;
+  onSend: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
-  disabled: boolean;
-  placeholder: string;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
 export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
@@ -20,118 +32,162 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
   onChange,
   onSend,
   onKeyPress,
-  disabled,
-  placeholder
+  disabled = false,
+  placeholder = 'Type a message...'
 }) => {
-  const [isSending, setIsSending] = useState(false);
-  const [attachments, setAttachments] = useState<Array<{url: string, name: string, type: string, size: number}>>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if ((!value.trim() && attachments.length === 0) || isSending || disabled) {
-      return;
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const newHeight = Math.min(textarea.scrollHeight, 120);
+      textarea.style.height = newHeight + 'px';
     }
+  }, [value]);
 
-    setIsSending(true);
-    
-    try {
-      await onSend();
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-    } finally {
-      setIsSending(false);
-    }
+  const handleEmojiSelect = (emoji: string) => {
+    onChange(value + emoji);
+    setShowEmojiPicker(false);
+    textareaRef.current?.focus();
   };
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  const handleFileUpload = () => {
+    toast.info('File sharing coming soon!');
   };
 
-  const handleFileUploaded = (fileUrl: string, fileName: string, fileType: string, fileSize: number) => {
-    setAttachments(prev => [...prev, { url: fileUrl, name: fileName, type: fileType, size: fileSize }]);
-    toast.success(`File "${fileName}" attached`);
+  const handleImageUpload = () => {
+    toast.info('Image sharing coming soon!');
   };
 
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+  const handleVoiceNote = () => {
+    toast.info('Voice messages coming soon!');
   };
+
+  const emojis = [
+    '😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', 
+    '💯', '🎉', '😎', '🤝', '💪', '🙌', '👏', '✨',
+    '🚀', '⭐', '💡', '🎯', '🏆', '🌟', '💎', '🔮'
+  ];
 
   return (
-    <div className="border-t bg-white dark:bg-gray-900 p-4">
-      {/* Attachments Preview */}
-      {attachments.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {attachments.map((attachment, index) => (
-            <div key={index} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm">
-              <span className="truncate max-w-32">{attachment.name}</span>
-              <button
-                onClick={() => removeAttachment(index)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleTextareaChange}
-            onKeyDown={onKeyPress}
-            placeholder={placeholder}
-            disabled={disabled || isSending}
-            maxLength={2000}
-            className="min-h-[44px] max-h-[120px] resize-none pr-20"
-            rows={1}
-          />
+    <div className="p-4">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg transition-all duration-200 focus-within:shadow-xl focus-within:border-blue-300 dark:focus-within:border-blue-600">
+        <div className="flex items-end gap-3 p-4">
+          {/* Additional actions */}
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-500 hover:text-blue-600"
+              onClick={handleFileUpload}
+              disabled={disabled}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-500 hover:text-green-600"
+              onClick={handleImageUpload}
+              disabled={disabled}
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+          </div>
           
-          {/* Character counter */}
-          {value.length > 1600 && (
-            <div className="absolute bottom-2 right-12 text-xs text-gray-500">
-              {value.length}/2000
-            </div>
-          )}
+          {/* Message input */}
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={onKeyPress}
+              placeholder={disabled ? "Connecting..." : placeholder}
+              disabled={disabled}
+              className="min-h-[40px] max-h-[120px] resize-none border-0 bg-transparent focus:ring-0 focus:border-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+              rows={1}
+            />
+          </div>
+          
+          {/* Right side actions */}
+          <div className="flex items-center gap-2">
+            {/* Voice note */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-500 hover:text-purple-600"
+              onClick={handleVoiceNote}
+              disabled={disabled}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+            
+            {/* Emoji picker */}
+            <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 rounded-full hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-gray-500 hover:text-yellow-600"
+                  disabled={disabled}
+                >
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 shadow-xl" align="end">
+                <div className="grid grid-cols-8 gap-2">
+                  {emojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="text-xl hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg p-2 transition-all duration-150 hover:scale-110"
+                      onClick={() => handleEmojiSelect(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Send button */}
+            <Button
+              type="button"
+              onClick={onSend}
+              disabled={!value.trim() || disabled}
+              className={`h-9 w-9 p-0 rounded-full transition-all duration-200 ${
+                value.trim() && !disabled
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {value.trim() && !disabled ? (
+                <Send className="h-4 w-4" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
         
-        <div className="flex items-end gap-1">
-          <FileUploadButton
-            onFileUploaded={handleFileUploaded}
-            disabled={disabled || isSending}
-          />
-          
-          <Button
-            type="submit"
-            disabled={(!value.trim() && attachments.length === 0) || disabled || isSending}
-            size="sm"
-            className="h-11"
-          >
-            {isSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        {/* Status bar */}
+        <div className="px-4 pb-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+          <span>
+            {disabled ? "Reconnecting..." : "Press Enter to send, Shift+Enter for new line"}
+          </span>
+          <span className={value.length > 1800 ? 'text-orange-500' : ''}>
+            {value.length}/2000
+          </span>
         </div>
-      </form>
-      
-      {disabled && (
-        <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
-          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-          Connection issues detected
-        </div>
-      )}
+      </div>
     </div>
   );
 };

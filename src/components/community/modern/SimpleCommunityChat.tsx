@@ -14,7 +14,9 @@ import {
   AlertCircle,
   RefreshCw,
   Wifi,
-  WifiOff
+  WifiOff,
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -37,6 +39,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
     isConnected,
     error,
     isReady,
+    isSending,
     sendMessage,
     deleteMessage,
     reload
@@ -80,19 +83,24 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
   // Authentication guard
   if (!user) {
     return (
-      <Card className={`h-full ${className}`}>
+      <Card className={`h-full ${className} bg-gradient-to-br from-blue-50/50 via-white to-purple-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-950/50 border-0 shadow-2xl`}>
         <div className="h-full flex items-center justify-center p-8">
           <div className="text-center max-w-md">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Hash className="h-8 w-8 text-blue-600 dark:text-accent" />
+            <div className="relative mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                <MessageCircle className="h-10 w-10 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
             </div>
-            <h3 className="text-xl font-semibold theme-text-primary mb-2">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
               Join the Community
             </h3>
-            <p className="theme-text-secondary mb-4">
-              Sign in to participate in real-time discussions and connect with the community.
+            <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+              Sign in to participate in real-time discussions and connect with amazing people in our community.
             </p>
-            <div className="flex items-center justify-center gap-2 text-sm theme-text-muted">
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <Users className="h-4 w-4" />
               <span>Connect • Chat • Collaborate</span>
             </div>
@@ -103,35 +111,45 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
   }
 
   return (
-    <Card className={`h-full flex flex-col ${className}`}>
-      {/* Header with Connection Status */}
-      <div className="flex-shrink-0 p-4 border-b bg-gray-50 dark:bg-gray-800/50">
+    <Card className={`h-full flex flex-col ${className} bg-gradient-to-br from-white via-gray-50/50 to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-0 shadow-2xl overflow-hidden`}>
+      {/* Enhanced Header with Connection Status */}
+      <div className="flex-shrink-0 p-6 bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-blue-500/10 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-blue-900/20 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Hash className="h-5 w-5 text-blue-600 dark:text-accent" />
-            <h2 className="text-lg font-semibold theme-text-primary">
-              {channelName}
-            </h2>
-            <span className="text-sm theme-text-muted">
-              {messages.length} messages
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Hash className="h-5 w-5 text-white" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></div>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                {channelName}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" />
+                {messages.length} messages
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                  <span className="text-sm text-blue-600">Connecting...</span>
+                  <span className="text-sm font-medium text-blue-600">Connecting...</span>
                 </>
               ) : isConnected ? (
                 <>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <Wifi className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-600">Live</span>
+                  <span className="text-sm font-medium text-green-600">Live</span>
                 </>
               ) : (
                 <>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   <WifiOff className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-red-600">Offline</span>
+                  <span className="text-sm font-medium text-red-600">Offline</span>
                 </>
               )}
             </div>
@@ -140,7 +158,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
               size="sm"
               onClick={reload}
               disabled={isLoading}
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0 rounded-full bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
@@ -150,7 +168,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
 
       {/* Error Alert */}
       {error && (
-        <Alert className="m-4 border-red-200 bg-red-50 dark:bg-red-900/20 flex-shrink-0">
+        <Alert className="m-4 border-red-200/50 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 flex-shrink-0 backdrop-blur-sm">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-red-800 dark:text-red-400 flex items-center justify-between">
             <div>
@@ -161,7 +179,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
               variant="ghost"
               size="sm"
               onClick={reload}
-              className="ml-2 h-auto p-2"
+              className="ml-2 h-auto p-2 hover:bg-red-100 dark:hover:bg-red-900/30"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -170,14 +188,21 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-gradient-to-b from-gray-50/30 to-white dark:from-gray-900/30 dark:to-gray-800">
-        <div className="p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="p-6 space-y-4">
           {/* Loading State */}
           {isLoading && messages.length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center gap-3 text-blue-600 dark:text-accent">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-sm">Loading messages...</span>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+                </div>
+                <div className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  Loading messages...
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Setting up your chat experience
+                </p>
               </div>
             </div>
           )}
@@ -204,15 +229,20 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
 
           {/* Empty State */}
           {!isLoading && messages.length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-blue-600 dark:text-accent" />
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center max-w-md">
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                    <Users className="h-10 w-10 text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold theme-text-primary mb-2">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
                   Welcome to #{channelName}
                 </h3>
-                <p className="text-sm theme-text-muted">
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                   No messages yet. Start the conversation and connect with the community!
                 </p>
               </div>
@@ -224,13 +254,13 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChатProps> = ({
       </div>
 
       {/* Message Input */}
-      <div className="flex-shrink-0 border-t">
+      <div className="flex-shrink-0 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/80 via-gray-50/50 to-white/80 dark:from-slate-900/80 dark:via-slate-800/50 dark:to-slate-900/80 backdrop-blur-sm">
         <ModernMessageInput
           value={messageText}
           onChange={handleInputChange}
           onSend={handleSendMessage}
           onKeyPress={handleKeyPress}
-          disabled={!isReady}
+          disabled={!isReady || isSending}
           placeholder={
             !isReady
               ? "Connecting..."
