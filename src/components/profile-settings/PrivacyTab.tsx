@@ -1,12 +1,15 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Save, Eye, Lock, LogOut, Trash2 } from 'lucide-react';
+import { Save, Shield, Eye, Activity, Database, LogOut, Trash2 } from 'lucide-react';
 
-interface PrivacySettings {
+interface UserSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  marketingEmails: boolean;
   profileVisibility: boolean;
   activityStatus: boolean;
   dataCollection: boolean;
@@ -14,7 +17,7 @@ interface PrivacySettings {
 }
 
 interface PrivacyTabProps {
-  settings: PrivacySettings;
+  settings: UserSettings;
   loading: boolean;
   onSettingChange: (setting: string, value: boolean) => void;
   onSave: () => void;
@@ -35,18 +38,18 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
       <div>
         <h3 className="text-lg font-semibold mb-4">Privacy & Security</h3>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 text-primary" />
                 <Label>Profile Visibility</Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Allow others to view your profile
+                Make your profile visible to other users
               </p>
             </div>
-            <Switch
+            <Switch 
               checked={settings.profileVisibility}
               onCheckedChange={(checked) => onSettingChange('profileVisibility', checked)}
             />
@@ -54,12 +57,15 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
-              <Label>Show Activity Status</Label>
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                <Label>Activity Status</Label>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Show when you're online to other users
               </p>
             </div>
-            <Switch
+            <Switch 
               checked={settings.activityStatus}
               onCheckedChange={(checked) => onSettingChange('activityStatus', checked)}
             />
@@ -67,12 +73,15 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
-              <Label>Data Collection</Label>
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-primary" />
+                <Label>Data Collection</Label>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Allow anonymous data collection for analytics
+                Allow us to collect usage data to improve the platform
               </p>
             </div>
-            <Switch
+            <Switch 
               checked={settings.dataCollection}
               onCheckedChange={(checked) => onSettingChange('dataCollection', checked)}
             />
@@ -81,14 +90,14 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
+                <Shield className="h-4 w-4 text-primary" />
                 <Label>Two-Factor Authentication</Label>
               </div>
               <p className="text-sm text-muted-foreground">
                 Add an extra layer of security to your account
               </p>
             </div>
-            <Switch
+            <Switch 
               checked={settings.twoFactorAuth}
               onCheckedChange={(checked) => onSettingChange('twoFactorAuth', checked)}
             />
@@ -99,21 +108,19 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
 
         <div className="space-y-4">
           <h4 className="text-md font-medium text-destructive">Danger Zone</h4>
-          
-          <div className="space-y-3">
-            <Button
-              variant="outline"
+          <div className="grid gap-4">
+            <Button 
+              variant="outline" 
               onClick={onLogout}
-              className="w-full justify-start gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+              className="flex items-center gap-2 justify-start"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
             </Button>
-            
-            <Button
-              variant="destructive"
+            <Button 
+              variant="destructive" 
               onClick={onDeleteAccount}
-              className="w-full justify-start gap-2"
+              className="flex items-center gap-2 justify-start"
             >
               <Trash2 className="h-4 w-4" />
               Delete Account
@@ -124,7 +131,7 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
         <div className="flex justify-end pt-6">
           <Button onClick={onSave} disabled={loading} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
-            {loading ? 'Saving...' : 'Save Privacy Settings'}
+            {loading ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
       </div>
