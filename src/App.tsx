@@ -1,35 +1,58 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import { AuthProvider } from './contexts/AuthContext';
-import { RoleProvider } from './contexts/RoleContext';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
-import { Toaster } from 'sonner';
-import EnhancedProfileSettings from './pages/EnhancedProfileSettings';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { RoleProvider } from "@/contexts/RoleContext";
+import { ThemeProvider } from "next-themes";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import CommunityPage from "./pages/CommunityPage";
+import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
+import WarriorSpace from "./pages/WarriorSpace";
+import ProfileSettings from "./pages/ProfileSettings";
+import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
+import "./App.css";
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RoleProvider>
-          <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-            <Toaster />
-            <Router>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile-settings" element={<EnhancedProfileSettings />} />
-              </Routes>
-            </Router>
-          </ThemeProvider>
-        </RoleProvider>
-      </AuthProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <AuthProvider>
+            <RoleProvider>
+              <WorkspaceProvider>
+                <Router>
+                  <div className="min-h-screen bg-background">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<SignUp />} />
+                      <Route path="/community" element={<CommunityPage />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="/warrior-space" element={<WarriorSpace />} />
+                      <Route path="/profile-settings" element={<ProfileSettings />} />
+                      <Route path="/verify-email" element={<VerifyEmail />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <Toaster />
+                  </div>
+                </Router>
+                </WorkspaceProvider>
+              </RoleProvider>
+            </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
