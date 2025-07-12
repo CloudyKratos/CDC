@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useChatManager } from '@/hooks/useChatManager';
@@ -27,8 +28,8 @@ const LaunchReadyCommunityPanel: React.FC<LaunchReadyCommunityPanelProps> = ({
     isConnected,
     sendMessage,
     deleteMessage,
-    replyToMessage,
-    addReaction
+    addReaction,
+    replyToMessage
   } = useChatManager({ channelName: activeChannel });
 
   if (!user) {

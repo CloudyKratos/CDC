@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -38,8 +39,8 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     isConnected,
     sendMessage,
     deleteMessage,
-    replyToMessage,
-    addReaction
+    addReaction,
+    replyToMessage
   } = useChatManager({ channelName: activeChannel });
 
   const {

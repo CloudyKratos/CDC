@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth/AuthContext';
@@ -62,7 +63,6 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
     // Optimistic update
     const newMessage: Message = {
       id: newMessageId,
-      channel_id: channelNameRef.current,
       sender_id: user.id,
       content: content,
       created_at: new Date().toISOString(),
@@ -77,12 +77,40 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
     setMessages(prevMessages => [...prevMessages, newMessage]);
 
     try {
+      // First get or create channel
+      let { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('name', channelNameRef.current)
+        .eq('type', 'public')
+        .maybeSingle();
+
+      if (channelError && channelError.code !== 'PGRST116') {
+        throw channelError;
+      }
+
+      if (!channel) {
+        const { data: newChannel, error: createError } = await supabase
+          .from('channels')
+          .insert({
+            name: channelNameRef.current,
+            type: 'public',
+            description: `${channelNameRef.current} channel`,
+            created_by: user.id
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        channel = newChannel;
+      }
+
       const { error } = await supabase
-        .from('messages')
+        .from('community_messages')
         .insert([
           {
             id: newMessageId,
-            channel_id: channelNameRef.current,
+            channel_id: channel.id,
             sender_id: user.id,
             content: content,
           },
@@ -114,42 +142,27 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
 
     try {
       const { error } = await supabase
-        .from('messages')
-        .delete()
-        .match({ id: messageId });
+        .from('community_messages')
+        .update({ is_deleted: true })
+        .eq('id', messageId)
+        .eq('sender_id', user?.id);
 
       if (error) {
         console.error('Error deleting message:', error);
         setError('Failed to delete message.');
-        // Revert optimistic update if needed
-        // setMessages(prevMessages => [...prevMessages, newMessage]);
       }
     } catch (err) {
       console.error('Error deleting message:', err);
       setError('Failed to delete message.');
     }
-  }, [deleteMessageOptimistic]);
+  }, [deleteMessageOptimistic, user?.id]);
 
   const addReaction = useCallback(async (messageId: string, reaction: string) => {
     setError(null);
     addReactionOptimistic(messageId, reaction);
 
-    try {
-      // TODO: Implement reaction saving to database
-      // const { error } = await supabase
-      //   .from('message_reactions')
-      //   .insert({ message_id: messageId, reaction: reaction });
-
-      // if (error) {
-      //   console.error('Error adding reaction:', error);
-      //   setError('Failed to add reaction.');
-      //   // Revert optimistic update if needed
-      //   // setMessages(prevMessages => [...prevMessages, newMessage]);
-      // }
-    } catch (err) {
-      console.error('Error adding reaction:', err);
-      setError('Failed to add reaction.');
-    }
+    // Note: Reaction functionality would need database schema changes
+    console.log('Reaction added locally:', { messageId, reaction });
   }, [addReactionOptimistic]);
 
   const startTyping = useCallback(() => {
@@ -160,28 +173,13 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
 
     if (!isConnected) return;
 
-    supabase
-      .from('typing_status')
-      .upsert({ channel_id: channelNameRef.current, user_id: user.id, last_typed: new Date() })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Failed to send typing status', error);
-        }
-      });
+    // Note: Typing status would need database schema changes
+    console.log('User is typing:', user.id);
   }, [enableTyping, user, isConnected]);
 
   const clearTypingStatus = useCallback(() => {
     if (!user) return;
-
-    supabase
-      .from('typing_status')
-      .delete()
-      .match({ channel_id: channelNameRef.current, user_id: user.id })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Failed to clear typing status', error);
-        }
-      });
+    console.log('Clearing typing status for:', user.id);
   }, [user]);
 
   useEffect(() => {
@@ -212,104 +210,152 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
     setIsLoading(true);
     setError(null);
 
-    const channel = supabase.channel(channelNameRef.current);
+    const setupSubscription = async () => {
+      try {
+        // Get or create channel first
+        let { data: channel, error: channelError } = await supabase
+          .from('channels')
+          .select('id')
+          .eq('name', channelNameRef.current)
+          .eq('type', 'public')
+          .maybeSingle();
 
-    channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelNameRef.current}` }, (payload) => {
-        if (payload.errors) {
-          console.error('Error in postgres_changes:', payload.errors);
-          return;
+        if (channelError && channelError.code !== 'PGRST116') {
+          throw channelError;
         }
 
-        const message = payload.new as Message;
+        if (!channel) {
+          const { data: newChannel, error: createError } = await supabase
+            .from('channels')
+            .insert({
+              name: channelNameRef.current,
+              type: 'public',
+              description: `${channelNameRef.current} channel`,
+              created_by: user.id
+            })
+            .select('id')
+            .single();
 
-        switch (payload.eventType) {
-          case 'INSERT':
+          if (createError) throw createError;
+          channel = newChannel;
+        }
+
+        // Load existing messages
+        const { data: existingMessages, error: messagesError } = await supabase
+          .from('community_messages')
+          .select(`
+            id,
+            content,
+            created_at,
+            sender_id,
+            profiles!community_messages_sender_id_fkey (
+              id,
+              username,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('channel_id', channel.id)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: true });
+
+        if (messagesError) {
+          console.error('Error loading messages:', messagesError);
+          setError('Failed to load messages.');
+        } else {
+          const formattedMessages = (existingMessages || []).map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            created_at: msg.created_at,
+            sender_id: msg.sender_id,
+            sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+              id: msg.sender_id,
+              username: 'Unknown',
+              full_name: 'Unknown User',
+              avatar_url: null
+            }
+          }));
+          setMessages(formattedMessages);
+        }
+
+        // Set up real-time subscription
+        const realtimeChannel = supabase.channel(`community_messages_${channel.id}`);
+
+        realtimeChannel
+          .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'community_messages',
+            filter: `channel_id=eq.${channel.id}`
+          }, async (payload) => {
+            const newMessage = payload.new as any;
+            
+            // Get sender profile
+            const { data: sender } = await supabase
+              .from('profiles')
+              .select('id, username, full_name, avatar_url')
+              .eq('id', newMessage.sender_id)
+              .single();
+
+            const message: Message = {
+              id: newMessage.id,
+              content: newMessage.content,
+              created_at: newMessage.created_at,
+              sender_id: newMessage.sender_id,
+              sender: sender || {
+                id: newMessage.sender_id,
+                username: 'Unknown',
+                full_name: 'Unknown User',
+                avatar_url: null
+              }
+            };
+
             setMessages((prevMessages) => {
               if (prevMessages.find((m) => m.id === message.id)) {
                 return prevMessages;
               }
               return [...prevMessages, message];
             });
-            break;
-          case 'UPDATE':
-            setMessages((prevMessages) =>
-              prevMessages.map((m) => (m.id === message.id ? message : m))
-            );
-            break;
-          case 'DELETE':
-            setMessages((prevMessages) =>
-              prevMessages.filter((m) => m.id !== message.id)
-            );
-            break;
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
-        // console.log('profile changes', payload);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'typing_status', filter: `channel_id=eq.${channelNameRef.current}` }, (payload) => {
-        if (!enableTyping) return;
-
-        if (payload.errors) {
-          console.error('Error in typing_status changes:', payload.errors);
-          return;
-        }
-
-        const typing = payload.new;
-
-        switch (payload.eventType) {
-          case 'INSERT':
-          case 'UPDATE':
-            setTypingUsers((prevTypingUsers) => {
-              if (prevTypingUsers.includes(typing.user_id)) {
-                return prevTypingUsers;
-              }
-              return [...prevTypingUsers, typing.user_id];
-            });
-            break;
-          case 'DELETE':
-            setTypingUsers((prevTypingUsers) =>
-              prevTypingUsers.filter((userId) => userId !== typing.user_id)
-            );
-            break;
-        }
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
-          setError(null);
-
-          // Load initial messages
-          try {
-            const { data, error } = await supabase
-              .from('messages')
-              .select(`*, sender:profiles(*)`)
-              .eq('channel_id', channelNameRef.current)
-              .order('created_at', { ascending: true });
-
-            if (error) {
-              console.error('Error fetching messages:', error);
-              setError('Failed to load messages.');
-            } else {
-              setMessages(data || []);
+          })
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'community_messages',
+            filter: `channel_id=eq.${channel.id}`
+          }, (payload) => {
+            const updatedMessage = payload.new as any;
+            if (updatedMessage.is_deleted) {
+              setMessages((prevMessages) =>
+                prevMessages.filter((m) => m.id !== updatedMessage.id)
+              );
             }
-          } catch (err) {
-            console.error('Error fetching messages:', err);
-            setError('Failed to load messages.');
-          } finally {
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              setIsConnected(true);
+              setError(null);
+            } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+              setIsConnected(false);
+              setError('Connection lost. Reconnecting...');
+            }
             setIsLoading(false);
-          }
-        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
-          setIsConnected(false);
-          setError('Connection lost. Reconnecting...');
-          setIsLoading(false);
-        }
-      });
+          });
 
-    return () => {
-      supabase.removeChannel(channel);
+        return () => {
+          supabase.removeChannel(realtimeChannel);
+        };
+      } catch (err) {
+        console.error('Error setting up subscription:', err);
+        setError('Failed to connect to chat.');
+        setIsLoading(false);
+      }
     };
-  }, [user, enableTyping]);
+
+    const cleanup = setupSubscription();
+    return () => {
+      cleanup.then(fn => fn && fn());
+    };
+  }, [user, channelName]);
 
   const reconnect = () => {
     setIsConnected(false);
@@ -327,6 +373,10 @@ export const useChatManager = ({ channelName, enableTyping = true, enableReactio
     error,
     typingUsers,
     addReaction,
-    reconnect
+    reconnect,
+    replyToMessage: async (messageId: string, content: string) => {
+      // Placeholder for reply functionality
+      return await sendMessage(`@${messageId}: ${content}`);
+    }
   };
 };
