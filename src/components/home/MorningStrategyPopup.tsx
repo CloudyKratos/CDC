@@ -1,10 +1,10 @@
-
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Check, X, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from 'sonner';
+import { useCoins } from '@/hooks/useCoins';
 
 export type MorningStrategyData = {
   dailyFocus: string;
@@ -31,6 +31,7 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
   const [imageUploading, setImageUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { awardDailyCompletion } = useCoins();
 
   const handleTaskChange = (index: number, value: string) => {
     const newTasks = [...topThreeTasks];
@@ -38,7 +39,7 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
     setTopThreeTasks(newTasks);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!morningWalkImage) {
       toast.error("Please upload your morning walk picture", {
         description: "A morning walk picture is required to complete your strategy session."
@@ -56,6 +57,10 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
     if (onComplete) {
       onComplete(data);
     }
+
+    // Award coins for completing the morning strategy
+    await awardDailyCompletion('morning_strategy');
+    
     onClose();
   };
   
@@ -105,7 +110,7 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
             Morning Strategy Session
           </DialogTitle>
           <DialogDescription>
-            Take 5 minutes to set your intentions for the day
+            Take 5 minutes to set your intentions for the day and earn coins!
           </DialogDescription>
         </DialogHeader>
         
@@ -220,7 +225,7 @@ const MorningStrategyPopup: React.FC<MorningStrategyPopupProps> = ({
           </Button>
           <Button onClick={handleSubmit} disabled={!morningWalkImage}>
             <Check className="mr-2 h-4 w-4" />
-            Complete Morning Strategy
+            Complete & Earn Coins
           </Button>
         </div>
       </DialogContent>
