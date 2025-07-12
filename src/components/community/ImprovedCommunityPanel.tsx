@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Wifi, WifiOff, AlertTriangle, Users, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import EnhancedCommunityChat from './EnhancedCommunityChat';
 
 interface ImprovedCommunityPanelProps {

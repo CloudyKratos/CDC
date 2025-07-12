@@ -1,6 +1,5 @@
-
 import React, { useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useChatManager } from '@/hooks/useChatManager';
 import { useChannelData } from '@/hooks/use-channel-data';

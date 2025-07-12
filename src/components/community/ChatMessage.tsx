@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import type { Message } from "@/types/chat";
 import MessageHeader from './message/MessageHeader';
 import MessageContent from './message/MessageContent';

@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { Message } from '@/types/chat';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
