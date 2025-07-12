@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   CheckCircle2, 
@@ -23,7 +22,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 
 interface TodoListProps {
   fullWidth?: boolean;

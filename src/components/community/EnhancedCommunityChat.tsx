@@ -25,7 +25,7 @@ const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({
     isSending,
     error,
     reconnect
-  } = useChatManager(activeChannel);
+  } = useChatManager({ channelName: activeChannel });
 
   // Channel switching
   const channels = [

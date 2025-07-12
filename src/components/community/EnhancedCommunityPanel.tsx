@@ -40,7 +40,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     deleteMessage,
     replyToMessage,
     addReaction
-  } = useChatManager(activeChannel);
+  } = useChatManager({ channelName: activeChannel });
 
   const {
     channels,

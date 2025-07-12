@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, Trophy, Settings, History } from 'lucide-react';
 import CourseGrid from '@/components/courses/CourseGrid';
 import UnlockHistory from '@/components/courses/UnlockHistory';
 import CourseManagement from '@/components/admin/CourseManagement';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 const CommandRoomContent: React.FC = () => {
   const { user } = useAuth();

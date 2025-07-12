@@ -1,296 +1,332 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useIsomorphicLayoutEffect } from './useIsomorphicLayoutEffect';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import useIsomorphicLayoutEffect from './useIsomorphicLayoutEffect';
+import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { Message } from '@/types/chat';
 
-interface Message {
-  id: string;
-  content: string;
-  created_at: string;
-  sender_id: string;
-  sender?: {
-    id: string;
-    username: string;
-    full_name: string;
-    avatar_url: string | null;
-  };
-  is_deleted?: boolean;
-  reply_to?: string | null;
-  reactions?: { [key: string]: number };
-}
-
-interface UseChatManagerProps {
+export interface UseChatManagerProps {
   channelName: string;
+  enableTyping?: boolean;
+  enableReactions?: boolean;
 }
 
-export const useChatManager = ({ channelName }: UseChatManagerProps) => {
+const TYPING_TIMEOUT = 3000;
+
+export const useChatManager = ({ channelName, enableTyping = true, enableReactions = true }: UseChatManagerProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [messageText, setMessageText] = useState('');
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [channelId, setChannelId] = useState<string | null>(null);
-  
-  const [reconnecting, setReconnecting] = useState(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const maxRetries = 5;
-
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const { user } = useAuth();
-  const ws = useRef<WebSocket | null>(null);
-  const retryTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [lastTypingTime, setLastTypingTime] = useState<number>(0);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({});
 
-  // Function to generate a UUID for a new message
-  const generateMessageId = () => uuidv4();
+  // Store the channel name in a ref so it's up-to-date within the subscription callback
+  const channelNameRef = useRef(channelName);
+  useEffect(() => {
+    channelNameRef.current = channelName;
+  }, [channelName]);
 
-  // Function to handle WebSocket connection
-  const connectWebSocket = useCallback(async () => {
-    if (!user?.id) {
-      console.warn('User not authenticated, skipping WebSocket connection');
+  // Optimistic update for reactions
+  const addReactionOptimistic = useCallback((messageId: string, reaction: string) => {
+    setMessageReactions(prevReactions => {
+      const existingReactions = prevReactions[messageId] || [];
+      return {
+        ...prevReactions,
+        [messageId]: [...existingReactions, reaction]
+      };
+    });
+  }, []);
+
+  // Optimistic update for deleting messages
+  const deleteMessageOptimistic = useCallback((messageId: string) => {
+    setMessages(currentMessages => currentMessages.filter(msg => msg.id !== messageId));
+  }, []);
+
+  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
+    if (!user) {
+      setError('You must be logged in to send messages.');
+      return false;
+    }
+
+    setIsSending(true);
+    setError(null);
+
+    const newMessageId = uuidv4();
+
+    // Optimistic update
+    const newMessage: Message = {
+      id: newMessageId,
+      channel_id: channelNameRef.current,
+      sender_id: user.id,
+      content: content,
+      created_at: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        username: user.name || user.email,
+        full_name: user.name || user.email,
+        avatar_url: user.avatar || null,
+      },
+    };
+
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            id: newMessageId,
+            channel_id: channelNameRef.current,
+            sender_id: user.id,
+            content: content,
+          },
+        ]);
+
+      if (error) {
+        console.error('Error sending message:', error);
+        setError('Failed to send message.');
+        // Revert optimistic update
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newMessageId));
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message.');
+      // Revert optimistic update
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newMessageId));
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [user]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    setError(null);
+    deleteMessageOptimistic(messageId);
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .match({ id: messageId });
+
+      if (error) {
+        console.error('Error deleting message:', error);
+        setError('Failed to delete message.');
+        // Revert optimistic update if needed
+        // setMessages(prevMessages => [...prevMessages, newMessage]);
+      }
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      setError('Failed to delete message.');
+    }
+  }, [deleteMessageOptimistic]);
+
+  const addReaction = useCallback(async (messageId: string, reaction: string) => {
+    setError(null);
+    addReactionOptimistic(messageId, reaction);
+
+    try {
+      // TODO: Implement reaction saving to database
+      // const { error } = await supabase
+      //   .from('message_reactions')
+      //   .insert({ message_id: messageId, reaction: reaction });
+
+      // if (error) {
+      //   console.error('Error adding reaction:', error);
+      //   setError('Failed to add reaction.');
+      //   // Revert optimistic update if needed
+      //   // setMessages(prevMessages => [...prevMessages, newMessage]);
+      // }
+    } catch (err) {
+      console.error('Error adding reaction:', err);
+      setError('Failed to add reaction.');
+    }
+  }, [addReactionOptimistic]);
+
+  const startTyping = useCallback(() => {
+    if (!enableTyping || !user) return;
+
+    const now = Date.now();
+    setLastTypingTime(now);
+
+    if (!isConnected) return;
+
+    supabase
+      .from('typing_status')
+      .upsert({ channel_id: channelNameRef.current, user_id: user.id, last_typed: new Date() })
+      .then(({ error }) => {
+        if (error) {
+          console.error('Failed to send typing status', error);
+        }
+      });
+  }, [enableTyping, user, isConnected]);
+
+  const clearTypingStatus = useCallback(() => {
+    if (!user) return;
+
+    supabase
+      .from('typing_status')
+      .delete()
+      .match({ channel_id: channelNameRef.current, user_id: user.id })
+      .then(({ error }) => {
+        if (error) {
+          console.error('Failed to clear typing status', error);
+        }
+      });
+  }, [user]);
+
+  useEffect(() => {
+    if (!enableTyping) return;
+
+    const handleTypingTimeout = () => {
+      if (Date.now() - lastTypingTime >= TYPING_TIMEOUT) {
+        clearTypingStatus();
+      }
+    };
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(handleTypingTimeout, TYPING_TIMEOUT + 100);
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      clearTypingStatus();
+    };
+  }, [lastTypingTime, clearTypingStatus, enableTyping]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setReconnecting(false);
 
-    try {
-      // Fetch or create channel ID
-      const response = await supabase
-        .from('channels')
-        .select('id')
-        .eq('name', channelName)
-        .single();
+    const channel = supabase.channel(channelNameRef.current);
 
-      if (response.error) {
-        throw new Error(`Failed to fetch channel: ${response.error.message}`);
-      }
-
-      let fetchedChannelId = response.data?.id;
-
-      if (!fetchedChannelId) {
-        const insertResponse = await supabase
-          .from('channels')
-          .insert([{ name: channelName, type: 'public' }])
-          .select('id')
-          .single();
-
-        if (insertResponse.error) {
-          throw new Error(`Failed to create channel: ${insertResponse.error.message}`);
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelNameRef.current}` }, (payload) => {
+        if (payload.errors) {
+          console.error('Error in postgres_changes:', payload.errors);
+          return;
         }
 
-        fetchedChannelId = insertResponse.data.id;
-      }
+        const message = payload.new as Message;
 
-      setChannelId(fetchedChannelId);
-
-      // Initialize WebSocket connection
-      const socketUrl = `${process.env.NEXT_PUBLIC_REALTIME_URL}/?channel=${channelName}&user_id=${user.id}&channel_id=${fetchedChannelId}`;
-      ws.current = new WebSocket(socketUrl);
-
-      ws.current.onopen = () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-        setIsLoading(false);
-        setConnectionAttempts(0);
-      };
-
-      ws.current.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'initial_messages') {
-            const initialMessages = JSON.parse(msg.messages);
-            setMessages(initialMessages);
-          } else if (msg.type === 'new_message') {
-            const newMessage = JSON.parse(msg.message);
-            setMessages((prevMessages) => [...prevMessages, newMessage]);
-          } else if (msg.type === 'message_deleted') {
-            const deletedMessageId = JSON.parse(msg.message).id;
+        switch (payload.eventType) {
+          case 'INSERT':
+            setMessages((prevMessages) => {
+              if (prevMessages.find((m) => m.id === message.id)) {
+                return prevMessages;
+              }
+              return [...prevMessages, message];
+            });
+            break;
+          case 'UPDATE':
             setMessages((prevMessages) =>
-              prevMessages.map((m) =>
-                m.id === deletedMessageId ? { ...m, is_deleted: true } : m
-              )
+              prevMessages.map((m) => (m.id === message.id ? message : m))
             );
+            break;
+          case 'DELETE':
+            setMessages((prevMessages) =>
+              prevMessages.filter((m) => m.id !== message.id)
+            );
+            break;
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        // console.log('profile changes', payload);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'typing_status', filter: `channel_id=eq.${channelNameRef.current}` }, (payload) => {
+        if (!enableTyping) return;
+
+        if (payload.errors) {
+          console.error('Error in typing_status changes:', payload.errors);
+          return;
+        }
+
+        const typing = payload.new;
+
+        switch (payload.eventType) {
+          case 'INSERT':
+          case 'UPDATE':
+            setTypingUsers((prevTypingUsers) => {
+              if (prevTypingUsers.includes(typing.user_id)) {
+                return prevTypingUsers;
+              }
+              return [...prevTypingUsers, typing.user_id];
+            });
+            break;
+          case 'DELETE':
+            setTypingUsers((prevTypingUsers) =>
+              prevTypingUsers.filter((userId) => userId !== typing.user_id)
+            );
+            break;
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+          setError(null);
+
+          // Load initial messages
+          try {
+            const { data, error } = await supabase
+              .from('messages')
+              .select(`*, sender:profiles(*)`)
+              .eq('channel_id', channelNameRef.current)
+              .order('created_at', { ascending: true });
+
+            if (error) {
+              console.error('Error fetching messages:', error);
+              setError('Failed to load messages.');
+            } else {
+              setMessages(data || []);
+            }
+          } catch (err) {
+            console.error('Error fetching messages:', err);
+            setError('Failed to load messages.');
+          } finally {
+            setIsLoading(false);
           }
-        } catch (error) {
-          console.error('Failed to parse message', error);
+        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+          setIsConnected(false);
+          setError('Connection lost. Reconnecting...');
+          setIsLoading(false);
         }
-      };
-
-      ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-        setIsLoading(false);
-
-        if (connectionAttempts < maxRetries) {
-          setReconnecting(true);
-          retryTimeout.current = setTimeout(() => {
-            setConnectionAttempts((prevAttempts) => prevAttempts + 1);
-            connectWebSocket();
-          }, 2000 ** (connectionAttempts + 1));
-        } else {
-          setError('Max reconnection attempts reached. Please refresh the page.');
-          setReconnecting(false);
-        }
-      };
-
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setIsConnected(false);
-        setIsLoading(false);
-        setError('Failed to connect to chat. Please try again.');
-      };
-    } catch (err: any) {
-      console.error('WebSocket connection error:', err);
-      setIsConnected(false);
-      setIsLoading(false);
-      setError(err.message || 'Failed to connect to chat.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [channelName, user?.id, connectionAttempts]);
-
-  // Function to send a message
-  const sendMessage = useCallback(
-    async (content: string) => {
-      if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !user?.id || !channelId) {
-        toast.error('Not connected to chat. Please try again.');
-        return false;
-      }
-
-      setIsSending(true);
-      try {
-        const messageId = generateMessageId();
-        const messagePayload = {
-          id: messageId,
-          content: content.trim(),
-          created_at: new Date().toISOString(),
-          sender_id: user.id,
-          channel_id: channelId,
-          reply_to: replyTo,
-          type: 'new_message',
-        };
-
-        ws.current.send(JSON.stringify(messagePayload));
-        setMessageText('');
-        setReplyTo(null);
-        return true;
-      } catch (error) {
-        console.error('Failed to send message', error);
-        toast.error('Failed to send message. Please try again.');
-        return false;
-      } finally {
-        setIsSending(false);
-      }
-    },
-    [user?.id, channelId, replyTo]
-  );
-
-  // Function to delete a message
-  const deleteMessage = useCallback(
-    async (messageId: string) => {
-      if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !user?.id) {
-        toast.error('Not connected to chat. Please try again.');
-        return;
-      }
-
-      try {
-        const deletePayload = {
-          id: messageId,
-          sender_id: user.id,
-          type: 'delete_message',
-        };
-        ws.current.send(JSON.stringify(deletePayload));
-      } catch (error) {
-        console.error('Failed to delete message', error);
-        toast.error('Failed to delete message. Please try again.');
-      }
-    },
-    [user?.id]
-  );
-
-  // Function to reply to a message
-  const replyToMessage = useCallback((messageId: string) => {
-    setReplyTo(messageId);
-  }, []);
-
-  // Function to add a reaction to a message
-  const addReaction = useCallback(async (messageId: string, reaction: string) => {
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !user?.id) {
-      toast.error('Not connected to chat. Please try again.');
-      return;
-    }
-
-    try {
-      const reactionPayload = {
-        message_id: messageId,
-        user_id: user.id,
-        reaction: reaction,
-        type: 'add_reaction',
-      };
-      ws.current.send(JSON.stringify(reactionPayload));
-    } catch (error) {
-      console.error('Failed to add reaction', error);
-      toast.error('Failed to add reaction. Please try again.');
-    }
-  }, [user?.id]);
-
-  // Disconnect WebSocket on unmount
-  useEffect(() => {
-    return () => {
-      console.log('Cleaning up WebSocket');
-      if (ws.current) {
-        ws.current.close();
-      }
-      if (retryTimeout.current) {
-        clearTimeout(retryTimeout.current);
-      }
-    };
-  }, []);
-
-  // Connect WebSocket on mount and when channelName changes
-  useIsomorphicLayoutEffect(() => {
-    if (channelName && user?.id) {
-      connectWebSocket();
-    }
+      });
 
     return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
-      if (retryTimeout.current) {
-        clearTimeout(retryTimeout.current);
-      }
+      supabase.removeChannel(channel);
     };
-  }, [channelName, user?.id, connectWebSocket]);
+  }, [user, enableTyping]);
 
   const reconnect = () => {
-    if (retryTimeout.current) {
-      clearTimeout(retryTimeout.current);
-    }
-    setConnectionAttempts(0);
-    connectWebSocket();
+    setIsConnected(false);
+    setIsLoading(true);
+    setError('Reconnecting...');
   };
 
   return {
     messages,
     isLoading,
     isConnected,
-    isSending,
-    error,
-    messageText,
-    channelId,
-    reconnecting,
-    connectionAttempts,
     sendMessage,
     deleteMessage,
-    replyToMessage,
+    isSending,
+    error,
+    typingUsers,
     addReaction,
-    setMessageText,
-    setReplyTo,
     reconnect
   };
 };

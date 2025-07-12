@@ -12,7 +12,7 @@ import {
   X,
   Home
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { ActivePanel } from '@/types/dashboard';
 

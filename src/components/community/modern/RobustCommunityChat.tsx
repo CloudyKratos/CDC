@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRobustCommunityChat } from '@/hooks/useRobustCommunityChat';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

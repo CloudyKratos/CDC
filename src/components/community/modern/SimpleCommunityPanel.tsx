@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SimpleCommunityChat } from './SimpleCommunityChat';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface SimpleCommunityPanelProps {

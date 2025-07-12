@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
 import ConversationList from './ConversationList';
 import MessageArea from './MessageArea';

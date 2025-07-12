@@ -29,7 +29,7 @@ const LaunchReadyCommunityPanel: React.FC<LaunchReadyCommunityPanelProps> = ({
     deleteMessage,
     replyToMessage,
     addReaction
-  } = useChatManager(activeChannel);
+  } = useChatManager({ channelName: activeChannel });
 
   if (!user) {
     return <UnauthenticatedView />;
