@@ -1,30 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Play, Lock, Search, Filter } from 'lucide-react';
+import { BookOpen, Play, Lock, Search } from 'lucide-react';
 import { useCoins } from '@/hooks/useCoins';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ArenaInfo from './ArenaInfo';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  type: 'course' | 'recording' | 'workshop';
-  coin_cost: number;
-  thumbnail_url?: string;
-  video_url?: string;
-  instructor: string;
-  duration: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  is_premium: boolean;
-  created_at: string;
-}
+type Course = Tables<'courses'>;
 
 interface CourseGridProps {
   isAdmin?: boolean;
@@ -38,7 +26,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({ isAdmin = false }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   
-  const { coins, unlockCourse, isCourseUnlocked, refreshCoins } = useCoins();
+  const { coins, unlockCourse, refreshCoins } = useCoins();
 
   useEffect(() => {
     fetchCourses();
@@ -64,10 +52,13 @@ const CourseGrid: React.FC<CourseGridProps> = ({ isAdmin = false }) => {
 
   const fetchUnlockedCourses = async () => {
     try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
       const { data, error } = await supabase
         .from('course_unlocks')
         .select('course_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+        .eq('user_id', user.user.id);
 
       if (error) throw error;
       setUnlockedCourses(new Set(data?.map(item => item.course_id) || []));
@@ -87,7 +78,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({ isAdmin = false }) => {
   const filteredCourses = courses.filter(course => {
     const matchesSearch = searchTerm === '' || 
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
@@ -266,7 +257,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({ isAdmin = false }) => {
                 {isUnlocked && course.video_url && (
                   <Button 
                     className="w-full" 
-                    onClick={() => window.open(course.video_url, '_blank')}
+                    onClick={() => window.open(course.video_url!, '_blank')}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Watch Now

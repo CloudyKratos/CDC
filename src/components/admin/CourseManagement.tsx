@@ -12,22 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  type: 'course' | 'recording' | 'workshop';
-  coin_cost: number;
-  thumbnail_url?: string;
-  video_url?: string;
-  instructor: string;
-  duration: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  is_premium: boolean;
-  created_at: string;
-}
+type Course = Tables<'courses'>;
 
 const CourseManagement: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -90,15 +77,15 @@ const CourseManagement: React.FC = () => {
   const openEditDialog = (course: Course) => {
     setFormData({
       title: course.title,
-      description: course.description,
+      description: course.description || '',
       category: course.category,
-      type: course.type,
+      type: course.type as 'course' | 'recording' | 'workshop',
       coin_cost: course.coin_cost,
       thumbnail_url: course.thumbnail_url || '',
       video_url: course.video_url || '',
       instructor: course.instructor,
       duration: course.duration,
-      difficulty: course.difficulty,
+      difficulty: course.difficulty as 'beginner' | 'intermediate' | 'advanced',
       is_premium: course.is_premium
     });
     setEditingCourse(course);

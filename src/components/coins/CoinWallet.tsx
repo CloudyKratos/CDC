@@ -2,144 +2,131 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Coins, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Coins, TrendingUp, TrendingDown, History } from 'lucide-react';
 import { useCoins } from '@/hooks/useCoins';
-import { format } from 'date-fns';
 
 const CoinWallet: React.FC = () => {
-  const { coins, transactions, loading } = useCoins();
-
-  const getSourceLabel = (source: string) => {
-    const labels: Record<string, string> = {
-      warrior_space_daily: 'Warrior Space Daily',
-      quest_completion: 'Quest Completed',
-      course_unlock: 'Course Unlock',
-      morning_upload: 'Morning Activity',
-      gratitude_list: 'Gratitude List',
-      community_challenge: 'Challenge'
-    };
-    return labels[source] || source;
-  };
-
-  const getSourceIcon = (source: string, type: 'earn' | 'spend') => {
-    if (type === 'spend') return <TrendingDown className="w-4 h-4 text-red-500" />;
-    return <TrendingUp className="w-4 h-4 text-green-500" />;
-  };
+  const { coins, loading } = useCoins();
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="w-5 h-5" />
-            Coin Wallet
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-20 bg-muted rounded"></div>
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-12 bg-muted rounded"></div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card className="animate-pulse">
+          <CardHeader>
+            <div className="h-6 bg-muted rounded w-1/3"></div>
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Coins className="w-5 h-5 text-yellow-600" />
-          Coin Wallet
-        </CardTitle>
-        <CardDescription>
-          Track your coin balance and transaction history
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Balance Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-center gap-2 mb-1">
-              <Coins className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Current Balance</span>
-            </div>
-            <div className="text-2xl font-bold text-yellow-800 dark:text-yellow-200">
-              {coins.balance.toLocaleString()}
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">Total Earned</span>
-            </div>
-            <div className="text-2xl font-bold text-green-800 dark:text-green-200">
-              {coins.total_earned.toLocaleString()}
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Spent</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-              {coins.total_spent.toLocaleString()}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Coin Wallet</h2>
+        <p className="text-muted-foreground">Manage your CDC Arena coins</p>
+      </div>
 
-        {/* Transaction History */}
-        <div>
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Recent Transactions
-          </h3>
+      {/* Current Balance */}
+      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-800">
+            <Coins className="w-5 h-5" />
+            Current Balance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold text-yellow-900">
+            {coins.balance} Coins
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              Total Earned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {coins.total_earned}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              From Arena activities
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-red-600" />
+              Total Spent
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {coins.total_spent}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              On premium content
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* How to Earn More Coins */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="w-5 h-5" />
+            How to Earn Coins
+          </CardTitle>
+          <CardDescription>
+            Complete activities in CDC's Arena to earn more coins
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div>
+              <p className="font-medium">Daily Warrior Space</p>
+              <p className="text-sm text-muted-foreground">Complete daily challenges</p>
+            </div>
+            <Badge className="bg-yellow-100 text-yellow-800">
+              20 Coins
+            </Badge>
+          </div>
           
-          {transactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Coins className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No transactions yet</p>
-              <p className="text-sm">Complete activities in Warrior Space to earn your first coins!</p>
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div>
+              <p className="font-medium">Quest Completion</p>
+              <p className="text-sm text-muted-foreground">Finish special quests</p>
             </div>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {getSourceIcon(transaction.source, transaction.type)}
-                    <div>
-                      <div className="font-medium text-sm">
-                        {getSourceLabel(transaction.source)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {transaction.description || 'No description'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className={`font-semibold ${
-                      transaction.type === 'earn' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'earn' ? '+' : '-'}{transaction.amount}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {format(new Date(transaction.created_at), 'MMM d, h:mm a')}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <Badge className="bg-yellow-100 text-yellow-800">
+              50+ Coins
+            </Badge>
+          </div>
+          
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div>
+              <p className="font-medium">Event Participation</p>
+              <p className="text-sm text-muted-foreground">Join community events</p>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <Badge className="bg-yellow-100 text-yellow-800">
+              10-30 Coins
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

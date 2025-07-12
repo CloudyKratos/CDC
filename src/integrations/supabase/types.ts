@@ -270,6 +270,57 @@ export type Database = {
         }
         Relationships: []
       }
+      courses: {
+        Row: {
+          category: string
+          coin_cost: number
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration: string
+          id: string
+          instructor: string
+          is_premium: boolean
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          category: string
+          coin_cost?: number
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration: string
+          id?: string
+          instructor: string
+          is_premium?: boolean
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          category?: string
+          coin_cost?: number
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration?: string
+          id?: string
+          instructor?: string
+          is_premium?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       daily_completions: {
         Row: {
           activity_type: string

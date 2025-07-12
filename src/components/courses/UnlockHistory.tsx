@@ -2,21 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Coins, BookOpen } from 'lucide-react';
+import { Calendar, Coins, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface UnlockHistoryItem {
-  id: string;
-  course_id: string;
-  cost: number;
-  unlocked_at: string;
-  course: {
-    title: string;
-    type: string;
-    instructor: string;
-    category: string;
-  };
+type CourseUnlock = Tables<'course_unlocks'>;
+type Course = Tables<'courses'>;
+
+interface UnlockHistoryItem extends CourseUnlock {
+  courses: Course;
 }
 
 const UnlockHistory: React.FC = () => {
@@ -35,11 +30,8 @@ const UnlockHistory: React.FC = () => {
       const { data, error } = await supabase
         .from('course_unlocks')
         .select(`
-          id,
-          course_id,
-          cost,
-          unlocked_at,
-          courses!inner (
+          *,
+          courses (
             title,
             type,
             instructor,
@@ -50,14 +42,7 @@ const UnlockHistory: React.FC = () => {
         .order('unlocked_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Transform data to match interface
-      const transformedData = data?.map(item => ({
-        ...item,
-        course: item.courses as any
-      })) || [];
-      
-      setUnlocks(transformedData);
+      setUnlocks(data as UnlockHistoryItem[] || []);
     } catch (error) {
       console.error('Error fetching unlock history:', error);
     } finally {
@@ -116,18 +101,18 @@ const UnlockHistory: React.FC = () => {
               <div key={unlock.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{getTypeIcon(unlock.course.type)}</span>
-                    <h4 className="font-medium">{unlock.course.title}</h4>
+                    <span className="text-lg">{getTypeIcon(unlock.courses.type)}</span>
+                    <h4 className="font-medium">{unlock.courses.title}</h4>
                     <Badge variant="outline" className="text-xs">
-                      {unlock.course.type}
+                      {unlock.courses.type}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>👨‍🏫 {unlock.course.instructor}</span>
-                    <span>📂 {unlock.course.category}</span>
+                    <span>👨‍🏫 {unlock.courses.instructor}</span>
+                    <span>📂 {unlock.courses.category}</span>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(unlock.unlocked_at), 'MMM d, yyyy')}
+                      {format(new Date(unlock.unlocked_at!), 'MMM d, yyyy')}
                     </div>
                   </div>
                 </div>
@@ -138,7 +123,7 @@ const UnlockHistory: React.FC = () => {
                     {unlock.cost}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(new Date(unlock.unlocked_at), 'h:mm a')}
+                    {format(new Date(unlock.unlocked_at!), 'h:mm a')}
                   </div>
                 </div>
               </div>
