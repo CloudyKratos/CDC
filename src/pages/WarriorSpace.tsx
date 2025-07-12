@@ -251,16 +251,25 @@ const WarriorSpace = () => {
               {/* Mobile backdrop - only show on mobile */}
               {sidebarOpen && (
                 <div 
-                  className="absolute inset-0 bg-black/50 backdrop-blur-sm lg:hidden"
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm lg:hidden animate-fade-in"
                   onClick={() => setSidebarOpen(false)}
-                />
+                >
+                  {/* Subtle animated elements */}
+                  <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl animate-pulse"></div>
+                  <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+                  
+                  {/* Tap to close instruction */}
+                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
+                    <p className="text-white/70 text-sm">Tap anywhere to close</p>
+                  </div>
+                </div>
               )}
               
-              {/* Sidebar content container */}
+              {/* Sidebar content container - Enhanced slide animation */}
               <div className={`
                 ${sidebarOpen 
-                  ? 'absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-slate-900/95 backdrop-blur-lg border-r border-purple-500/20 overflow-y-auto lg:relative lg:w-full lg:max-w-none lg:bg-transparent lg:backdrop-blur-none lg:border-r-0' 
-                  : 'lg:block'
+                  ? 'absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-gradient-to-br from-slate-900/95 to-purple-900/95 backdrop-blur-xl border-r border-purple-500/30 overflow-y-auto transform translate-x-0 transition-transform duration-300 ease-out animate-slide-in-right lg:relative lg:w-full lg:max-w-none lg:bg-transparent lg:backdrop-blur-none lg:border-r-0 lg:transform-none lg:animate-none' 
+                  : 'lg:block transform -translate-x-full lg:transform-none'
                 }
               `}>
                 <div className="sticky top-6 space-y-6 p-4 lg:p-0">
