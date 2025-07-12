@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import CommandRoomTabs from './command-room/CommandRoomTabs';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 const CommandRoomPanel: React.FC = () => {
   const { user } = useAuth();
