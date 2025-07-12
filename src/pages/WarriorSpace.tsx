@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Target, Users, Flame, Sparkles, Trophy, Shield, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -241,17 +242,35 @@ const WarriorSpace = () => {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-            {/* Enhanced Sidebar with better animations */}
-            <div className={`lg:col-span-4 xl:col-span-3 transition-all duration-500 ease-in-out transform ${
-              sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100'
-            } lg:block`}>
-              <div className="sticky top-6 space-y-6">
-                <WarriorSpaceSidebar
-                  progress={progress}
-                  collapsedSections={collapsedSections}
-                  onToggleSection={toggleSection}
-                  sidebarOpen={sidebarOpen}
+            {/* Enhanced Sidebar - Fixed mobile overlay issue */}
+            <div className={`lg:col-span-4 xl:col-span-3 ${
+              sidebarOpen 
+                ? 'fixed inset-0 z-50 lg:relative lg:inset-auto lg:z-auto' 
+                : 'hidden lg:block'
+            }`}>
+              {/* Mobile backdrop - only show on mobile */}
+              {sidebarOpen && (
+                <div 
+                  className="absolute inset-0 bg-black/50 backdrop-blur-sm lg:hidden"
+                  onClick={() => setSidebarOpen(false)}
                 />
+              )}
+              
+              {/* Sidebar content container */}
+              <div className={`
+                ${sidebarOpen 
+                  ? 'absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-slate-900/95 backdrop-blur-lg border-r border-purple-500/20 overflow-y-auto lg:relative lg:w-full lg:max-w-none lg:bg-transparent lg:backdrop-blur-none lg:border-r-0' 
+                  : 'lg:block'
+                }
+              `}>
+                <div className="sticky top-6 space-y-6 p-4 lg:p-0">
+                  <WarriorSpaceSidebar
+                    progress={progress}
+                    collapsedSections={collapsedSections}
+                    onToggleSection={toggleSection}
+                    sidebarOpen={sidebarOpen}
+                  />
+                </div>
               </div>
             </div>
 
@@ -269,28 +288,6 @@ const WarriorSpace = () => {
         </div>
       </div>
 
-      {/* Enhanced Mobile overlay with better backdrop and improved UX */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 lg:hidden transition-all duration-500"
-          onClick={() => setSidebarOpen(false)}
-        >
-          {/* Enhanced backdrop with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-purple-900/20 to-black/70 backdrop-blur-md" />
-          
-          {/* Subtle animated elements in backdrop */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl animate-pulse delay-1000" />
-          </div>
-          
-          {/* Close instruction */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/60 text-sm pointer-events-none">
-            Tap anywhere to close dashboard
-          </div>
-        </div>
-      )}
-
       {/* Progress save indicator */}
       <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-green-600/20 border border-green-500/30 text-green-400 px-3 py-1 rounded-full text-xs backdrop-blur-sm">
@@ -302,4 +299,4 @@ const WarriorSpace = () => {
   );
 };
 
-export default WarriorSpace;
+export default Warrior**Space;

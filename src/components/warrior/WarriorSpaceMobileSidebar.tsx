@@ -59,12 +59,20 @@ const WarriorSpaceMobileSidebar = ({ sidebarOpen, onToggleSidebar }: WarriorSpac
         } opacity-20 group-hover:opacity-30 transition-opacity duration-300`} />
       </Button>
 
-      {/* Helper text when closed */}
+      {/* Helper text */}
       {!sidebarOpen && (
         <div className="text-center mt-3 animate-fade-in">
           <p className="text-purple-300 text-sm">
             <Sparkles className="h-3 w-3 inline mr-1" />
             Access stats, quick actions & power-ups
+          </p>
+        </div>
+      )}
+      
+      {sidebarOpen && (
+        <div className="text-center mt-3 animate-fade-in">
+          <p className="text-red-300 text-sm">
+            Tap outside or the close button to dismiss
           </p>
         </div>
       )}
