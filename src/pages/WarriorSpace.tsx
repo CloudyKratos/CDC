@@ -299,4 +299,4 @@ const WarriorSpace = () => {
   );
 };
 
-export default Warrior**Space;
+export default WarriorSpace;
