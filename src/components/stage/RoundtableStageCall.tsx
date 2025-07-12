@@ -1,38 +1,54 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Mic, 
   MicOff, 
   Video, 
   VideoOff, 
-  Hand, 
+  Phone, 
+  PhoneOff, 
   Users, 
-  Settings, 
-  LogOut,
+  Settings,
+  Hand,
+  MessageSquare,
+  Share2,
+  MoreVertical,
   Crown,
-  Shield,
+  UserPlus,
   Volume2,
   VolumeX,
-  Monitor,
-  Play,
-  Pause,
-  MoreVertical,
-  ThumbsUp,
-  Heart,
-  Laugh,
-  Zap
+  MonitorSpeaker,
+  Headphones,
+  Radio,
+  Camera,
+  ScreenShare,
+  Calendar,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
-import VideoCallService, { StageCall, StageParticipant, ParticipantRole } from '@/services/VideoCallService';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface RoundtableStageCallProps {
   stageId: string;

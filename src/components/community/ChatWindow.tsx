@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Message } from '@/types/chat';
@@ -104,10 +105,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 prevMessage.sender_id !== message.sender_id ||
                 new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() > 300000; // 5 minutes
 
+              // Ensure message has required sender property
+              const messageWithSender = {
+                ...message,
+                sender: message.sender || {
+                  id: message.sender_id,
+                  username: 'Unknown User',
+                  full_name: 'Unknown User',
+                  avatar_url: null
+                }
+              };
+
               return (
                 <MessageBubble
                   key={message.id}
-                  message={message}
+                  message={messageWithSender}
                   showAvatar={showAvatar}
                   isOwn={message.sender_id === user?.id}
                   onDelete={() => onDeleteMessage(message.id)}

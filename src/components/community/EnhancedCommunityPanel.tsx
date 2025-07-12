@@ -40,7 +40,7 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     sendMessage,
     deleteMessage,
     addReaction,
-    replyToMessage
+    reconnect
   } = useChatManager({ channelName: activeChannel });
 
   const {
@@ -48,6 +48,11 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     isLoading: channelsLoading,
     error: channelsError
   } = useChannelData('warrior-community', activeChannel);
+
+  // Create stub functions with correct signatures
+  const replyToMessage = useCallback(async (messageId: string) => {
+    console.log('Reply to message:', messageId);
+  }, []);
 
   // Chat actions with enhanced error handling
   const {

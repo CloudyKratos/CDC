@@ -1,82 +1,68 @@
-
 import { useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
-export function useMessageActions() {
+export const useChatActions = (
+  sendMessage: (content: string) => Promise<boolean>,
+  deleteMessage: (messageId: string) => Promise<void>,
+  replyToMessage: (messageId: string) => Promise<void>,
+  addReaction: (messageId: string, reaction: string) => Promise<void>,
+  isOnline: boolean
+) => {
   const { user } = useAuth();
 
-  const sendMessage = useCallback(async (content: string, channelId: string | null) => {
-    if (!user?.id || !channelId || !content.trim()) {
-      toast.error("Cannot send message");
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!isOnline) {
+      console.warn('Cannot send message: Not online');
       return;
     }
-
     try {
-      console.log('📤 Sending message to channel:', channelId);
-      
-      const { error } = await supabase
-        .from('community_messages')
-        .insert({
-          channel_id: channelId,
-          sender_id: user.id,
-          content: content.trim()
-        });
-
-      if (error) {
-        console.error('❌ Error sending message:', error);
-        toast.error('Failed to send message');
-        throw error;
-      }
-
-      console.log('✅ Message sent successfully');
+      await sendMessage(content);
     } catch (error) {
-      console.error('💥 Failed to send message:', error);
-      throw error;
+      console.error('Failed to send message:', error);
     }
-  }, [user?.id]);
+  }, [sendMessage, isOnline]);
 
-  const deleteMessage = useCallback(async (messageId: string) => {
-    if (!user?.id) return;
-
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (!isOnline) {
+      console.warn('Cannot delete message: Not online');
+      return;
+    }
     try {
-      console.log('🗑️ Deleting message:', messageId);
-      
-      const { error } = await supabase
-        .from('community_messages')
-        .update({ is_deleted: true })
-        .eq('id', messageId)
-        .eq('sender_id', user.id);
-
-      if (error) {
-        console.error('❌ Error deleting message:', error);
-        toast.error('Failed to delete message');
-        throw error;
-      }
-
-      console.log('✅ Message deleted successfully');
-      toast.success('Message deleted', { duration: 1000 });
+      await deleteMessage(messageId);
     } catch (error) {
-      console.error('💥 Failed to delete message:', error);
-      throw error;
+      console.error('Failed to delete message:', error);
     }
-  }, [user?.id]);
+  }, [deleteMessage, isOnline]);
 
-  const replyToMessage = useCallback((messageId: string) => {
-    console.log('Replying to message:', messageId);
-    toast.info('Reply feature coming soon!');
-  }, []);
+  const handleReplyMessage = useCallback(async (messageId: string) => {
+    if (!isOnline) {
+      console.warn('Cannot reply to message: Not online');
+      return;
+    }
+    try {
+      await replyToMessage(messageId);
+    } catch (error) {
+      console.error('Failed to reply to message:', error);
+    }
+  }, [replyToMessage, isOnline]);
 
-  const addReaction = useCallback(async (messageId: string, reaction: string) => {
-    console.log('Adding reaction:', reaction, 'to message:', messageId);
-    toast.info('Reactions feature coming soon!');
-  }, []);
+  const handleReactionAdd = useCallback(async (messageId: string, reaction: string) => {
+    if (!isOnline) {
+      console.warn('Cannot add reaction: Not online');
+      return;
+    }
+    try {
+      await addReaction(messageId, reaction);
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+    }
+  }, [addReaction, isOnline]);
 
   return {
-    sendMessage,
-    deleteMessage,
-    replyToMessage,
-    addReaction
+    handleSendMessage,
+    handleDeleteMessage,
+    handleReplyMessage,
+    handleReactionAdd,
   };
-}
+};

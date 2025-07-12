@@ -28,9 +28,13 @@ const LaunchReadyCommunityPanel: React.FC<LaunchReadyCommunityPanelProps> = ({
     isConnected,
     sendMessage,
     deleteMessage,
-    addReaction,
-    replyToMessage
+    addReaction
   } = useChatManager({ channelName: activeChannel });
+
+  // Create stub functions with correct signatures
+  const replyToMessage = async (messageId: string) => {
+    console.log('Reply to message:', messageId);
+  };
 
   if (!user) {
     return <UnauthenticatedView />;
