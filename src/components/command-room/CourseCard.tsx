@@ -14,6 +14,13 @@ interface CourseCardProps {
   cost: number;
   thumbnail?: string;
   isPremium?: boolean;
+  // Legacy props for compatibility with ImprovedStableCourseGrid
+  videoId?: string;
+  category?: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  progress?: number;
+  onProgressUpdate?: (progress: number) => void;
+  onPlay?: () => void;
 }
 
 const CourseCard: React.FC<CourseCardProps> = ({
@@ -24,8 +31,16 @@ const CourseCard: React.FC<CourseCardProps> = ({
   students = 0,
   cost,
   thumbnail,
-  isPremium = true
+  isPremium = true,
+  videoId,
+  onPlay
 }) => {
+  const handlePlay = () => {
+    if (videoId && onPlay) {
+      onPlay();
+    }
+  };
+
   return (
     <Card className="h-full transition-all duration-200 hover:shadow-lg">
       {thumbnail && (
@@ -71,7 +86,10 @@ const CourseCard: React.FC<CourseCardProps> = ({
           cost={cost}
           className="w-full"
           onUnlocked={() => {
-            // Handle course unlock - could navigate to course content
+            // Handle course unlock - could navigate to course content or play video
+            if (handlePlay) {
+              handlePlay();
+            }
             console.log(`Course ${id} unlocked!`);
           }}
         />

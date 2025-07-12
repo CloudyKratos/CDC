@@ -56,7 +56,12 @@ export const useCoins = () => {
       if (transactionsError) {
         console.error('Error fetching transactions:', transactionsError);
       } else if (transactionsData) {
-        setTransactions(transactionsData);
+        // Type assertion to ensure proper typing
+        const typedTransactions: CoinTransaction[] = transactionsData.map(tx => ({
+          ...tx,
+          type: tx.type as 'earn' | 'spend'
+        }));
+        setTransactions(typedTransactions);
       }
     } catch (error) {
       console.error('Error in fetchCoinsData:', error);
