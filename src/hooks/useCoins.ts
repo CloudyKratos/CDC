@@ -42,6 +42,39 @@ export const useCoins = () => {
     }
   };
 
+  const awardDailyCompletion = async (activityType: string = 'warrior_space_daily'): Promise<boolean> => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast.error('Please sign in to earn coins');
+        return false;
+      }
+
+      const { data, error } = await supabase.rpc('award_daily_warrior_completion', {
+        p_user_id: user.user.id,
+        p_activity_type: activityType
+      });
+
+      if (error) {
+        console.error('Error awarding coins:', error);
+        return false;
+      }
+
+      if (data) {
+        toast.success('🎉 +20 Coins Earned!', {
+          description: 'Daily completion reward'
+        });
+        await fetchCoins(); // Refresh coins
+        return true;
+      }
+
+      return false; // Already completed today
+    } catch (error) {
+      console.error('Error in awardDailyCompletion:', error);
+      return false;
+    }
+  };
+
   const unlockCourse = async (courseId: string, cost: number): Promise<boolean> => {
     try {
       const { data: user } = await supabase.auth.getUser();
@@ -107,6 +140,7 @@ export const useCoins = () => {
   return {
     coins,
     loading,
+    awardDailyCompletion,
     unlockCourse,
     isCourseUnlocked,
     refreshCoins

@@ -6,7 +6,11 @@ import type { User } from '@supabase/supabase-js';
 interface AuthContextType {
   user: (User & { role?: string }) | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (userData: Partial<User & { role?: string }>) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,8 +67,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const updateUser = async (userData: Partial<User & { role?: string }>): Promise<boolean> => {
+    try {
+      if (user) {
+        setUser({ ...user, ...userData });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return false;
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    isLoading: loading,
+    signOut,
+    logout,
+    updateUser
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

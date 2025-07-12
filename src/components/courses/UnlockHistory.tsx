@@ -11,7 +11,7 @@ type CourseUnlock = Tables<'course_unlocks'>;
 type Course = Tables<'courses'>;
 
 interface UnlockHistoryItem extends CourseUnlock {
-  courses: Course;
+  course_data: Course | null;
 }
 
 const UnlockHistory: React.FC = () => {
@@ -27,22 +27,32 @@ const UnlockHistory: React.FC = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      const { data, error } = await supabase
+      // First get the unlocks
+      const { data: unlockData, error: unlockError } = await supabase
         .from('course_unlocks')
-        .select(`
-          *,
-          courses (
-            title,
-            type,
-            instructor,
-            category
-          )
-        `)
+        .select('*')
         .eq('user_id', user.user.id)
         .order('unlocked_at', { ascending: false });
 
-      if (error) throw error;
-      setUnlocks(data as UnlockHistoryItem[] || []);
+      if (unlockError) throw unlockError;
+
+      // Then get course data for each unlock
+      const unlocksWithCourses: UnlockHistoryItem[] = [];
+      
+      for (const unlock of unlockData || []) {
+        const { data: courseData } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', unlock.course_id)
+          .single();
+
+        unlocksWithCourses.push({
+          ...unlock,
+          course_data: courseData
+        });
+      }
+
+      setUnlocks(unlocksWithCourses);
     } catch (error) {
       console.error('Error fetching unlock history:', error);
     } finally {
@@ -101,18 +111,18 @@ const UnlockHistory: React.FC = () => {
               <div key={unlock.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{getTypeIcon(unlock.courses.type)}</span>
-                    <h4 className="font-medium">{unlock.courses.title}</h4>
+                    <span className="text-lg">{unlock.course_data ? getTypeIcon(unlock.course_data.type) : '📚'}</span>
+                    <h4 className="font-medium">{unlock.course_data?.title || 'Unknown Course'}</h4>
                     <Badge variant="outline" className="text-xs">
-                      {unlock.courses.type}
+                      {unlock.course_data?.type || 'course'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>👨‍🏫 {unlock.courses.instructor}</span>
-                    <span>📂 {unlock.courses.category}</span>
+                    <span>👨‍🏫 {unlock.course_data?.instructor || 'Unknown'}</span>
+                    <span>📂 {unlock.course_data?.category || 'General'}</span>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(unlock.unlocked_at!), 'MMM d, yyyy')}
+                      {unlock.unlocked_at ? format(new Date(unlock.unlocked_at), 'MMM d, yyyy') : 'Unknown date'}
                     </div>
                   </div>
                 </div>
@@ -123,7 +133,7 @@ const UnlockHistory: React.FC = () => {
                     {unlock.cost}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(new Date(unlock.unlocked_at!), 'h:mm a')}
+                    {unlock.unlocked_at ? format(new Date(unlock.unlocked_at), 'h:mm a') : ''}
                   </div>
                 </div>
               </div>
