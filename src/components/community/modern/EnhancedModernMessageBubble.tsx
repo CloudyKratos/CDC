@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import React, { useState, useRef } from 'react';
+import { formatDistanceToNow, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { 
@@ -48,26 +48,20 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   onDelete,
   onReply,
   onReact,
-  onRemoveReaction,
-  onPin,
-  onReport,
-  onSendReply,
   showAvatar = true,
   isConsecutive = false,
-  isThread = false,
   hideActions = false,
   isConnected = true,
   className = ''
 }) => {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const messageRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
-      toast.success('Message copied to clipboard');
+      toast.success('Message copied');
     } catch (error) {
       toast.error('Failed to copy message');
     }
@@ -92,18 +86,21 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   };
 
   const handleReport = () => {
-    if (onReport) {
-      onReport(message.id);
-    } else {
-      toast.info('Report functionality coming soon');
-    }
+    toast.info('Report functionality coming soon');
   };
 
   const formatTime = (timestamp: string) => {
     try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      
+      if (diffInHours < 24) {
+        return format(date, 'h:mm a');
+      }
+      return format(date, 'MMM d, h:mm a');
     } catch {
-      return 'just now';
+      return 'now';
     }
   };
 
@@ -117,135 +114,132 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   return (
     <div
       ref={messageRef}
-      className={`group relative px-3 py-2 hover:bg-muted/30 transition-colors duration-200 rounded-lg ${className}`}
-      onMouseEnter={() => {
-        setIsHovered(true);
-        setShowActions(true);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setShowActions(false);
-      }}
+      className={`group relative flex items-start gap-3 px-4 py-2 hover:bg-muted/30 transition-colors duration-150 ${className}`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
-      <div className="flex items-start gap-3">
-        {/* Avatar */}
-        {showAvatar && !isConsecutive && (
-          <div className="flex-shrink-0">
-            <Avatar className="h-8 w-8">
-              <AvatarImage 
-                src={message.sender?.avatar_url || undefined} 
-                alt={displayName}
-              />
-              <AvatarFallback className="text-xs font-medium bg-muted text-muted-foreground">
-                {getInitials(displayName)}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        )}
-
-        {/* Spacer for consecutive messages */}
-        {isConsecutive && <div className="w-8 flex-shrink-0" />}
-
-        {/* Message Content */}
-        <div className="flex-1 min-w-0">
-          {/* Header with name and timestamp */}
-          {!isConsecutive && (
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-medium text-foreground text-sm">
-                {displayName}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {formatTime(message.created_at)}
-              </span>
-              {isOwn && (
-                <span className="text-xs text-primary font-medium">
-                  You
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Message text */}
-          <div className="bg-background rounded-lg px-3 py-2 border border-border/50">
-            <div className="text-foreground text-sm leading-relaxed break-words">
-              {message.content}
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        {!hideActions && showActions && isConnected && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background rounded-lg p-1 border border-border shadow-sm">
-            {/* Quick reactions */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-muted"
-              onClick={() => handleReact('👍')}
-            >
-              <ThumbsUp className="h-3 w-3" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-muted"
-              onClick={() => handleReact('❤️')}
-            >
-              <Heart className="h-3 w-3" />
-            </Button>
-
-            {/* More options */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 hover:bg-muted"
-                >
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleReply}>
-                  <Reply className="h-3 w-3 mr-2" />
-                  Reply
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem onClick={handleCopy}>
-                  <Copy className="h-3 w-3 mr-2" />
-                  Copy
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => handleReact('😀')}>
-                  <Smile className="h-3 w-3 mr-2" />
-                  React
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {isOwn ? (
-                  <DropdownMenuItem 
-                    onClick={handleDelete}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem 
-                    onClick={handleReport}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Flag className="h-3 w-3 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+      {/* Avatar Column */}
+      <div className="flex-shrink-0 mt-1">
+        {showAvatar && !isConsecutive ? (
+          <Avatar className="h-8 w-8">
+            <AvatarImage 
+              src={message.sender?.avatar_url || undefined} 
+              alt={displayName}
+            />
+            <AvatarFallback className="text-xs font-medium bg-muted text-muted-foreground">
+              {getInitials(displayName)}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className="w-8 h-8 flex items-center justify-center">
+            <span className="text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
+              {formatTime(message.created_at)}
+            </span>
           </div>
         )}
       </div>
+
+      {/* Message Content */}
+      <div className="flex-1 min-w-0">
+        {/* Message Header */}
+        {!isConsecutive && (
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="font-semibold text-sm text-foreground">
+              {displayName}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatTime(message.created_at)}
+            </span>
+            {isOwn && (
+              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                You
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Message Text */}
+        <div className="text-sm text-foreground leading-relaxed break-words pr-12">
+          {message.content}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      {!hideActions && showActions && isConnected && (
+        <div className="absolute right-4 top-2 flex items-center gap-1 bg-background border border-border rounded-md shadow-sm">
+          {/* Quick reactions */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-muted text-muted-foreground hover:text-foreground"
+            onClick={() => handleReact('👍')}
+          >
+            <ThumbsUp className="h-3 w-3" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-muted text-muted-foreground hover:text-foreground"
+            onClick={() => handleReact('❤️')}
+          >
+            <Heart className="h-3 w-3" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-muted text-muted-foreground hover:text-foreground"
+            onClick={handleReply}
+          >
+            <Reply className="h-3 w-3" />
+          </Button>
+
+          {/* More options */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 hover:bg-muted text-muted-foreground hover:text-foreground"
+              >
+                <MoreHorizontal className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={handleCopy}>
+                <Copy className="h-3 w-3 mr-2" />
+                Copy
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => handleReact('😀')}>
+                <Smile className="h-3 w-3 mr-2" />
+                React
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {isOwn ? (
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem 
+                  onClick={handleReport}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Flag className="h-3 w-3 mr-2" />
+                  Report
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 };

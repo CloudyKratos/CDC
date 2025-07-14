@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   Send, 
   Smile, 
-  Paperclip
+  Paperclip,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -60,22 +61,22 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
   ];
 
   return (
-    <div className="bg-muted/50 rounded-lg border border-border focus-within:border-primary/50 transition-colors">
+    <div className="relative bg-background rounded-lg border border-border focus-within:border-primary/50 transition-colors">
       <div className="flex items-end gap-2 p-3">
-        {/* Left action */}
+        {/* Add attachment button */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0"
           onClick={handleFileUpload}
           disabled={disabled}
         >
-          <Paperclip className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
         </Button>
         
         {/* Message input */}
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
             value={value}
@@ -83,13 +84,13 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
             onKeyDown={onKeyPress}
             placeholder={placeholder}
             disabled={disabled}
-            className="min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent focus:ring-0 focus:border-0 placeholder:text-muted-foreground text-foreground p-0 shadow-none"
+            className="min-h-[32px] max-h-[120px] resize-none border-0 bg-transparent focus:ring-0 focus:border-0 placeholder:text-muted-foreground text-foreground p-0 shadow-none text-sm"
             rows={1}
           />
         </div>
         
         {/* Right actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Emoji picker */}
           <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
             <PopoverTrigger asChild>
@@ -125,11 +126,8 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
             onClick={onSend}
             disabled={!value.trim() || disabled}
             size="sm"
-            className={`h-8 w-8 p-0 ml-1 ${
-              value.trim() && !disabled
-                ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            }`}
+            className="h-8 w-8 p-0"
+            variant={value.trim() && !disabled ? "default" : "ghost"}
           >
             <Send className="h-4 w-4" />
           </Button>
