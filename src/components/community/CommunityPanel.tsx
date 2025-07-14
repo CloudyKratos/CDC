@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Users, MessageCircle, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth/AuthContext';
 import { useCommunityChat } from '@/hooks/useCommunityChat';
 import ChatWindow from './ChatWindow';
 import ChannelSidebar from './ChannelSidebar';
+import { ChannelType } from '@/types/chat';
 
 interface CommunityPanelProps {
   defaultChannel?: string;
@@ -19,6 +20,25 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({
   const { user } = useAuth();
   const chatState = useCommunityChat(defaultChannel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showMembersList, setShowMembersList] = useState(false);
+
+  // Mock channels data for the sidebar
+  const mockChannels = [
+    {
+      id: 'general',
+      name: 'general',
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: 'General discussion'
+    },
+    {
+      id: 'announcements',
+      name: 'announcements',
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: 'Important updates'
+    }
+  ];
 
   // Show auth required state
   if (!user) {
@@ -85,8 +105,11 @@ const CommunityPanel: React.FC<CommunityPanelProps> = ({
         {sidebarOpen && (
           <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
             <ChannelSidebar
+              channels={mockChannels}
               activeChannel={chatState.activeChannel}
               onChannelSelect={chatState.switchChannel}
+              showChannelList={sidebarOpen}
+              setShowChannelList={setSidebarOpen}
               onClose={() => setSidebarOpen(false)}
             />
           </div>

@@ -16,7 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ChatChannel } from '@/types/chat';
+import { ChatChannel, ChannelType } from '@/types/chat';
 
 interface ChannelSidebarProps {
   channels: ChatChannel[];
@@ -44,7 +44,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
   if (!showChannelList) return null;
 
   const getChannelIcon = (channel: ChatChannel) => {
-    if (channel.type === 'PRIVATE') return <Lock className="h-4 w-4" />;
+    if (channel.type === ChannelType.PRIVATE) return <Lock className="h-4 w-4" />;
     if (channel.type === 'VOICE') return <Volume2 className="h-4 w-4" />;
     return <Hash className="h-4 w-4" />;
   };
