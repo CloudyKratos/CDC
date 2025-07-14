@@ -11,7 +11,6 @@ import { EnhancedModernMessageBubble } from './EnhancedModernMessageBubble';
 import { 
   Loader2, 
   AlertCircle, 
-  Users, 
   Hash,
   Wifi,
   WifiOff,
@@ -35,13 +34,14 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   const chatHookResult = useSimpleChat(channelName);
   
-  // Handle the case where useSimpleChat might return void - provide safe defaults
-  const messages = chatHookResult?.messages ?? [];
-  const isLoading = chatHookResult?.isLoading ?? false;
-  const error = chatHookResult?.error ?? null;
-  const isConnected = chatHookResult?.isConnected ?? false;
-  const sendMessage = chatHookResult?.sendMessage;
-  const deleteMessage = chatHookResult?.deleteMessage;
+  const {
+    messages = [],
+    isLoading = false,
+    error = null,
+    isConnected = false,
+    sendMessage,
+    deleteMessage
+  } = chatHookResult ?? {};
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -76,16 +76,16 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   if (!user) {
     return (
-      <Card className={`h-full flex flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm ${className}`}>
+      <Card className={`h-full flex flex-col bg-background border-border ${className}`}>
         <CardContent className="flex items-center justify-center h-full p-8">
           <div className="text-center max-w-sm">
-            <div className="w-12 h-12 bg-slate-100/50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageSquare className="h-6 w-6 text-slate-400" />
+            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-2">
+            <h3 className="text-sm font-medium text-foreground mb-2">
               Join the conversation
             </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-xs">
+            <p className="text-muted-foreground text-xs">
               Sign in to participate in community discussions
             </p>
           </div>
@@ -95,29 +95,29 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   }
 
   return (
-    <Card className={`h-full flex flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm ${className}`}>
-      {/* Clean Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50">
+    <Card className={`h-full flex flex-col bg-background border-border ${className}`}>
+      {/* Minimal Header */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Hash className="h-4 w-4 text-slate-400" />
-            <span className="font-medium text-slate-900 dark:text-white text-sm">
-              #{channelName}
+          <div className="flex items-center gap-2">
+            <Hash className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium text-foreground text-sm">
+              {channelName}
             </span>
           </div>
           
           <Badge 
             variant="outline"
-            className={`text-xs border-0 px-2 py-1 ${
+            className={`text-xs px-2 py-1 ${
               isConnected 
-                ? 'text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/50' 
-                : 'text-slate-500 bg-slate-50/50 dark:bg-slate-800/50'
+                ? 'text-green-600 bg-green-50 border-green-200' 
+                : 'text-muted-foreground bg-muted border-border'
             }`}
           >
             {isConnected ? (
-              <><Wifi className="h-3 w-3 mr-1.5" />Online</>
+              <><Wifi className="h-3 w-3 mr-1" />Online</>
             ) : (
-              <><WifiOff className="h-3 w-3 mr-1.5" />Offline</>
+              <><WifiOff className="h-3 w-3 mr-1" />Offline</>
             )}
           </Badge>
         </div>
@@ -125,9 +125,9 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
       {/* Error Alert */}
       {error && (
-        <Alert className="m-4 border-red-200/50 bg-red-50/50 dark:bg-red-950/50">
+        <Alert className="m-4 border-destructive/20 bg-destructive/5">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-red-800 dark:text-red-400 text-sm">
+          <AlertDescription className="text-destructive text-sm">
             {error}
           </AlertDescription>
         </Alert>
@@ -136,11 +136,11 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
       {/* Messages Area */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-3">
             {/* Loading State */}
             {isLoading && messages.length === 0 && (
               <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-3 text-slate-500">
+                <div className="flex items-center gap-3 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">Loading messages...</span>
                 </div>
@@ -172,13 +172,13 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
             {!isLoading && messages.length === 0 && (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center max-w-sm">
-                  <div className="w-10 h-10 bg-slate-100/50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <MessageSquare className="h-5 w-5 text-slate-400" />
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-sm font-medium text-foreground mb-2">
                     No messages yet
                   </h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs">
+                  <p className="text-muted-foreground text-xs">
                     Start the conversation in #{channelName}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
       </div>
 
       {/* Message Input */}
-      <div className="flex-shrink-0 border-t border-slate-200/50 dark:border-slate-700/50 p-4">
+      <div className="flex-shrink-0 border-t border-border p-3">
         <ModernMessageInput
           value={messageText}
           onChange={setMessageText}
