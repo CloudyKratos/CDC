@@ -8,15 +8,12 @@ export function useMessageLoader() {
   const { user } = useAuth();
 
   const loadMessages = useCallback(async (channelId: string): Promise<Message[]> => {
-    if (!user?.id || !channelId) {
-      console.log('⚠️ No user or channel ID for loading messages');
-      return [];
-    }
+    if (!channelId || !user?.id) return [];
 
     try {
       console.log('🔄 Loading messages for channel ID:', channelId);
       
-      const { data: messages, error } = await supabase
+      const { data: messagesData, error: messagesError } = await supabase
         .from('community_messages')
         .select(`
           id,
@@ -32,20 +29,14 @@ export function useMessageLoader() {
         `)
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(50);
 
-      if (error) {
-        console.error('❌ Error loading messages:', error);
-        throw new Error(`Failed to load messages: ${error.message}`);
+      if (messagesError) {
+        throw new Error(`Failed to load messages: ${messagesError.message}`);
       }
 
-      console.log('✅ Messages loaded:', messages?.length || 0);
-
-      if (!messages || messages.length === 0) {
-        return [];
-      }
-
-      return messages.map(msg => ({
+      const formattedMessages = messagesData?.map((msg: any) => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
@@ -53,13 +44,17 @@ export function useMessageLoader() {
         sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
           username: 'Unknown User',
-          full_name: 'Unknown User',
+          full_name: 'Community Member',
           avatar_url: null
         }
-      }));
-    } catch (error) {
-      console.error('💥 Exception in loadMessages:', error);
-      throw error;
+      })) || [];
+
+      console.log('✅ Messages loaded:', formattedMessages.length);
+      return formattedMessages;
+      
+    } catch (err) {
+      console.error('❌ Failed to load messages:', err);
+      throw err;
     }
   }, [user?.id]);
 

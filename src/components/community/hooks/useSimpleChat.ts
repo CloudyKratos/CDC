@@ -21,15 +21,28 @@ export function useSimpleChat(channelName: string) {
   const { sendMessage: sendMessageAction, deleteMessage: deleteMessageAction } = useMessageActions();
 
   // Wrapper functions to maintain the same API
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string): Promise<boolean> => {
     if (!channelId) {
-      throw new Error('No channel available');
+      console.error('No channel available');
+      return false;
     }
-    await sendMessageAction(content, channelId);
+    try {
+      await sendMessageAction(content, channelId);
+      return true;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setError(error instanceof Error ? error.message : 'Failed to send message');
+      return false;
+    }
   };
 
-  const deleteMessage = async (messageId: string) => {
-    await deleteMessageAction(messageId);
+  const deleteMessage = async (messageId: string): Promise<void> => {
+    try {
+      await deleteMessageAction(messageId);
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete message');
+    }
   };
 
   // Initialize channel and load messages
@@ -89,6 +102,7 @@ export function useSimpleChat(channelName: string) {
     };
   }, [user?.id, channelName, getOrCreateChannel, loadMessages, setupRealtimeSubscription, cleanup]);
 
+  // Always return a consistent object structure
   return {
     messages,
     isLoading,

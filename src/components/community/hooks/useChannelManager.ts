@@ -7,42 +7,40 @@ export function useChannelManager() {
   const [channelId, setChannelId] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const getOrCreateChannel = useCallback(async (name: string) => {
-    if (!user?.id) return null;
+  const getOrCreateChannel = useCallback(async (channelName: string): Promise<string | null> => {
+    if (!user?.id || !channelName) return null;
 
     try {
-      console.log('🔍 Getting/creating channel:', name);
-      
-      // First try to get existing channel
+      console.log('🔍 Getting/creating channel:', channelName);
+
+      // First, try to get existing channel
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
-        .eq('name', name)
+        .eq('name', channelName)
         .eq('type', 'public')
         .maybeSingle();
 
-      if (channelError) {
-        console.error('❌ Error checking for channel:', channelError);
-        throw channelError;
+      if (channelError && channelError.code !== 'PGRST116') {
+        throw new Error(`Channel lookup failed: ${channelError.message}`);
       }
 
+      // If channel doesn't exist, create it
       if (!channel) {
-        // Channel doesn't exist, create it
-        console.log('📝 Creating new channel:', name);
+        console.log('📝 Creating new channel:', channelName);
         const { data: newChannel, error: createError } = await supabase
           .from('channels')
           .insert({
-            name: name,
+            name: channelName,
             type: 'public',
-            description: `${name.charAt(0).toUpperCase() + name.slice(1)} channel`,
+            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
             created_by: user.id
           })
           .select('id')
           .single();
 
         if (createError) {
-          console.error('❌ Error creating channel:', createError);
-          throw createError;
+          throw new Error(`Failed to create channel: ${createError.message}`);
         }
         
         channel = newChannel;
@@ -50,8 +48,9 @@ export function useChannelManager() {
 
       console.log('✅ Channel ready:', channel.id);
       return channel.id;
+
     } catch (err) {
-      console.error('💥 Error in getOrCreateChannel:', err);
+      console.error('💥 Failed to get/create channel:', err);
       throw err;
     }
   }, [user?.id]);
