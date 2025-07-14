@@ -33,15 +33,15 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chatResult = useSimpleChat(channelName);
+  const chatHookResult = useSimpleChat(channelName);
   
   // Handle the case where useSimpleChat might return void - provide fallback values
-  const messages = chatResult?.messages || [];
-  const isLoading = chatResult?.isLoading || false;
-  const error = chatResult?.error || null;
-  const isConnected = chatResult?.isConnected || false;
-  const sendMessage = chatResult?.sendMessage;
-  const deleteMessage = chatResult?.deleteMessage;
+  const messages = chatHookResult?.messages || [];
+  const isLoading = chatHookResult?.isLoading || false;
+  const error = chatHookResult?.error || null;
+  const isConnected = chatHookResult?.isConnected || false;
+  const sendMessage = chatHookResult?.sendMessage;
+  const deleteMessage = chatHookResult?.deleteMessage;
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
