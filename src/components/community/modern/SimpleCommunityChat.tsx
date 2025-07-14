@@ -35,13 +35,15 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   const chatHookResult = useSimpleChat(channelName);
   
-  // Handle the case where useSimpleChat might return void - provide fallback values
-  const messages = chatHookResult?.messages || [];
-  const isLoading = chatHookResult?.isLoading || false;
-  const error = chatHookResult?.error || null;
-  const isConnected = chatHookResult?.isConnected || false;
-  const sendMessage = chatHookResult?.sendMessage;
-  const deleteMessage = chatHookResult?.deleteMessage;
+  // Handle the case where useSimpleChat might return void - provide default object structure
+  const {
+    messages = [],
+    isLoading = false,
+    error = null,
+    isConnected = false,
+    sendMessage,
+    deleteMessage
+  } = chatHookResult || {};
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
