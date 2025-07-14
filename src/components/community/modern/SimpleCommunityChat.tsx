@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useSimpleChat } from '../hooks/useSimpleChat';
@@ -36,7 +35,8 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   const chatResult = useSimpleChat(channelName);
   
-  // Handle the case where useSimpleChat might return void
+  // Handle the case where useSimpleChat might return void - proper null checking
+  const isValidChatResult = chatResult && typeof chatResult === 'object';
   const {
     messages = [],
     isLoading = false,
@@ -44,7 +44,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
     isConnected = false,
     sendMessage,
     deleteMessage
-  } = chatResult || {};
+  } = isValidChatResult ? chatResult : {};
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {

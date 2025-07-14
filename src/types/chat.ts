@@ -1,4 +1,3 @@
-
 export interface ChatUser {
   id: string;
   name: string;
@@ -13,7 +12,8 @@ export enum ChannelType {
   DIRECT = 'direct',
   GROUP = 'group',
   COMMUNITY = 'community',
-  WORKSPACE = 'workspace'
+  WORKSPACE = 'workspace',
+  VOICE = 'voice'
 }
 
 export enum MessageType {

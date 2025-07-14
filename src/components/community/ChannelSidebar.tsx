@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,7 +44,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
 
   const getChannelIcon = (channel: ChatChannel) => {
     if (channel.type === ChannelType.PRIVATE) return <Lock className="h-4 w-4" />;
-    if (channel.type === 'VOICE') return <Volume2 className="h-4 w-4" />;
+    if (channel.type === ChannelType.VOICE) return <Volume2 className="h-4 w-4" />;
     return <Hash className="h-4 w-4" />;
   };
 

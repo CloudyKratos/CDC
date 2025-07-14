@@ -12,6 +12,7 @@ import MessageInput from './MessageInput';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
 import { useEnhancedMessageSender } from './hooks/useEnhancedMessageSender';
+import { ChannelType } from '@/types/chat';
 
 interface RobustCommunityChatProps {
   defaultChannel?: string;
@@ -28,19 +29,56 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
   const [channelId, setChannelId] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [showChannelList, setShowChannelList] = useState(true);
+  const [showMembersList, setShowMembersList] = useState(false);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { sendMessage: sendMessageWithRetry, isSending, isReady } = useEnhancedMessageSender();
 
-  // Default channels for fallback
+  // Default channels for fallback - now properly typed as ChatChannel[]
   const defaultChannels = [
-    { id: 'general', name: 'general', description: '💬 General community discussions' },
-    { id: 'announcements', name: 'announcements', description: '📢 Important announcements' },
-    { id: 'entrepreneurs', name: 'entrepreneurs', description: '🚀 Entrepreneurial discussions' },
-    { id: 'tech-talk', name: 'tech-talk', description: '💻 Technology discussions' },
-    { id: 'motivation', name: 'motivation', description: '💪 Daily motivation' },
-    { id: 'resources', name: 'resources', description: '📚 Useful resources' }
+    { 
+      id: 'general', 
+      name: 'general', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '💬 General community discussions' 
+    },
+    { 
+      id: 'announcements', 
+      name: 'announcements', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '📢 Important announcements' 
+    },
+    { 
+      id: 'entrepreneurs', 
+      name: 'entrepreneurs', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '🚀 Entrepreneurial discussions' 
+    },
+    { 
+      id: 'tech-talk', 
+      name: 'tech-talk', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '💻 Technology discussions' 
+    },
+    { 
+      id: 'motivation', 
+      name: 'motivation', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '💪 Daily motivation' 
+    },
+    { 
+      id: 'resources', 
+      name: 'resources', 
+      type: ChannelType.PUBLIC,
+      members: [],
+      description: '📚 Useful resources' 
+    }
   ];
 
   // Enhanced channel initialization with proper error handling
@@ -183,7 +221,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
       console.log('✅ Enhanced chat initialized successfully');
 
     } catch (err) {
-      console.error('💥 Failed to initialize chat:', err);
+      console.error('💥 Failed to initialize chat:', error);
       setError(err instanceof Error ? err.message : 'Failed to initialize chat');
       setIsLoading(false);
       setIsConnected(false);
@@ -380,6 +418,7 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
         onChannelSelect={setActiveChannel}
         isMobile={isMobile}
         showChannelList={showChannelList}
+        setShowChannelList={setShowChannelList}
         onToggleChannelList={setShowChannelList}
       />
 
@@ -391,6 +430,9 @@ const RobustCommunityChat: React.FC<RobustCommunityChatProps> = ({
           isConnected={isConnected}
           isMobile={isMobile}
           showChannelList={showChannelList}
+          setShowChannelList={setShowChannelList}
+          showMembersList={showMembersList}
+          setShowMembersList={setShowMembersList}
           onToggleChannelList={setShowChannelList}
         />
 
