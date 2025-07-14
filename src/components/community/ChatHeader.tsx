@@ -27,6 +27,7 @@ interface ChatHeaderProps {
   showMembersList: boolean;
   setShowMembersList: (show: boolean) => void;
   isConnected?: boolean;
+  onToggleChannelList?: (show: boolean) => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -38,7 +39,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   setShowChannelList,
   showMembersList,
   setShowMembersList,
-  isConnected = true
+  isConnected = true,
+  onToggleChannelList
 }) => {
   const getChannelDisplayName = () => {
     return activeChannel.replace(/-/g, ' ');
@@ -53,6 +55,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const connectionInfo = getConnectionStatus();
   const StatusIcon = connectionInfo.icon;
 
+  const handleToggleChannelList = () => {
+    const newValue = !showChannelList;
+    setShowChannelList(newValue);
+    onToggleChannelList?.(newValue);
+  };
+
   return (
     <div className="flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
       <div className="flex items-center justify-between p-4">
@@ -63,7 +71,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowChannelList(!showChannelList)}
+              onClick={handleToggleChannelList}
               className="h-9 w-9 p-0 lg:hidden"
             >
               <Menu className="h-5 w-5" />

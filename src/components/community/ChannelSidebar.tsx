@@ -16,16 +16,18 @@ import {
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Channel } from '@/types/chat';
+import { ChatChannel } from '@/types/chat';
 
 interface ChannelSidebarProps {
-  channels: Channel[];
+  channels: ChatChannel[];
   activeChannel: string;
   onChannelSelect: (channelId: string) => void;
   isLoading?: boolean;
   isMobile?: boolean;
   showChannelList: boolean;
   setShowChannelList: (show: boolean) => void;
+  onClose?: () => void;
+  onToggleChannelList?: (show: boolean) => void;
 }
 
 const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
@@ -35,20 +37,28 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
   isLoading = false,
   isMobile = false,
   showChannelList,
-  setShowChannelList
+  setShowChannelList,
+  onClose,
+  onToggleChannelList
 }) => {
   if (!showChannelList) return null;
 
-  const getChannelIcon = (channel: Channel) => {
+  const getChannelIcon = (channel: ChatChannel) => {
     if (channel.type === 'PRIVATE') return <Lock className="h-4 w-4" />;
     if (channel.type === 'VOICE') return <Volume2 className="h-4 w-4" />;
     return <Hash className="h-4 w-4" />;
   };
 
-  const getChannelBadge = (channel: Channel) => {
+  const getChannelBadge = (channel: ChatChannel) => {
     if (channel.name === 'general') return <Badge variant="secondary" className="text-xs">Popular</Badge>;
     if (channel.name === 'announcements') return <Badge variant="default" className="text-xs bg-blue-500">Official</Badge>;
     return null;
+  };
+
+  const handleClose = () => {
+    setShowChannelList(false);
+    onClose?.();
+    onToggleChannelList?.(false);
   };
 
   return (
@@ -57,7 +67,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
       {isMobile && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setShowChannelList(false)}
+          onClick={handleClose}
         />
       )}
       
@@ -86,7 +96,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowChannelList(false)}
+                onClick={handleClose}
                 className="h-8 w-8 p-0"
               >
                 <X className="h-4 w-4" />
@@ -121,7 +131,7 @@ const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
                     key={channel.id}
                     onClick={() => {
                       onChannelSelect(channel.id);
-                      if (isMobile) setShowChannelList(false);
+                      if (isMobile) handleClose();
                     }}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group",

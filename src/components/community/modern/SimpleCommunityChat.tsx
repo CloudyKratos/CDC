@@ -25,7 +25,7 @@ interface SimpleCommunityChatProps {
   className?: string;
 }
 
-export const SimpleCommunityChat: React.FC<SimpleCommunitychatProps> = ({
+export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   channelName = 'general',
   className = ''
 }) => {
@@ -34,14 +34,17 @@ export const SimpleCommunityChat: React.FC<SimpleCommunitychatProps> = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const chatResult = useSimpleChat(channelName);
+  
+  // Handle the case where useSimpleChat might return void
   const {
-    messages,
-    isLoading,
-    error,
-    isConnected,
+    messages = [],
+    isLoading = false,
+    error = null,
+    isConnected = false,
     sendMessage,
     deleteMessage
-  } = useSimpleChat(channelName);
+  } = chatResult || {};
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -53,7 +56,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunitychatProps> = ({
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !isConnected) return;
+    if (!messageText.trim() || !isConnected || !sendMessage) return;
 
     const success = await sendMessage(messageText.trim());
     if (success) {
@@ -69,7 +72,9 @@ export const SimpleCommunityChat: React.FC<SimpleCommunitychatProps> = ({
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    await deleteMessage(messageId);
+    if (deleteMessage) {
+      await deleteMessage(messageId);
+    }
   };
 
   if (!user) {
