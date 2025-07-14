@@ -35,11 +35,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   const chatResult = useSimpleChat(channelName);
   
-  // Handle the case where useSimpleChat might return void - proper null checking
-  if (!chatResult) {
-    return null;
-  }
-
+  // Handle the case where useSimpleChat might return void - use optional chaining
   const {
     messages = [],
     isLoading = false,
@@ -47,7 +43,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
     isConnected = false,
     sendMessage,
     deleteMessage
-  } = chatResult;
+  } = chatResult || {};
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -82,16 +78,16 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 
   if (!user) {
     return (
-      <Card className={`h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 ${className}`}>
+      <Card className={`h-full flex flex-col bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-0 shadow-none ${className}`}>
         <CardContent className="flex items-center justify-center h-full p-8">
           <div className="text-center max-w-sm">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageSquare className="h-8 w-8 text-gray-400" />
+            <div className="w-12 h-12 bg-gray-100/50 dark:bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="h-6 w-6 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
               Join the conversation
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs">
               Sign in to participate in community discussions
             </p>
           </div>
@@ -101,39 +97,37 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   }
 
   return (
-    <Card className={`h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 ${className}`}>
+    <Card className={`h-full flex flex-col bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-0 shadow-none ${className}`}>
       {/* Minimal Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Hash className="h-4 w-4 text-gray-400" />
             <span className="font-medium text-gray-900 dark:text-white text-sm">
               {channelName}
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant="outline"
-              className={`text-xs ${
-                isConnected 
-                  ? 'text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800' 
-                  : 'text-gray-500 border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700'
-              }`}
-            >
-              {isConnected ? (
-                <><Wifi className="h-3 w-3 mr-1" />Online</>
-              ) : (
-                <><WifiOff className="h-3 w-3 mr-1" />Offline</>
-              )}
-            </Badge>
-          </div>
+          <Badge 
+            variant="outline"
+            className={`text-xs border-0 ${
+              isConnected 
+                ? 'text-green-600 bg-green-50/50 dark:bg-green-950/50' 
+                : 'text-gray-500 bg-gray-50/50 dark:bg-gray-800/50'
+            }`}
+          >
+            {isConnected ? (
+              <><Wifi className="h-3 w-3 mr-1" />Online</>
+            ) : (
+              <><WifiOff className="h-3 w-3 mr-1" />Offline</>
+            )}
+          </Badge>
         </div>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <Alert className="m-3 border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
+        <Alert className="m-3 border-red-200/50 bg-red-50/50 dark:bg-red-950/50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-red-800 dark:text-red-400 text-sm">
             {error}
@@ -144,7 +138,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
       {/* Messages Area */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-3">
             {/* Loading State */}
             {isLoading && messages.length === 0 && (
               <div className="flex items-center justify-center py-8">
@@ -180,10 +174,10 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
             {!isLoading && messages.length === 0 && (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center max-w-sm">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <MessageSquare className="h-6 w-6 text-gray-400" />
+                  <div className="w-8 h-8 bg-gray-100/50 dark:bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <MessageSquare className="h-4 w-4 text-gray-400" />
                   </div>
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-1">
                     No messages yet
                   </h3>
                   <p className="text-gray-500 dark:text-gray-400 text-xs">
@@ -199,7 +193,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
       </div>
 
       {/* Message Input */}
-      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-800">
+      <div className="flex-shrink-0 border-t border-gray-200/50 dark:border-gray-700/50">
         <ModernMessageInput
           value={messageText}
           onChange={setMessageText}
