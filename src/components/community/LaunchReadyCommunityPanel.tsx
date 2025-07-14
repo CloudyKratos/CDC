@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useChatManager } from '@/hooks/useChatManager';
 import CommunityChannelSelector from './CommunityChannelSelector';
 import MessageList from './MessageList';
@@ -28,13 +28,9 @@ const LaunchReadyCommunityPanel: React.FC<LaunchReadyCommunityPanelProps> = ({
     isConnected,
     sendMessage,
     deleteMessage,
+    replyToMessage,
     addReaction
-  } = useChatManager({ channelName: activeChannel });
-
-  // Create stub functions with correct signatures
-  const replyToMessage = async (messageId: string) => {
-    console.log('Reply to message:', messageId);
-  };
+  } = useChatManager(activeChannel);
 
   if (!user) {
     return <UnauthenticatedView />;

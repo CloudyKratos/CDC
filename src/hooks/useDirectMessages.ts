@@ -1,6 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import DirectMessageService from '@/services/messaging/DirectMessageService';
+import { DirectMessage, Conversation } from '@/types/supabase-extended';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { toast } from 'sonner';
 
 export function useDirectMessages(recipientId?: string) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);

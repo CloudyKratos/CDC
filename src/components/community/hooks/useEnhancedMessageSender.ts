@@ -1,6 +1,8 @@
+
 import { useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { toast } from 'sonner';
 
 interface SendMessageOptions {
   channelId: string | null;

@@ -121,39 +121,6 @@ export type Database = {
         }
         Relationships: []
       }
-      coin_transactions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          description: string | null
-          id: string
-          metadata: Json | null
-          source: string
-          type: string
-          user_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          source: string
-          type: string
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          source?: string
-          type?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       community_messages: {
         Row: {
           channel_id: string
@@ -245,108 +212,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      course_unlocks: {
-        Row: {
-          cost: number
-          course_id: string
-          id: string
-          unlocked_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          cost: number
-          course_id: string
-          id?: string
-          unlocked_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          cost?: number
-          course_id?: string
-          id?: string
-          unlocked_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      courses: {
-        Row: {
-          category: string
-          coin_cost: number
-          created_at: string
-          description: string | null
-          difficulty: string
-          duration: string
-          id: string
-          instructor: string
-          is_premium: boolean
-          thumbnail_url: string | null
-          title: string
-          type: string
-          updated_at: string
-          video_url: string | null
-        }
-        Insert: {
-          category: string
-          coin_cost?: number
-          created_at?: string
-          description?: string | null
-          difficulty?: string
-          duration: string
-          id?: string
-          instructor: string
-          is_premium?: boolean
-          thumbnail_url?: string | null
-          title: string
-          type?: string
-          updated_at?: string
-          video_url?: string | null
-        }
-        Update: {
-          category?: string
-          coin_cost?: number
-          created_at?: string
-          description?: string | null
-          difficulty?: string
-          duration?: string
-          id?: string
-          instructor?: string
-          is_premium?: boolean
-          thumbnail_url?: string | null
-          title?: string
-          type?: string
-          updated_at?: string
-          video_url?: string | null
-        }
-        Relationships: []
-      }
-      daily_completions: {
-        Row: {
-          activity_type: string
-          completion_date: string
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          user_id: string | null
-        }
-        Insert: {
-          activity_type: string
-          completion_date?: string
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          user_id?: string | null
-        }
-        Update: {
-          activity_type?: string
-          completion_date?: string
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          user_id?: string | null
-        }
-        Relationships: []
       }
       events: {
         Row: {
@@ -959,33 +824,6 @@ export type Database = {
           },
         ]
       }
-      user_coins: {
-        Row: {
-          balance: number | null
-          created_at: string | null
-          total_earned: number | null
-          total_spent: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          balance?: number | null
-          created_at?: string | null
-          total_earned?: number | null
-          total_spent?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          balance?: number | null
-          created_at?: string | null
-          total_earned?: number | null
-          total_spent?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -1212,10 +1050,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      award_daily_warrior_completion: {
-        Args: { p_user_id: string; p_activity_type?: string }
-        Returns: boolean
-      }
       get_user_role: {
         Args: { check_user_id: string }
         Returns: string
@@ -1226,21 +1060,6 @@ export type Database = {
       }
       is_channel_member: {
         Args: { channel_uuid: string; user_uuid: string }
-        Returns: boolean
-      }
-      unlock_course_with_coins: {
-        Args: { p_user_id: string; p_course_id: string; p_cost: number }
-        Returns: boolean
-      }
-      update_coin_balance: {
-        Args: {
-          p_user_id: string
-          p_type: string
-          p_source: string
-          p_amount: number
-          p_description?: string
-          p_metadata?: Json
-        }
         Returns: boolean
       }
     }

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { useChannelManager } from './useChannelManager';
 import { useMessageLoader } from './useMessageLoader';

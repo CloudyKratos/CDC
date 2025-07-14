@@ -1,68 +1,82 @@
-import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
 
-export const useChatActions = (
-  sendMessage: (content: string) => Promise<boolean>,
-  deleteMessage: (messageId: string) => Promise<void>,
-  replyToMessage: (messageId: string) => Promise<void>,
-  addReaction: (messageId: string, reaction: string) => Promise<void>,
-  isOnline: boolean
-) => {
+import { useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export function useMessageActions() {
   const { user } = useAuth();
 
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!isOnline) {
-      console.warn('Cannot send message: Not online');
+  const sendMessage = useCallback(async (content: string, channelId: string | null) => {
+    if (!user?.id || !channelId || !content.trim()) {
+      toast.error("Cannot send message");
       return;
     }
-    try {
-      await sendMessage(content);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
-  }, [sendMessage, isOnline]);
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    if (!isOnline) {
-      console.warn('Cannot delete message: Not online');
-      return;
-    }
     try {
-      await deleteMessage(messageId);
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-    }
-  }, [deleteMessage, isOnline]);
+      console.log('📤 Sending message to channel:', channelId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .insert({
+          channel_id: channelId,
+          sender_id: user.id,
+          content: content.trim()
+        });
 
-  const handleReplyMessage = useCallback(async (messageId: string) => {
-    if (!isOnline) {
-      console.warn('Cannot reply to message: Not online');
-      return;
-    }
-    try {
-      await replyToMessage(messageId);
-    } catch (error) {
-      console.error('Failed to reply to message:', error);
-    }
-  }, [replyToMessage, isOnline]);
+      if (error) {
+        console.error('❌ Error sending message:', error);
+        toast.error('Failed to send message');
+        throw error;
+      }
 
-  const handleReactionAdd = useCallback(async (messageId: string, reaction: string) => {
-    if (!isOnline) {
-      console.warn('Cannot add reaction: Not online');
-      return;
-    }
-    try {
-      await addReaction(messageId, reaction);
+      console.log('✅ Message sent successfully');
     } catch (error) {
-      console.error('Failed to add reaction:', error);
+      console.error('💥 Failed to send message:', error);
+      throw error;
     }
-  }, [addReaction, isOnline]);
+  }, [user?.id]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
+
+    try {
+      console.log('🗑️ Deleting message:', messageId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .update({ is_deleted: true })
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
+
+      if (error) {
+        console.error('❌ Error deleting message:', error);
+        toast.error('Failed to delete message');
+        throw error;
+      }
+
+      console.log('✅ Message deleted successfully');
+      toast.success('Message deleted', { duration: 1000 });
+    } catch (error) {
+      console.error('💥 Failed to delete message:', error);
+      throw error;
+    }
+  }, [user?.id]);
+
+  const replyToMessage = useCallback((messageId: string) => {
+    console.log('Replying to message:', messageId);
+    toast.info('Reply feature coming soon!');
+  }, []);
+
+  const addReaction = useCallback(async (messageId: string, reaction: string) => {
+    console.log('Adding reaction:', reaction, 'to message:', messageId);
+    toast.info('Reactions feature coming soon!');
+  }, []);
 
   return {
-    handleSendMessage,
-    handleDeleteMessage,
-    handleReplyMessage,
-    handleReactionAdd,
+    sendMessage,
+    deleteMessage,
+    replyToMessage,
+    addReaction
   };
-};
+}

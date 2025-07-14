@@ -1,24 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useCallback, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { toast } from 'sonner';
 
-export const useChannelInitialization = (channelName: string) => {
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+export function useChannelInitialization() {
+  const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [channelId, setChannelId] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const initializeChannel = useCallback(async () => {
+  const initializeChannel = useCallback(async (channelName: string): Promise<string | null> => {
     if (!user?.id) {
       setError('User not authenticated');
-      return;
+      return null;
     }
 
-    setIsLoading(true);
+    setIsInitializing(true);
     setError(null);
 
     try {
-      // Check if the channel exists
+      console.log('🔄 Initializing channel:', channelName);
+      
+      // First try to get existing channel
       let { data: channel, error: channelError } = await supabase
         .from('channels')
         .select('id')
@@ -26,12 +33,13 @@ export const useChannelInitialization = (channelName: string) => {
         .eq('type', 'public')
         .maybeSingle();
 
-      if (channelError) {
-        throw new Error(`Channel lookup failed: ${channelError.message}`);
+      if (channelError && channelError.code !== 'PGRST116') {
+        throw new Error(`Failed to find channel: ${channelError.message}`);
       }
 
       if (!channel) {
-        // Create the channel if it doesn't exist
+        // Create new channel
+        console.log('📝 Creating new channel:', channelName);
         const { data: newChannel, error: createError } = await supabase
           .from('channels')
           .insert({
@@ -46,21 +54,74 @@ export const useChannelInitialization = (channelName: string) => {
         if (createError) {
           throw new Error(`Failed to create channel: ${createError.message}`);
         }
+        
         channel = newChannel;
       }
 
+      // Auto-join user to channel
+      const { error: joinError } = await supabase
+        .from('channel_members')
+        .upsert({
+          channel_id: channel.id,
+          user_id: user.id,
+          role: 'member'
+        }, { onConflict: 'user_id,channel_id' });
+
+      if (joinError && !joinError.message.includes('duplicate')) {
+        console.warn('⚠️ Could not join channel:', joinError);
+      }
+
+      console.log('✅ Channel initialized successfully:', channel.id);
+      setRetryCount(0);
       setChannelId(channel.id);
+      return channel.id;
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initialize channel');
+      console.error('❌ Failed to initialize channel:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      
+      // Auto-retry with exponential backoff
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`🔄 Retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+        setRetryCount(prev => prev + 1);
+        
+        setTimeout(() => {
+          initializeChannel(channelName);
+        }, delay);
+      } else {
+        toast.error('Failed to connect to chat after multiple attempts');
+      }
+      
+      return null;
     } finally {
-      setIsLoading(false);
+      setIsInitializing(false);
     }
-  }, [channelName, user?.id]);
+  }, [user?.id, retryCount]);
 
-  useEffect(() => {
-    initializeChannel();
-  }, [initializeChannel]);
+  const resetRetryCount = useCallback(() => {
+    setRetryCount(0);
+    setError(null);
+  }, []);
 
-  return { channelId, isLoading, error };
-};
+  const cleanup = useCallback(() => {
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+    setChannelId(null);
+    setError(null);
+    setRetryCount(0);
+  }, []);
 
+  return {
+    initializeChannel,
+    isInitializing,
+    error,
+    retryCount,
+    resetRetryCount,
+    channelId,
+    cleanup
+  };
+}

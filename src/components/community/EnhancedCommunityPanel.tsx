@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useChatManager } from '@/hooks/useChatManager';
 import { useChannelData } from '@/hooks/use-channel-data';
@@ -39,20 +39,15 @@ const EnhancedCommunityPanel: React.FC<EnhancedCommunityPanelProps> = ({
     isConnected,
     sendMessage,
     deleteMessage,
-    addReaction,
-    reconnect
-  } = useChatManager({ channelName: activeChannel });
+    replyToMessage,
+    addReaction
+  } = useChatManager(activeChannel);
 
   const {
     channels,
     isLoading: channelsLoading,
     error: channelsError
   } = useChannelData('warrior-community', activeChannel);
-
-  // Create stub functions with correct signatures
-  const replyToMessage = useCallback(async (messageId: string) => {
-    console.log('Reply to message:', messageId);
-  }, []);
 
   // Chat actions with enhanced error handling
   const {

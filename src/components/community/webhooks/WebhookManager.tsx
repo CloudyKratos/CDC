@@ -1,261 +1,404 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Plus, Settings, Send } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Webhook, Settings, Trash2, Plus, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface Webhook {
+interface WebhookData {
   id: string;
+  channel_id: string;
   name: string;
   url: string;
-  active: boolean;
-  event: string;
+  events: string[];
+  is_active: boolean;
+  secret_key?: string;
+  created_at: string;
+  last_triggered_at?: string;
+  channels?: {
+    name: string;
+  };
+}
+
+interface WebhookLog {
+  id: string;
+  webhook_id: string;
+  event_type: string;
+  payload: any;
+  response_status?: number;
+  response_body?: string;
   created_at: string;
 }
 
-const WebhookManager: React.FC = () => {
+const WEBHOOK_EVENTS = [
+  'message.created',
+  'message.updated',
+  'message.deleted',
+  'user.joined',
+  'user.left',
+  'channel.created',
+  'poll.created',
+  'poll.voted'
+];
+
+export const WebhookManager: React.FC = () => {
   const { user } = useAuth();
-  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [newWebhookName, setNewWebhookName] = useState('');
-  const [newWebhookUrl, setNewWebhookUrl] = useState('');
-  const [newWebhookEvent, setNewWebhookEvent] = useState('message_created');
-  const [newWebhookActive, setNewWebhookActive] = useState(true);
+  const [webhooks, setWebhooks] = useState<WebhookData[]>([]);
+  const [logs, setLogs] = useState<WebhookLog[]>([]);
+  const [channels, setChannels] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    url: '',
+    channel_id: '',
+    events: [] as string[],
+    secret_key: ''
+  });
 
   useEffect(() => {
-    if (!user) return;
-    fetchWebhooks();
-  }, [user]);
+    loadData();
+  }, []);
 
-  const fetchWebhooks = async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = async () => {
     try {
-      const { data, error } = await supabase
+      setIsLoading(true);
+
+      // Load channels
+      const { data: channelsData } = await supabase
+        .from('channels')
+        .select('id, name')
+        .eq('type', 'public');
+
+      // Load webhooks
+      const { data: webhooksData } = await supabase
         .from('webhooks')
-        .select('*')
-        .eq('user_id', user?.id)
+        .select(`
+          *,
+          channels (name)
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      // Load recent logs
+      const { data: logsData } = await supabase
+        .from('webhook_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      setWebhooks(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load webhooks');
+      setChannels(channelsData || []);
+      setWebhooks(webhooksData || []);
+      setLogs(logsData || []);
+    } catch (error) {
+      console.error('Error loading webhook data:', error);
+      toast.error('Failed to load webhook data');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleAddWebhook = async () => {
-    if (!newWebhookName.trim() || !newWebhookUrl.trim()) {
-      toast.error('Please provide a name and URL for the webhook');
+  const handleCreateWebhook = async () => {
+    if (!formData.name || !formData.url || !formData.channel_id || formData.events.length === 0) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
-    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('webhooks')
         .insert({
-          user_id: user?.id,
-          name: newWebhookName.trim(),
-          url: newWebhookUrl.trim(),
-          event: newWebhookEvent,
-          active: newWebhookActive
-        })
-        .select()
-        .single();
+          name: formData.name,
+          url: formData.url,
+          channel_id: formData.channel_id,
+          events: formData.events,
+          secret_key: formData.secret_key || null,
+          created_by: user?.id,
+          is_active: true
+        });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setWebhooks(prev => [data, ...prev]);
-      setNewWebhookName('');
-      setNewWebhookUrl('');
-      setNewWebhookEvent('message_created');
-      setNewWebhookActive(true);
-      toast.success('Webhook added successfully');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add webhook');
-    } finally {
-      setLoading(false);
+      toast.success('Webhook created successfully');
+      setShowCreateForm(false);
+      setFormData({
+        name: '',
+        url: '',
+        channel_id: '',
+        events: [],
+        secret_key: ''
+      });
+      loadData();
+    } catch (error) {
+      console.error('Error creating webhook:', error);
+      toast.error('Failed to create webhook');
     }
   };
 
-  const handleDeleteWebhook = async (id: string) => {
-    setLoading(true);
+  const handleToggleWebhook = async (webhookId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('webhooks')
+        .update({ is_active: isActive })
+        .eq('id', webhookId);
+
+      if (error) throw error;
+
+      toast.success(`Webhook ${isActive ? 'enabled' : 'disabled'}`);
+      loadData();
+    } catch (error) {
+      console.error('Error updating webhook:', error);
+      toast.error('Failed to update webhook');
+    }
+  };
+
+  const handleDeleteWebhook = async (webhookId: string) => {
+    if (!confirm('Are you sure you want to delete this webhook?')) return;
+
     try {
       const { error } = await supabase
         .from('webhooks')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user?.id);
+        .eq('id', webhookId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setWebhooks(prev => prev.filter(wh => wh.id !== id));
       toast.success('Webhook deleted');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete webhook');
-    } finally {
-      setLoading(false);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting webhook:', error);
+      toast.error('Failed to delete webhook');
     }
   };
 
-  const handleToggleActive = async (id: string, currentActive: boolean) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('webhooks')
-        .update({ active: !currentActive })
-        .eq('id', id)
-        .eq('user_id', user?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setWebhooks(prev =>
-        prev.map(wh => (wh.id === id ? { ...wh, active: !currentActive } : wh))
-      );
-      toast.success(`Webhook ${!currentActive ? 'activated' : 'deactivated'}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update webhook');
-    } finally {
-      setLoading(false);
-    }
+  const handleEventToggle = (event: string) => {
+    setFormData(prev => ({
+      ...prev,
+      events: prev.events.includes(event)
+        ? prev.events.filter(e => e !== event)
+        : [...prev.events, event]
+    }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Webhook className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-500">Loading webhooks...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Card className="max-w-4xl mx-auto my-8">
-      <CardHeader>
-        <CardTitle>Webhook Manager</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Add New Webhook</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <Label htmlFor="webhook-name">Name</Label>
-              <Input
-                id="webhook-name"
-                value={newWebhookName}
-                onChange={e => setNewWebhookName(e.target.value)}
-                placeholder="Webhook name"
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="webhook-url">URL</Label>
-              <Input
-                id="webhook-url"
-                value={newWebhookUrl}
-                onChange={e => setNewWebhookUrl(e.target.value)}
-                placeholder="https://example.com/webhook"
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="webhook-event">Event</Label>
-              <Select
-                onValueChange={value => setNewWebhookEvent(value)}
-                value={newWebhookEvent}
-                disabled={loading}
-              >
-                <SelectTrigger id="webhook-event" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="message_created">Message Created</SelectItem>
-                  <SelectItem value="message_deleted">Message Deleted</SelectItem>
-                  <SelectItem value="user_joined">User Joined</SelectItem>
-                  <SelectItem value="user_left">User Left</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div>
-                <Label htmlFor="webhook-active">Active</Label>
-                <Switch
-                  id="webhook-active"
-                  checked={newWebhookActive}
-                  onCheckedChange={checked => setNewWebhookActive(checked)}
-                  disabled={loading}
-                />
-              </div>
-              <Button onClick={handleAddWebhook} disabled={loading} className="mt-6">
-                <Plus className="mr-2 h-4 w-4" />
-                Add
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Webhook className="h-6 w-6 text-blue-600" />
+          <h2 className="text-2xl font-bold">Webhook Manager</h2>
         </div>
+        <Button onClick={() => setShowCreateForm(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Webhook
+        </Button>
+      </div>
 
-        <Separator className="my-6" />
+      <Tabs defaultValue="webhooks" className="w-full">
+        <TabsList>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
+          {showCreateForm && <TabsTrigger value="create">Create New</TabsTrigger>}
+        </TabsList>
 
-        <h3 className="text-lg font-semibold mb-4">Your Webhooks</h3>
-        {loading && !webhooks.length ? (
-          <p>Loading webhooks...</p>
-        ) : error ? (
-          <p className="text-red-600">{error}</p>
-        ) : webhooks.length === 0 ? (
-          <p>No webhooks configured yet.</p>
-        ) : (
-          <ScrollArea className="max-h-96">
-            <div className="space-y-4">
-              {webhooks.map(wh => (
-                <div
-                  key={wh.id}
-                  className="flex items-center justify-between p-4 border rounded-md bg-gray-50 dark:bg-gray-800"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{wh.name}</span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{wh.url}</span>
-                    <Badge variant="outline" className="mt-1">
-                      {wh.event.replace('_', ' ')}
+        <TabsContent value="webhooks" className="space-y-4">
+          {webhooks.map((webhook) => (
+            <Card key={webhook.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{webhook.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={webhook.is_active ? "default" : "secondary"}>
+                      {webhook.is_active ? 'Active' : 'Inactive'}
                     </Badge>
-                  </div>
-                  <div className="flex items-center space-x-4">
                     <Switch
-                      checked={wh.active}
-                      onCheckedChange={() => handleToggleActive(wh.id, wh.active)}
-                      disabled={loading}
+                      checked={webhook.is_active}
+                      onCheckedChange={(checked) => handleToggleWebhook(webhook.id, checked)}
                     />
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteWebhook(wh.id)}
-                      disabled={loading}
-                      aria-label={`Delete webhook ${wh.name}`}
+                      onClick={() => handleDeleteWebhook(webhook.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm font-medium">URL</p>
+                    <p className="text-sm text-gray-600 font-mono">{webhook.url}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Channel</p>
+                    <p className="text-sm text-gray-600">{webhook.channels?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Events</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {webhook.events.map(event => (
+                        <Badge key={event} variant="outline" className="text-xs">
+                          {event}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  {webhook.last_triggered_at && (
+                    <div>
+                      <p className="text-sm font-medium">Last Triggered</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(webhook.last_triggered_at).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {webhooks.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Webhook className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No webhooks configured</p>
+                <Button onClick={() => setShowCreateForm(true)} className="mt-4">
+                  Create Your First Webhook
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Recent Webhook Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {logs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{log.event_type}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(log.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <Badge variant={log.response_status && log.response_status < 300 ? "default" : "destructive"}>
+                      {log.response_status || 'Pending'}
+                    </Badge>
+                  </div>
+                ))}
+                {logs.length === 0 && (
+                  <p className="text-center text-gray-500 py-4">No webhook logs yet</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {showCreateForm && (
+          <TabsContent value="create" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Webhook</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="webhook-name">Name</Label>
+                  <Input
+                    id="webhook-name"
+                    placeholder="My Webhook"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="webhook-url">URL</Label>
+                  <Input
+                    id="webhook-url"
+                    placeholder="https://your-app.com/webhooks"
+                    value={formData.url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="webhook-channel">Channel</Label>
+                  <Select value={formData.channel_id} onValueChange={(value) => setFormData(prev => ({ ...prev, channel_id: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {channels.map(channel => (
+                        <SelectItem key={channel.id} value={channel.id}>
+                          {channel.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Events</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {WEBHOOK_EVENTS.map(event => (
+                      <div key={event} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={event}
+                          checked={formData.events.includes(event)}
+                          onChange={() => handleEventToggle(event)}
+                          className="rounded border-gray-300"
+                        />
+                        <Label htmlFor={event} className="text-sm">
+                          {event}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="webhook-secret">Secret Key (optional)</Label>
+                  <Input
+                    id="webhook-secret"
+                    placeholder="Your secret key for webhook verification"
+                    value={formData.secret_key}
+                    onChange={(e) => setFormData(prev => ({ ...prev, secret_key: e.target.value }))}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleCreateWebhook}>Create Webhook</Button>
+                  <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         )}
-      </CardContent>
-    </Card>
+      </Tabs>
+    </div>
   );
 };
-
-export default WebhookManager;

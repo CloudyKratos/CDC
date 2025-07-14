@@ -19,9 +19,6 @@ interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<User | null>;
   updateUser: (user: Partial<AppUser>) => Promise<boolean>;
-  // Add missing properties that components expect
-  isAuthenticated: boolean;
-  loading: boolean;
 }
 
 // Create the auth context with default values
@@ -29,7 +26,6 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  loading: true,
   error: null,
   login: async () => null,
   logout: async () => {},
@@ -50,14 +46,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const authState = useAuthState();
   
-  // Create the final context value with all required properties
-  const contextValue: AuthContextType = {
-    ...authState,
-    isAuthenticated: authState.isAuthenticated,
-    loading: authState.isLoading,
-  };
-  
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={authState}>{children}</AuthContext.Provider>;
 };
 
 // Custom hook to use the auth context

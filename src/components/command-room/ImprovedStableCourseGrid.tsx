@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,6 @@ interface LearningVideo {
   addedBy: string;
   addedAt: Date;
   progress?: number;
-  cost?: number; // Add cost to support coin unlocking
 }
 
 interface ImprovedStableCourseGridProps {
@@ -259,7 +259,6 @@ const ImprovedStableCourseGrid: React.FC<ImprovedStableCourseGridProps> = ({
               category={video.category}
               difficulty={video.difficulty}
               progress={userProgress[video.id] || 0}
-              cost={video.cost || 25} // Default cost if not specified
               onProgressUpdate={(progress) => onProgressUpdate(video.id, progress)}
               onPlay={() => handleVideoPlay(video.videoId)}
             />

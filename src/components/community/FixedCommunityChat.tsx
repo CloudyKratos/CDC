@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCommunityMessages } from '@/hooks/use-community-messages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

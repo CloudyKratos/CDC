@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/auth/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRole } from "@/contexts/RoleContext";
 import { useWarriorProgress } from "@/hooks/useWarriorProgress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,69 +1,115 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
 import { Message } from '@/types/chat';
-import { toast } from 'sonner';
+import { useConnectionManager } from './use-connection-manager';
 
-export function useEnhancedRealtime(channelName: string) {
+export function useEnhancedRealtime() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const connectionManager = useConnectionManager();
+  const activeChannelRef = useRef<string | null>(null);
 
-  // Enhanced connection management
-  const connectToChannel = useCallback(async () => {
-    if (!user?.id || !channelName) {
-      setIsLoading(false);
-      return;
-    }
+  // Setup realtime subscription for a channel
+  const subscribeToChannel = useCallback((channelId: string) => {
+    if (!channelId || !user?.id) return;
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      setConnectionAttempts(prev => prev + 1);
+    console.log('📡 Setting up enhanced realtime for:', channelId);
+    activeChannelRef.current = channelId;
 
-      console.log('🔄 Connecting to enhanced chat:', channelName);
-
-      // Get or create channel with better error handling
-      let { data: channel, error: channelError } = await supabase
-        .from('channels')
-        .select('id')
-        .eq('name', channelName)
-        .eq('type', 'public')
-        .maybeSingle();
-
-      if (channelError && channelError.code !== 'PGRST116') {
-        throw new Error(`Channel lookup failed: ${channelError.message}`);
-      }
-
-      if (!channel) {
-        console.log('📝 Creating new channel:', channelName);
-        const { data: newChannel, error: createError } = await supabase
-          .from('channels')
-          .insert({
-            name: channelName,
-            type: 'public',
-            description: `${channelName.charAt(0).toUpperCase() + channelName.slice(1)} discussion`,
-            created_by: user.id
-          })
-          .select('id')
-          .single();
-
-        if (createError) {
-          throw new Error(`Failed to create channel: ${createError.message}`);
-        }
+    // Message insertions
+    connectionManager.createSubscription(
+      `messages_${channelId}`,
+      `enhanced_messages_${channelId}`,
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'community_messages',
+        filter: `channel_id=eq.${channelId}`
+      },
+      async (payload) => {
+        console.log('📨 New message received:', payload);
+        const newMessage = payload.new as any;
         
-        channel = newChannel;
+        // Get sender profile with error handling
+        let sender;
+        try {
+          const { data: senderData, error } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', newMessage.sender_id)
+            .single();
+
+          sender = senderData || {
+            id: newMessage.sender_id,
+            username: 'Unknown User',
+            full_name: 'Unknown User',
+            avatar_url: null
+          };
+        } catch (err) {
+          console.warn('⚠️ Could not fetch sender profile:', err);
+          sender = {
+            id: newMessage.sender_id,
+            username: 'Unknown User',
+            full_name: 'Unknown User',
+            avatar_url: null
+          };
+        }
+
+        const message: Message = {
+          id: newMessage.id,
+          content: newMessage.content,
+          created_at: newMessage.created_at,
+          sender_id: newMessage.sender_id,
+          sender
+        };
+
+        setMessages(prev => {
+          // Prevent duplicates
+          const exists = prev.some(msg => msg.id === message.id);
+          if (exists) return prev;
+          
+          // Insert in chronological order
+          const newMessages = [...prev, message];
+          return newMessages.sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        });
       }
+    );
 
-      setChannelId(channel.id);
+    // Message updates (for deletions)
+    connectionManager.createSubscription(
+      `messages_updates_${channelId}`,
+      `enhanced_messages_updates_${channelId}`,
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'community_messages',
+        filter: `channel_id=eq.${channelId}`
+      },
+      (payload) => {
+        console.log('📝 Message updated:', payload);
+        const updatedMessage = payload.new as any;
+        
+        if (updatedMessage.is_deleted) {
+          setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
+        }
+      }
+    );
+  }, [user?.id, connectionManager]);
 
-      // Load existing messages
-      const { data: existingMessages, error: messagesError } = await supabase
+  // Load message history with pagination
+  const loadMessages = useCallback(async (channelId: string, limit: number = 50) => {
+    if (!channelId || !user?.id) return [];
+
+    setIsLoading(true);
+    try {
+      console.log('📥 Loading message history for:', channelId);
+      
+      const { data: messagesData, error } = await supabase
         .from('community_messages')
         .select(`
           id,
@@ -77,206 +123,116 @@ export function useEnhancedRealtime(channelName: string) {
             avatar_url
           )
         `)
-        .eq('channel_id', channel.id)
+        .eq('channel_id', channelId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(limit);
 
-      if (messagesError) {
-        console.warn('⚠️ Could not load messages:', messagesError);
-        setMessages([]);
-      } else {
-        const formattedMessages = (existingMessages || []).map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          created_at: msg.created_at,
-          sender_id: msg.sender_id,
-          sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
-            id: msg.sender_id,
-            username: 'Unknown User',
-            full_name: 'Unknown User',
-            avatar_url: null
-          }
-        }));
-        setMessages(formattedMessages);
+      if (error) {
+        console.error('❌ Failed to load messages:', error);
+        throw error;
       }
 
-      // Set up real-time subscription
-      setupRealtimeSubscription(channel.id);
-      
-      setIsConnected(true);
-      setIsLoading(false);
-      
-      console.log('✅ Enhanced chat connected successfully');
+      const formattedMessages = messagesData?.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+          id: msg.sender_id,
+          username: 'Unknown User',
+          full_name: 'Unknown User',
+          avatar_url: null
+        }
+      })) || [];
 
-    } catch (err) {
-      console.error('💥 Failed to connect to chat:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to chat');
-      setIsConnected(false);
-      setIsLoading(false);
+      console.log('✅ Loaded', formattedMessages.length, 'messages');
+      setMessages(formattedMessages);
+      return formattedMessages;
       
-      // Auto-retry after delay
-      if (connectionAttempts < 3) {
-        setTimeout(() => {
-          connectToChannel();
-        }, 2000 * connectionAttempts);
-      }
+    } catch (error) {
+      console.error('💥 Failed to load messages:', error);
+      setMessages([]);
+      return [];
+    } finally {
+      setIsLoading(false);
     }
-  }, [user?.id, channelName, connectionAttempts]);
+  }, [user?.id]);
 
-  // Enhanced real-time subscription
-  const setupRealtimeSubscription = useCallback((channelId: string) => {
-    console.log('📡 Setting up enhanced real-time subscription');
-    
-    const subscription = supabase
-      .channel(`enhanced_chat_${channelId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'community_messages',
-          filter: `channel_id=eq.${channelId}`
-        },
-        async (payload) => {
-          console.log('📨 New message received:', payload);
-          const newMessage = payload.new as any;
-          
-          // Get sender profile
-          const { data: sender } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', newMessage.sender_id)
-            .single();
+  // Send message with optimistic updates
+  const sendMessage = useCallback(async (channelId: string, content: string) => {
+    if (!channelId || !user?.id || !content.trim()) return false;
 
-          const message: Message = {
-            id: newMessage.id,
-            content: newMessage.content,
-            created_at: newMessage.created_at,
-            sender_id: newMessage.sender_id,
-            sender: sender || {
-              id: newMessage.sender_id,
-              username: 'Unknown User',
-              full_name: 'Unknown User',
-              avatar_url: null
-            }
-          };
-
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === message.id);
-            if (exists) return prev;
-            return [...prev, message];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'community_messages',
-          filter: `channel_id=eq.${channelId}`
-        },
-        (payload) => {
-          const updatedMessage = payload.new as any;
-          if (updatedMessage.is_deleted) {
-            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setIsConnected(false);
-          // Auto-reconnect after delay
-          setTimeout(() => {
-            connectToChannel();
-          }, 3000);
-        }
-      });
-
-    return () => {
-      console.log('🧹 Cleaning up subscription');
-      supabase.removeChannel(subscription);
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+      sender_id: user.id,
+      sender: {
+        id: user.id,
+        username: user.email?.split('@')[0] || 'You',
+        full_name: user.email?.split('@')[0] || 'You',
+        avatar_url: null
+      }
     };
-  }, [connectToChannel]);
 
-  // Enhanced send message function
-  const sendMessage = useCallback(async (content: string) => {
-    if (!user?.id || !channelId || !content.trim()) {
-      toast.error("Cannot send message");
-      return;
-    }
-
-    if (!isConnected) {
-      toast.error("Not connected - message will be sent when connection is restored");
-      return;
-    }
+    // Add optimistic message
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      console.log('📤 Sending enhanced message');
+      console.log('📤 Sending message to:', channelId);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('community_messages')
         .insert({
           channel_id: channelId,
           sender_id: user.id,
-          content: content.trim()
-        });
+          content: content.trim(),
+          is_deleted: false
+        })
+        .select('id, created_at')
+        .single();
 
       if (error) {
-        throw new Error(`Failed to send message: ${error.message}`);
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== tempId));
+        throw error;
       }
 
-      console.log('✅ Enhanced message sent successfully');
+      // Update optimistic message with real data
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId 
+          ? { ...msg, id: data.id, created_at: data.created_at }
+          : msg
+      ));
+
+      console.log('✅ Message sent successfully');
+      return true;
+
     } catch (error) {
       console.error('💥 Failed to send message:', error);
-      toast.error('Failed to send message');
-      throw error;
+      // Remove optimistic message
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      return false;
     }
-  }, [user?.id, channelId, isConnected]);
+  }, [user]);
 
-  // Enhanced delete message function
-  const deleteMessage = useCallback(async (messageId: string) => {
-    if (!user?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('community_messages')
-        .update({ is_deleted: true })
-        .eq('id', messageId)
-        .eq('sender_id', user.id);
-
-      if (error) {
-        throw new Error(`Failed to delete message: ${error.message}`);
-      }
-
-      console.log('✅ Message deleted successfully');
-    } catch (error) {
-      console.error('💥 Failed to delete message:', error);
-      throw error;
-    }
-  }, [user?.id]);
-
-  // Initialize connection
-  useEffect(() => {
-    connectToChannel();
-    
-    return () => {
-      console.log('🧹 Cleaning up enhanced chat');
-    };
-  }, [connectToChannel]);
+  // Clear messages when switching channels
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    activeChannelRef.current = null;
+  }, []);
 
   return {
     messages,
     isLoading,
-    error,
-    isConnected,
-    channelId,
+    isConnected: connectionManager.isConnected,
+    connectionError: connectionManager.lastError,
+    subscribeToChannel,
+    loadMessages,
     sendMessage,
-    deleteMessage,
-    reconnect: connectToChannel,
-    connectionAttempts
+    clearMessages,
+    reconnect: connectionManager.reconnect
   };
 }

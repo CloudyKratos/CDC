@@ -1,28 +1,17 @@
 
-import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import React, { useRef, useEffect } from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { Message } from '@/types/chat';
+import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface Message {
-  id: string;
-  content: string;
-  created_at: string;
-  sender: {
-    id: string;
-    username?: string;
-    full_name?: string;
-    avatar_url?: string;
-  };
-}
 
 interface MessagesListProps {
   messages: Message[];
   isLoading: boolean;
   error?: string | null;
-  onReconnect?: () => void;
+  onReconnect: () => void;
 }
 
 const MessagesList: React.FC<MessagesListProps> = ({
@@ -32,69 +21,98 @@ const MessagesList: React.FC<MessagesListProps> = ({
   onReconnect
 }) => {
   const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  if (error) {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full p-4">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <div className="mb-2">{error}</div>
-            {onReconnect && (
-              <Button onClick={onReconnect} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Try Again
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
+      <div className="flex items-center justify-center py-8">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+          <span className="text-gray-600">Loading chat...</span>
+        </div>
       </div>
     );
   }
 
-  if (isLoading && messages.length === 0) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="flex items-center gap-3 text-blue-600">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Loading messages...</span>
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+          <p className="text-red-600 mb-3">Connection failed</p>
+          <Button onClick={onReconnect} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center text-gray-500">
+          <MessageCircle className="h-8 w-8 mx-auto mb-2" />
+          <p>No messages yet</p>
+          <p className="text-sm">Be the first to start the conversation!</p>
         </div>
       </div>
     );
   }
 
   return (
-    <ScrollArea className="flex-1 p-4">
-      <div className="space-y-4">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <div className="text-4xl mb-4">💬</div>
-            <p>No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map((message) => (
-            <div key={message.id} className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                {message.sender.full_name?.[0] || message.sender.username?.[0] || '?'}
+    <div className="space-y-4">
+      {messages.map((message) => {
+        const isOwn = message.sender_id === user?.id;
+        const senderName = message.sender?.full_name || 
+                         message.sender?.username || 
+                         'Unknown User';
+        const avatar = message.sender?.avatar_url;
+
+        return (
+          <div
+            key={message.id}
+            className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
+          >
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={avatar || ''} alt={senderName} />
+              <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+                {senderName[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className={`flex-1 max-w-xs lg:max-w-md ${isOwn ? 'text-right' : ''}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {isOwn ? 'You' : senderName}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-gray-900">
-                    {message.sender.full_name || message.sender.username || 'Unknown'}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(message.created_at).toLocaleTimeString()}
-                  </span>
-                </div>
-                <div className="text-gray-800 break-words">
+              
+              <div
+                className={`inline-block px-3 py-2 rounded-lg ${
+                  isOwn
+                    ? 'bg-blue-500 text-white rounded-br-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap break-words">
                   {message.content}
-                </div>
+                </p>
               </div>
             </div>
-          ))
-        )}
-      </div>
-    </ScrollArea>
+          </div>
+        );
+      })}
+      <div ref={messagesEndRef} />
+    </div>
   );
 };
 

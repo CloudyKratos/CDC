@@ -1,5 +1,6 @@
+
 import { useState, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 

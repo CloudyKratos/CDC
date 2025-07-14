@@ -1,10 +1,11 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Sword, Flame, Coins, Star } from "lucide-react";
-import { useAuth } from "@/contexts/auth/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface WarriorHeaderProps {
   stats: {

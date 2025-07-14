@@ -1,56 +1,162 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthContext';
 
-export const useStageConnection = (stageId: string) => {
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import StageConnectionService from '@/services/StageConnectionService';
+import StageCleanupService from '@/services/StageCleanupService';
+import { toast } from 'sonner';
+
+interface UseStageConnectionReturn {
+  isConnecting: boolean;
+  connectionError: string | null;
+  isConnected: boolean;
+  connect: (stageId: string) => Promise<void>;
+  disconnect: () => Promise<void>;
+  forceReconnect: (stageId: string) => Promise<void>;
+  clearError: () => void;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
+}
+
+export const useStageConnection = (): UseStageConnectionReturn => {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  
   const { user } = useAuth();
+  const retryCount = useRef(0);
+  const maxRetries = 2; // Reduced retries
 
-  const connectToStage = useCallback(async () => {
-    if (!user?.id || !stageId) {
-      setError('User or Stage ID missing');
+  // Monitor connection state changes
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const state = StageConnectionService.getConnectionState();
+      setIsConnected(state.isConnected);
+      setIsConnecting(state.isConnecting);
+      
+      if (state.isConnected) {
+        setConnectionState('connected');
+      } else if (state.isConnecting) {
+        setConnectionState('connecting');
+      } else if (connectionError) {
+        setConnectionState('error');
+      } else {
+        setConnectionState('disconnected');
+      }
+    }, 1000);
+
+    return () => clearInterval(checkInterval);
+  }, [connectionError]);
+
+  const connect = useCallback(async (stageId: string) => {
+    if (!user) {
+      const error = 'Please log in to join the stage';
+      setConnectionError(error);
+      toast.error(error);
+      return;
+    }
+
+    setIsConnecting(true);
+    setConnectionError(null);
+    setConnectionState('connecting');
+
+    try {
+      console.log('Attempting to connect to stage:', stageId);
+      
+      // Aggressive cleanup first
+      await StageCleanupService.forceCleanupUserParticipation(stageId, user.id);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const result = await StageConnectionService.connectToStage(stageId, user.id);
+      
+      if (result.success) {
+        setIsConnected(true);
+        setConnectionError(null);
+        setConnectionState('connected');
+        retryCount.current = 0;
+        toast.success('Connected to stage successfully!');
+      } else {
+        throw new Error(result.error || 'Failed to connect');
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Connection failed';
+      setConnectionError(errorMessage);
+      setConnectionState('error');
+      setIsConnected(false);
+      toast.error(errorMessage);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [user]);
+
+  const disconnect = useCallback(async () => {
+    try {
+      console.log('Disconnecting from stage');
+      await StageConnectionService.disconnectFromStage();
+      
+      setIsConnected(false);
+      setConnectionError(null);
+      setConnectionState('disconnected');
+      retryCount.current = 0;
+      
+      toast.success('Disconnected from stage');
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast.error('Error disconnecting from stage');
+      
+      // Force state reset even if disconnect fails
+      setIsConnected(false);
+      setConnectionState('disconnected');
+    }
+  }, []);
+
+  const forceReconnect = useCallback(async (stageId: string) => {
+    if (!user) {
+      setConnectionError('Please log in to reconnect');
       return;
     }
 
     try {
-      const channel = supabase.channel(`stage:${stageId}`);
-
-      channel.on('presence', { event: 'sync' }, () => {
-        console.log('Presence sync event');
-      })
-      .on('presence', { event: 'join' }, (payload) => {
-        console.log('User joined stage', payload);
-      })
-      .on('presence', { event: 'leave' }, (payload) => {
-        console.log('User left stage', payload);
-      })
-      .subscribe(async (status) => {
-        console.log(`Realtime subscription status: ${status}`);
-        setIsConnected(status === 'SUBSCRIBED');
-
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, metadata: { /* any metadata */ } });
-        }
-      });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect to stage');
+      console.log('Force reconnecting to stage:', stageId);
+      
+      // Aggressive cleanup
+      await StageCleanupService.forceCleanupUserParticipation(stageId, user.id);
+      
+      // Disconnect first
+      await disconnect();
+      
+      // Wait longer before reconnecting
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Reset retry count for force reconnect
+      retryCount.current = 0;
+      
+      // Attempt new connection
+      await connect(stageId);
+      
+    } catch (error) {
+      console.error('Force reconnection error:', error);
+      setConnectionError('Failed to reconnect to stage');
+      setConnectionState('error');
+      toast.error('Failed to reconnect to stage');
     }
-  }, [stageId, user?.id]);
+  }, [user, connect, disconnect]);
 
-  useEffect(() => {
-    const cleanup = connectToStage();
+  const clearError = useCallback(() => {
+    setConnectionError(null);
+    if (connectionState === 'error') {
+      setConnectionState('disconnected');
+    }
+  }, [connectionState]);
 
-    return () => {
-      if (cleanup) {
-        cleanup();
-      }
-    };
-  }, [connectToStage]);
-
-  return { isConnected, error };
+  return {
+    isConnecting,
+    connectionError,
+    isConnected,
+    connect,
+    disconnect,
+    forceReconnect,
+    clearError,
+    connectionState
+  };
 };

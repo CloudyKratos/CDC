@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useChatManager } from '@/hooks/useChatManager';
 import ChatHeader from './chat/ChatHeader';
 import MessagesList from './chat/MessagesList';
@@ -25,7 +26,7 @@ const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({
     isSending,
     error,
     reconnect
-  } = useChatManager({ channelName: activeChannel });
+  } = useChatManager(activeChannel);
 
   // Channel switching
   const channels = [

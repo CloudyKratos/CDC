@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useUnifiedCommunityChat } from '@/hooks/useUnifiedCommunityChat';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ModernChatHeader } from './ModernChatHeader';
@@ -41,7 +41,7 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
     isReady,
     connectionHealth,
     diagnostics
-  } = useUnifiedCommunityChat({ channelName });
+  } = useUnifiedCommunityChat(channelName);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -116,7 +116,7 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
         <div className="px-4 py-2 border-b bg-gray-50 dark:bg-gray-800/50">
           <ConnectionStatusIndicator
             isConnected={isConnected}
-            connectionHealth={connectionHealth === 'unstable' ? 'failed' : connectionHealth}
+            connectionHealth={connectionHealth}
             isLoading={isLoading}
             onReconnect={reconnect}
             diagnostics={diagnostics}

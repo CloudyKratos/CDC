@@ -30,7 +30,6 @@ const Login = () => {
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [showResendOption, setShowResendOption] = useState(false);
   const [lastAttemptedEmail, setLastAttemptedEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Check if user was redirected after email verification
   const verified = searchParams.get('verified') === 'true';
@@ -95,18 +94,13 @@ const Login = () => {
     setErrorMessage(null);
     setShowResendOption(false);
     setLastAttemptedEmail(values.email);
-    setIsSubmitting(true);
     
     try {
-      console.log('Attempting login with:', { email: values.email });
-      const result = await login(values.email, values.password);
-      
-      if (result) {
-        toast.success("🎉 Welcome back!", {
-          description: "Successfully signed in to your account.",
-        });
-        navigate('/dashboard');
-      }
+      await login(values.email, values.password);
+      toast.success("🎉 Welcome back!", {
+        description: "Successfully signed in to your account.",
+      });
+      navigate('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
       const errorMsg = error?.message || "Login failed";
@@ -114,18 +108,17 @@ const Login = () => {
       
       // Show specific toast and options based on error message
       if (errorMsg.toLowerCase().includes("invalid login") || 
-          errorMsg.toLowerCase().includes("invalid credentials") ||
-          errorMsg.toLowerCase().includes("email not confirmed")) {
-        if (errorMsg.toLowerCase().includes("email not confirmed")) {
-          toast.error("📧 Email not verified", {
-            description: "Please verify your email before signing in.",
-          });
-          setShowResendOption(true);
-        } else {
-          toast.error("❌ Login failed", {
-            description: "Invalid email or password. Please check your credentials and try again.",
-          });
-        }
+          errorMsg.toLowerCase().includes("invalid credentials")) {
+        toast.error("❌ Login failed", {
+          description: "Invalid email or password. Please check your credentials and try again.",
+        });
+      } else if (errorMsg.toLowerCase().includes("email not confirmed") || 
+                 errorMsg.toLowerCase().includes("email not verified") ||
+                 errorMsg.toLowerCase().includes("confirm your email")) {
+        toast.error("📧 Email not verified", {
+          description: "Please verify your email before signing in.",
+        });
+        setShowResendOption(true);
       } else if (errorMsg.toLowerCase().includes("too many requests")) {
         toast.error("⏳ Too many attempts", {
           description: "Please wait a moment before trying again.",
@@ -135,12 +128,8 @@ const Login = () => {
           description: errorMsg,
         });
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const isFormLoading = isLoading || isSubmitting;
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-6 sm:px-6 lg:px-8">
@@ -236,7 +225,7 @@ const Login = () => {
                           placeholder="Enter your email address" 
                           type="email" 
                           {...field} 
-                          disabled={isFormLoading}
+                          disabled={isLoading}
                           className="h-12 px-4 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all duration-200"
                         />
                       </FormControl>
@@ -267,7 +256,7 @@ const Login = () => {
                             placeholder="Enter your password" 
                             type={showPassword ? 'text' : 'password'} 
                             {...field} 
-                            disabled={isFormLoading}
+                            disabled={isLoading}
                             className="h-12 px-4 pr-12 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all duration-200"
                           />
                           <Button
@@ -293,9 +282,9 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
-                  disabled={isFormLoading}
+                  disabled={isLoading}
                 >
-                  {isFormLoading ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Signing in...
