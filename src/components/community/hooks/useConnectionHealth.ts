@@ -83,7 +83,7 @@ export function useConnectionHealth() {
     }
 
     reconnectTimeoutRef.current = setTimeout(() => {
-      updateHealth(prev => ({ 
+      setHealth(prev => ({ 
         ...prev, 
         reconnectAttempts: prev.reconnectAttempts + 1,
         status: 'connecting'
@@ -92,15 +92,15 @@ export function useConnectionHealth() {
     }, delay);
 
     return true;
-  }, [health.reconnectAttempts, calculateBackoffDelay, updateHealth]);
+  }, [health.reconnectAttempts, calculateBackoffDelay]);
 
   const resetReconnectAttempts = useCallback(() => {
-    updateHealth(prev => ({ ...prev, reconnectAttempts: 0 }));
+    setHealth(prev => ({ ...prev, reconnectAttempts: 0 }));
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-  }, [updateHealth]);
+  }, []);
 
   useEffect(() => {
     return () => {
