@@ -1,214 +1,189 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 class AuthenticationService {
+  // Sign in user
+  async signIn(email: string, password: string): Promise<User | null> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
+
+      return data.user;
+    } catch (error) {
+      console.error('Authentication service sign in error:', error);
+      throw error;
+    }
+  }
+
+  // Sign up user
   async signUp(email: string, password: string, fullName: string): Promise<User | null> {
     try {
-      console.log("Attempting to sign up user:", { email, fullName });
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName
+            full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/verify`
-        }
+        },
       });
 
       if (error) {
-        console.error('Error during signup:', error);
+        console.error('Sign up error:', error);
         throw error;
       }
-      
-      console.log("Sign up response:", data);
-      
-      // If we have a user but no session, it means email confirmation is required
-      if (data.user && !data.session) {
-        console.log("Email confirmation required for:", email);
-      }
-      
+
       return data.user;
     } catch (error) {
-      console.error('Error in signUp:', error);
+      console.error('Authentication service sign up error:', error);
       throw error;
     }
   }
 
-  async signIn(email: string, password: string): Promise<User | null> {
-    try {
-      console.log("Attempting to sign in user:", email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Error during signin:', error);
-        throw error;
-      }
-      
-      console.log("Sign in successful for:", email);
-      return data.user;
-    } catch (error) {
-      console.error('Error in signIn:', error);
-      throw error;
-    }
-  }
-
+  // Sign out user
   async signOut(): Promise<void> {
     try {
-      console.log("Attempting to sign out user");
-      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Error during signout:', error);
+        console.error('Sign out error:', error);
         throw error;
       }
-      
-      console.log("Sign out successful");
     } catch (error) {
-      console.error('Error in signOut:', error);
+      console.error('Authentication service sign out error:', error);
       throw error;
     }
   }
 
+  // Get current session
+  async getCurrentSession(): Promise<{ data: { session: Session | null } }> {
+    try {
+      return await supabase.auth.getSession();
+    } catch (error) {
+      console.error('Get session error:', error);
+      throw error;
+    }
+  }
+
+  // Get current user
+  async getCurrentUser(): Promise<{ data: { user: User | null } }> {
+    try {
+      return await supabase.auth.getUser();
+    } catch (error) {
+      console.error('Get user error:', error);
+      throw error;
+    }
+  }
+
+  // Update user profile
+  async updateUserProfile(updates: { name?: string; avatar_url?: string }): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: updates.name,
+          avatar_url: updates.avatar_url,
+        },
+      });
+
+      if (error) {
+        console.error('Update profile error:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Authentication service update profile error:', error);
+      return false;
+    }
+  }
+
+  // Reset password
   async resetPassword(email: string): Promise<boolean> {
     try {
-      console.log("Attempting password reset for:", email);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
-      });
-      
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+
       if (error) {
-        console.error('Error sending password reset email:', error);
+        console.error('Reset password error:', error);
         return false;
       }
-      
-      console.log("Password reset email sent to:", email);
+
       return true;
     } catch (error) {
-      console.error('Error in resetPassword:', error);
+      console.error('Authentication service reset password error:', error);
       return false;
     }
   }
 
+  // Update password
   async updatePassword(newPassword: string): Promise<boolean> {
     try {
-      console.log("Attempting to update password");
-      
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
-      
+
       if (error) {
-        console.error('Error updating password:', error);
+        console.error('Update password error:', error);
         return false;
       }
-      
-      console.log("Password update successful");
+
       return true;
     } catch (error) {
-      console.error('Error in updatePassword:', error);
+      console.error('Authentication service update password error:', error);
       return false;
     }
   }
 
-  async getCurrentSession() {
-    return await supabase.auth.getSession();
-  }
-
-  async getCurrentUser() {
-    return await supabase.auth.getUser();
-  }
-
-  subscribeToAuthChanges(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange(callback);
-  }
-
-  async updateUserProfile(userData: { name?: string, avatar_url?: string }): Promise<boolean> {
-    try {
-      console.log("Attempting to update user profile:", userData);
-      
-      const { error } = await supabase.auth.updateUser({
-        data: userData
-      });
-      
-      if (error) {
-        console.error('Error updating user profile:', error);
-        return false;
-      }
-      
-      console.log("User profile update successful");
-      return true;
-    } catch (error) {
-      console.error('Error in updateUserProfile:', error);
-      return false;
-    }
-  }
-
+  // Resend verification email
   async resendVerificationEmail(email: string): Promise<boolean> {
     try {
-      console.log("Attempting to resend verification email to:", email);
-      
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/verify`
-        }
+        email,
       });
-      
+
       if (error) {
-        console.error('Error resending verification email:', error);
+        console.error('Resend verification error:', error);
         return false;
       }
-      
-      console.log("Verification email resent to:", email);
+
       return true;
     } catch (error) {
-      console.error('Error in resendVerificationEmail:', error);
+      console.error('Authentication service resend verification error:', error);
       return false;
     }
   }
 
+  // Verify email with token
   async verifyEmail(token: string): Promise<boolean> {
     try {
-      console.log("Attempting to verify email with token");
-      
-      // For Supabase email verification via OTP
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'email',
       });
-      
+
       if (error) {
-        console.error('Error verifying email:', error);
+        console.error('Verify email error:', error);
         return false;
       }
-      
-      console.log("Email verification successful");
+
       return true;
     } catch (error) {
-      console.error('Error in verifyEmail:', error);
+      console.error('Authentication service verify email error:', error);
       return false;
     }
   }
 
-  // New method to check if email is confirmed
-  async checkEmailConfirmation(email: string): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user?.email_confirmed_at !== null;
-    } catch (error) {
-      console.error('Error checking email confirmation:', error);
-      return false;
-    }
+  // Subscribe to auth changes
+  subscribeToAuthChanges(callback: (event: AuthChangeEvent, session: Session | null) => void) {
+    return supabase.auth.onAuthStateChange(callback);
   }
 }
 
