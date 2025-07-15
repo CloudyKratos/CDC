@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useSimpleChat } from '../hooks/useSimpleChat';
+import { StableCommunityChat } from '../StableCommunityChat';
+import { ChatErrorBoundary } from '../ChatErrorBoundary';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +16,8 @@ import {
   Hash,
   Wifi,
   WifiOff,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +33,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
 }) => {
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
+  const [useStableVersion, setUseStableVersion] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +47,14 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
     sendMessage,
     deleteMessage
   } = chatHookResult ?? {};
+
+  // Auto-switch to stable version on persistent errors
+  useEffect(() => {
+    if (error && error.includes('Connection') && !useStableVersion) {
+      console.log('🔄 Switching to stable chat version due to connection issues');
+      setUseStableVersion(true);
+    }
+  }, [error, useStableVersion]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -75,6 +87,32 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
     }
   };
 
+  // Feature flag toggle for debugging
+  const toggleVersion = () => {
+    setUseStableVersion(!useStableVersion);
+  };
+
+  // Render stable version if requested
+  if (useStableVersion) {
+    return (
+      <ChatErrorBoundary>
+        <div className="relative">
+          {/* Version toggle button for debugging */}
+          <Button
+            onClick={toggleVersion}
+            size="sm"
+            variant="ghost"
+            className="absolute top-2 right-2 z-10 opacity-50 hover:opacity-100"
+            title="Switch to Original Version"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <StableCommunityChat channelName={channelName} className={className} />
+        </div>
+      </ChatErrorBoundary>
+    );
+  }
+
   if (!user) {
     return (
       <Card className={`h-full flex flex-col bg-background border-border ${className}`}>
@@ -96,121 +134,155 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   }
 
   return (
-    <Card className={`h-full flex flex-col bg-background border-border ${className}`}>
-      {/* Clean Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Hash className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-semibold text-foreground">
-                {channelName}
-              </h2>
+    <ChatErrorBoundary
+      onError={(error) => {
+        console.error('🔴 SimpleCommunityChat error:', error);
+        // Auto-switch to stable version on critical errors
+        if (error.message.includes('Connection') || error.message.includes('subscription')) {
+          setUseStableVersion(true);
+        }
+      }}
+    >
+      <Card className={`h-full flex flex-col bg-background border-border ${className}`}>
+        {/* Clean Header with Stability Indicators */}
+        <div className="flex-shrink-0 px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Hash className="h-5 w-5 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground">
+                  {channelName}
+                </h2>
+              </div>
+              <Separator orientation="vertical" className="h-4" />
+              <span className="text-sm text-muted-foreground">
+                {messages.length} messages
+              </span>
             </div>
-            <Separator orientation="vertical" className="h-4" />
-            <span className="text-sm text-muted-foreground">
-              {messages.length} messages
-            </span>
+            
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="outline"
+                className={`text-xs ${
+                  isConnected 
+                    ? 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/20 dark:border-green-800' 
+                    : 'text-muted-foreground bg-muted border-border'
+                }`}
+              >
+                {isConnected ? (
+                  <><Wifi className="h-3 w-3 mr-1" />Online</>
+                ) : (
+                  <><WifiOff className="h-3 w-3 mr-1" />Offline</>
+                )}
+              </Badge>
+              
+              {/* Version toggle for debugging */}
+              <Button
+                onClick={toggleVersion}
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
+                title="Switch to Stable Version"
+              >
+                <Settings className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
-          
-          <Badge 
-            variant="outline"
-            className={`text-xs ${
-              isConnected 
-                ? 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/20 dark:border-green-800' 
-                : 'text-muted-foreground bg-muted border-border'
-            }`}
-          >
-            {isConnected ? (
-              <><Wifi className="h-3 w-3 mr-1" />Online</>
-            ) : (
-              <><WifiOff className="h-3 w-3 mr-1" />Offline</>
-            )}
-          </Badge>
         </div>
-      </div>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert className="m-4 border-destructive/20 bg-destructive/5">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-destructive text-sm">
-            {error}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Messages Area */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="py-2">
-            {/* Loading State */}
-            {isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-16">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm">Loading messages...</span>
-                </div>
+        {/* Error Alert with Auto-Recovery */}
+        {error && (
+          <Alert className="m-4 border-destructive/20 bg-destructive/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-destructive text-sm flex items-center justify-between">
+              <div>
+                <div className="font-medium">Connection Issue</div>
+                <div>{error}</div>
               </div>
-            )}
+              <Button
+                onClick={toggleVersion}
+                size="sm"
+                variant="outline"
+                className="ml-2"
+              >
+                Use Stable Version
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-            {/* Messages */}
-            {messages.map((message, index) => {
-              const prevMessage = messages[index - 1];
-              const isConsecutive = prevMessage && 
-                prevMessage.sender_id === message.sender_id &&
-                new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000; // 5 minutes
-
-              return (
-                <EnhancedModernMessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={message.sender_id === user.id}
-                  onDelete={handleDeleteMessage}
-                  showAvatar={!isConsecutive}
-                  isConsecutive={isConsecutive}
-                  isConnected={isConnected}
-                />
-              );
-            })}
-
-            {/* Empty State */}
-            {!isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-20">
-                <div className="text-center max-w-sm">
-                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="h-6 w-6 text-muted-foreground" />
+        {/* Messages Area */}
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full" ref={scrollAreaRef}>
+            <div className="py-2">
+              {/* Loading State */}
+              {isLoading && messages.length === 0 && (
+                <div className="flex items-center justify-center py-16">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm">Loading messages...</span>
                   </div>
-                  <h3 className="text-sm font-medium text-foreground mb-2">
-                    No messages yet
-                  </h3>
-                  <p className="text-muted-foreground text-xs">
-                    Start the conversation in #{channelName}
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-      </div>
+              {/* Messages */}
+              {messages.map((message, index) => {
+                const prevMessage = messages[index - 1];
+                const isConsecutive = prevMessage && 
+                  prevMessage.sender_id === message.sender_id &&
+                  new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000; // 5 minutes
 
-      {/* Message Input */}
-      <div className="flex-shrink-0 border-t border-border p-4">
-        <ModernMessageInput
-          value={messageText}
-          onChange={setMessageText}
-          onSend={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          disabled={!isConnected}
-          placeholder={
-            !isConnected 
-              ? "Connecting..." 
-              : `Message #${channelName}...`
-          }
-        />
-      </div>
-    </Card>
+                return (
+                  <EnhancedModernMessageBubble
+                    key={message.id}
+                    message={message}
+                    isOwn={message.sender_id === user.id}
+                    onDelete={handleDeleteMessage}
+                    showAvatar={!isConsecutive}
+                    isConsecutive={isConsecutive}
+                    isConnected={isConnected}
+                  />
+                );
+              })}
+
+              {/* Empty State */}
+              {!isLoading && messages.length === 0 && (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center max-w-sm">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MessageSquare className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-sm font-medium text-foreground mb-2">
+                      No messages yet
+                    </h3>
+                    <p className="text-muted-foreground text-xs">
+                      Start the conversation in #{channelName}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Message Input */}
+        <div className="flex-shrink-0 border-t border-border p-4">
+          <ModernMessageInput
+            value={messageText}
+            onChange={setMessageText}
+            onSend={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            disabled={!isConnected}
+            placeholder={
+              !isConnected 
+                ? "Connecting..." 
+                : `Message #${channelName}...`
+            }
+          />
+        </div>
+      </Card>
+    </ChatErrorBoundary>
   );
 };

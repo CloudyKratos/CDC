@@ -1,410 +1,266 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useStableChatConnection } from './hooks/useStableChatConnection';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, Hash, Users, Wifi, WifiOff } from 'lucide-react';
-import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Send, 
+  Hash, 
+  Wifi, 
+  WifiOff, 
+  AlertCircle, 
+  RefreshCw,
+  Loader2,
+  Trash2,
+  Users
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-
-interface Message {
-  id: string;
-  content: string;
-  created_at: string;
-  sender_id: string;
-  channel_id: string;
-  profiles: {
-    id: string;
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  } | null;
-}
 
 interface StableCommunityChatProps {
   channelName?: string;
+  className?: string;
 }
 
-const StableCommunityChat: React.FC<StableCommunityChatProps> = ({ 
-  channelName = 'general' 
+export const StableCommunityChat: React.FC<StableCommunityChatProps> = ({
+  channelName = 'general',
+  className = ''
 }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  
   const { user } = useAuth();
+  const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const subscriptionRef = useRef<any>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    isConnected,
+    isLoading,
+    error,
+    messages,
+    sendMessage,
+    deleteMessage,
+    reconnect
+  } = useStableChatConnection(channelName);
 
   // Auto-scroll to bottom
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  };
 
-  // Initialize channel and load messages
-  const initializeChat = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      console.log('🔄 Initializing stable chat for:', channelName);
-
-      // Get or create channel
-      let { data: channel, error: channelError } = await supabase
-        .from('channels')
-        .select('id')
-        .eq('name', channelName)
-        .eq('type', 'public')
-        .maybeSingle();
-
-      if (channelError && channelError.code !== 'PGRST116') {
-        throw new Error(`Channel error: ${channelError.message}`);
-      }
-
-      if (!channel) {
-        console.log('📝 Creating channel:', channelName);
-        const { data: newChannel, error: createError } = await supabase
-          .from('channels')
-          .insert({
-            name: channelName,
-            type: 'public',
-            description: `${channelName} discussion`,
-            created_by: user.id
-          })
-          .select('id')
-          .single();
-
-        if (createError) {
-          throw new Error(`Failed to create channel: ${createError.message}`);
-        }
-        channel = newChannel;
-      }
-
-      setChannelId(channel.id);
-
-      // Join channel
-      await supabase
-        .from('channel_members')
-        .upsert({
-          channel_id: channel.id,
-          user_id: user.id
-        }, { onConflict: 'user_id,channel_id' });
-
-      // Load messages
-      await loadMessages(channel.id);
-
-      // Setup realtime subscription
-      setupRealtimeSubscription(channel.id);
-
-      console.log('✅ Stable chat initialized successfully');
-    } catch (error) {
-      console.error('💥 Failed to initialize chat:', error);
-      toast.error('Failed to initialize chat');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, channelName]);
-
-  // Load messages for channel
-  const loadMessages = useCallback(async (channelId: string) => {
-    try {
-      setIsLoadingMessages(true);
-      console.log('📥 Loading messages for channel:', channelId);
-
-      // First get the messages
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('community_messages')
-        .select('id, content, created_at, sender_id, channel_id')
-        .eq('channel_id', channelId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (messagesError) {
-        console.error('❌ Error loading messages:', messagesError);
-        setMessages([]);
-        return;
-      }
-
-      if (!messagesData || messagesData.length === 0) {
-        console.log('✅ No messages found');
-        setMessages([]);
-        return;
-      }
-
-      // Get unique sender IDs
-      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
-      
-      // Fetch profiles for all senders
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', senderIds);
-
-      if (profilesError) {
-        console.error('❌ Error loading profiles:', profilesError);
-      }
-
-      // Create a map of profiles by ID
-      const profilesMap = new Map();
-      (profilesData || []).forEach(profile => {
-        profilesMap.set(profile.id, profile);
-      });
-
-      // Combine messages with profiles
-      const messagesWithProfiles: Message[] = messagesData.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        created_at: msg.created_at,
-        sender_id: msg.sender_id,
-        channel_id: msg.channel_id,
-        profiles: profilesMap.get(msg.sender_id) || {
-          id: msg.sender_id,
-          username: 'Unknown User',
-          full_name: 'Unknown User',
-          avatar_url: null
-        }
-      }));
-
-      console.log('✅ Messages loaded:', messagesWithProfiles.length);
-      setMessages(messagesWithProfiles);
-      setTimeout(scrollToBottom, 100);
-    } catch (error) {
-      console.error('💥 Exception loading messages:', error);
-      setMessages([]);
-    } finally {
-      setIsLoadingMessages(false);
-    }
-  }, [scrollToBottom]);
-
-  // Setup realtime subscription
-  const setupRealtimeSubscription = useCallback((channelId: string) => {
-    if (subscriptionRef.current) {
-      supabase.removeChannel(subscriptionRef.current);
-    }
-
-    console.log('📡 Setting up realtime subscription');
-    
-    const subscription = supabase
-      .channel(`stable_chat_${channelId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'community_messages',
-          filter: `channel_id=eq.${channelId}`
-        },
-        async (payload) => {
-          console.log('📨 New message received:', payload);
-          const newMessage = payload.new as any;
-          
-          // Get sender profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', newMessage.sender_id)
-            .single();
-
-          const messageWithProfile: Message = {
-            id: newMessage.id,
-            content: newMessage.content,
-            created_at: newMessage.created_at,
-            sender_id: newMessage.sender_id,
-            channel_id: newMessage.channel_id,
-            profiles: profile || {
-              id: newMessage.sender_id,
-              username: 'Unknown User',
-              full_name: 'Unknown User',
-              avatar_url: null
-            }
-          };
-
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === messageWithProfile.id);
-            if (exists) return prev;
-            const newMessages = [...prev, messageWithProfile];
-            setTimeout(scrollToBottom, 100);
-            return newMessages;
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-      });
-
-    subscriptionRef.current = subscription;
-  }, [scrollToBottom]);
-
-  // Send message
-  const sendMessage = useCallback(async () => {
-    if (!user?.id || !channelId || !newMessage.trim() || isSending) {
-      return;
-    }
-
-    try {
-      setIsSending(true);
-      console.log('📤 Sending message:', newMessage.trim());
-
-      const { error } = await supabase
-        .from('community_messages')
-        .insert({
-          channel_id: channelId,
-          sender_id: user.id,
-          content: newMessage.trim()
-        });
-
-      if (error) {
-        throw new Error(`Failed to send message: ${error.message}`);
-      }
-
-      setNewMessage('');
-      console.log('✅ Message sent successfully');
-    } catch (error) {
-      console.error('💥 Failed to send message:', error);
-      toast.error('Failed to send message');
-    } finally {
-      setIsSending(false);
-    }
-  }, [user?.id, channelId, newMessage, isSending]);
-
-  // Handle key press
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }, [sendMessage]);
-
-  // Initialize on mount
   useEffect(() => {
-    initializeChat();
-    
-    return () => {
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-      }
-    };
-  }, [initializeChat]);
+    scrollToBottom();
+  }, [messages]);
 
+  // Focus input when connected
+  useEffect(() => {
+    if (inputRef.current && isConnected && !isLoading) {
+      inputRef.current.focus();
+    }
+  }, [isConnected, isLoading]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!messageText.trim() || !isConnected) {
+      return;
+    }
+
+    const messageToSend = messageText.trim();
+    setMessageText(''); // Clear immediately for better UX
+    
+    const success = await sendMessage(messageToSend);
+    if (!success) {
+      // Restore message if sending failed
+      setMessageText(messageToSend);
+    } else {
+      // Focus input after successful send
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    await deleteMessage(messageId);
+  };
+
+  // Connection status indicator
+  const getConnectionStatus = () => {
+    if (isLoading) {
+      return (
+        <Badge variant="outline" className="text-blue-600 bg-blue-50 border-blue-200">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Loading...
+        </Badge>
+      );
+    }
+    
+    if (isConnected) {
+      return (
+        <Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">
+          <Wifi className="h-3 w-3 mr-1" />
+          Connected
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge variant="outline" className="text-red-600 bg-red-50 border-red-200">
+        <WifiOff className="h-3 w-3 mr-1" />
+        Disconnected
+      </Badge>
+    );
+  };
+
+  // Authentication guard
   if (!user) {
     return (
-      <div className="h-full flex items-center justify-center p-8">
-        <div className="text-center">
-          <Hash className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Sign in to join the chat
-          </h3>
-          <p className="text-gray-600 dark:text-gray-300">
-            You need to be signed in to participate in community discussions.
-          </p>
+      <Card className={`h-full ${className}`}>
+        <div className="h-full flex items-center justify-center p-8">
+          <div className="text-center">
+            <Hash className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Sign in to join the chat
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              You need to be signed in to participate in community discussions.
+            </p>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading chat...</p>
-        </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <Card className={`h-full flex flex-col bg-white dark:bg-gray-900 ${className}`}>
+      {/* Enhanced Header with Stability Indicators */}
+      <div className="flex-shrink-0 p-4 border-b bg-gray-50 dark:bg-gray-800/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Hash className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Hash className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {channelName}
             </h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {messages.length} messages
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <Wifi className="h-4 w-4" />
-                <span className="text-sm font-medium">Live</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-gray-500">
-                <WifiOff className="h-4 w-4" />
-                <span className="text-sm font-medium">Connecting...</span>
-              </div>
-            )}
+          <div className="flex items-center gap-3">
+            {getConnectionStatus()}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={reconnect}
+              disabled={isLoading}
+              className="h-8 w-8 p-0"
+              title="Reconnect"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Error Alert with Enhanced Recovery */}
+      {error && (
+        <Alert className="m-4 border-red-200 bg-red-50 dark:bg-red-900/20 flex-shrink-0">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-red-800 dark:text-red-400 flex items-center justify-between">
+            <div>
+              <div className="font-medium">Connection Issue</div>
+              <div className="text-sm">{error}</div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={reconnect}
+              className="ml-2 h-auto p-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Messages Area with Improved Rendering */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {isLoadingMessages ? (
+        {isLoading && messages.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+            <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Loading messages...</span>
+            </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-center text-gray-500">
+            <div className="text-center text-gray-500 dark:text-gray-400">
               <Users className="h-8 w-8 mx-auto mb-2" />
               <p>No messages yet</p>
-              <p className="text-sm">Be the first to start the conversation!</p>
+              <p className="text-sm">Start the conversation!</p>
             </div>
           </div>
         ) : (
-          messages.map((message) => {
+          messages.map((message, index) => {
             const isOwn = message.sender_id === user?.id;
-            const senderName = message.profiles?.full_name || 
-                             message.profiles?.username || 
-                             'Unknown User';
-            const avatar = message.profiles?.avatar_url;
+            const senderName = message.sender?.full_name || 
+                             message.sender?.username || 
+                             'User';
+            
+            // Group consecutive messages from same sender
+            const prevMessage = messages[index - 1];
+            const isConsecutive = prevMessage && 
+              prevMessage.sender_id === message.sender_id &&
+              new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000;
 
             return (
-              <div
-                key={message.id}
-                className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
-              >
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={avatar || ''} alt={senderName} />
-                  <AvatarFallback className="text-xs">
-                    {senderName[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className={`flex-1 ${isOwn ? 'text-right' : ''}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {isOwn ? 'You' : senderName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                    </span>
-                  </div>
+              <div key={message.id} className="group">
+                <div className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                  {!isConsecutive && (
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarImage src={message.sender?.avatar_url || ''} alt={senderName} />
+                      <AvatarFallback className="text-xs bg-gray-200 dark:bg-gray-700">
+                        {senderName[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   
-                  <div
-                    className={`inline-block px-3 py-2 rounded-lg max-w-xs lg:max-w-md ${
-                      isOwn
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
+                  <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : ''} ${isConsecutive ? 'ml-11' : ''}`}>
+                    {!isConsecutive && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {isOwn ? 'You' : senderName}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-start gap-2">
+                      <div
+                        className={`px-3 py-2 rounded-lg max-w-xs break-words transition-all duration-200 ${
+                          isOwn
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      </div>
+
+                      {isOwn && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6 p-0 text-gray-500 hover:text-red-600 dark:hover:text-red-400"
+                          onClick={() => handleDeleteMessage(message.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -414,32 +270,40 @@ const StableCommunityChat: React.FC<StableCommunityChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex gap-2">
+      {/* Enhanced Message Input */}
+      <div className="flex-shrink-0 p-4 border-t bg-gray-50 dark:bg-gray-800/50">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={`Message #${channelName}...`}
-            disabled={!isConnected || isSending}
-            className="flex-1"
+            ref={inputRef}
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            placeholder={
+              isConnected 
+                ? `Message #${channelName}...` 
+                : isLoading
+                ? 'Loading...'
+                : 'Connection issues...'
+            }
+            disabled={!isConnected}
+            className="flex-1 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            maxLength={1000}
           />
           <Button
-            onClick={sendMessage}
-            disabled={!newMessage.trim() || !isConnected || isSending}
+            type="submit"
+            disabled={!messageText.trim() || !isConnected}
             size="sm"
+            className="px-3 bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
           >
-            {isSending ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            <Send className="h-4 w-4" />
           </Button>
+        </form>
+        
+        {/* Status indicator */}
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          {!isConnected && !isLoading && 'Connection lost - reconnecting automatically...'}
+          {isConnected && 'Ready to send messages'}
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
-
-export default StableCommunityChat;
