@@ -45,7 +45,12 @@ import {
   Command,
   RotateCcw,
   Award,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Edit,
+  Save
 } from 'lucide-react';
 
 const Icons = {
@@ -94,7 +99,12 @@ const Icons = {
   Command,
   RotateCcw,
   Award,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Edit,
+  Save
 };
 
 export default Icons;

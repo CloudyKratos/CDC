@@ -1,7 +1,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
@@ -10,29 +10,24 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  error?: Error;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false,
-    error: null,
-    errorInfo: null
+    hasError: false
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    this.setState({ errorInfo });
-    console.error("Uncaught error:", error, errorInfo);
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  private handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
-    window.location.reload();
+  private handleReset = () => {
+    this.setState({ hasError: false, error: undefined });
   };
 
   public render() {
@@ -42,34 +37,18 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-6 rounded-lg border border-red-300 dark:border-red-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-          <AlertCircle className="h-16 w-16 text-red-500 mb-6" />
-          <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">
-            We encountered an unexpected error. Please try refreshing the page.
+        <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-lg border border-gray-200">
+          <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Something went wrong
+          </h3>
+          <p className="text-gray-600 mb-4 max-w-md">
+            We encountered an unexpected error. Please try refreshing or contact support if the problem persists.
           </p>
-          <div className="space-x-4">
-            <Button 
-              onClick={this.handleRetry}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Retry
-            </Button>
-          </div>
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
-            <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md overflow-auto max-w-full text-left">
-              <p className="font-medium mb-2">Error Details:</p>
-              <pre className="text-xs overflow-auto whitespace-pre-wrap break-words">
-                {this.state.error.toString()}
-              </pre>
-              {this.state.errorInfo && (
-                <pre className="text-xs mt-2 overflow-auto whitespace-pre-wrap break-words">
-                  {this.state.errorInfo.componentStack}
-                </pre>
-              )}
-            </div>
-          )}
+          <Button onClick={this.handleReset} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
         </div>
       );
     }

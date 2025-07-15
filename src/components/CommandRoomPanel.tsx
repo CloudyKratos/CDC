@@ -1,11 +1,11 @@
 
 import React from 'react';
 import CommandRoomTabs from './command-room/CommandRoomTabs';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRole } from '@/contexts/RoleContext';
 
 const CommandRoomPanel: React.FC = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { currentRole, canManageCalendar } = useRole();
+  const isAdmin = currentRole === 'admin' || canManageCalendar;
 
   return (
     <div className="h-full">
