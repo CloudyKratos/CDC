@@ -16,14 +16,25 @@ interface AddYouTubeModalProps {
   onAdd: (video: Omit<LearningVideo, 'id' | 'addedBy' | 'addedAt'>) => void;
 }
 
+interface FormData {
+  title: string;
+  description: string;
+  videoUrl: string;
+  duration: string;
+  category: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  tags: string;
+  instructor: string;
+}
+
 const AddYouTubeModal: React.FC<AddYouTubeModalProps> = ({ isOpen, onClose, onAdd }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     videoUrl: '',
     duration: '',
     category: '',
-    difficulty: 'beginner' as const,
+    difficulty: 'beginner',
     tags: '',
     instructor: ''
   });
@@ -79,6 +90,10 @@ const AddYouTubeModal: React.FC<AddYouTubeModalProps> = ({ isOpen, onClose, onAd
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDifficultyChange = (value: 'beginner' | 'intermediate' | 'advanced') => {
+    setFormData(prev => ({ ...prev, difficulty: value }));
   };
 
   return (
@@ -167,7 +182,7 @@ const AddYouTubeModal: React.FC<AddYouTubeModalProps> = ({ isOpen, onClose, onAd
             </div>
             <div>
               <Label htmlFor="difficulty">Difficulty</Label>
-              <Select value={formData.difficulty} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => setFormData(prev => ({ ...prev, difficulty: value }))}>
+              <Select value={formData.difficulty} onValueChange={handleDifficultyChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

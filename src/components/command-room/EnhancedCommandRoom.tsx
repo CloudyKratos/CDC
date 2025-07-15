@@ -176,7 +176,7 @@ const EnhancedCommandRoom: React.FC = () => {
       const newVideo: LearningVideo = {
         ...videoData,
         id: Date.now().toString(),
-        addedBy: user?.full_name || 'Admin',
+        addedBy: user?.email?.split('@')[0] || 'Admin',
         addedAt: new Date(),
         progress: 0
       };
@@ -221,7 +221,17 @@ const EnhancedCommandRoom: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
         <CommandRoomBackground />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <ErrorBoundary />
+          <ErrorBoundary>
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Retry
+              </button>
+            </div>
+          </ErrorBoundary>
         </div>
       </div>
     );

@@ -4,7 +4,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
-  children: ReactNode;
+  children?: ReactNode;
   fallback?: ReactNode;
 }
 
@@ -53,7 +53,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return this.props.children || null;
   }
 }
 
