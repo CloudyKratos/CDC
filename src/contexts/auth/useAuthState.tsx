@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -42,16 +41,6 @@ export const useAuthState = () => {
               handleUserSession(session);
             }
             break;
-        }
-        
-        // Handle user deletion separately since it's not in the AuthChangeEvent type
-        if (event === 'USER_DELETED') {
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          });
         }
       }
     );
