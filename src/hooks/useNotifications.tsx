@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Notification, NotificationStats } from '@/types/notifications';
-import { NotificationService } from '@/services/NotificationService';
+import { NotificationService, Notification, NotificationStats } from '@/services/NotificationService';
 import { toast } from 'sonner';
 
 export const useNotifications = () => {
@@ -132,15 +131,17 @@ export const useNotifications = () => {
   // Set up real-time subscription
   useEffect(() => {
     const unsubscribe = NotificationService.subscribeToNotifications((notification) => {
-      if (notification.user_id) {
-        addNotification(notification);
-      } else {
+      // Check if this is a new notification or an update
+      const existingNotification = notifications.find(n => n.id === notification.id);
+      if (existingNotification) {
         updateNotification(notification);
+      } else {
+        addNotification(notification);
       }
     });
 
     return unsubscribe;
-  }, [addNotification, updateNotification]);
+  }, [addNotification, updateNotification, notifications]);
 
   const unreadCount = stats.unread;
   const recentNotifications = notifications.slice(0, 10);

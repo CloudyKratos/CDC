@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Notification } from '@/types/notifications';
+import { Notification } from '@/services/NotificationService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';

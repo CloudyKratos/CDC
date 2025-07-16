@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { NotificationPreferences } from '@/types/notifications';
-import { NotificationService } from '@/services/NotificationService';
+import { NotificationService, NotificationPreferences } from '@/services/NotificationService';
 
 export const useNotificationPreferences = () => {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
