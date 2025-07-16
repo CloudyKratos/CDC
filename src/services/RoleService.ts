@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole, UserWithRole } from "@/types/supabase-extended";
 
@@ -113,19 +112,57 @@ class RoleService {
         return false;
       }
 
-      // Call the database function to verify CDC admin status
-      const { data, error } = await supabase.rpc('is_cdc_admin', {
-        check_user_id: user.id
-      });
+      // First try the database function if it exists, otherwise fallback to direct query
+      try {
+        const { data, error } = await supabase.rpc('is_cdc_admin' as any, {
+          check_user_id: user.id
+        });
 
-      if (error) {
-        console.error('Error checking CDC admin status:', error);
+        if (error) {
+          console.log('RPC function not available, using fallback method');
+          // Fallback to direct query
+          return await this.fallbackCDCAdminCheck(user.id, user.email);
+        }
+
+        // Ensure we return a boolean, handle string/boolean return types
+        return Boolean(data);
+      } catch (rpcError) {
+        console.log('RPC call failed, using fallback method');
+        return await this.fallbackCDCAdminCheck(user.id, user.email);
+      }
+    } catch (error) {
+      console.error('Error in isCDCAdmin:', error);
+      return false;
+    }
+  }
+
+  // Fallback method for CDC admin check
+  private async fallbackCDCAdminCheck(userId: string, email: string): Promise<boolean> {
+    try {
+      // Check if user email matches CDC admin email
+      if (email !== this.CDC_ADMIN_EMAIL) {
         return false;
       }
 
-      return data || false;
+      // Check if user has admin role
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return false; // No admin role found
+        }
+        console.error('Error in fallback CDC admin check:', error);
+        return false;
+      }
+
+      return !!data;
     } catch (error) {
-      console.error('Error in isCDCAdmin:', error);
+      console.error('Error in fallbackCDCAdminCheck:', error);
       return false;
     }
   }
