@@ -2,7 +2,7 @@
 import React from 'react';
 import { Message } from '@/types/chat';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, Reply, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,23 +15,53 @@ interface EnhancedModernMessageBubbleProps {
   message: Message;
   isOwn: boolean;
   onDelete?: (messageId: string) => void;
+  onReply?: (messageId: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string, emoji: string) => void;
+  onPin?: (messageId: string) => void;
+  onReport?: (messageId: string) => void;
+  onSendReply?: (content: string, parentId: string) => Promise<boolean>;
   showAvatar?: boolean;
   isConsecutive?: boolean;
   isConnected?: boolean;
+  isThread?: boolean;
+  hideActions?: boolean;
+  className?: string;
 }
 
 export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubbleProps> = ({
   message,
   isOwn,
   onDelete,
+  onReply,
+  onReact,
+  onRemoveReaction,
+  onPin,
+  onReport,
+  onSendReply,
   showAvatar = true,
   isConsecutive = false,
-  isConnected = true
+  isConnected = true,
+  isThread = false,
+  hideActions = false,
+  className = ''
 }) => {
   const timeAgo = formatDistanceToNow(new Date(message.created_at), { addSuffix: true });
   
+  const handleReply = () => {
+    if (onReply) {
+      onReply(message.id);
+    }
+  };
+
+  const handleReact = (emoji: string) => {
+    if (onReact) {
+      onReact(message.id, emoji);
+    }
+  };
+  
   return (
-    <div className={`flex gap-3 group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg p-2 transition-colors duration-200 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}>
+    <div className={`flex gap-3 group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg p-2 transition-colors duration-200 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${className}`}>
       {/* Avatar */}
       {showAvatar && (
         <div className="flex-shrink-0">
@@ -81,28 +111,55 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
             </p>
 
             {/* Message Actions */}
-            {isOwn && onDelete && (
-              <div className="absolute -top-2 -left-2 opacity-0 group-hover/message:opacity-100 transition-opacity duration-200">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
-                    >
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-32">
-                    <DropdownMenuItem
-                      onClick={() => onDelete(message.id)}
-                      className="text-red-600 dark:text-red-400 cursor-pointer"
-                    >
-                      <Trash2 className="h-3 w-3 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            {!hideActions && (
+              <div className="absolute -top-2 -left-2 opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex gap-1">
+                {/* Reply Button */}
+                {onReply && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReply}
+                    className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
+                  >
+                    <Reply className="h-3 w-3" />
+                  </Button>
+                )}
+
+                {/* React Button */}
+                {onReact && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleReact('👍')}
+                    className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
+                  >
+                    <Heart className="h-3 w-3" />
+                  </Button>
+                )}
+
+                {/* More Actions for own messages */}
+                {isOwn && onDelete && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
+                      >
+                        <MoreHorizontal className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-32">
+                      <DropdownMenuItem
+                        onClick={() => onDelete(message.id)}
+                        className="text-red-600 dark:text-red-400 cursor-pointer"
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             )}
           </div>

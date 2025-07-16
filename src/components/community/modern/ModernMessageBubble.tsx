@@ -9,6 +9,10 @@ interface ModernMessageBubbleProps {
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string, emoji: string) => void;
+  onPin?: (messageId: string) => void;
+  onReport?: (messageId: string) => void;
+  onSendReply?: (content: string, parentId: string) => Promise<boolean>;
   showAvatar?: boolean;
   isConsecutive?: boolean;
   isThread?: boolean;
