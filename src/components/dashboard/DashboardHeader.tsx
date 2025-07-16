@@ -48,11 +48,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="flex items-center gap-3">
           <NotificationDropdown />
 
-          {/* Admin Panel Button - Only for CDC Admin */}
+          {/* Enhanced Admin Panel Button - Only for CDC Admin */}
           {isCDCAdmin && (
             <Link to="/admin">
-              <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+              <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 relative group">
                 <Shield className="h-5 w-5" />
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
+                <div className="absolute top-8 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  Enhanced Admin Panel
+                </div>
               </Button>
             </Link>
           )}

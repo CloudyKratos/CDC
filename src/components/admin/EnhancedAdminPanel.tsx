@@ -126,15 +126,19 @@ const EnhancedAdminPanel = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Enhanced stage call room with improved participant management</span>
+                      <span>Enhanced calendar with advanced event management and analytics</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span>Advanced calendar with analytics and event lifecycle management</span>
+                      <span>Real-time event monitoring and bulk operations</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <span>Improved connection stability and error handling</span>
+                      <span>Advanced event templates and scheduling controls</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span>Comprehensive calendar settings and permissions</span>
                     </div>
                   </div>
                 </div>
@@ -166,11 +170,11 @@ const EnhancedAdminPanel = () => {
                   <Badge className="bg-green-500">Enforced</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Stage Call Security</span>
+                  <span className="text-sm">Calendar Security</span>
                   <Badge className="bg-green-500">Enhanced</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Calendar Privacy</span>
+                  <span className="text-sm">Event Management</span>
                   <Badge className="bg-green-500">Protected</Badge>
                 </div>
               </CardContent>
@@ -241,8 +245,8 @@ const EnhancedAdminPanel = () => {
                       <Badge className="bg-green-500">Hardened</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Stage Call Encryption</span>
-                      <Badge className="bg-green-500">End-to-End</Badge>
+                      <span>Calendar Event Protection</span>
+                      <Badge className="bg-green-500">Enhanced</Badge>
                     </div>
                   </div>
                 </div>
@@ -261,6 +265,10 @@ const EnhancedAdminPanel = () => {
                     <div className="flex items-center justify-between">
                       <span>Error Tracking</span>
                       <Badge className="bg-blue-500">Advanced</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Calendar Analytics</span>
+                      <Badge className="bg-blue-500">Comprehensive</Badge>
                     </div>
                   </div>
                 </div>
