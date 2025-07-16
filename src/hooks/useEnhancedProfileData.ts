@@ -168,8 +168,8 @@ export const useEnhancedProfileData = (user: User | null) => {
           linkedin_url: data.linkedin_url || '',
           twitter_url: data.twitter_url || '',
           avatar_url: data.avatar_url || '',
-          skills: Array.isArray(data.skills) ? data.skills : [],
-          interests: Array.isArray(data.interests) ? data.interests : []
+          skills: Array.isArray(data.skills) ? data.skills.map(skill => String(skill)) : [],
+          interests: Array.isArray(data.interests) ? data.interests.map(interest => String(interest)) : []
         };
         setProfile(profileData);
         setOriginalProfile(profileData);

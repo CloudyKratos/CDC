@@ -112,7 +112,10 @@ export const EnhancedAvatarUpload: React.FC<EnhancedAvatarUploadProps> = ({
             size="sm" 
             className="gap-2" 
             disabled={disabled || uploading}
-            onClick={() => document.querySelector('input[type="file"]')?.click()}
+            onClick={() => {
+              const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+              fileInput?.click();
+            }}
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
