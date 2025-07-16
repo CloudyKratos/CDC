@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, MapPin, Clock, Upload, User, Loader2 } from 'lucide-react';
+import { Camera, MapPin, Upload, User, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProfileData } from '@/hooks/useProfileData';
 import { useEnhancedProfileValidation } from '@/hooks/useEnhancedProfileValidation';
 import { SkillsInterestsManager } from './SkillsInterestsManager';
@@ -125,24 +124,6 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
     setInterests([]);
     toast.info('Changes discarded');
   };
-
-  const timezones = [
-    'America/New_York',
-    'America/Los_Angeles',
-    'America/Chicago',
-    'America/Denver',
-    'Europe/London',
-    'Europe/Paris',
-    'Europe/Berlin',
-    'Europe/Madrid',
-    'Asia/Tokyo',
-    'Asia/Shanghai',
-    'Asia/Seoul',
-    'Asia/Singapore',
-    'Australia/Sydney',
-    'Australia/Melbourne',
-    'Pacific/Auckland'
-  ];
 
   if (loading) {
     return <ProfileLoadingStates type="full" />;

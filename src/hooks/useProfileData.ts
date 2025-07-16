@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +30,8 @@ interface UserSettings {
 
 export const useProfileData = (user: User | null) => {
   const [loading, setLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     username: '',
@@ -52,6 +55,16 @@ export const useProfileData = (user: User | null) => {
     dataCollection: true,
     twoFactorAuth: false
   });
+
+  const [originalProfile, setOriginalProfile] = useState<ProfileData>({ ...profile });
+  const [originalSettings, setOriginalSettings] = useState<UserSettings>({ ...settings });
+
+  // Track changes
+  useEffect(() => {
+    const profileChanged = JSON.stringify(profile) !== JSON.stringify(originalProfile);
+    const settingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+    setHasUnsavedChanges(profileChanged || settingsChanged);
+  }, [profile, settings, originalProfile, originalSettings]);
 
   useEffect(() => {
     if (user) {
@@ -77,7 +90,7 @@ export const useProfileData = (user: User | null) => {
       }
 
       if (data) {
-        setProfile({
+        const profileData = {
           full_name: data.full_name || '',
           username: data.username || '',
           bio: data.bio || '',
@@ -89,7 +102,9 @@ export const useProfileData = (user: User | null) => {
           linkedin_url: data.linkedin_url || '',
           twitter_url: data.twitter_url || '',
           avatar_url: data.avatar_url || ''
-        });
+        };
+        setProfile(profileData);
+        setOriginalProfile(profileData);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -114,7 +129,7 @@ export const useProfileData = (user: User | null) => {
 
       if (data) {
         console.log('Settings fetched:', data);
-        setSettings({
+        const settingsData = {
           emailNotifications: data.email_notifications ?? true,
           pushNotifications: data.push_notifications ?? true,
           marketingEmails: data.marketing_emails ?? false,
@@ -122,7 +137,9 @@ export const useProfileData = (user: User | null) => {
           activityStatus: data.activity_status ?? true,
           dataCollection: data.data_collection ?? true,
           twoFactorAuth: data.two_factor_auth ?? false
-        });
+        };
+        setSettings(settingsData);
+        setOriginalSettings(settingsData);
       } else {
         console.log('No settings found, using defaults');
       }
@@ -131,8 +148,8 @@ export const useProfileData = (user: User | null) => {
     }
   };
 
-  const handleSaveProfile = async () => {
-    if (!user) return;
+  const handleSaveProfile = async (): Promise<boolean> => {
+    if (!user) return false;
 
     setLoading(true);
     console.log('Saving profile for user:', user.id);
@@ -148,17 +165,20 @@ export const useProfileData = (user: User | null) => {
 
       if (error) throw error;
 
+      setOriginalProfile({ ...profile });
       toast.success('Profile updated successfully!');
+      return true;
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile. Please try again.');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveSettings = async () => {
-    if (!user) return;
+  const handleSaveSettings = async (): Promise<boolean> => {
+    if (!user) return false;
 
     setLoading(true);
     console.log('Saving settings for user:', user.id);
@@ -179,10 +199,13 @@ export const useProfileData = (user: User | null) => {
 
       if (error) throw error;
 
+      setOriginalSettings({ ...settings });
       toast.success('Settings updated successfully!');
+      return true;
     } catch (error) {
       console.error('Error updating settings:', error);
       toast.error('Failed to update settings. Please try again.');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -202,13 +225,21 @@ export const useProfileData = (user: User | null) => {
     }));
   };
 
+  const resetChanges = () => {
+    setProfile({ ...originalProfile });
+    setSettings({ ...originalSettings });
+    setHasUnsavedChanges(false);
+  };
+
   return {
     profile,
     settings,
     loading,
+    hasUnsavedChanges,
     handleInputChange,
     handleSettingChange,
     handleSaveProfile,
-    handleSaveSettings
+    handleSaveSettings,
+    resetChanges
   };
 };

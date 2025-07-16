@@ -84,7 +84,7 @@ export const useEnhancedProfileValidation = () => {
     return '';
   };
 
-  const validateForm = (data: Record<string, string>): ValidationErrors => {
+  const validateForm = (data: any): ValidationErrors => {
     const newErrors: ValidationErrors = {};
     
     Object.keys(validationRules).forEach(field => {
