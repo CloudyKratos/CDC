@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -44,13 +43,13 @@ export const useAuthState = () => {
             }
             break;
             
-          case 'SIGNED_UP':
-            // User signed up but may need verification
+          default:
+            // Handle any other auth events including signup
             if (session?.user) {
-              console.log('User signed up:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
+              console.log('User auth event:', event, 'Email confirmed:', session.user.email_confirmed_at);
               if (session.user.email_confirmed_at) {
                 handleUserSession(session);
-                toast.success('Account created and verified!');
+                toast.success('Account verified and signed in!');
               } else {
                 // User needs to verify email
                 setAuthState(prev => ({
