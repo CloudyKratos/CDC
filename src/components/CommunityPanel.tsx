@@ -1,6 +1,6 @@
 
 import React from 'react';
-import SimpleCommunityPanel from './community/modern/SimpleCommunityPanel';
+import { EnhancedChatContainer } from './community/EnhancedChatContainer';
 
 interface CommunityPanelProps {
   channelName?: string;
@@ -9,7 +9,7 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ 
   channelName = 'general' 
 }) => {
-  return <SimpleCommunityPanel channelName={channelName} />;
+  return <EnhancedChatContainer defaultChannel={channelName} />;
 };
 
 export default CommunityPanel;

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ChatChannel, ChannelType } from '@/types/chat';
 
@@ -28,7 +27,6 @@ class ChannelService {
 
       if (error) {
         console.error('❌ ChannelService: Error fetching channels:', error);
-        // Return default channels instead of throwing error
         return this.createDefaultChannels();
       }
 
@@ -52,7 +50,7 @@ class ChannelService {
     }
   }
 
-  // Create default channels as fallback
+  // Create default channels with the three requested channels
   private createDefaultChannels(): ChatChannel[] {
     console.log('🔧 ChannelService: Creating default channels fallback');
     return [
@@ -61,21 +59,21 @@ class ChannelService {
         name: 'general',
         type: ChannelType.PUBLIC,
         members: [],
-        description: 'General discussion'
+        description: 'General discussion and community chat'
       },
       {
-        id: 'announcements',
-        name: 'announcements',
+        id: 'morning-journey',
+        name: 'morning journey',
         type: ChannelType.PUBLIC,
         members: [],
-        description: 'Important announcements'
+        description: 'Start your day with motivation and morning routines'
       },
       {
-        id: 'support',
-        name: 'support',
+        id: 'announcement',
+        name: 'announcement',
         type: ChannelType.PUBLIC,
         members: [],
-        description: 'Help and support'
+        description: 'Important announcements and updates'
       }
     ];
   }
