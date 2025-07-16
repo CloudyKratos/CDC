@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,12 +32,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface ProfileDropdownProps {
-  onLogout: () => void;
-}
-
-export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) => {
-  const { user } = useAuth();
+const UserProfileDropdown: React.FC = () => {
+  const { user, logout } = useAuth();
   const { isCDCAdmin } = useRole();
   const { progress, isLoading } = useWarriorProgress();
 
@@ -52,6 +49,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
       // Regular users would go to settings (if implemented)
       toast.info("Settings coming soon");
     }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -253,7 +254,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
           <DropdownMenuSeparator className="my-1 bg-gray-100 dark:bg-gray-800" />
 
           <DropdownMenuItem 
-            onClick={onLogout} 
+            onClick={handleLogout} 
             className="cursor-pointer rounded-md py-2 my-1 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/10 group"
           >
             <div className="flex items-center gap-3 w-full">
@@ -271,3 +272,5 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
     </DropdownMenu>
   );
 };
+
+export default UserProfileDropdown;
