@@ -13,6 +13,7 @@ interface RoleContextType {
   canViewAnalytics: boolean;
   isLoading: boolean;
   refreshRole: () => Promise<void>;
+  isCDCAdmin: boolean;
 }
 
 const RoleContext = createContext<RoleContextType>({
@@ -24,6 +25,7 @@ const RoleContext = createContext<RoleContextType>({
   canViewAnalytics: false,
   isLoading: true,
   refreshRole: async () => {},
+  isCDCAdmin: false,
 });
 
 export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,6 +37,7 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
     canModerateStage: false,
     canViewAnalytics: false,
   });
+  const [isCDCAdmin, setIsCDCAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshRole = async () => {
@@ -46,6 +49,7 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canModerateStage: false,
         canViewAnalytics: false,
       });
+      setIsCDCAdmin(false);
       setIsLoading(false);
       return;
     }
@@ -56,7 +60,11 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const role = await RoleService.getCurrentUserRole();
       setCurrentRole(role);
 
-      // Check permissions
+      // Check if user is CDC admin
+      const cdcAdminStatus = await RoleService.isCDCAdmin();
+      setIsCDCAdmin(cdcAdminStatus);
+
+      // Check permissions - all now restricted to CDC admin
       const [canManageCalendar, canManageUsers, canModerateStage, canViewAnalytics] = await Promise.all([
         RoleService.canManageCalendar(),
         RoleService.canManageUsers(),
@@ -92,6 +100,7 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...permissions,
       isLoading,
       refreshRole,
+      isCDCAdmin,
     }}>
       {children}
     </RoleContext.Provider>

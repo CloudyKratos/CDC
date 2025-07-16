@@ -5,7 +5,7 @@ import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
 
 const Admin = () => {
   return (
-    <RoleProtectedRoute requiredRole="admin">
+    <RoleProtectedRoute requiredRole="admin" requireCDCAdmin={true}>
       <div className="container mx-auto px-4 py-8">
         <EnhancedAdminPanel />
       </div>

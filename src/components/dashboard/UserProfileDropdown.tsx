@@ -23,14 +23,23 @@ import { toast } from 'sonner';
 
 const UserProfileDropdown: React.FC = () => {
   const { user, logout } = useAuth();
-  const { currentRole } = useRole();
+  const { isCDCAdmin } = useRole();
   const navigate = useNavigate();
-  const isAdmin = currentRole === 'admin';
 
   const handleLogout = () => {
     logout();
     toast.success("Successfully logged out");
     navigate("/login");
+  };
+
+  const handleSettingsClick = () => {
+    // For CDC Admin, redirect to admin panel instead of settings
+    if (isCDCAdmin) {
+      navigate("/admin");
+    } else {
+      // Regular users would go to settings (if implemented)
+      toast.info("Settings coming soon");
+    }
   };
 
   return (
@@ -45,10 +54,10 @@ const UserProfileDropdown: React.FC = () => {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {user?.email}
               </p>
-              {isAdmin && (
+              {isCDCAdmin && (
                 <Badge className="bg-red-500 text-white text-[10px]">
                   <Shield className="h-2 w-2 mr-1" />
-                  Admin
+                  CDC Admin
                 </Badge>
               )}
             </div>
@@ -73,9 +82,9 @@ const UserProfileDropdown: React.FC = () => {
             Profile Settings
           </DropdownMenuItem>
         </Link>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
           <Settings className="h-4 w-4 mr-2" />
-          Preferences
+          {isCDCAdmin ? 'Admin Panel' : 'Settings'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">

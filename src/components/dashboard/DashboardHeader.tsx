@@ -22,8 +22,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onPanelChange
 }) => {
   const { user } = useAuth();
-  const { currentRole } = useRole();
-  const isAdmin = currentRole === 'admin';
+  const { isCDCAdmin } = useRole();
 
   return (
     <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm">
@@ -49,8 +48,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="flex items-center gap-3">
           <NotificationDropdown />
 
-          {/* Admin Panel Button */}
-          {isAdmin && (
+          {/* Admin Panel Button - Only for CDC Admin */}
+          {isCDCAdmin && (
             <Link to="/admin">
               <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
                 <Shield className="h-5 w-5" />

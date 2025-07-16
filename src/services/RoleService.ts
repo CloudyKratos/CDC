@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserRole, UserWithRole } from "@/types/supabase-extended";
 
 class RoleService {
+  private readonly CDC_ADMIN_EMAIL = 'cdcofficialeg@gmail.com';
+
   async getUserRole(userId: string): Promise<UserRole | null> {
     try {
       const { data, error } = await supabase
@@ -103,6 +105,31 @@ class RoleService {
     }
   }
 
+  // CDC Admin specific check
+  async isCDCAdmin(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== this.CDC_ADMIN_EMAIL) {
+        return false;
+      }
+
+      // Call the database function to verify CDC admin status
+      const { data, error } = await supabase.rpc('is_cdc_admin', {
+        check_user_id: user.id
+      });
+
+      if (error) {
+        console.error('Error checking CDC admin status:', error);
+        return false;
+      }
+
+      return data || false;
+    } catch (error) {
+      console.error('Error in isCDCAdmin:', error);
+      return false;
+    }
+  }
+
   async assignRole(userId: string, role: UserRole): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -159,26 +186,31 @@ class RoleService {
     return this.hasRole('moderator');
   }
 
-  // Permission check methods
+  // Permission check methods - now restricted to CDC admin
   async canManageCalendar(): Promise<boolean> {
-    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+    return await this.isCDCAdmin();
   }
 
   async canManageUsers(): Promise<boolean> {
-    return await this.hasRole('admin');
+    return await this.isCDCAdmin();
   }
 
   async canModerateStage(): Promise<boolean> {
-    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+    return await this.isCDCAdmin();
   }
 
   async canViewAnalytics(): Promise<boolean> {
-    return (await this.hasRole('admin')) || (await this.hasRole('moderator'));
+    return await this.isCDCAdmin();
   }
 
-  // Admin panel methods
+  // Admin panel methods - now restricted to CDC admin
   async getUsersWithRoles(): Promise<UserWithRole[]> {
     try {
+      // Only CDC admin can access this
+      if (!(await this.isCDCAdmin())) {
+        return [];
+      }
+
       // First get all user roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
@@ -228,6 +260,11 @@ class RoleService {
 
   async createAdminAccount(email: string, password: string, fullName: string): Promise<boolean> {
     try {
+      // Only CDC admin can create admin accounts
+      if (!(await this.isCDCAdmin())) {
+        return false;
+      }
+
       console.log('Creating admin account:', { email, fullName });
       
       // Note: This would typically require admin-level Supabase functions

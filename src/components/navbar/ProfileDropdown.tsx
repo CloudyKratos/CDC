@@ -38,13 +38,22 @@ interface ProfileDropdownProps {
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) => {
   const { user } = useAuth();
-  const { currentRole } = useRole();
+  const { isCDCAdmin } = useRole();
   const { progress, isLoading } = useWarriorProgress();
-  const isAdmin = currentRole === 'admin';
 
   if (!user) return null;
 
   const progressPercentage = progress ? (progress.currentXp / progress.nextLevelXp) * 100 : 0;
+
+  const handleSettingsClick = () => {
+    // For CDC Admin, redirect to admin panel instead of settings
+    if (isCDCAdmin) {
+      window.location.href = '/admin';
+    } else {
+      // Regular users would go to settings (if implemented)
+      toast.info("Settings coming soon");
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -87,10 +96,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
                   <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                     {user?.name || user?.email?.split('@')[0] || 'Anonymous User'}
                   </h3>
-                  {isAdmin && (
+                  {isCDCAdmin && (
                     <Badge className="bg-red-500 text-white text-xs">
                       <Shield className="h-2 w-2 mr-1" />
-                      Admin
+                      CDC Admin
                     </Badge>
                   )}
                   {progress && progress.rank && (
@@ -195,7 +204,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
             </DropdownMenuItem>
           </Link>
 
-          {isAdmin && (
+          {isCDCAdmin && (
             <Link to="/admin">
               <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 group text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10">
                 <div className="flex items-center gap-3 w-full">
@@ -203,7 +212,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
                     <Shield className="h-4 w-4 text-red-600 dark:text-red-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="font-medium">Admin Panel</span>
+                    <span className="font-medium">CDC Admin Panel</span>
                     <p className="text-xs text-red-400">System management</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-red-400" />
@@ -228,14 +237,16 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) =>
             </DropdownMenuItem>
           </Link>
 
-          <DropdownMenuItem className="cursor-pointer rounded-md py-2 my-1 group">
+          <DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer rounded-md py-2 my-1 group">
             <div className="flex items-center gap-3 w-full">
               <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg group-hover:scale-110 transition-transform">
                 <Settings className="h-4 w-4" />
               </div>
               <div className="flex-1">
-                <span className="font-medium">Settings</span>
-                <p className="text-xs text-gray-500">Preferences & privacy</p>
+                <span className="font-medium">{isCDCAdmin ? 'Admin Panel' : 'Settings'}</span>
+                <p className="text-xs text-gray-500">
+                  {isCDCAdmin ? 'System management' : 'Preferences & privacy'}
+                </p>
               </div>
             </div>
           </DropdownMenuItem>
