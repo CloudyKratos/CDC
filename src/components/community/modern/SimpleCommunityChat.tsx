@@ -20,7 +20,8 @@ import {
   WifiOff,
   MessageSquare,
   Settings,
-  Menu
+  Menu,
+  X
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +40,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   const [messageText, setMessageText] = useState('');
   const [useStableVersion, setUseStableVersion] = useState(false);
   const [showChannelNav, setShowChannelNav] = useState(true);
+  const [isChannelNavCollapsed, setIsChannelNavCollapsed] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +58,15 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
     sendMessage,
     deleteMessage
   } = chatHookResult ?? {};
+
+  console.log('🎛️ SimpleCommunityChat state:', {
+    activeChannel,
+    channelsCount: channels.length,
+    channelNames: channels.map(c => c.name),
+    messagesCount: messages.length,
+    isConnected,
+    showChannelNav
+  });
 
   // Auto-switch to stable version on persistent errors
   useEffect(() => {
@@ -97,9 +108,17 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
   };
 
   const handleChannelSelect = (channelName: string) => {
-    console.log('🎯 Switching to channel:', channelName);
+    console.log('🎯 Channel selected:', channelName);
     setActiveChannel(channelName);
     setMessageText(''); // Clear input when switching channels
+  };
+
+  const toggleChannelNav = () => {
+    setShowChannelNav(!showChannelNav);
+  };
+
+  const toggleChannelNavCollapse = () => {
+    setIsChannelNavCollapsed(!isChannelNavCollapsed);
   };
 
   // Feature flag toggle for debugging
@@ -118,7 +137,8 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
               channels={channels}
               activeChannel={activeChannel}
               onChannelSelect={handleChannelSelect}
-              isCollapsed={false}
+              isCollapsed={isChannelNavCollapsed}
+              onToggleCollapse={toggleChannelNavCollapse}
             />
           )}
           
@@ -178,23 +198,36 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
             channels={channels}
             activeChannel={activeChannel}
             onChannelSelect={handleChannelSelect}
-            isCollapsed={false}
+            isCollapsed={isChannelNavCollapsed}
+            onToggleCollapse={toggleChannelNavCollapse}
           />
         )}
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <Card className="h-full flex flex-col bg-background border-border border-l-0 rounded-l-none">
-            {/* Clean Header with Channel Info */}
+            {/* Header with Channel Info and Controls */}
             <div className="flex-shrink-0 px-6 py-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {/* Mobile menu toggle */}
                   <Button
-                    onClick={() => setShowChannelNav(!showChannelNav)}
+                    onClick={toggleChannelNav}
                     size="sm"
                     variant="ghost"
                     className="lg:hidden p-1"
+                    title={showChannelNav ? "Hide Channels" : "Show Channels"}
+                  >
+                    {showChannelNav ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                  </Button>
+                  
+                  {/* Desktop collapse toggle */}
+                  <Button
+                    onClick={toggleChannelNavCollapse}
+                    size="sm"
+                    variant="ghost"
+                    className="hidden lg:flex p-1"
+                    title={isChannelNavCollapsed ? "Expand Channels" : "Collapse Channels"}
                   >
                     <Menu className="h-4 w-4" />
                   </Button>
