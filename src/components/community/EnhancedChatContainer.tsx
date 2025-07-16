@@ -22,6 +22,7 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
 }) => {
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -127,6 +128,14 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     }
   }, [user?.id, deleteMessage]);
 
+  const toggleSidebar = useCallback(() => {
+    if (isMobile) {
+      setSidebarOpen(!sidebarOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  }, [isMobile, sidebarOpen, sidebarCollapsed]);
+
   if (!user) {
     return (
       <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-6 ${className}`}>
@@ -160,10 +169,24 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={toggleSidebar}
               className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-200"
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+          </div>
+        )}
+
+        {/* Desktop Sidebar Toggle */}
+        {!isMobile && (
+          <div className="absolute top-4 left-4 z-50">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-200"
+            >
+              <Menu className="h-4 w-4" />
             </Button>
           </div>
         )}
@@ -175,13 +198,13 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
               channels={displayChannels}
               activeChannel={activeChannel}
               onChannelSelect={handleChannelSelect}
-              isCollapsed={isMobile ? false : !sidebarOpen}
+              isCollapsed={!isMobile && sidebarCollapsed}
             />
           </div>
         )}
 
         {/* Enhanced Chat Area with proper spacing */}
-        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0`}>
+        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${!isMobile && !sidebarCollapsed ? 'ml-0' : ''}`}>
           <EnhancedChatArea
             activeChannel={activeChannel}
             messages={messages}

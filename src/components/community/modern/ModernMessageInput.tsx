@@ -1,19 +1,7 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
+import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Send, 
-  Smile, 
-  Paperclip,
-  Plus
-} from 'lucide-react';
-import { toast } from 'sonner';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 
 interface ModernMessageInputProps {
   value: string;
@@ -22,6 +10,7 @@ interface ModernMessageInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   disabled?: boolean;
   placeholder?: string;
+  isLoading?: boolean;
 }
 
 export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
@@ -30,109 +19,44 @@ export const ModernMessageInput: React.FC<ModernMessageInputProps> = ({
   onSend,
   onKeyPress,
   disabled = false,
-  placeholder = 'Type a message...'
+  placeholder = "Type a message...",
+  isLoading = false
 }) => {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      const newHeight = Math.min(textarea.scrollHeight, 120);
-      textarea.style.height = newHeight + 'px';
-    }
-  }, [value]);
-
-  const handleEmojiSelect = (emoji: string) => {
-    onChange(value + emoji);
-    setShowEmojiPicker(false);
-    textareaRef.current?.focus();
-  };
-
-  const handleFileUpload = () => {
-    toast.info('File sharing coming soon!');
-  };
-
-  const emojis = [
-    '😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', 
-    '💯', '🎉', '😎', '🤝', '💪', '🙌', '👏', '✨'
-  ];
-
   return (
-    <div className="relative bg-background rounded-lg border border-border focus-within:border-primary/50 transition-colors">
-      <div className="flex items-end gap-2 p-3">
-        {/* Add attachment button */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0"
-          onClick={handleFileUpload}
+    <div className="flex items-end gap-3 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex-1 relative">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyPress}
+          placeholder={placeholder}
           disabled={disabled}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        
-        {/* Message input */}
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={onKeyPress}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="min-h-[32px] max-h-[120px] resize-none border-0 bg-transparent focus:ring-0 focus:border-0 placeholder:text-muted-foreground text-foreground p-0 shadow-none text-sm"
-            rows={1}
-          />
-        </div>
-        
-        {/* Right actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Emoji picker */}
-          <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                disabled={disabled}
-              >
-                <Smile className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="end">
-              <div className="grid grid-cols-8 gap-1">
-                {emojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="text-lg hover:bg-muted rounded p-1 transition-colors"
-                    onClick={() => handleEmojiSelect(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          
-          {/* Send button */}
-          <Button
-            type="button"
-            onClick={onSend}
-            disabled={!value.trim() || disabled}
-            size="sm"
-            className="h-8 w-8 p-0"
-            variant={value.trim() && !disabled ? "default" : "ghost"}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+          rows={1}
+          className="w-full px-4 py-3 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 min-h-[48px] max-h-32 transition-all duration-200"
+          style={{
+            height: 'auto',
+            minHeight: '48px'
+          }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+          }}
+        />
       </div>
+      
+      <Button
+        onClick={onSend}
+        disabled={disabled || !value.trim() || isLoading}
+        size="sm"
+        className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+      </Button>
     </div>
   );
 };
