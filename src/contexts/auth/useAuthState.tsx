@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -16,13 +17,14 @@ export const useAuthState = () => {
     // Set up auth state listener first
     const { data: { subscription } } = AuthenticationService.subscribeToAuthChanges(
       (event, session) => {
-        console.log('Auth state changed:', event);
+        console.log('Auth state changed:', event, session?.user?.email);
         
         // Handle different auth events
         switch (event) {
           case 'SIGNED_IN':
             if (session?.user) {
               handleUserSession(session);
+              toast.success('Successfully signed in!');
             }
             break;
           
@@ -39,6 +41,24 @@ export const useAuthState = () => {
           case 'USER_UPDATED':
             if (session?.user) {
               handleUserSession(session);
+            }
+            break;
+            
+          case 'SIGNED_UP':
+            // User signed up but may need verification
+            if (session?.user) {
+              console.log('User signed up:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
+              if (session.user.email_confirmed_at) {
+                handleUserSession(session);
+                toast.success('Account created and verified!');
+              } else {
+                // User needs to verify email
+                setAuthState(prev => ({
+                  ...prev,
+                  isLoading: false,
+                  error: null,
+                }));
+              }
             }
             break;
         }
@@ -82,7 +102,7 @@ export const useAuthState = () => {
     const userProfile: AppUser = {
       id: session.user.id,
       email: session.user.email || '',
-      name: session.user.user_metadata.full_name || '',
+      name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || '',
       role: 'user',
       permissions: [],
       avatar: session.user.user_metadata.avatar_url,
@@ -104,11 +124,22 @@ export const useAuthState = () => {
       return user;
     } catch (error) {
       console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to login';
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to login',
+        error: errorMessage,
       }));
+      
+      // Show user-friendly error messages
+      if (errorMessage.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password');
+      } else if (errorMessage.includes('Email not confirmed')) {
+        toast.error('Please verify your email before signing in');
+      } else {
+        toast.error('Failed to sign in. Please try again.');
+      }
+      
       throw error;
     }
   };
@@ -118,6 +149,7 @@ export const useAuthState = () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       await AuthenticationService.signOut();
+      toast.success('Successfully signed out');
     } catch (error) {
       console.error('Logout error:', error);
       setAuthState(prev => ({
@@ -125,29 +157,59 @@ export const useAuthState = () => {
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to logout',
       }));
+      toast.error('Failed to sign out');
     }
   };
 
-  // Signup function
+  // Signup function - IMPROVED error handling
   const signup = async (email: string, password: string, fullName: string): Promise<User | null> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       const user = await AuthenticationService.signUp(email, password, fullName);
       
       if (user && !user.email_confirmed_at) {
-        toast.success('Signup successful!', {
+        toast.success('Account created!', {
           description: 'Please check your email to verify your account.',
         });
+      } else if (user && user.email_confirmed_at) {
+        toast.success('Account created and verified!');
       }
       
       return user;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
+      const errorMessage = error.message || "Sign up failed";
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to signup',
+        error: errorMessage,
       }));
+      
+      // Enhanced error handling with user-friendly messages
+      if (errorMessage.includes('User already registered') || 
+          errorMessage.includes('already been registered')) {
+        toast.error('Email already in use', {
+          description: 'This email is already registered. Try signing in instead.'
+        });
+      } else if (errorMessage.includes('Password should be at least')) {
+        toast.error('Password too weak', {
+          description: 'Password must be at least 6 characters long.'
+        });
+      } else if (errorMessage.includes('Unable to validate email address')) {
+        toast.error('Invalid email address', {
+          description: 'Please enter a valid email address.'
+        });
+      } else if (errorMessage.includes('Signup is disabled')) {
+        toast.error('Sign up currently disabled', {
+          description: 'Please contact support for assistance.'
+        });
+      } else {
+        toast.error('Sign up failed', {
+          description: errorMessage
+        });
+      }
+      
       throw error;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -161,7 +223,6 @@ export const useAuthState = () => {
       const result = await AuthenticationService.updateUserProfile(userData);
       
       if (result) {
-        // Update local user state with new profile data
         setAuthState(prev => ({
           ...prev,
           user: prev.user ? {
@@ -186,7 +247,6 @@ export const useAuthState = () => {
     }
   };
 
-  // Reset password (send reset email)
   const resetPassword = async (email: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -204,7 +264,6 @@ export const useAuthState = () => {
     }
   };
 
-  // Update password (after reset)
   const updatePassword = async (newPassword: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -222,11 +281,16 @@ export const useAuthState = () => {
     }
   };
   
-  // Resend verification email
   const resendVerificationEmail = async (email: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      return await AuthenticationService.resendVerificationEmail(email);
+      const result = await AuthenticationService.resendVerificationEmail(email);
+      if (result) {
+        toast.success('Verification email sent!', {
+          description: 'Please check your inbox and spam folder.'
+        });
+      }
+      return result;
     } catch (error) {
       console.error('Failed to resend verification email:', error);
       setAuthState(prev => ({
@@ -234,13 +298,13 @@ export const useAuthState = () => {
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to resend verification email',
       }));
+      toast.error('Failed to resend verification email');
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Verify email
   const verifyEmail = async (token: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -258,12 +322,10 @@ export const useAuthState = () => {
     }
   };
 
-  // Add a updateUser function to match what's used in the components
   const updateUser = async (userData: Partial<AppUser>): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      // Update the auth profile if name or avatar is changing
       if (userData.name || userData.avatar) {
         const result = await AuthenticationService.updateUserProfile({
           name: userData.name,
@@ -273,7 +335,6 @@ export const useAuthState = () => {
         if (!result) return false;
       }
       
-      // Update local user state
       setAuthState(prev => ({
         ...prev,
         user: prev.user ? { ...prev.user, ...userData } : null,
@@ -292,16 +353,13 @@ export const useAuthState = () => {
     }
   };
 
-  // Clear error state
   const clearError = () => {
     setAuthState(prev => ({ ...prev, error: null }));
   };
 
-  // Provide aliases for consistent naming
   const signUp = signup;
   const signOut = logout;
 
-  // Return the auth state and functions
   return {
     ...authState,
     login,
@@ -313,7 +371,6 @@ export const useAuthState = () => {
     clearError,
     resendVerificationEmail,
     verifyEmail,
-    // Aliases
     signUp,
     signOut,
     updateUser

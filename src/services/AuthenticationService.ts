@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
@@ -26,10 +25,13 @@ class AuthenticationService {
   // Sign up user
   async signUp(email: string, password: string, fullName: string): Promise<User | null> {
     try {
+      const redirectUrl = `${window.location.origin}/verify-email`;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
           },

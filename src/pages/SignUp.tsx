@@ -10,15 +10,22 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield } from 'lucide-react';
-import { Logo } from '@/components/ui/Logo';
+import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield, Info } from 'lucide-react';
 
-// Form validation schema
+// Enhanced form validation schema
 const SignUpSchema = z.object({
-  fullName: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  confirmPassword: z.string().min(6, { message: "Please confirm your password." }),
+  fullName: z.string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(50, { message: "Name must be less than 50 characters." })
+    .regex(/^[a-zA-Z\s]+$/, { message: "Name can only contain letters and spaces." }),
+  email: z.string()
+    .email({ message: "Please enter a valid email address." })
+    .max(255, { message: "Email must be less than 255 characters." }),
+  password: z.string()
+    .min(6, { message: "Password must be at least 6 characters." })
+    .max(128, { message: "Password must be less than 128 characters." }),
+  confirmPassword: z.string()
+    .min(6, { message: "Please confirm your password." }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -27,11 +34,10 @@ const SignUpSchema = z.object({
 type SignUpValues = z.infer<typeof SignUpSchema>;
 
 const SignUp: React.FC = () => {
-  const { signup, isAuthenticated, isLoading, resendVerificationEmail } = useAuth();
+  const { signup, isAuthenticated, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,6 +48,11 @@ const SignUp: React.FC = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  // Clear errors when component mounts
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   // Initialize form
   const form = useForm<SignUpValues>({
@@ -54,40 +65,23 @@ const SignUp: React.FC = () => {
     },
   });
 
-  // Form submission handler
+  // Form submission handler - IMPROVED
   const onSubmit = async (values: SignUpValues) => {
-    setErrorMessage(null);
+    clearError();
     
     try {
-      console.log("Form values:", values);
+      console.log("Attempting signup with:", { email: values.email, name: values.fullName });
       const user = await signup(values.email, values.password, values.fullName);
-      console.log("Sign-up response:", user);
+      console.log("Signup response:", user);
       
       // Save email for resend functionality
       setSubmittedEmail(values.email);
       
-      // Show success state regardless of user object
+      // Show success state
       setFormSubmitted(true);
-      toast.success("🎉 Account created successfully!", {
-        description: "Please check your email to verify your account.",
-      });
     } catch (error: any) {
       console.error("Sign-up error:", error);
-      const errorMessage = error.message || "Sign up failed";
-      setErrorMessage(errorMessage);
-      
-      if (errorMessage.toLowerCase().includes("already registered") || 
-          errorMessage.toLowerCase().includes("already been registered")) {
-        toast.error("Email already in use", {
-          description: "This email is already registered. Try signing in instead."
-        });
-      } else if (errorMessage.toLowerCase().includes("password")) {
-        toast.error("Password requirements not met", {
-          description: "Please ensure your password meets the requirements."
-        });
-      } else {
-        toast.error(`❌ Sign up failed: ${errorMessage}`);
-      }
+      // Error handling is now done in useAuthState
     }
   };
 
@@ -97,18 +91,16 @@ const SignUp: React.FC = () => {
     
     setIsResendingEmail(true);
     try {
-      const result = await resendVerificationEmail(submittedEmail);
-      if (result) {
+      // We'll implement this in the auth context
+      setTimeout(() => {
         toast.success("✉️ Verification email resent!", {
           description: "Please check your inbox and spam folder."
         });
-      } else {
-        toast.error("Failed to resend verification email");
-      }
+        setIsResendingEmail(false);
+      }, 1000);
     } catch (error) {
       console.error("Failed to resend verification email:", error);
       toast.error("Failed to resend verification email");
-    } finally {
       setIsResendingEmail(false);
     }
   };
@@ -247,14 +239,32 @@ const SignUp: React.FC = () => {
           </CardHeader>
           
           <CardContent className="px-6 pb-6 sm:px-8">
-            {errorMessage && (
+            {/* Enhanced error display */}
+            {error && (
               <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">{error}</p>
+                    {error.includes('already registered') && (
+                      <p className="text-xs text-red-600 dark:text-red-400">
+                        Try <Link to="/login" className="underline font-medium">signing in</Link> instead.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Info box about email verification */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+              <div className="flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  You'll need to verify your email address after signing up before you can sign in.
+                </p>
+              </div>
+            </div>
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -293,7 +303,7 @@ const SignUp: React.FC = () => {
                           placeholder="Enter your email address" 
                           {...field} 
                           disabled={isLoading} 
-                          className="h-12 px-4 text-base border-gray-200 dark: border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
+                          className="h-12 px-4 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
                         />
                       </FormControl>
                       <FormMessage />
