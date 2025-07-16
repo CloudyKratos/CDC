@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      auth_attempts: {
-        Row: {
-          attempt_type: string
-          created_at: string | null
-          email: string
-          id: string
-          ip_address: unknown | null
-          success: boolean | null
-          user_agent: string | null
-        }
-        Insert: {
-          attempt_type: string
-          created_at?: string | null
-          email: string
-          id?: string
-          ip_address?: unknown | null
-          success?: boolean | null
-          user_agent?: string | null
-        }
-        Update: {
-          attempt_type?: string
-          created_at?: string | null
-          email?: string
-          id?: string
-          ip_address?: unknown | null
-          success?: boolean | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
       channel_analytics: {
         Row: {
           active_users: number | null
@@ -688,33 +658,6 @@ export type Database = {
           },
         ]
       }
-      password_reset_tokens: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          id: string
-          token: string
-          used: boolean | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          token: string
-          used?: boolean | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          token?: string
-          used?: boolean | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       poll_votes: {
         Row: {
           created_at: string | null
@@ -1273,15 +1216,6 @@ export type Database = {
         Args: { p_user_id: string; p_activity_type?: string }
         Returns: boolean
       }
-      check_auth_rate_limit: {
-        Args: {
-          p_email: string
-          p_attempt_type: string
-          p_limit?: number
-          p_window_minutes?: number
-        }
-        Returns: boolean
-      }
       get_profile_completion_percentage: {
         Args: { user_uuid: string }
         Returns: number
@@ -1297,16 +1231,6 @@ export type Database = {
       is_channel_member: {
         Args: { channel_uuid: string; user_uuid: string }
         Returns: boolean
-      }
-      log_auth_attempt: {
-        Args: {
-          p_email: string
-          p_attempt_type: string
-          p_success?: boolean
-          p_ip_address?: unknown
-          p_user_agent?: string
-        }
-        Returns: undefined
       }
       unlock_course_with_coins: {
         Args: { p_user_id: string; p_course_id: string; p_cost: number }

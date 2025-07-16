@@ -90,7 +90,7 @@ class AuthService {
       }
       
       // Update last login time
-      const authenticatedUser: User = {
+      const authenticatedUser = {
         ...user,
         lastLogin: new Date().toISOString()
       };

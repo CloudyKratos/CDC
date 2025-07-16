@@ -4,136 +4,61 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff } from 'lucide-react';
 
-interface LoginFormProps {
-  onForgotPassword?: () => void;
-}
-
-const LoginForm: React.FC<LoginFormProps> = ({ onForgotPassword }) => {
-  const { login, isLoading, error, clearError } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+const LoginForm: React.FC = () => {
+  const { login, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
     
-    if (!validateForm()) {
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
       return;
     }
 
     try {
-      await login(formData.email, formData.password);
-      
-      // Clear form on success
-      setFormData({
-        email: '',
-        password: ''
-      });
-      setValidationErrors({});
+      await login(email, password);
+      toast.success('Login successful!');
     } catch (error) {
-      // Error handling is done in the useAuthState hook
-      console.error('Login failed:', error);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear validation error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    
-    // Clear global error
-    if (error) {
-      clearError();
+      toast.error('Login failed. Please check your credentials.');
     }
   };
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
-        <CardDescription className="text-center">
-          Sign in to your account
-        </CardDescription>
+      <CardHeader>
+        <CardTitle>Welcome Back</CardTitle>
+        <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <Alert className="mb-4" variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())}
-                placeholder="Enter your email"
-                className={`pl-10 ${validationErrors.email ? 'border-destructive' : ''}`}
-                required
-              />
-            </div>
-            {validationErrors.email && (
-              <p className="text-sm text-destructive">{validationErrors.email}</p>
-            )}
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+            />
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              {onForgotPassword && (
-                <button
-                  type="button"
-                  onClick={onForgotPassword}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot password?
-                </button>
-              )}
-            </div>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className={`pl-10 pr-10 ${validationErrors.password ? 'border-destructive' : ''}`}
                 required
               />
               <Button
@@ -150,9 +75,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onForgotPassword }) => {
                 )}
               </Button>
             </div>
-            {validationErrors.password && (
-              <p className="text-sm text-destructive">{validationErrors.password}</p>
-            )}
           </div>
 
           <Button

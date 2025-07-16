@@ -3,22 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 class AuthenticationService {
-  // Sign in user with rate limiting
+  // Sign in user
   async signIn(email: string, password: string): Promise<User | null> {
     try {
-      // Check rate limiting first
-      const canAttempt = await this.checkRateLimit(email, 'signin');
-      if (!canAttempt) {
-        throw new Error('Too many sign-in attempts. Please try again in 15 minutes.');
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      // Log the attempt
-      await this.logAuthAttempt(email, 'signin', !error);
 
       if (error) {
         console.error('Sign in error:', error);
@@ -32,39 +23,18 @@ class AuthenticationService {
     }
   }
 
-  // Sign up user with enhanced email redirect
+  // Sign up user
   async signUp(email: string, password: string, fullName: string): Promise<User | null> {
     try {
-      // Check rate limiting first
-      const canAttempt = await this.checkRateLimit(email, 'signup');
-      if (!canAttempt) {
-        throw new Error('Too many sign-up attempts. Please try again in 15 minutes.');
-      }
-
-      // Enhanced email validation
-      if (!this.isValidEmail(email)) {
-        throw new Error('Please enter a valid email address');
-      }
-
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
-      }
-
-      const redirectUrl = `${window.location.origin}/verify-email`;
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
           },
         },
       });
-
-      // Log the attempt
-      await this.logAuthAttempt(email, 'signup', !error);
 
       if (error) {
         console.error('Sign up error:', error);
@@ -135,23 +105,10 @@ class AuthenticationService {
     }
   }
 
-  // Reset password with rate limiting
+  // Reset password
   async resetPassword(email: string): Promise<boolean> {
     try {
-      // Check rate limiting first
-      const canAttempt = await this.checkRateLimit(email, 'reset');
-      if (!canAttempt) {
-        throw new Error('Too many password reset attempts. Please try again in 15 minutes.');
-      }
-
-      const redirectUrl = `${window.location.origin}/reset-password`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-      // Log the attempt
-      await this.logAuthAttempt(email, 'reset', !error);
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
 
       if (error) {
         console.error('Reset password error:', error);
@@ -168,10 +125,6 @@ class AuthenticationService {
   // Update password
   async updatePassword(newPassword: string): Promise<boolean> {
     try {
-      if (newPassword.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
-      }
-
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -188,27 +141,13 @@ class AuthenticationService {
     }
   }
 
-  // Resend verification email with rate limiting
+  // Resend verification email
   async resendVerificationEmail(email: string): Promise<boolean> {
     try {
-      // Check rate limiting first
-      const canAttempt = await this.checkRateLimit(email, 'resend');
-      if (!canAttempt) {
-        throw new Error('Too many resend attempts. Please try again in 15 minutes.');
-      }
-
-      const redirectUrl = `${window.location.origin}/verify-email`;
-      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
       });
-
-      // Log the attempt
-      await this.logAuthAttempt(email, 'resend', !error);
 
       if (error) {
         console.error('Resend verification error:', error);
@@ -245,61 +184,6 @@ class AuthenticationService {
   // Subscribe to auth changes
   subscribeToAuthChanges(callback: (event: AuthChangeEvent, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(callback);
-  }
-
-  // Enhanced email validation
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const validDomains = [
-      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
-      'icloud.com', 'protonmail.com', 'company.com'
-    ];
-    
-    if (!emailRegex.test(email)) {
-      return false;
-    }
-
-    // Basic domain validation (you can expand this)
-    const domain = email.split('@')[1];
-    return domain.length > 2 && domain.includes('.');
-  }
-
-  // Rate limiting check
-  private async checkRateLimit(email: string, attemptType: string): Promise<boolean> {
-    try {
-      const { data, error } = await supabase.rpc('check_auth_rate_limit', {
-        p_email: email,
-        p_attempt_type: attemptType,
-        p_limit: 5,
-        p_window_minutes: 15
-      });
-
-      if (error) {
-        console.error('Rate limit check error:', error);
-        return true; // Allow on error to not block users
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Rate limit check error:', error);
-      return true; // Allow on error to not block users
-    }
-  }
-
-  // Log authentication attempts
-  private async logAuthAttempt(email: string, attemptType: string, success: boolean): Promise<void> {
-    try {
-      await supabase.rpc('log_auth_attempt', {
-        p_email: email,
-        p_attempt_type: attemptType,
-        p_success: success,
-        p_ip_address: null, // Could be enhanced to get real IP
-        p_user_agent: navigator.userAgent
-      });
-    } catch (error) {
-      console.error('Error logging auth attempt:', error);
-      // Don't throw here to not break the main flow
-    }
   }
 }
 
