@@ -2,14 +2,7 @@
 import React from 'react';
 import { Message } from '@/types/chat';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Trash2, Reply, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { EnhancedMessageActions } from './EnhancedMessageActions';
 
 interface EnhancedModernMessageBubbleProps {
   message: Message;
@@ -61,7 +54,7 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   };
   
   return (
-    <div className={`flex gap-3 group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg p-2 transition-colors duration-200 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${className}`}>
+    <div className={`group flex gap-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-xl p-3 transition-all duration-200 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${className}`}>
       {/* Avatar */}
       {showAvatar && (
         <div className="flex-shrink-0">
@@ -69,10 +62,10 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
             <img
               src={message.sender.avatar_url}
               alt={message.sender.full_name || message.sender.username || 'User'}
-              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
+              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-700 shadow-sm ring-2 ring-gray-100 dark:ring-gray-800"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white dark:ring-gray-700">
               {(message.sender?.full_name || message.sender?.username || 'U').charAt(0).toUpperCase()}
             </div>
           )}
@@ -86,7 +79,7 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
       <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : 'text-left'}`}>
         {/* Header with name and time */}
         {showAvatar && (
-          <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <div className={`flex items-center gap-2 mb-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {isOwn ? 'You' : (message.sender?.full_name || message.sender?.username || 'Unknown User')}
             </span>
@@ -99,10 +92,10 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
         {/* Message Bubble */}
         <div className={`relative group/message ${isOwn ? 'flex justify-end' : 'flex justify-start'}`}>
           <div className={`
-            relative max-w-md px-4 py-2 rounded-2xl shadow-sm
+            relative max-w-md px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md
             ${isOwn 
-              ? 'bg-blue-600 text-white rounded-br-md' 
-              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md'
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-md' 
+              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md hover:border-gray-300 dark:hover:border-gray-600'
             }
             ${!isConnected ? 'opacity-70' : ''}
           `}>
@@ -112,54 +105,16 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
 
             {/* Message Actions */}
             {!hideActions && (
-              <div className="absolute -top-2 -left-2 opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex gap-1">
-                {/* Reply Button */}
-                {onReply && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReply}
-                    className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
-                  >
-                    <Reply className="h-3 w-3" />
-                  </Button>
-                )}
-
-                {/* React Button */}
-                {onReact && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleReact('👍')}
-                    className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
-                  >
-                    <Heart className="h-3 w-3" />
-                  </Button>
-                )}
-
-                {/* More Actions for own messages */}
-                {isOwn && onDelete && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-600"
-                      >
-                        <MoreHorizontal className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-32">
-                      <DropdownMenuItem
-                        onClick={() => onDelete(message.id)}
-                        className="text-red-600 dark:text-red-400 cursor-pointer"
-                      >
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+              <div className={`absolute -top-2 ${isOwn ? '-left-2' : '-right-2'} transition-opacity duration-200`}>
+                <EnhancedMessageActions
+                  messageId={message.id}
+                  isOwn={isOwn}
+                  onReply={onReply}
+                  onReact={onReact}
+                  onPin={onPin}
+                  onReport={onReport}
+                  onDelete={onDelete}
+                />
               </div>
             )}
           </div>
@@ -168,8 +123,18 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
         {/* Delivery status for own messages */}
         {isOwn && (
           <div className={`flex justify-end mt-1 ${isOwn ? 'mr-4' : 'ml-4'}`}>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              {isConnected ? 'Sent' : 'Sending...'}
+            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+              {isConnected ? (
+                <>
+                  <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                  Sent
+                </>
+              ) : (
+                <>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"></div>
+                  Sending...
+                </>
+              )}
             </span>
           </div>
         )}
