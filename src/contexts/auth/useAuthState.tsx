@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ export const useAuthState = () => {
               isLoading: false,
               error: null,
             });
+            toast.success('Successfully signed out');
             break;
           
           case 'TOKEN_REFRESHED':
@@ -115,7 +117,7 @@ export const useAuthState = () => {
     });
   };
 
-  // Login function
+  // Login function with enhanced error handling
   const login = async (email: string, password: string): Promise<User | null> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -130,11 +132,15 @@ export const useAuthState = () => {
         error: errorMessage,
       }));
       
-      // Show user-friendly error messages
+      // Enhanced error messages
       if (errorMessage.includes('Invalid login credentials')) {
         toast.error('Invalid email or password');
       } else if (errorMessage.includes('Email not confirmed')) {
         toast.error('Please verify your email before signing in');
+      } else if (errorMessage.includes('Too many sign-in attempts')) {
+        toast.error('Too many attempts. Please try again in 15 minutes.');
+      } else if (errorMessage.includes('User not found')) {
+        toast.error('No account found with this email');
       } else {
         toast.error('Failed to sign in. Please try again.');
       }
@@ -148,7 +154,6 @@ export const useAuthState = () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       await AuthenticationService.signOut();
-      toast.success('Successfully signed out');
     } catch (error) {
       console.error('Logout error:', error);
       setAuthState(prev => ({
@@ -160,7 +165,7 @@ export const useAuthState = () => {
     }
   };
 
-  // Signup function - IMPROVED error handling
+  // Signup function with enhanced error handling
   const signup = async (email: string, password: string, fullName: string): Promise<User | null> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -191,13 +196,19 @@ export const useAuthState = () => {
         toast.error('Email already in use', {
           description: 'This email is already registered. Try signing in instead.'
         });
-      } else if (errorMessage.includes('Password should be at least')) {
+      } else if (errorMessage.includes('Password should be at least') ||
+                 errorMessage.includes('Password must be at least')) {
         toast.error('Password too weak', {
           description: 'Password must be at least 6 characters long.'
         });
-      } else if (errorMessage.includes('Unable to validate email address')) {
+      } else if (errorMessage.includes('Unable to validate email address') ||
+                 errorMessage.includes('valid email address')) {
         toast.error('Invalid email address', {
           description: 'Please enter a valid email address.'
+        });
+      } else if (errorMessage.includes('Too many sign-up attempts')) {
+        toast.error('Too many attempts', {
+          description: 'Please try again in 15 minutes.'
         });
       } else if (errorMessage.includes('Signup is disabled')) {
         toast.error('Sign up currently disabled', {
@@ -246,68 +257,126 @@ export const useAuthState = () => {
     }
   };
 
+  // Reset password with enhanced error handling
   const resetPassword = async (email: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      return await AuthenticationService.resetPassword(email);
+      const result = await AuthenticationService.resetPassword(email);
+      
+      if (result) {
+        toast.success('Password reset email sent!', {
+          description: 'Please check your inbox and spam folder.'
+        });
+      }
+      
+      return result;
     } catch (error) {
       console.error('Password reset error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to reset password',
+        error: errorMessage,
       }));
+      
+      if (errorMessage.includes('Too many')) {
+        toast.error('Too many attempts', {
+          description: 'Please try again in 15 minutes.'
+        });
+      } else {
+        toast.error('Failed to send reset email');
+      }
+      
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Update password
   const updatePassword = async (newPassword: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      return await AuthenticationService.updatePassword(newPassword);
+      const result = await AuthenticationService.updatePassword(newPassword);
+      
+      if (result) {
+        toast.success('Password updated successfully!');
+      }
+      
+      return result;
     } catch (error) {
       console.error('Password update error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update password';
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to update password',
+        error: errorMessage,
       }));
+      
+      if (errorMessage.includes('at least 6 characters')) {
+        toast.error('Password too short', {
+          description: 'Password must be at least 6 characters long.'
+        });
+      } else {
+        toast.error('Failed to update password');
+      }
+      
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
   
+  // Resend verification email
   const resendVerificationEmail = async (email: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       const result = await AuthenticationService.resendVerificationEmail(email);
+      
       if (result) {
         toast.success('Verification email sent!', {
           description: 'Please check your inbox and spam folder.'
         });
       }
+      
       return result;
     } catch (error) {
       console.error('Failed to resend verification email:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification email';
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to resend verification email',
+        error: errorMessage,
       }));
-      toast.error('Failed to resend verification email');
+      
+      if (errorMessage.includes('Too many')) {
+        toast.error('Too many attempts', {
+          description: 'Please try again in 15 minutes.'
+        });
+      } else {
+        toast.error('Failed to resend verification email');
+      }
+      
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Verify email
   const verifyEmail = async (token: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      return await AuthenticationService.verifyEmail(token);
+      const result = await AuthenticationService.verifyEmail(token);
+      
+      if (result) {
+        toast.success('Email verified successfully!');
+      }
+      
+      return result;
     } catch (error) {
       console.error('Email verification error:', error);
       setAuthState(prev => ({
@@ -315,12 +384,18 @@ export const useAuthState = () => {
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to verify email',
       }));
+      
+      toast.error('Failed to verify email', {
+        description: 'The verification link may be expired or invalid.'
+      });
+      
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Update user function
   const updateUser = async (userData: Partial<AppUser>): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
