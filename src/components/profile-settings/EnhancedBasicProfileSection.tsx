@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, MapPin, Upload, User, Loader2 } from 'lucide-react';
+import { MapPin, User, Loader2, Save, RotateCcw } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { useProfileData } from '@/hooks/useProfileData';
-import { useEnhancedProfileValidation } from '@/hooks/useEnhancedProfileValidation';
+import { Switch } from '@/components/ui/switch';
+import { useEnhancedProfileData } from '@/hooks/useEnhancedProfileData';
+import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 import { SkillsInterestsManager } from './SkillsInterestsManager';
 import { UnsavedChangesGuard } from './UnsavedChangesGuard';
 import { ProfileLoadingStates } from './ProfileLoadingStates';
+import { ProfileCompletionIndicator } from './ProfileCompletionIndicator';
+import { EnhancedAvatarUpload } from './EnhancedAvatarUpload';
 import { toast } from 'sonner';
 
 interface EnhancedBasicProfileSectionProps {
@@ -23,91 +25,46 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
     profile,
     loading,
     hasUnsavedChanges,
+    validationErrors,
+    autoSaveEnabled,
     handleInputChange,
+    handleSkillsChange,
+    handleInterestsChange,
+    handleAvatarChange,
     handleSaveProfile,
-    resetChanges
-  } = useProfileData(user);
+    resetChanges,
+    toggleAutoSave,
+    validateField
+  } = useEnhancedProfileData(user);
 
-  const {
-    errors,
-    validateField,
-    validateForm,
-    clearFieldError,
-    hasErrors
-  } = useEnhancedProfileValidation();
+  const { completionPercentage, loading: completionLoading, refreshCompletion } = useProfileCompletion(user);
 
-  const [skills, setSkills] = useState<string[]>([]);
-  const [interests, setInterests] = useState<string[]>([]);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize skills and interests from profile data
+  // Refresh completion when profile is saved
   useEffect(() => {
-    // Parse skills and interests from profile if they exist
-    // This would typically come from the database
-    setSkills([]);
-    setInterests([]);
-  }, [profile]);
-
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
-        return;
-      }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAvatarPreview(e.target?.result as string);
-        toast.success('Avatar updated. Don\'t forget to save your changes!');
-      };
-      reader.readAsDataURL(file);
-      // TODO: Implement actual upload to Supabase Storage
+    if (!loading && !hasUnsavedChanges) {
+      refreshCompletion();
     }
-  };
+  }, [loading, hasUnsavedChanges, refreshCompletion]);
 
   const handleFieldChange = (field: string, value: string) => {
     handleInputChange(field, value);
     
-    // Clear field error on change
-    if (errors[field]) {
-      clearFieldError(field);
-    }
-    
-    // Validate field in real-time for better UX
-    const error = validateField(field, value);
-    if (error) {
-      setTimeout(() => {
-        const currentError = validateField(field, value);
-        if (currentError) {
-          // Only show error if user has stopped typing for a moment
-        }
-      }, 1000);
-    }
+    // Real-time validation with debouncing
+    setTimeout(() => {
+      const error = validateField(field, value);
+      // Validation is handled in the hook
+    }, 500);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Validate form before saving
-    const formErrors = validateForm(profile);
-    if (Object.keys(formErrors).length > 0) {
-      setIsSaving(false);
-      toast.error('Please fix the validation errors before saving');
-      return;
-    }
-
     try {
       const success = await handleSaveProfile();
       if (success) {
+        await refreshCompletion();
         toast.success('Profile updated successfully!');
       }
     } catch (error) {
@@ -119,9 +76,6 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
 
   const handleDiscard = () => {
     resetChanges();
-    setAvatarPreview(null);
-    setSkills([]);
-    setInterests([]);
     toast.info('Changes discarded');
   };
 
@@ -138,53 +92,48 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
         isSaving={isSaving}
       />
 
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <User className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">Profile Information</h2>
+      {/* Header with Auto-save Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <User className="h-5 w-5 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">Profile Information</h2>
+          </div>
+          <p className="text-muted-foreground">Update your basic profile details and preferences.</p>
         </div>
-        <p className="text-muted-foreground">Update your basic profile details and preferences.</p>
+        
+        <div className="flex items-center gap-2">
+          <Label htmlFor="auto-save" className="text-sm">Auto-save</Label>
+          <Switch
+            id="auto-save"
+            checked={autoSaveEnabled}
+            onCheckedChange={toggleAutoSave}
+          />
+        </div>
       </div>
+
+      {/* Profile Completion Indicator */}
+      <ProfileCompletionIndicator 
+        percentage={completionPercentage} 
+        loading={completionLoading}
+      />
 
       {/* Avatar Section */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base">Profile Picture</CardTitle>
           <CardDescription>
-            Upload a profile picture to personalize your account. JPG, PNG up to 5MB.
+            Upload a profile picture to personalize your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative group">
-              <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                <AvatarImage src={avatarPreview || profile.avatar_url} />
-                <AvatarFallback className="text-xl bg-primary/10">
-                  {profile.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={loading}
-              />
-            </div>
-            <div className="text-center sm:text-left">
-              <h3 className="font-semibold text-foreground">Change Avatar</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Click on the avatar or use the button below to upload a new picture.
-              </p>
-              <Button variant="outline" size="sm" className="gap-2" disabled={loading}>
-                <Upload className="h-4 w-4" />
-                Upload Picture
-              </Button>
-            </div>
-          </div>
+          <EnhancedAvatarUpload
+            currentAvatarUrl={profile.avatar_url}
+            userId={user?.id}
+            userName={profile.full_name}
+            onAvatarChange={handleAvatarChange}
+            disabled={loading}
+          />
         </CardContent>
       </Card>
 
@@ -207,11 +156,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
                 value={profile.full_name}
                 onChange={(e) => handleFieldChange('full_name', e.target.value)}
                 placeholder="Enter your full name"
-                className={`h-11 ${errors.full_name ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`h-11 ${validationErrors.full_name ? 'border-red-500 focus:border-red-500' : ''}`}
                 disabled={loading}
               />
-              {errors.full_name && (
-                <p className="text-sm text-red-600">{errors.full_name}</p>
+              {validationErrors.full_name && (
+                <p className="text-sm text-red-600">{validationErrors.full_name}</p>
               )}
             </div>
 
@@ -224,11 +173,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
                 value={profile.username}
                 onChange={(e) => handleFieldChange('username', e.target.value)}
                 placeholder="Choose a unique username"
-                className={`h-11 ${errors.username ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`h-11 ${validationErrors.username ? 'border-red-500 focus:border-red-500' : ''}`}
                 disabled={loading}
               />
-              {errors.username && (
-                <p className="text-sm text-red-600">{errors.username}</p>
+              {validationErrors.username && (
+                <p className="text-sm text-red-600">{validationErrors.username}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 3-30 characters, letters, numbers, underscores, and hyphens only
@@ -243,13 +192,13 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
               value={profile.bio}
               onChange={(e) => handleFieldChange('bio', e.target.value)}
               placeholder="Tell us a bit about yourself..."
-              className={`min-h-[100px] resize-none ${errors.bio ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`min-h-[100px] resize-none ${validationErrors.bio ? 'border-red-500 focus:border-red-500' : ''}`}
               maxLength={500}
               disabled={loading}
             />
             <div className="flex justify-between items-center">
-              {errors.bio && (
-                <p className="text-sm text-red-600">{errors.bio}</p>
+              {validationErrors.bio && (
+                <p className="text-sm text-red-600">{validationErrors.bio}</p>
               )}
               <p className="text-xs text-muted-foreground ml-auto">
                 {profile.bio?.length || 0}/500 characters
@@ -298,11 +247,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
                 value={profile.phone_number}
                 onChange={(e) => handleFieldChange('phone_number', e.target.value)}
                 placeholder="+1 (555) 123-4567"
-                className={`h-11 ${errors.phone_number ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`h-11 ${validationErrors.phone_number ? 'border-red-500 focus:border-red-500' : ''}`}
                 disabled={loading}
               />
-              {errors.phone_number && (
-                <p className="text-sm text-red-600">{errors.phone_number}</p>
+              {validationErrors.phone_number && (
+                <p className="text-sm text-red-600">{validationErrors.phone_number}</p>
               )}
             </div>
 
@@ -315,11 +264,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
                 value={profile.website}
                 onChange={(e) => handleFieldChange('website', e.target.value)}
                 placeholder="https://yourwebsite.com"
-                className={`h-11 ${errors.website ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`h-11 ${validationErrors.website ? 'border-red-500 focus:border-red-500' : ''}`}
                 disabled={loading}
               />
-              {errors.website && (
-                <p className="text-sm text-red-600">{errors.website}</p>
+              {validationErrors.website && (
+                <p className="text-sm text-red-600">{validationErrors.website}</p>
               )}
             </div>
           </div>
@@ -328,10 +277,10 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
 
       {/* Skills and Interests */}
       <SkillsInterestsManager
-        skills={skills}
-        interests={interests}
-        onSkillsChange={setSkills}
-        onInterestsChange={setInterests}
+        skills={profile.skills}
+        interests={profile.interests}
+        onSkillsChange={handleSkillsChange}
+        onInterestsChange={handleInterestsChange}
         disabled={loading}
       />
 
@@ -353,11 +302,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
               value={profile.github_url}
               onChange={(e) => handleFieldChange('github_url', e.target.value)}
               placeholder="https://github.com/yourusername"
-              className={`h-11 ${errors.github_url ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`h-11 ${validationErrors.github_url ? 'border-red-500 focus:border-red-500' : ''}`}
               disabled={loading}
             />
-            {errors.github_url && (
-              <p className="text-sm text-red-600">{errors.github_url}</p>
+            {validationErrors.github_url && (
+              <p className="text-sm text-red-600">{validationErrors.github_url}</p>
             )}
           </div>
 
@@ -370,11 +319,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
               value={profile.linkedin_url}
               onChange={(e) => handleFieldChange('linkedin_url', e.target.value)}
               placeholder="https://linkedin.com/in/yourusername"
-              className={`h-11 ${errors.linkedin_url ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`h-11 ${validationErrors.linkedin_url ? 'border-red-500 focus:border-red-500' : ''}`}
               disabled={loading}
             />
-            {errors.linkedin_url && (
-              <p className="text-sm text-red-600">{errors.linkedin_url}</p>
+            {validationErrors.linkedin_url && (
+              <p className="text-sm text-red-600">{validationErrors.linkedin_url}</p>
             )}
           </div>
 
@@ -387,11 +336,11 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
               value={profile.twitter_url}
               onChange={(e) => handleFieldChange('twitter_url', e.target.value)}
               placeholder="https://twitter.com/yourusername"
-              className={`h-11 ${errors.twitter_url ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`h-11 ${validationErrors.twitter_url ? 'border-red-500 focus:border-red-500' : ''}`}
               disabled={loading}
             />
-            {errors.twitter_url && (
-              <p className="text-sm text-red-600">{errors.twitter_url}</p>
+            {validationErrors.twitter_url && (
+              <p className="text-sm text-red-600">{validationErrors.twitter_url}</p>
             )}
           </div>
         </CardContent>
@@ -404,14 +353,16 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
             variant="outline" 
             onClick={handleDiscard}
             disabled={isSaving}
+            className="gap-2"
           >
-            Cancel
+            <RotateCcw className="h-4 w-4" />
+            Reset Changes
           </Button>
         )}
         <Button 
           onClick={handleSave} 
-          disabled={isSaving || hasErrors || loading} 
-          className="flex items-center gap-2 min-w-[120px]"
+          disabled={isSaving || loading} 
+          className="flex items-center gap-2 min-w-[140px]"
         >
           {isSaving ? (
             <>
@@ -419,7 +370,10 @@ export const EnhancedBasicProfileSection: React.FC<EnhancedBasicProfileSectionPr
               Saving...
             </>
           ) : (
-            'Save Changes'
+            <>
+              <Save className="h-4 w-4" />
+              Save Changes
+            </>
           )}
         </Button>
       </div>

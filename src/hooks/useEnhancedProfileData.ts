@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useFormAutoSave } from './useFormAutoSave';
 
 interface ProfileData {
   full_name: string;
@@ -16,6 +17,8 @@ interface ProfileData {
   linkedin_url: string;
   twitter_url: string;
   avatar_url: string;
+  skills: string[];
+  interests: string[];
 }
 
 interface UserSettings {
@@ -32,6 +35,7 @@ export const useEnhancedProfileData = (user: User | null) => {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
@@ -44,7 +48,9 @@ export const useEnhancedProfileData = (user: User | null) => {
     github_url: '',
     linkedin_url: '',
     twitter_url: '',
-    avatar_url: ''
+    avatar_url: '',
+    skills: [],
+    interests: []
   });
 
   const [settings, setSettings] = useState<UserSettings>({
@@ -60,6 +66,13 @@ export const useEnhancedProfileData = (user: User | null) => {
   const [originalProfile, setOriginalProfile] = useState<ProfileData>({ ...profile });
   const [originalSettings, setOriginalSettings] = useState<UserSettings>({ ...settings });
 
+  // Auto-save functionality
+  const { triggerAutoSave } = useFormAutoSave({
+    onSave: handleSaveProfile,
+    delay: 3000,
+    enabled: autoSaveEnabled && hasUnsavedChanges
+  });
+
   useEffect(() => {
     if (user) {
       fetchProfile();
@@ -71,8 +84,15 @@ export const useEnhancedProfileData = (user: User | null) => {
   useEffect(() => {
     const profileChanged = JSON.stringify(profile) !== JSON.stringify(originalProfile);
     const settingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
-    setHasUnsavedChanges(profileChanged || settingsChanged);
-  }, [profile, settings, originalProfile, originalSettings]);
+    const newHasUnsavedChanges = profileChanged || settingsChanged;
+    
+    setHasUnsavedChanges(newHasUnsavedChanges);
+    
+    // Trigger auto-save when changes are detected
+    if (newHasUnsavedChanges && autoSaveEnabled) {
+      triggerAutoSave();
+    }
+  }, [profile, settings, originalProfile, originalSettings, autoSaveEnabled, triggerAutoSave]);
 
   const validateField = (field: string, value: string): string => {
     switch (field) {
@@ -95,6 +115,16 @@ export const useEnhancedProfileData = (user: User | null) => {
       case 'phone_number':
         if (value && !/^\+?[\d\s\-\(\)]{10,}$/.test(value)) {
           return 'Please enter a valid phone number';
+        }
+        break;
+      case 'full_name':
+        if (value && value.length > 100) {
+          return 'Name must be less than 100 characters';
+        }
+        break;
+      case 'bio':
+        if (value && value.length > 500) {
+          return 'Bio must be less than 500 characters';
         }
         break;
     }
@@ -137,7 +167,9 @@ export const useEnhancedProfileData = (user: User | null) => {
           github_url: data.github_url || '',
           linkedin_url: data.linkedin_url || '',
           twitter_url: data.twitter_url || '',
-          avatar_url: data.avatar_url || ''
+          avatar_url: data.avatar_url || '',
+          skills: Array.isArray(data.skills) ? data.skills : [],
+          interests: Array.isArray(data.interests) ? data.interests : []
         };
         setProfile(profileData);
         setOriginalProfile(profileData);
@@ -180,14 +212,16 @@ export const useEnhancedProfileData = (user: User | null) => {
     }
   };
 
-  const handleSaveProfile = async () => {
+  async function handleSaveProfile(): Promise<boolean> {
     if (!user) return false;
 
     // Validate all fields
     const errors: Record<string, string> = {};
     Object.entries(profile).forEach(([key, value]) => {
-      const error = validateField(key, value);
-      if (error) errors[key] = error;
+      if (typeof value === 'string') {
+        const error = validateField(key, value);
+        if (error) errors[key] = error;
+      }
     });
 
     if (Object.keys(errors).length > 0) {
@@ -212,7 +246,11 @@ export const useEnhancedProfileData = (user: User | null) => {
       if (error) throw error;
 
       setOriginalProfile({ ...profile });
-      toast.success('Profile updated successfully!');
+      
+      if (!autoSaveEnabled) {
+        toast.success('Profile updated successfully!');
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -221,9 +259,9 @@ export const useEnhancedProfileData = (user: User | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (): Promise<boolean> => {
     if (!user) return false;
 
     setLoading(true);
@@ -278,11 +316,37 @@ export const useEnhancedProfileData = (user: User | null) => {
     }));
   };
 
+  const handleSkillsChange = (skills: string[]) => {
+    setProfile(prev => ({
+      ...prev,
+      skills
+    }));
+  };
+
+  const handleInterestsChange = (interests: string[]) => {
+    setProfile(prev => ({
+      ...prev,
+      interests
+    }));
+  };
+
+  const handleAvatarChange = (avatarUrl: string | null) => {
+    setProfile(prev => ({
+      ...prev,
+      avatar_url: avatarUrl || ''
+    }));
+  };
+
   const resetChanges = () => {
     setProfile({ ...originalProfile });
     setSettings({ ...originalSettings });
     setValidationErrors({});
     setHasUnsavedChanges(false);
+  };
+
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(!autoSaveEnabled);
+    toast.info(autoSaveEnabled ? 'Auto-save disabled' : 'Auto-save enabled');
   };
 
   return {
@@ -291,10 +355,16 @@ export const useEnhancedProfileData = (user: User | null) => {
     loading,
     hasUnsavedChanges,
     validationErrors,
+    autoSaveEnabled,
     handleInputChange,
     handleSettingChange,
+    handleSkillsChange,
+    handleInterestsChange,
+    handleAvatarChange,
     handleSaveProfile,
     handleSaveSettings,
-    resetChanges
+    resetChanges,
+    toggleAutoSave,
+    validateField
   };
 };

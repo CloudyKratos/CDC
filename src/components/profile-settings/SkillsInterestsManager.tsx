@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Tag, Sparkles } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Plus, X, Sparkles, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SkillsInterestsManagerProps {
@@ -26,194 +26,235 @@ export const SkillsInterestsManager: React.FC<SkillsInterestsManagerProps> = ({
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
 
+  // Popular suggestions
+  const skillSuggestions = [
+    'JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'Go',
+    'Leadership', 'Communication', 'Project Management', 'Design', 'Marketing'
+  ];
+  
+  const interestSuggestions = [
+    'Technology', 'Reading', 'Photography', 'Travel', 'Music', 'Sports',
+    'Gaming', 'Cooking', 'Art', 'Fitness', 'Learning', 'Networking'
+  ];
+
   const addSkill = () => {
-    const skill = newSkill.trim();
-    if (!skill) {
-      toast.error('Please enter a skill');
+    const trimmedSkill = newSkill.trim();
+    if (!trimmedSkill) return;
+
+    if (skills.includes(trimmedSkill)) {
+      toast.error('Skill already added');
       return;
     }
-    
-    if (skills.includes(skill)) {
-      toast.error('This skill is already added');
+
+    if (skills.length >= 10) {
+      toast.error('Maximum 10 skills allowed');
       return;
     }
-    
-    if (skills.length >= 20) {
-      toast.error('You can add up to 20 skills');
-      return;
-    }
-    
-    onSkillsChange([...skills, skill]);
+
+    onSkillsChange([...skills, trimmedSkill]);
     setNewSkill('');
-    toast.success('Skill added');
   };
 
   const removeSkill = (skillToRemove: string) => {
     onSkillsChange(skills.filter(skill => skill !== skillToRemove));
-    toast.success('Skill removed');
   };
 
   const addInterest = () => {
-    const interest = newInterest.trim();
-    if (!interest) {
-      toast.error('Please enter an interest');
+    const trimmedInterest = newInterest.trim();
+    if (!trimmedInterest) return;
+
+    if (interests.includes(trimmedInterest)) {
+      toast.error('Interest already added');
       return;
     }
-    
-    if (interests.includes(interest)) {
-      toast.error('This interest is already added');
+
+    if (interests.length >= 10) {
+      toast.error('Maximum 10 interests allowed');
       return;
     }
-    
-    if (interests.length >= 20) {
-      toast.error('You can add up to 20 interests');
-      return;
-    }
-    
-    onInterestsChange([...interests, interest]);
+
+    onInterestsChange([...interests, trimmedInterest]);
     setNewInterest('');
-    toast.success('Interest added');
   };
 
   const removeInterest = (interestToRemove: string) => {
     onInterestsChange(interests.filter(interest => interest !== interestToRemove));
-    toast.success('Interest removed');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
+  const addSuggestion = (suggestion: string, type: 'skill' | 'interest') => {
+    if (type === 'skill' && !skills.includes(suggestion) && skills.length < 10) {
+      onSkillsChange([...skills, suggestion]);
+    } else if (type === 'interest' && !interests.includes(suggestion) && interests.length < 10) {
+      onInterestsChange([...interests, suggestion]);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, type: 'skill' | 'interest') => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      action();
+      if (type === 'skill') {
+        addSkill();
+      } else {
+        addInterest();
+      }
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Skills Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Tag className="h-4 w-4" />
-            Skills
-          </CardTitle>
-          <CardDescription>
-            Add your technical and professional skills ({skills.length}/20)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Card className="border-border/50 shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          Skills & Interests
+        </CardTitle>
+        <CardDescription>
+          Showcase your expertise and what you're passionate about (max 10 each)
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Skills Section */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Skills</Label>
           <div className="flex gap-2">
             <Input
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
-              placeholder="e.g., React, Python, Project Management"
-              onKeyPress={(e) => handleKeyPress(e, addSkill)}
-              disabled={disabled}
+              onKeyPress={(e) => handleKeyPress(e, 'skill')}
+              placeholder="Add a skill (e.g., JavaScript, Leadership)"
               className="flex-1"
+              disabled={disabled || skills.length >= 10}
+              maxLength={50}
             />
             <Button 
               type="button" 
               onClick={addSkill} 
               size="sm"
-              disabled={disabled || !newSkill.trim() || skills.length >= 20}
-              className="flex items-center gap-1"
+              disabled={disabled || !newSkill.trim() || skills.length >= 10}
+              className="gap-1"
             >
               <Plus className="h-4 w-4" />
               Add
             </Button>
           </div>
           
-          {skills.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill, index) => (
-                <Badge 
-                  key={index} 
-                  variant="secondary" 
-                  className="flex items-center gap-1 pr-1 hover:bg-secondary/80 transition-colors"
-                >
-                  <span>{skill}</span>
-                  <button
+          {/* Skills Display */}
+          <div className="flex flex-wrap gap-2">
+            {skills.map((skill, index) => (
+              <Badge key={index} variant="secondary" className="gap-1 pr-1">
+                {skill}
+                {!disabled && (
+                  <button 
                     onClick={() => removeSkill(skill)}
-                    disabled={disabled}
-                    className="ml-1 hover:text-destructive disabled:opacity-50"
-                    aria-label={`Remove ${skill}`}
+                    className="ml-1 hover:text-destructive transition-colors"
+                    type="button"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Badge>
-              ))}
+                )}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Skills Suggestions */}
+          {!disabled && skills.length < 10 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Popular skills:</p>
+              <div className="flex flex-wrap gap-1">
+                {skillSuggestions
+                  .filter(suggestion => !skills.includes(suggestion))
+                  .slice(0, 6)
+                  .map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => addSuggestion(suggestion, 'skill')}
+                    >
+                      + {suggestion}
+                    </Button>
+                  ))}
+              </div>
             </div>
           )}
-          
-          {skills.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
-              No skills added yet. Add your first skill above.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Interests Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+        {/* Interests Section */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium flex items-center gap-1">
+            <Heart className="h-4 w-4" />
             Interests
-          </CardTitle>
-          <CardDescription>
-            Share your hobbies and interests ({interests.length}/20)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </Label>
           <div className="flex gap-2">
             <Input
               value={newInterest}
               onChange={(e) => setNewInterest(e.target.value)}
-              placeholder="e.g., Photography, Hiking, Machine Learning"
-              onKeyPress={(e) => handleKeyPress(e, addInterest)}
-              disabled={disabled}
+              onKeyPress={(e) => handleKeyPress(e, 'interest')}
+              placeholder="Add an interest (e.g., Photography, Travel)"
               className="flex-1"
+              disabled={disabled || interests.length >= 10}
+              maxLength={50}
             />
             <Button 
               type="button" 
               onClick={addInterest} 
               size="sm"
-              disabled={disabled || !newInterest.trim() || interests.length >= 20}
-              className="flex items-center gap-1"
+              disabled={disabled || !newInterest.trim() || interests.length >= 10}
+              className="gap-1"
             >
               <Plus className="h-4 w-4" />
               Add
             </Button>
           </div>
           
-          {interests.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {interests.map((interest, index) => (
-                <Badge 
-                  key={index} 
-                  variant="outline" 
-                  className="flex items-center gap-1 pr-1 hover:bg-muted/50 transition-colors"
-                >
-                  <span>{interest}</span>
-                  <button
+          {/* Interests Display */}
+          <div className="flex flex-wrap gap-2">
+            {interests.map((interest, index) => (
+              <Badge key={index} variant="outline" className="gap-1 pr-1">
+                {interest}
+                {!disabled && (
+                  <button 
                     onClick={() => removeInterest(interest)}
-                    disabled={disabled}
-                    className="ml-1 hover:text-destructive disabled:opacity-50"
-                    aria-label={`Remove ${interest}`}
+                    className="ml-1 hover:text-destructive transition-colors"
+                    type="button"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Badge>
-              ))}
+                )}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Interests Suggestions */}
+          {!disabled && interests.length < 10 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Popular interests:</p>
+              <div className="flex flex-wrap gap-1">
+                {interestSuggestions
+                  .filter(suggestion => !interests.includes(suggestion))
+                  .slice(0, 6)
+                  .map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => addSuggestion(suggestion, 'interest')}
+                    >
+                      + {suggestion}
+                    </Button>
+                  ))}
+              </div>
             </div>
           )}
-          
-          {interests.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
-              No interests added yet. Add your first interest above.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* Counter */}
+        <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
+          <span>Skills: {skills.length}/10</span>
+          <span>Interests: {interests.length}/10</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

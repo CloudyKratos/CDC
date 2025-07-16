@@ -1216,6 +1216,10 @@ export type Database = {
         Args: { p_user_id: string; p_activity_type?: string }
         Returns: boolean
       }
+      get_profile_completion_percentage: {
+        Args: { user_uuid: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { check_user_id: string }
         Returns: string
