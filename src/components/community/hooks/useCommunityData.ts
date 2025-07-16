@@ -24,7 +24,7 @@ export function useCommunityData(): UseCommunityData {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔄 Loading channels...');
+      console.log('🔄 Loading channels from database...');
       
       const { data: channels, error: channelsError } = await supabase
         .from('channels')
@@ -34,27 +34,23 @@ export function useCommunityData(): UseCommunityData {
 
       if (channelsError) {
         console.error('❌ Error fetching channels:', channelsError);
-        // Create default channels if none exist
-        const defaultChannels: ChatChannel[] = [
-          { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
-          { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
-          { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
-          { id: 'tech-talk', name: 'tech-talk', type: ChannelType.PUBLIC, members: [], description: 'Technology discussions' }
-        ];
-        setChannels(defaultChannels);
-        return;
+        throw new Error(`Failed to fetch channels: ${channelsError.message}`);
       }
 
-      console.log('✅ Channels loaded:', channels?.length || 0);
+      console.log('✅ Channels loaded from database:', channels?.length || 0, channels);
       
       if (!channels || channels.length === 0) {
-        const defaultChannels: ChatChannel[] = [
-          { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
-          { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
-          { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
-          { id: 'tech-talk', name: 'tech-talk', type: ChannelType.PUBLIC, members: [], description: 'Technology discussions' }
+        console.log('⚠️ No channels found in database, using fallback channels');
+        const fallbackChannels: ChatChannel[] = [
+          { 
+            id: 'general', 
+            name: 'general', 
+            type: ChannelType.PUBLIC, 
+            members: [], 
+            description: 'General discussion and community chat' 
+          }
         ];
-        setChannels(defaultChannels);
+        setChannels(fallbackChannels);
         return;
       }
 
@@ -63,27 +59,55 @@ export function useCommunityData(): UseCommunityData {
         name: channel.name,
         type: ChannelType.PUBLIC,
         members: [],
-        description: channel.description || `${channel.name} channel`
+        description: channel.description || `${channel.name.charAt(0).toUpperCase() + channel.name.slice(1)} channel`
       }));
 
       setChannels(formattedChannels);
+      console.log('✅ Formatted channels:', formattedChannels);
+      
     } catch (error) {
       console.error('💥 Exception loading channels:', error);
-      setError('Failed to load channels');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load channels';
+      setError(errorMessage);
       
-      // Fallback to default channels
-      const defaultChannels: ChatChannel[] = [
-        { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' }
+      // Fallback to default channels on error
+      const fallbackChannels: ChatChannel[] = [
+        { 
+          id: 'general', 
+          name: 'general', 
+          type: ChannelType.PUBLIC, 
+          members: [], 
+          description: 'General discussion and community chat' 
+        },
+        { 
+          id: 'morning-journey', 
+          name: 'morning journey', 
+          type: ChannelType.PUBLIC, 
+          members: [], 
+          description: 'Start your day with motivation and morning routines' 
+        },
+        { 
+          id: 'announcement', 
+          name: 'announcement', 
+          type: ChannelType.PUBLIC, 
+          members: [], 
+          description: 'Important announcements and updates' 
+        }
       ];
-      setChannels(defaultChannels);
+      setChannels(fallbackChannels);
+      
+      // Show toast notification for the error
+      toast.error('Failed to load channels from database, using default channels');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadChannels();
-  }, [loadChannels]);
+    if (user?.id) {
+      loadChannels();
+    }
+  }, [loadChannels, user?.id]);
 
   return {
     channels,
