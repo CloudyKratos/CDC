@@ -7,31 +7,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from '@/hooks/useNotifications';
-import NotificationItem from '@/components/notifications/NotificationItem';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useNavigate } from 'react-router-dom';
 
 const NotificationDropdown: React.FC = () => {
-  const { 
-    recentNotifications, 
-    unreadCount, 
-    markAsRead, 
-    markAllAsRead,
-    deleteNotification 
-  } = useNotifications();
-  
-  const navigate = useNavigate();
-
-  const handleAction = (url: string) => {
-    navigate(url);
-  };
-
-  const handleViewAll = () => {
-    navigate('/notifications');
-  };
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   return (
     <DropdownMenu>
@@ -40,74 +20,71 @@ const NotificationDropdown: React.FC = () => {
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadCount}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 p-0 max-h-[600px]">
-        <div className="p-4 border-b bg-gray-50 dark:bg-gray-800">
+      <DropdownMenuContent align="end" className="w-80 p-0 max-h-96">
+        <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Notifications</h3>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs"
-                  onClick={markAllAsRead}
-                >
-                  Mark all read
-                </Button>
-              )}
+            {unreadCount > 0 && (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="text-xs"
-                onClick={handleViewAll}
+                onClick={markAllAsRead}
               >
-                View all
+                Mark all read
               </Button>
-            </div>
+            )}
           </div>
         </div>
-
-        <ScrollArea className="max-h-96">
-          {recentNotifications.length === 0 ? (
-            <div className="p-8 text-center">
+        <div className="max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">No notifications</p>
+              <p>No notifications</p>
             </div>
           ) : (
-            <div className="p-2">
-              {recentNotifications.map((notification) => (
-                <div key={notification.id} className="mb-2">
-                  <NotificationItem
-                    notification={notification}
-                    onMarkAsRead={markAsRead}
-                    onDelete={deleteNotification}
-                    onAction={handleAction}
-                    compact={true}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-
-        {recentNotifications.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <div className="p-2">
+            notifications.map((notification) => (
               <DropdownMenuItem 
-                className="w-full text-center cursor-pointer"
-                onClick={handleViewAll}
+                key={notification.id} 
+                className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => markAsRead(notification.id)}
               >
-                View all notifications
+                <div className="flex items-start gap-3 w-full">
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${
+                    notification.read 
+                      ? 'bg-gray-100 dark:bg-gray-800' 
+                      : 'bg-blue-50 dark:bg-blue-900/20'
+                  }`}>
+                    {notification.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${
+                      notification.read 
+                        ? 'text-gray-700 dark:text-gray-300' 
+                        : 'text-gray-900 dark:text-white'
+                    }`}>
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {notification.description}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {notification.time}
+                    </p>
+                  </div>
+                  {!notification.read && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                  )}
+                </div>
               </DropdownMenuItem>
-            </div>
-          </>
-        )}
+            ))
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
