@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { User } from '@/types/chat';
+import { ChatUser } from '@/types/chat';
 
 interface EnhancedTypingIndicatorProps {
-  typingUsers: User[];
+  typingUsers: ChatUser[];
   className?: string;
 }
 
@@ -15,9 +15,9 @@ export const EnhancedTypingIndicator: React.FC<EnhancedTypingIndicatorProps> = (
 
   const renderTypingText = () => {
     if (typingUsers.length === 1) {
-      return `${typingUsers[0].full_name || typingUsers[0].username || 'Someone'} is typing`;
+      return `${typingUsers[0].name || 'Someone'} is typing`;
     } else if (typingUsers.length === 2) {
-      return `${typingUsers[0].full_name || typingUsers[0].username} and ${typingUsers[1].full_name || typingUsers[1].username} are typing`;
+      return `${typingUsers[0].name} and ${typingUsers[1].name} are typing`;
     } else {
       return `${typingUsers.length} people are typing`;
     }
