@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ProfileSettingsSidebar } from './ProfileSettingsSidebar';
-import { BasicProfileSection } from './BasicProfileSection';
+import { EnhancedBasicProfileSection } from './EnhancedBasicProfileSection';
 import { AccountSecuritySection } from './AccountSecuritySection';
 import { NotificationPreferencesSection } from './NotificationPreferencesSection';
 import { PrivacyDataSection } from './PrivacyDataSection';
@@ -11,7 +11,7 @@ import { ThemeLanguageSection } from './ThemeLanguageSection';
 export type SettingsSection = 'profile' | 'security' | 'notifications' | 'privacy' | 'theme';
 
 interface ProfileSettingsLayoutProps {
-  user?: any; // Replace with your user type from Supabase
+  user?: any;
 }
 
 export const ProfileSettingsLayout: React.FC<ProfileSettingsLayoutProps> = ({ user }) => {
@@ -20,7 +20,7 @@ export const ProfileSettingsLayout: React.FC<ProfileSettingsLayoutProps> = ({ us
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'profile':
-        return <BasicProfileSection user={user} />;
+        return <EnhancedBasicProfileSection user={user} />;
       case 'security':
         return <AccountSecuritySection user={user} />;
       case 'notifications':
@@ -30,7 +30,7 @@ export const ProfileSettingsLayout: React.FC<ProfileSettingsLayoutProps> = ({ us
       case 'theme':
         return <ThemeLanguageSection />;
       default:
-        return <BasicProfileSection user={user} />;
+        return <EnhancedBasicProfileSection user={user} />;
     }
   };
 
