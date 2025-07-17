@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,6 @@ import { useAuth } from '@/contexts/auth/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield } from 'lucide-react';
-import { Logo } from '@/components/ui/Logo';
 
 // Form validation schema
 const SignUpSchema = z.object({
@@ -76,7 +74,16 @@ const SignUp: React.FC = () => {
       const errorMessage = error.message || "Sign up failed";
       setErrorMessage(errorMessage);
       
-      if (errorMessage.toLowerCase().includes("already registered") || 
+      // Handle specific error types with user-friendly messages
+      if (errorMessage.toLowerCase().includes("email configuration")) {
+        toast.error("Configuration Error", {
+          description: "There's a temporary issue with email verification. Please contact support."
+        });
+      } else if (errorMessage.toLowerCase().includes("confirmation email")) {
+        toast.error("Email Delivery Issue", {
+          description: "Unable to send confirmation email. Please check your email address and try again."
+        });
+      } else if (errorMessage.toLowerCase().includes("already registered") || 
           errorMessage.toLowerCase().includes("already been registered")) {
         toast.error("Email already in use", {
           description: "This email is already registered. Try signing in instead."

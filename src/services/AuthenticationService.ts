@@ -23,9 +23,14 @@ class AuthenticationService {
     }
   }
 
-  // Sign up user
+  // Sign up user with proper email redirect
   async signUp(email: string, password: string, fullName: string): Promise<User | null> {
     try {
+      // Get the current origin for redirect URL
+      const redirectUrl = `${window.location.origin}/`;
+      
+      console.log('Attempting signup with redirect URL:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -33,14 +38,26 @@ class AuthenticationService {
           data: {
             full_name: fullName,
           },
+          emailRedirectTo: redirectUrl
         },
       });
 
       if (error) {
         console.error('Sign up error:', error);
+        
+        // Provide more specific error messages
+        if (error.message.includes('email')) {
+          throw new Error('Email configuration error. Please contact support.');
+        } else if (error.message.includes('confirmation')) {
+          throw new Error('Unable to send confirmation email. Please check your email address and try again.');
+        } else if (error.message.includes('already registered')) {
+          throw new Error('This email is already registered. Please try signing in instead.');
+        }
+        
         throw error;
       }
 
+      console.log('Signup successful, confirmation email should be sent');
       return data.user;
     } catch (error) {
       console.error('Authentication service sign up error:', error);
@@ -108,7 +125,11 @@ class AuthenticationService {
   // Reset password
   async resetPassword(email: string): Promise<boolean> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
 
       if (error) {
         console.error('Reset password error:', error);
@@ -144,9 +165,14 @@ class AuthenticationService {
   // Resend verification email
   async resendVerificationEmail(email: string): Promise<boolean> {
     try {
+      const redirectUrl = `${window.location.origin}/`;
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       });
 
       if (error) {
