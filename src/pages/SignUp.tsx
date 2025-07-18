@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield, RefreshCw } from 'lucide-react';
 
 // Form validation schema
 const SignUpSchema = z.object({
@@ -33,6 +34,7 @@ const SignUp: React.FC = () => {
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -52,12 +54,17 @@ const SignUp: React.FC = () => {
     },
   });
 
-  // Form submission handler
+  // Form submission handler with enhanced error handling
   const onSubmit = async (values: SignUpValues) => {
     setErrorMessage(null);
     
     try {
-      console.log("Form values:", values);
+      console.log("Starting signup process with values:", {
+        email: values.email,
+        fullName: values.fullName,
+        passwordLength: values.password.length
+      });
+      
       const user = await signup(values.email, values.password, values.fullName);
       console.log("Sign-up response:", user);
       
@@ -68,56 +75,78 @@ const SignUp: React.FC = () => {
       setFormSubmitted(true);
       toast.success("🎉 Account created successfully!", {
         description: "Please check your email to verify your account.",
+        duration: 5000,
       });
+      
+      // Reset retry count on success
+      setRetryCount(0);
     } catch (error: any) {
       console.error("Sign-up error:", error);
       const errorMessage = error.message || "Sign up failed";
       setErrorMessage(errorMessage);
+      setRetryCount(prev => prev + 1);
       
-      // Handle specific error types with user-friendly messages
-      if (errorMessage.toLowerCase().includes("email configuration")) {
-        toast.error("Configuration Error", {
-          description: "There's a temporary issue with email verification. Please contact support."
-        });
-      } else if (errorMessage.toLowerCase().includes("confirmation email")) {
-        toast.error("Email Delivery Issue", {
-          description: "Unable to send confirmation email. Please check your email address and try again."
-        });
-      } else if (errorMessage.toLowerCase().includes("already registered") || 
-          errorMessage.toLowerCase().includes("already been registered")) {
+      // Enhanced error handling with specific user actions
+      if (errorMessage.toLowerCase().includes("already exists") || 
+          errorMessage.toLowerCase().includes("already registered")) {
         toast.error("Email already in use", {
-          description: "This email is already registered. Try signing in instead."
+          description: "This email is already registered. Try signing in instead.",
+          action: {
+            label: "Sign In",
+            onClick: () => navigate('/login')
+          }
         });
-      } else if (errorMessage.toLowerCase().includes("password")) {
-        toast.error("Password requirements not met", {
-          description: "Please ensure your password meets the requirements."
+      } else if (errorMessage.toLowerCase().includes("email") && 
+                 errorMessage.toLowerCase().includes("config")) {
+        toast.error("Email Service Issue", {
+          description: "There's a temporary issue with our email service. Please try again in a few minutes.",
+          duration: 8000,
+        });
+      } else if (errorMessage.toLowerCase().includes("rate limit")) {
+        toast.error("Too Many Attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 6000,
+        });
+      } else if (errorMessage.toLowerCase().includes("disabled")) {
+        toast.error("Registration Unavailable", {
+          description: "Account registration is currently disabled. Please contact support.",
+          duration: 8000,
         });
       } else {
-        toast.error(`❌ Sign up failed: ${errorMessage}`);
+        toast.error("Signup Failed", {
+          description: errorMessage,
+          duration: 6000,
+        });
       }
     }
   };
 
-  // Handle resend verification email
+  // Enhanced resend verification email handler
   const handleResendEmail = async () => {
     if (!submittedEmail) return;
     
     setIsResendingEmail(true);
     try {
-      const result = await resendVerificationEmail(submittedEmail);
-      if (result) {
-        toast.success("✉️ Verification email resent!", {
-          description: "Please check your inbox and spam folder."
-        });
-      } else {
-        toast.error("Failed to resend verification email");
-      }
-    } catch (error) {
+      await resendVerificationEmail(submittedEmail);
+      toast.success("✉️ Verification email resent!", {
+        description: "Please check your inbox and spam folder.",
+        duration: 5000,
+      });
+    } catch (error: any) {
       console.error("Failed to resend verification email:", error);
-      toast.error("Failed to resend verification email");
+      toast.error("Resend Failed", {
+        description: error.message || "Failed to resend verification email. Please try again.",
+        duration: 6000,
+      });
     } finally {
       setIsResendingEmail(false);
     }
+  };
+
+  // Retry form submission
+  const handleRetry = () => {
+    setErrorMessage(null);
+    form.handleSubmit(onSubmit)();
   };
 
   // If the form was submitted successfully, show confirmation message
@@ -196,7 +225,7 @@ const SignUp: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Mail className="h-5 w-5 mr-2" />
+                      <RefreshCw className="h-5 w-5 mr-2" />
                       Resend verification email
                     </>
                   )}
@@ -258,7 +287,30 @@ const SignUp: React.FC = () => {
               <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+                    {retryCount > 0 && (
+                      <div className="mt-3 flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={handleRetry}
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Try Again
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => navigate('/login')}
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                          Sign In Instead
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -300,7 +352,7 @@ const SignUp: React.FC = () => {
                           placeholder="Enter your email address" 
                           {...field} 
                           disabled={isLoading} 
-                          className="h-12 px-4 text-base border-gray-200 dark: border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
+                          className="h-12 px-4 text-base border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-purple-500 rounded-lg transition-all duration-200"
                         />
                       </FormControl>
                       <FormMessage />
