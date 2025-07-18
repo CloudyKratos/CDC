@@ -5,93 +5,157 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 import { toast } from 'sonner';
 
-interface UseSimpleChat {
+interface SimpleChatState {
   messages: Message[];
   isLoading: boolean;
-  isConnected: boolean;
   error: string | null;
+  isConnected: boolean;
   sendMessage: (content: string) => Promise<boolean>;
-  deleteMessage: (messageId: string) => Promise<boolean>;
-  reconnect: () => void;
-  isReady: boolean;
+  deleteMessage: (messageId: string) => Promise<void>;
 }
 
-export function useSimpleChat(channelName: string): UseSimpleChat {
+// Global subscription manager to prevent duplicates
+const activeSubscriptions = new Map<string, any>();
+
+export function useSimpleChat(channelName: string): SimpleChatState | null {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [channelId, setChannelId] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  
-  const { user } = useAuth();
+
   const subscriptionRef = useRef<any>(null);
-  const retryCountRef = useRef(0);
-  const maxRetries = 3;
-  const initializingRef = useRef(false);
+  const channelInitialized = useRef<string | null>(null);
 
   console.log('🎯 useSimpleChat hook called for channel:', channelName);
 
-  // Clean up subscription
-  const cleanupSubscription = useCallback(() => {
-    if (subscriptionRef.current) {
-      console.log('🧹 Cleaning up subscription for channel:', channelName);
-      supabase.removeChannel(subscriptionRef.current);
-      subscriptionRef.current = null;
+  // Initialize chat for a channel
+  const initializeChat = useCallback(async (targetChannelName: string) => {
+    if (!user?.id || !targetChannelName) {
+      setIsLoading(false);
+      return;
     }
-  }, [channelName]);
+
+    // Prevent duplicate initialization
+    if (channelInitialized.current === targetChannelName) {
+      console.log('⚠️ Channel already initialized:', targetChannelName);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log('🚀 Initializing chat for channel:', targetChannelName);
+
+      // Get or create channel
+      const channelResult = await getOrCreateChannel(targetChannelName);
+      if (!channelResult) {
+        throw new Error('Failed to get or create channel');
+      }
+
+      setChannelId(channelResult);
+      channelInitialized.current = targetChannelName;
+
+      // Load messages
+      await loadMessages(channelResult);
+
+      // Setup realtime subscription
+      setupRealtimeSubscription(channelResult);
+
+      console.log('✅ Chat initialized successfully for channel:', targetChannelName);
+      
+    } catch (err) {
+      console.error('❌ Failed to initialize chat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
 
   // Get or create channel
-  const getOrCreateChannel = useCallback(async (name: string): Promise<string | null> => {
-    if (!user?.id || !name) return null;
+  const getOrCreateChannel = async (name: string): Promise<string | null> => {
+    if (!user?.id) return null;
 
     try {
       console.log('🔍 Getting or creating channel:', name);
       
-      let { data: channel, error: channelError } = await supabase
+      // First try to find existing channel
+      let { data: channel, error } = await supabase
         .from('channels')
         .select('id')
         .eq('name', name)
         .eq('type', 'public')
-        .maybeSingle();
+        .limit(1)
+        .single();
 
-      if (channelError && channelError.code !== 'PGRST116') {
-        throw new Error(`Channel lookup failed: ${channelError.message}`);
+      if (!error && channel) {
+        console.log('✅ Found existing channel:', channel.id);
+        return channel.id;
       }
 
-      if (!channel) {
-        console.log('📝 Creating new channel:', name);
-        const { data: newChannel, error: createError } = await supabase
-          .from('channels')
-          .insert({
-            name: name,
-            type: 'public',
-            description: `${name.charAt(0).toUpperCase() + name.slice(1)} discussion`,
-            created_by: user.id
-          })
-          .select('id')
-          .single();
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
 
-        if (createError) {
-          throw new Error(`Failed to create channel: ${createError.message}`);
+      // Create new channel if not found
+      console.log('📝 Creating new channel:', name);
+      const { data: newChannel, error: createError } = await supabase
+        .from('channels')
+        .insert({
+          name: name,
+          type: 'public',
+          description: getChannelDescription(name),
+          created_by: user.id
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        // Handle unique constraint violation
+        if (createError.code === '23505') {
+          console.log('🔄 Channel exists due to race condition, fetching...');
+          const { data: existingChannel } = await supabase
+            .from('channels')
+            .select('id')
+            .eq('name', name)
+            .eq('type', 'public')
+            .limit(1)
+            .single();
+          
+          return existingChannel?.id || null;
         }
-        channel = newChannel;
+        throw createError;
       }
 
-      console.log('✅ Found existing channel:', channel.id);
-      return channel.id;
+      console.log('✅ Created channel:', newChannel.id);
+      return newChannel.id;
+      
     } catch (err) {
-      console.error('💥 Failed to get/create channel:', err);
-      throw err;
+      console.error('❌ Error in getOrCreateChannel:', err);
+      return null;
     }
-  }, [user?.id]);
+  };
 
-  // Load messages for channel
-  const loadMessages = useCallback(async (channelId: string) => {
+  const getChannelDescription = (name: string): string => {
+    switch (name.toLowerCase()) {
+      case 'general':
+        return 'General discussion and community chat';
+      case 'morning journey':
+        return 'Start your day with motivation and morning routines';
+      case 'announcement':
+        return 'Important announcements and updates';
+      default:
+        return `${name.charAt(0).toUpperCase() + name.slice(1)} discussion`;
+    }
+  };
+
+  // Load messages
+  const loadMessages = async (channelId: string) => {
     try {
       console.log('📥 Loading messages for channel:', channelId);
       
-      const { data: messagesData, error: messagesError } = await supabase
+      const { data: messagesData, error } = await supabase
         .from('community_messages')
         .select(`
           id,
@@ -110,11 +174,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
         .order('created_at', { ascending: true })
         .limit(50);
 
-      if (messagesError) {
-        console.warn('⚠️ Could not load messages:', messagesError);
-        setMessages([]);
-        return;
-      }
+      if (error) throw error;
 
       const formattedMessages = (messagesData || []).map(msg => ({
         id: msg.id,
@@ -123,28 +183,41 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
         sender_id: msg.sender_id,
         sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
-          username: 'Unknown User',
+          username: 'Unknown',
           full_name: 'Unknown User',
           avatar_url: null
         }
       }));
 
-      console.log('✅ Loaded messages:', formattedMessages.length);
       setMessages(formattedMessages);
+      console.log('✅ Loaded messages:', formattedMessages.length);
+      
     } catch (err) {
-      console.error('💥 Failed to load messages:', err);
+      console.error('❌ Failed to load messages:', err);
       setMessages([]);
     }
-  }, []);
+  };
 
   // Setup realtime subscription
-  const setupRealtimeSubscription = useCallback((channelId: string) => {
-    cleanupSubscription();
+  const setupRealtimeSubscription = (channelId: string) => {
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    // Clean up global subscription if exists
+    if (activeSubscriptions.has(channelId)) {
+      console.log('🧹 Cleaning up global subscription for:', channelId);
+      supabase.removeChannel(activeSubscriptions.get(channelId));
+      activeSubscriptions.delete(channelId);
+    }
 
     console.log('📡 Setting up realtime subscription for channel:', channelId);
     
     const subscription = supabase
-      .channel(`simple_chat_${channelId}`)
+      .channel(`community_messages_${channelId}`)
       .on(
         'postgres_changes',
         {
@@ -154,7 +227,7 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
           filter: `channel_id=eq.${channelId}`
         },
         async (payload) => {
-          console.log('📨 New message received via realtime:', payload);
+          console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
           // Get sender profile
@@ -184,93 +257,20 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
           });
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'community_messages',
-          filter: `channel_id=eq.${channelId}`
-        },
-        (payload) => {
-          const updatedMessage = payload.new as any;
-          if (updatedMessage.is_deleted) {
-            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
-          }
-        }
-      )
       .subscribe((status) => {
         console.log('📡 Realtime subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setIsConnected(false);
-          if (retryCountRef.current < maxRetries) {
-            setTimeout(() => {
-              reconnect();
-            }, 3000);
-          }
-        }
       });
 
     subscriptionRef.current = subscription;
-  }, [cleanupSubscription]);
-
-  // Initialize chat for channel
-  const initializeChat = useCallback(async () => {
-    if (!user?.id || !channelName || initializingRef.current) {
-      return;
-    }
-
-    initializingRef.current = true;
-    setIsLoading(true);
-    setError(null);
-    setIsReady(false);
-
-    try {
-      console.log('🚀 Initializing chat for channel:', channelName);
-
-      const id = await getOrCreateChannel(channelName);
-      if (!id) {
-        throw new Error('Failed to get channel ID');
-      }
-
-      setChannelId(id);
-      await loadMessages(id);
-      setupRealtimeSubscription(id);
-      
-      setIsConnected(true);
-      setIsReady(true);
-      retryCountRef.current = 0;
-      console.log('✅ Chat initialized successfully for channel:', channelName);
-
-    } catch (err) {
-      console.error('💥 Failed to initialize chat:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
-      setIsConnected(false);
-      setIsReady(false);
-      
-      if (retryCountRef.current < maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
-        retryCountRef.current++;
-        setTimeout(initializeChat, delay);
-      }
-    } finally {
-      setIsLoading(false);
-      initializingRef.current = false;
-    }
-  }, [user?.id, channelName, getOrCreateChannel, loadMessages, setupRealtimeSubscription]);
+    activeSubscriptions.set(channelId, subscription);
+  };
 
   // Send message
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-    if (!content.trim() || !user?.id || !channelId) {
-      console.warn('⚠️ Cannot send message: missing requirements', { content: !!content.trim(), userId: !!user?.id, channelId: !!channelId });
-      return false;
-    }
+    if (!user?.id || !channelId || !content.trim()) return false;
 
     try {
-      console.log('📤 Handling message send:', content);
-      
       const { error } = await supabase
         .from('community_messages')
         .insert({
@@ -279,23 +279,19 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
           content: content.trim()
         });
 
-      if (error) {
-        throw new Error(`Failed to send message: ${error.message}`);
-      }
-
-      console.log('✅ Message sent successfully');
+      if (error) throw error;
       return true;
-
-    } catch (error) {
-      console.error('💥 Failed to send message:', error);
+      
+    } catch (err) {
+      console.error('❌ Failed to send message:', err);
       toast.error('Failed to send message');
       return false;
     }
   }, [user?.id, channelId]);
 
   // Delete message
-  const deleteMessage = useCallback(async (messageId: string): Promise<boolean> => {
-    if (!user?.id) return false;
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
 
     try {
       const { error } = await supabase
@@ -304,55 +300,52 @@ export function useSimpleChat(channelName: string): UseSimpleChat {
         .eq('id', messageId)
         .eq('sender_id', user.id);
 
-      if (error) {
-        throw new Error(`Failed to delete message: ${error.message}`);
-      }
-
-      console.log('✅ Message deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('💥 Failed to delete message:', error);
+      if (error) throw error;
+      toast.success('Message deleted');
+      
+    } catch (err) {
+      console.error('❌ Failed to delete message:', err);
       toast.error('Failed to delete message');
-      return false;
     }
   }, [user?.id]);
 
-  // Reconnect function
-  const reconnect = useCallback(() => {
-    console.log('🔄 Manual reconnect triggered for channel:', channelName);
-    cleanupSubscription();
-    retryCountRef.current = 0;
-    initializeChat();
-  }, [channelName, cleanupSubscription, initializeChat]);
-
   // Initialize when channel changes
   useEffect(() => {
-    console.log('🔄 Channel changed, reinitializing:', channelName);
-    cleanupSubscription();
-    setMessages([]);
-    setChannelId(null);
-    setIsReady(false);
-    retryCountRef.current = 0;
-    initializingRef.current = false;
-    
-    if (channelName && user?.id) {
-      initializeChat();
+    if (channelName && channelName !== channelInitialized.current) {
+      // Reset state when switching channels
+      setMessages([]);
+      setError(null);
+      setIsConnected(false);
+      channelInitialized.current = null;
+      
+      initializeChat(channelName);
     }
+  }, [channelName, initializeChat]);
 
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      cleanupSubscription();
-      initializingRef.current = false;
+      if (subscriptionRef.current) {
+        console.log('🧹 Cleaning up subscription on unmount');
+        supabase.removeChannel(subscriptionRef.current);
+      }
+      if (channelId && activeSubscriptions.has(channelId)) {
+        supabase.removeChannel(activeSubscriptions.get(channelId));
+        activeSubscriptions.delete(channelId);
+      }
     };
-  }, [channelName, user?.id, initializeChat, cleanupSubscription]);
+  }, [channelId]);
+
+  if (!user?.id) {
+    return null;
+  }
 
   return {
     messages,
     isLoading,
-    isConnected,
     error,
+    isConnected,
     sendMessage,
-    deleteMessage,
-    reconnect,
-    isReady
+    deleteMessage
   };
 }
