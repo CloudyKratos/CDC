@@ -5,168 +5,126 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Hash, 
   Users, 
+  Phone, 
+  Video, 
   Settings, 
-  Search,
-  Bell,
-  Calendar,
   RefreshCw,
   Wifi,
   WifiOff
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ModernChatHeaderProps {
   channelName: string;
   messageCount: number;
   onlineUsers: number;
   isConnected: boolean;
-  isLoading?: boolean;
-  onReconnect?: () => void;
-  className?: string;
+  isLoading: boolean;
+  onReconnect: () => void;
+  onStartCall?: () => void;
+  onStartVideo?: () => void;
+  onSettings?: () => void;
 }
-
-const getChannelIcon = (channelName: string) => {
-  switch (channelName.toLowerCase()) {
-    case 'announcement':
-      return Bell;
-    case 'morning-journey':
-    case 'morning journey':
-      return Calendar;
-    default:
-      return Hash;
-  }
-};
-
-const getChannelColor = (channelName: string) => {
-  switch (channelName.toLowerCase()) {
-    case 'announcement':
-      return 'from-yellow-500 to-orange-500';
-    case 'morning-journey':
-    case 'morning journey':
-      return 'from-green-500 to-emerald-500';
-    default:
-      return 'from-blue-500 to-purple-500';
-  }
-};
 
 export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
   channelName,
   messageCount,
   onlineUsers,
   isConnected,
-  isLoading = false,
+  isLoading,
   onReconnect,
-  className = ""
+  onStartCall,
+  onStartVideo,
+  onSettings
 }) => {
-  const IconComponent = getChannelIcon(channelName);
-  const gradientClass = getChannelColor(channelName);
-
   return (
-    <div className={cn(
-      "px-6 py-4 border-b border-gray-200/60 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm",
-      className
-    )}>
-      <div className="flex items-center justify-between">
-        {/* Left Section - Channel Info */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-gradient-to-br",
-              gradientClass
-            )}>
-              <IconComponent className="h-5 w-5 text-white" />
-            </div>
-            
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {channelName}
-                </h1>
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                >
-                  {messageCount} messages
-                </Badge>
-              </div>
-              
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <Users className="h-3.5 w-3.5" />
-                  <span>{onlineUsers} online</span>
-                </div>
-                
-                <div className="flex items-center gap-1.5 text-xs">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
-                  )} />
-                  <span className={cn(
-                    "font-medium",
-                    isConnected 
-                      ? "text-green-600 dark:text-green-400" 
-                      : "text-red-600 dark:text-red-400"
-                  )}>
-                    {isConnected ? 'Live' : 'Offline'}
-                  </span>
-                </div>
+    <div className="flex items-center justify-between p-4 border-b bg-white dark:bg-gray-900 theme-border">
+      {/* Left side - Channel info */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+            <Hash className="h-5 w-5 text-blue-600 dark:text-accent" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold theme-text-primary">
+              {channelName}
+            </h2>
+            <div className="flex items-center gap-3 text-sm theme-text-secondary">
+              <span>{messageCount} messages</span>
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span>{onlineUsers} online</span>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Section - Actions */}
+      {/* Right side - Actions and status */}
+      <div className="flex items-center gap-2">
+        {/* Connection status */}
         <div className="flex items-center gap-2">
-          {/* Connection Status */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReconnect}
-            disabled={isLoading}
-            className="h-8 px-3 text-xs"
-          >
-            {isLoading ? (
-              <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-            ) : (
-              <div className="mr-1.5">
-                {isConnected ? (
-                  <Wifi className="h-3.5 w-3.5 text-green-500" />
-                ) : (
-                  <WifiOff className="h-3.5 w-3.5 text-red-500" />
-                )}
-              </div>
-            )}
-            {isLoading ? 'Connecting...' : isConnected ? 'Connected' : 'Reconnect'}
-          </Button>
+          {isConnected ? (
+            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400">
+              <Wifi className="h-3 w-3 mr-1" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+              <WifiOff className="h-3 w-3 mr-1" />
+              {isLoading ? 'Connecting...' : 'Disconnected'}
+            </Badge>
+          )}
+        </div>
 
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+        {/* Action buttons */}
+        <div className="flex items-center gap-1">
+          {!isConnected && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReconnect}
+              disabled={isLoading}
+              className="h-9 px-3"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Reconnect
+            </Button>
+          )}
 
-          {/* Search */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          {onStartCall && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartCall}
+              disabled={!isConnected}
+              className="h-9 w-9 p-0"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+          )}
 
-          {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Bell className="h-4 w-4" />
-          </Button>
+          {onStartVideo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartVideo}
+              disabled={!isConnected}
+              className="h-9 w-9 p-0"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+          )}
 
-          {/* Settings */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          {onSettings && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSettings}
+              className="h-9 w-9 p-0"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

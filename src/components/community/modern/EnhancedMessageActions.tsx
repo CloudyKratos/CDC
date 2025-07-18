@@ -1,23 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { MoreHorizontal, Reply, Heart, Pin, Flag, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  MoreHorizontal,
-  Reply,
-  Heart,
-  Smile,
-  Pin,
-  Flag,
-  Trash2,
-  Copy
-} from 'lucide-react';
 
 interface EnhancedMessageActionsProps {
   messageId: string;
@@ -38,118 +29,98 @@ export const EnhancedMessageActions: React.FC<EnhancedMessageActionsProps> = ({
   onReport,
   onDelete
 }) => {
-  const [showQuickReactions, setShowQuickReactions] = useState(false);
-
   const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
-  const handleReaction = (emoji: string) => {
-    if (onReact) {
-      onReact(messageId, emoji);
-    }
-    setShowQuickReactions(false);
-  };
-
   return (
-    <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200">
-      {/* Quick Actions */}
-      <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1">
-        {/* Quick Reactions */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-            onMouseEnter={() => setShowQuickReactions(true)}
-            onMouseLeave={() => setShowQuickReactions(false)}
-            onClick={() => handleReaction('👍')}
-          >
-            <Smile className="h-3.5 w-3.5" />
-          </Button>
-          
-          {/* Quick Reaction Picker */}
-          {showQuickReactions && (
-            <div 
-              className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-2 flex gap-1 z-50"
-              onMouseEnter={() => setShowQuickReactions(true)}
-              onMouseLeave={() => setShowQuickReactions(false)}
-            >
-              {quickReactions.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => handleReaction(emoji)}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-lg"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Reply */}
+    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+      {/* Quick Reply */}
+      {onReply && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-          onClick={() => onReply?.(messageId)}
+          onClick={() => onReply(messageId)}
+          className="h-7 w-7 p-0 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
-          <Reply className="h-3.5 w-3.5" />
+          <Reply className="h-3 w-3" />
         </Button>
+      )}
 
-        {/* More Actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(messageId)}
-              className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Message
+      {/* Quick React */}
+      {onReact && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onReact(messageId, '👍')}
+          className="h-7 w-7 p-0 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <Heart className="h-3 w-3" />
+        </Button>
+      )}
+
+      {/* More Actions */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          {onReact && (
+            <>
+              <div className="px-2 py-1">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Quick Reactions
+                </div>
+                <div className="flex gap-1">
+                  {quickReactions.map((emoji) => (
+                    <Button
+                      key={emoji}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onReact(messageId, emoji)}
+                      className="h-6 w-6 p-0 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          
+          {onPin && (
+            <DropdownMenuItem onClick={() => onPin(messageId)}>
+              <Pin className="h-3 w-3 mr-2" />
+              Pin Message
             </DropdownMenuItem>
-            
-            {onPin && (
-              <DropdownMenuItem
-                onClick={() => onPin(messageId)}
-                className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <Pin className="h-4 w-4" />
-                Pin Message
-              </DropdownMenuItem>
-            )}
-            
-            <DropdownMenuSeparator />
-            
-            {!isOwn && onReport && (
-              <DropdownMenuItem
-                onClick={() => onReport(messageId)}
-                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-              >
-                <Flag className="h-4 w-4" />
-                Report Message
-              </DropdownMenuItem>
-            )}
-            
-            {isOwn && onDelete && (
+          )}
+          
+          {!isOwn && onReport && (
+            <DropdownMenuItem onClick={() => onReport(messageId)}>
+              <Flag className="h-3 w-3 mr-2" />
+              Report Message
+            </DropdownMenuItem>
+          )}
+          
+          {isOwn && onDelete && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onDelete(messageId)}
-                className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3 mr-2" />
                 Delete Message
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };
