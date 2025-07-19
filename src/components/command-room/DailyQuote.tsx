@@ -8,6 +8,8 @@ import { useDailyQuote } from '@/hooks/useDailyQuote';
 const DailyQuote: React.FC = () => {
   const { quote, isLoading, refreshQuote } = useDailyQuote();
 
+  console.log('DailyQuote component rendered:', { quote, isLoading });
+
   if (isLoading) {
     return (
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800/30">
@@ -25,7 +27,17 @@ const DailyQuote: React.FC = () => {
     );
   }
 
-  if (!quote) return null;
+  if (!quote) {
+    console.log('No quote available');
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800/30">
+        <div className="flex items-center justify-center text-gray-500">
+          <QuoteIcon className="h-5 w-5 mr-2" />
+          <span>Loading daily inspiration...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800/30 transition-all duration-300 hover:shadow-md">

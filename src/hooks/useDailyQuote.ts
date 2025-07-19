@@ -7,6 +7,9 @@ export const useDailyQuote = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('useDailyQuote hook initialized');
+    console.log('Available quotes:', inspirationalQuotes.length);
+    
     const getQuoteForToday = () => {
       // Use today's date as a seed for consistent daily quotes
       const today = new Date();
@@ -22,12 +25,15 @@ export const useDailyQuote = () => {
       
       // Ensure positive index
       const index = Math.abs(hash) % inspirationalQuotes.length;
+      console.log('Selected quote index:', index);
       return inspirationalQuotes[index];
     };
 
     // Simulate a brief loading period for smooth UX
     const timer = setTimeout(() => {
-      setQuote(getQuoteForToday());
+      const selectedQuote = getQuoteForToday();
+      console.log('Setting quote:', selectedQuote);
+      setQuote(selectedQuote);
       setIsLoading(false);
     }, 500);
 
@@ -35,11 +41,14 @@ export const useDailyQuote = () => {
   }, []);
 
   const refreshQuote = () => {
+    console.log('Refreshing quote...');
     setIsLoading(true);
     const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
     
     setTimeout(() => {
-      setQuote(inspirationalQuotes[randomIndex]);
+      const newQuote = inspirationalQuotes[randomIndex];
+      console.log('New quote selected:', newQuote);
+      setQuote(newQuote);
       setIsLoading(false);
     }, 300);
   };
