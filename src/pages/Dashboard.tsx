@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { ActivePanel } from '@/types/dashboard';
-import { toast } from 'sonner';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,11 +37,6 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showWorkInProgress, setShowWorkInProgress] = useState(false);
   const [wipFeature, setWipFeature] = useState('Stage Rooms');
-
-  // CDC Admin user ID
-  const CDC_ADMIN_ID = '348ae8de-aaac-41cb-89cd-674023098784';
-  const isCDCAdmin = user?.id === CDC_ADMIN_ID;
-  const isAdmin = currentRole === 'admin' || isCDCAdmin;
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -56,16 +50,6 @@ const Dashboard = () => {
       return;
     }
     setSearchParams({ tab: panel });
-  };
-
-  const handleSettingsClick = () => {
-    if (isCDCAdmin) {
-      // CDC admin goes to admin panel
-      window.location.href = '/admin';
-    } else {
-      // Regular users get coming soon message
-      toast.info("Settings coming soon");
-    }
   };
 
   const renderContent = () => {
@@ -82,6 +66,8 @@ const Dashboard = () => {
         return <CommandRoomPanel />;
     }
   };
+
+  const isAdmin = currentRole === 'admin';
 
   const navigationItems = [
     { 
@@ -231,7 +217,6 @@ const Dashboard = () => {
 
                 <Button
                   variant="ghost"
-                  onClick={handleSettingsClick}
                   className={`w-full transition-all duration-200 hover:scale-105 group ${
                     sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-3'
                   } h-10 hover:bg-gray-50 dark:hover:bg-gray-700/50 theme-text-primary`}
