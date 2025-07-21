@@ -184,3 +184,5 @@ export const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     </>
   );
 };
+
+export default StageRoom;
