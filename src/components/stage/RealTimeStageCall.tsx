@@ -178,7 +178,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   if (!isConnected) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 to-black">
-        <Card className="w-96">
+        <Card className="w-96 animate-scale-in">
           <CardContent className="text-center p-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold mb-2">Connecting to Stage</h3>
@@ -190,7 +190,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-4">
@@ -215,7 +215,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
         <div className="flex-1 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
             {/* Local Video */}
-            <Card className="relative aspect-video bg-gray-800 border-gray-700 overflow-hidden">
+            <Card className="relative aspect-video bg-gray-800 border-gray-700 overflow-hidden group animate-scale-in">
               {isVideoEnabled ? (
                 <video
                   ref={localVideoRef}
@@ -270,8 +270,8 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
             </Card>
 
             {/* Remote Participants */}
-            {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
-              <Card key={userId} className="relative aspect-video bg-gray-800 border-gray-700 overflow-hidden">
+            {Array.from(remoteStreams.entries()).map(([userId, stream], index) => (
+              <Card key={userId} className="relative aspect-video bg-gray-800 border-gray-700 overflow-hidden animate-fade-in" style={{ animationDelay: `${index * 200}ms` }}>
                 <video
                   autoPlay
                   playsInline
@@ -299,7 +299,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
             onClick={toggleAudio}
             size="lg"
             variant={isAudioEnabled ? "default" : "destructive"}
-            className="w-12 h-12 rounded-full"
+            className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
           >
             {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </Button>
@@ -308,7 +308,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
             onClick={toggleVideo}
             size="lg"
             variant={isVideoEnabled ? "default" : "destructive"}
-            className="w-12 h-12 rounded-full"
+            className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
           >
             {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </Button>
@@ -318,7 +318,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
               onClick={raiseHand}
               size="lg"
               variant={isHandRaised ? "default" : "outline"}
-              className="w-12 h-12 rounded-full"
+              className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
             >
               <Hand className={`w-5 h-5 ${isHandRaised ? 'animate-bounce' : ''}`} />
             </Button>
@@ -327,7 +327,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
           <Button
             size="lg"
             variant="outline"
-            className="w-12 h-12 rounded-full"
+            className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
           >
             <Settings className="w-5 h-5" />
           </Button>
@@ -335,7 +335,7 @@ const RealTimeStageCall: React.FC<RealTimeStageCallProps> = ({
           <Button
             onClick={leaveStage}
             variant="destructive"
-            className="ml-8"
+            className="ml-8 hover-scale transition-all duration-200"
           >
             <PhoneOff className="w-4 h-4 mr-2" />
             Leave Stage

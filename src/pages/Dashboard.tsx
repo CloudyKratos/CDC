@@ -2,11 +2,10 @@
 import React, { useState } from 'react';
 import { useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { WorkInProgressModal } from '@/components/modals/WorkInProgressModal';
 import HomePage from '@/components/HomePage';
 import CalendarPanel from '@/components/CalendarPanel';
 import CommunityPanel from '@/components/CommunityPanel';
-import StageRoomPanel from '@/components/stage/StageRoomPanel';
+import StageCallPanel from '@/components/StageCallPanel';
 import CommandRoomPanel from '@/components/CommandRoomPanel';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import MobileMenu from '@/components/dashboard/MobileMenu';
@@ -35,20 +34,12 @@ const Dashboard = () => {
   const { currentRole } = useRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showWorkInProgress, setShowWorkInProgress] = useState(false);
-  const [wipFeature, setWipFeature] = useState('Stage Rooms');
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const handlePanelChange = (panel: ActivePanel) => {
-    // Intercept stage room clicks to show work in progress
-    if (panel === 'stage') {
-      setWipFeature('Stage Rooms');
-      setShowWorkInProgress(true);
-      return;
-    }
     setSearchParams({ tab: panel });
   };
 
@@ -61,7 +52,7 @@ const Dashboard = () => {
       case "community":
         return <CommunityPanel channelName="general" />;
       case "stage":
-        return <StageRoomPanel />;
+        return <StageCallPanel />;
       default:
         return <CommandRoomPanel />;
     }
@@ -285,13 +276,6 @@ const Dashboard = () => {
           </div>
         </main>
       </div>
-
-      {/* Work in Progress Modal */}
-      <WorkInProgressModal 
-        isOpen={showWorkInProgress}
-        onClose={() => setShowWorkInProgress(false)}
-        feature={wipFeature}
-      />
     </div>
   );
 };

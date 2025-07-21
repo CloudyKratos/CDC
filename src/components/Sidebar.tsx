@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Home, 
   Users, 
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRole } from '@/contexts/RoleContext';
-import { WorkInProgressModal } from '@/components/modals/WorkInProgressModal';
+
 
 interface SidebarProps {
   activePanel: string;
@@ -22,16 +22,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
   const { currentRole, canManageCalendar, canManageUsers } = useRole();
-  const [showWorkInProgress, setShowWorkInProgress] = useState(false);
-  const [wipFeature, setWipFeature] = useState('Stage Rooms');
 
   const handlePanelClick = (panelId: string) => {
-    // Intercept stage-call clicks to show work in progress
-    if (panelId === 'stage-call') {
-      setWipFeature('Stage Call');
-      setShowWorkInProgress(true);
-      return;
-    }
     onPanelChange(panelId);
   };
 
@@ -98,13 +90,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onPanelChange }) => {
           Settings
         </Button>
       </div>
-
-      {/* Work in Progress Modal */}
-      <WorkInProgressModal 
-        isOpen={showWorkInProgress}
-        onClose={() => setShowWorkInProgress(false)}
-        feature={wipFeature}
-      />
     </div>
   );
 };

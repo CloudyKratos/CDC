@@ -43,6 +43,10 @@ const StageCallPanel: React.FC = () => {
 
   useEffect(() => {
     loadStages();
+    
+    // Set up real-time subscription for new stages
+    const interval = setInterval(loadStages, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const loadStages = async () => {
@@ -141,12 +145,12 @@ const StageCallPanel: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Stage Rooms</h2>
-          <p className="text-muted-foreground">Join or create live video conversations</p>
+          <p className="text-muted-foreground">Join or create live video conversations with your community</p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
+        <Button onClick={() => setShowCreateForm(true)} className="hover-scale">
           <Plus className="w-4 h-4 mr-2" />
           Create Stage
         </Button>
@@ -154,7 +158,7 @@ const StageCallPanel: React.FC = () => {
 
       {/* Create Stage Form */}
       {showCreateForm && (
-        <Card>
+        <Card className="animate-scale-in">
           <CardHeader>
             <CardTitle>Create New Stage</CardTitle>
           </CardHeader>
@@ -170,7 +174,7 @@ const StageCallPanel: React.FC = () => {
               onChange={(e) => setNewStage({ ...newStage, description: e.target.value })}
             />
             <div className="flex gap-2">
-              <Button onClick={createStage}>Create Stage</Button>
+              <Button onClick={createStage} className="hover-scale">Create Stage</Button>
               <Button 
                 variant="outline" 
                 onClick={() => setShowCreateForm(false)}
@@ -183,9 +187,9 @@ const StageCallPanel: React.FC = () => {
       )}
 
       {/* Active Stages */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stages.map((stage) => (
-          <Card key={stage.id} className="hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+        {stages.map((stage, index) => (
+          <Card key={stage.id} className="hover:shadow-lg transition-all duration-300 hover-scale animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -230,7 +234,7 @@ const StageCallPanel: React.FC = () => {
 
               <Button 
                 onClick={() => joinStage(stage.id)}
-                className="w-full"
+                className="w-full hover-scale bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                 disabled={stage.status !== 'live' && stage.status !== 'scheduled'}
               >
                 <Play className="w-4 h-4 mr-2" />
@@ -241,15 +245,15 @@ const StageCallPanel: React.FC = () => {
         ))}
       </div>
 
-      {stages.length === 0 && (
-        <Card className="border-dashed border-2">
+      {stages.length === 0 && !loading && (
+        <Card className="border-dashed border-2 animate-fade-in">
           <CardContent className="text-center py-12">
             <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Active Stages</h3>
             <p className="text-muted-foreground mb-4">
-              Create a new stage to start your video conversation
+              Create a new stage to start your video conversation with the community
             </p>
-            <Button onClick={() => setShowCreateForm(true)}>
+            <Button onClick={() => setShowCreateForm(true)} className="hover-scale">
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Stage
             </Button>
