@@ -54,18 +54,18 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
   };
   
   return (
-    <div className={`group flex gap-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-xl p-3 transition-all duration-200 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${className}`}>
+    <div className={`group flex gap-3 hover:bg-gradient-to-r hover:from-transparent hover:via-primary/5 hover:to-transparent rounded-2xl p-3 transition-all duration-300 hover:shadow-sm animate-fade-in ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${className}`}>
       {/* Avatar */}
       {showAvatar && (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 animate-scale-in">
           {message.sender?.avatar_url ? (
             <img
               src={message.sender.avatar_url}
               alt={message.sender.full_name || message.sender.username || 'User'}
-              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-700 shadow-sm ring-2 ring-gray-100 dark:ring-gray-800"
+              className="w-9 h-9 rounded-full border-2 border-background shadow-lg ring-2 ring-primary/10 transition-all duration-200 hover:ring-primary/20 hover:scale-105"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white dark:ring-gray-700">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground text-sm font-bold shadow-lg ring-2 ring-background transition-all duration-200 hover:shadow-xl hover:scale-105">
               {(message.sender?.full_name || message.sender?.username || 'U').charAt(0).toUpperCase()}
             </div>
           )}
@@ -73,17 +73,17 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
       )}
 
       {/* Spacer for consecutive messages */}
-      {!showAvatar && <div className="w-8" />}
+      {!showAvatar && <div className="w-9" />}
 
       {/* Message Content */}
       <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : 'text-left'}`}>
         {/* Header with name and time */}
         {showAvatar && (
-          <div className={`flex items-center gap-2 mb-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <div className={`flex items-center gap-2 mb-2 animate-fade-in ${isOwn ? 'justify-end' : 'justify-start'}`}>
+            <span className="text-sm font-bold text-foreground tracking-tight">
               {isOwn ? 'You' : (message.sender?.full_name || message.sender?.username || 'Unknown User')}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-muted-foreground font-medium">
               {timeAgo}
             </span>
           </div>
@@ -92,20 +92,21 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
         {/* Message Bubble */}
         <div className={`relative group/message ${isOwn ? 'flex justify-end' : 'flex justify-start'}`}>
           <div className={`
-            relative max-w-md px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md
+            relative max-w-md px-5 py-3.5 rounded-2xl shadow-sm transition-all duration-300 hover:shadow-lg group-hover:shadow-md
             ${isOwn 
-              ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-md' 
-              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md hover:border-gray-300 dark:hover:border-gray-600'
+              ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground rounded-br-md shadow-primary/25' 
+              : 'bg-card text-card-foreground border border-border rounded-bl-md hover:border-primary/20 hover:bg-card/80 backdrop-blur-sm'
             }
             ${!isConnected ? 'opacity-70' : ''}
+            animate-scale-in
           `}>
-            <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+            <p className="text-sm leading-relaxed break-words whitespace-pre-wrap font-medium">
               {message.content}
             </p>
 
             {/* Message Actions */}
             {!hideActions && (
-              <div className={`absolute -top-2 ${isOwn ? '-left-2' : '-right-2'} transition-opacity duration-200`}>
+              <div className={`absolute -top-3 ${isOwn ? '-left-3' : '-right-3'} opacity-0 group-hover:opacity-100 transition-all duration-200 transform scale-95 group-hover:scale-100`}>
                 <EnhancedMessageActions
                   messageId={message.id}
                   isOwn={isOwn}
@@ -120,19 +121,19 @@ export const EnhancedModernMessageBubble: React.FC<EnhancedModernMessageBubblePr
           </div>
         </div>
 
-        {/* Delivery status for own messages */}
+        {/* Enhanced delivery status for own messages */}
         {isOwn && (
-          <div className={`flex justify-end mt-1 ${isOwn ? 'mr-4' : 'ml-4'}`}>
-            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+          <div className={`flex justify-end mt-2 ${isOwn ? 'mr-5' : 'ml-5'} animate-fade-in`}>
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
               {isConnected ? (
                 <>
-                  <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                  Sent
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="tracking-wide">Delivered</span>
                 </>
               ) : (
                 <>
-                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"></div>
-                  Sending...
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-pulse"></div>
+                  <span className="tracking-wide">Sending...</span>
                 </>
               )}
             </span>
