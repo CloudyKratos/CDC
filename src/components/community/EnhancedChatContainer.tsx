@@ -8,8 +8,11 @@ import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
 import { ChannelNavigator } from './ChannelNavigator';
 import { EnhancedChatArea } from './EnhancedChatArea';
-import { Menu, X } from 'lucide-react';
+import { MessageSearch } from './enhanced/MessageSearch';
+import { Menu, X, Hash, Search, Bookmark, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface EnhancedChatContainerProps {
   defaultChannel?: string;
@@ -23,6 +26,8 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -136,6 +141,18 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     }
   }, [isMobile, sidebarOpen, sidebarCollapsed]);
 
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      const results = messages.filter(msg => 
+        msg.content.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
+  }, [messages]);
+
   if (!user) {
     return (
       <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-6 ${className}`}>
@@ -191,20 +208,76 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
           </div>
         )}
 
-        {/* Channel Navigator - Enhanced with better mobile handling */}
+        {/* Enhanced Sidebar with Tabs */}
         {(!isMobile || sidebarOpen) && (
-          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''}`}>
-            <ChannelNavigator
-              channels={displayChannels}
-              activeChannel={activeChannel}
-              onChannelSelect={handleChannelSelect}
-              isCollapsed={!isMobile && sidebarCollapsed}
-            />
+          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''} ${sidebarCollapsed ? 'w-16' : 'w-80'} border-r border-gray-200 dark:border-gray-800`}>
+            <Card className="h-full border-0 rounded-none">
+              <Tabs defaultValue="channels" className="h-full flex flex-col">
+                {!sidebarCollapsed && (
+                  <TabsList className="grid grid-cols-4 m-4">
+                    <TabsTrigger value="channels" className="text-xs">
+                      <Hash className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="search" className="text-xs">
+                      <Search className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="bookmarks" className="text-xs">
+                      <Bookmark className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="analytics" className="text-xs">
+                      <BarChart3 className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                )}
+                
+                <div className="flex-1 overflow-hidden">
+                  <TabsContent value="channels" className="h-full m-0">
+                    <ChannelNavigator
+                      channels={displayChannels}
+                      activeChannel={activeChannel}
+                      onChannelSelect={handleChannelSelect}
+                      isCollapsed={sidebarCollapsed}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="search" className="h-full m-0 p-4">
+                    <MessageSearch
+                      messages={messages}
+                      onSearch={handleSearch}
+                      searchResults={searchResults}
+                      currentQuery={searchQuery}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="bookmarks" className="h-full m-0 p-4">
+                    <div className="text-center text-gray-500 mt-8">
+                      <Bookmark className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Bookmarked messages will appear here</p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="analytics" className="h-full m-0 p-4">
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg">
+                        <h3 className="font-semibold text-sm mb-2">Channel Activity</h3>
+                        <p className="text-2xl font-bold text-blue-600">{messages.length}</p>
+                        <p className="text-xs text-gray-600">Total Messages</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg">
+                        <h3 className="font-semibold text-sm mb-2">Online Status</h3>
+                        <p className="text-2xl font-bold text-green-600">{isConnected ? 'Connected' : 'Offline'}</p>
+                        <p className="text-xs text-gray-600">Connection Status</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </Card>
           </div>
         )}
 
-        {/* Enhanced Chat Area with proper spacing */}
-        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${!isMobile && !sidebarCollapsed ? 'ml-0' : ''}`}>
+        {/* Enhanced Chat Area */}
+        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0`}>
           <EnhancedChatArea
             activeChannel={activeChannel}
             messages={messages}
