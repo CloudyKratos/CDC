@@ -8,6 +8,7 @@ import { FeaturePoint } from "@/components/home/FeaturePoint";
 import { FeatureBadge } from "@/components/home/FeatureBadge";
 import Icons from "@/utils/IconUtils";
 import { toast } from 'sonner';
+import EnhancedCommunityChat from '@/components/community/EnhancedCommunityChat';
 
 const Index = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
