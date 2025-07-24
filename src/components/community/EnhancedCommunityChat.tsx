@@ -34,7 +34,7 @@ const EnhancedCommunityChat: React.FC<EnhancedCommunityChatProps> = ({
 
   return (
     <div className="h-full">
-      <EnhancedChatContainer defaultChannel={defaultChannel} />
+      <EnhancedChatContainer channelName={defaultChannel} />
     </div>
   );
 };

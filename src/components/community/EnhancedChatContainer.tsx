@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useChatManager } from '@/hooks/useChatManager';
 import { EnhancedChatHeader } from './modern/EnhancedChatHeader';
-import { EnhancedMessageList } from './EnhancedMessageList';
+import EnhancedMessageList from './EnhancedMessageList';
 import { MentionInput } from './enhanced/MentionInput';
 import { MessageReplyThread } from './enhanced/MessageReplyThread';
 import { EnhancedSidebar } from './enhanced/EnhancedSidebar';
@@ -86,7 +86,7 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     <div className="flex h-full bg-background">
       {/* Sidebar */}
       <EnhancedSidebar
-        currentChannel={channelName}
+        activeChannel={channelName}
         onChannelSelect={onChannelChange}
         isConnected={isConnected}
       />
@@ -105,7 +105,7 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
         {/* Quick Channel Switcher */}
         <div className="p-2 border-b border-border">
           <QuickChannelSwitcher
-            currentChannel={channelName}
+            activeChannel={channelName}
             onChannelSelect={onChannelChange}
           />
         </div>
