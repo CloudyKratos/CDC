@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Hash, Users, Wifi, WifiOff } from 'lucide-react';
+import { Hash, Users, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface EnhancedChatHeaderProps {
   channelName: string;
@@ -9,6 +10,7 @@ interface EnhancedChatHeaderProps {
   onlineUsers: number;
   isConnected: boolean;
   isLoading: boolean;
+  onReconnect?: () => void;
 }
 
 export const EnhancedChatHeader: React.FC<EnhancedChatHeaderProps> = ({
@@ -16,7 +18,8 @@ export const EnhancedChatHeader: React.FC<EnhancedChatHeaderProps> = ({
   messageCount,
   onlineUsers,
   isConnected,
-  isLoading
+  isLoading,
+  onReconnect
 }) => {
   return (
     <div className="p-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,16 +46,26 @@ export const EnhancedChatHeader: React.FC<EnhancedChatHeaderProps> = ({
             <div className="text-sm text-muted-foreground">Loading...</div>
           )}
           
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-2">
             {isConnected ? (
               <>
                 <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-green-500 hidden sm:inline">Connected</span>
+                <span className="text-green-500 hidden sm:inline text-sm">Connected</span>
               </>
             ) : (
               <>
                 <WifiOff className="h-4 w-4 text-red-500" />
-                <span className="text-red-500 hidden sm:inline">Disconnected</span>
+                <span className="text-red-500 hidden sm:inline text-sm">Disconnected</span>
+                {onReconnect && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onReconnect}
+                    className="h-8 px-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                )}
               </>
             )}
           </div>
