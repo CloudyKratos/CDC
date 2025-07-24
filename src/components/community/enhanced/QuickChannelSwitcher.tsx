@@ -13,6 +13,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Hash, ChevronDown, Plus, Star } from 'lucide-react';
@@ -28,7 +29,7 @@ interface QuickChannelSwitcherProps {
 }
 
 export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
-  channels = [], // Provide default empty array
+  channels = [],
   activeChannel,
   onChannelSelect,
   onCreateChannel,
@@ -37,13 +38,24 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  // Ensure channels is always an array
-  const safeChannels = Array.isArray(channels) ? channels : [];
+  // Ensure channels is always an array with proper structure
+  const safeChannels = React.useMemo(() => {
+    if (!Array.isArray(channels)) return [];
+    return channels.filter(channel => 
+      channel && 
+      typeof channel === 'object' && 
+      typeof channel.name === 'string'
+    );
+  }, [channels]);
+  
   const currentChannel = safeChannels.find(c => c.name === activeChannel);
   
-  const filteredChannels = safeChannels.filter(channel =>
-    channel?.name?.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const filteredChannels = React.useMemo(() => {
+    if (!searchValue.trim()) return safeChannels;
+    return safeChannels.filter(channel =>
+      channel.name.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  }, [safeChannels, searchValue]);
 
   const handleSelect = (channelName: string) => {
     if (channelName && onChannelSelect) {
@@ -92,56 +104,58 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
             onValueChange={setSearchValue}
           />
           
-          {filteredChannels.length === 0 && searchValue ? (
-            <CommandEmpty>
-              <div className="p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  No channels found
-                </p>
-                {searchValue.trim() && onCreateChannel && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCreateChannel}
-                    className="gap-2"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Create "{searchValue}"
-                  </Button>
-                )}
-              </div>
-            </CommandEmpty>
-          ) : (
-            <CommandGroup heading="Channels">
-              {filteredChannels.map((channel) => (
-                <CommandItem
-                  key={channel.id || channel.name}
-                  value={channel.name}
-                  onSelect={() => handleSelect(channel.name)}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                    <span>{channel.name}</span>
-                    {channel.isPinned && (
-                      <Star className="h-3 w-3 text-yellow-500" />
-                    )}
-                  </div>
-                  {channel.unreadCount && channel.unreadCount > 0 && (
-                    <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2">
-                      {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-                    </Badge>
+          <CommandList>
+            {filteredChannels.length === 0 && searchValue ? (
+              <CommandEmpty>
+                <div className="p-4 text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    No channels found
+                  </p>
+                  {searchValue.trim() && onCreateChannel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCreateChannel}
+                      className="gap-2"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Create "{searchValue}"
+                    </Button>
                   )}
-                </CommandItem>
-              ))}
-              
-              {filteredChannels.length === 0 && !searchValue && (
-                <div className="p-4 text-center text-sm text-gray-500">
-                  No channels available
                 </div>
-              )}
-            </CommandGroup>
-          )}
+              </CommandEmpty>
+            ) : (
+              <CommandGroup heading="Channels">
+                {filteredChannels.map((channel) => (
+                  <CommandItem
+                    key={channel.id || channel.name}
+                    value={channel.name}
+                    onSelect={() => handleSelect(channel.name)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                      <span>{channel.name}</span>
+                      {channel.isPinned && (
+                        <Star className="h-3 w-3 text-yellow-500" />
+                      )}
+                    </div>
+                    {channel.unreadCount && channel.unreadCount > 0 && (
+                      <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2">
+                        {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+                      </Badge>
+                    )}
+                  </CommandItem>
+                ))}
+                
+                {filteredChannels.length === 0 && !searchValue && (
+                  <div className="p-4 text-center text-sm text-gray-500">
+                    No channels available
+                  </div>
+                )}
+              </CommandGroup>
+            )}
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>

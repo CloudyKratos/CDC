@@ -16,9 +16,9 @@ interface MessageSearchProps {
 }
 
 export const MessageSearch: React.FC<MessageSearchProps> = ({
-  messages = [], // Provide default empty array
+  messages = [],
   onSearch,
-  searchResults = [], // Provide default empty array
+  searchResults = [],
   currentQuery,
   className = ''
 }) => {
@@ -26,19 +26,34 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [selectedUser, setSelectedUser] = useState<string>('');
 
-  // Ensure messages is always an array
-  const safeMessages = Array.isArray(messages) ? messages : [];
-  const safeSearchResults = Array.isArray(searchResults) ? searchResults : [];
+  // Ensure messages is always an array with proper structure
+  const safeMessages = useMemo(() => {
+    if (!Array.isArray(messages)) return [];
+    return messages.filter(msg => 
+      msg && 
+      typeof msg === 'object' && 
+      typeof msg.content === 'string'
+    );
+  }, [messages]);
+
+  const safeSearchResults = useMemo(() => {
+    if (!Array.isArray(searchResults)) return [];
+    return searchResults.filter(msg => 
+      msg && 
+      typeof msg === 'object' && 
+      typeof msg.content === 'string'
+    );
+  }, [searchResults]);
 
   // Get unique users from messages
   const uniqueUsers = useMemo(() => {
     const users = new Map();
     safeMessages.forEach(msg => {
-      if (msg?.sender && !users.has(msg.sender.id)) {
+      if (msg?.sender && msg.sender.id && !users.has(msg.sender.id)) {
         users.set(msg.sender.id, msg.sender);
       }
     });
-    return Array.from(users.values());
+    return Array.from(users.values()).slice(0, 5); // Limit to 5 users
   }, [safeMessages]);
 
   // Filter messages based on search criteria
@@ -62,7 +77,14 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
           break;
       }
       
-      results = results.filter(msg => msg?.created_at && new Date(msg.created_at) >= filterDate);
+      results = results.filter(msg => {
+        if (!msg?.created_at) return false;
+        try {
+          return new Date(msg.created_at) >= filterDate;
+        } catch {
+          return false;
+        }
+      });
     }
 
     // Filter by user
@@ -87,16 +109,20 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   const highlightSearchTerm = (text: string, term: string) => {
     if (!term || !text) return text;
     
-    const regex = new RegExp(`(${term})`, 'gi');
-    const parts = text.split(regex);
-    
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
-          {part}
-        </mark>
-      ) : part
-    );
+    try {
+      const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      const parts = text.split(regex);
+      
+      return parts.map((part, index) => 
+        regex.test(part) ? (
+          <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
+            {part}
+          </mark>
+        ) : part
+      );
+    } catch {
+      return text;
+    }
   };
 
   return (
@@ -164,7 +190,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
               >
                 All Users
               </Badge>
-              {uniqueUsers.slice(0, 5).map((user: any) => (
+              {uniqueUsers.map((user: any) => (
                 <Badge 
                   key={user?.id || 'unknown'}
                   variant={selectedUser === user?.id ? 'default' : 'outline'}
@@ -211,7 +237,13 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
                     </span>
                   </div>
                   <span className="text-xs text-gray-500">
-                    {message?.created_at ? formatDistanceToNow(new Date(message.created_at), { addSuffix: true }) : ''}
+                    {message?.created_at ? (() => {
+                      try {
+                        return formatDistanceToNow(new Date(message.created_at), { addSuffix: true });
+                      } catch {
+                        return 'Unknown time';
+                      }
+                    })() : ''}
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
