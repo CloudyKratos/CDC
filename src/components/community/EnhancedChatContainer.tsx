@@ -6,13 +6,12 @@ import { useSimpleChat } from './hooks/useSimpleChat';
 import { useCommunityData } from './hooks/useCommunityData';
 import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
-import { ChannelNavigator } from './ChannelNavigator';
 import { EnhancedChatArea } from './EnhancedChatArea';
-import { MessageSearch } from './enhanced/MessageSearch';
-import { Menu, X, Hash, Search, Bookmark, BarChart3 } from 'lucide-react';
+import { EnhancedSidebar } from './enhanced/EnhancedSidebar';
+import { ChatStatusBar } from './enhanced/ChatStatusBar';
+import { QuickChannelSwitcher } from './enhanced/QuickChannelSwitcher';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface EnhancedChatContainerProps {
   defaultChannel?: string;
@@ -25,7 +24,6 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
 }) => {
   const [activeChannel, setActiveChannel] = useState(defaultChannel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   
@@ -42,35 +40,43 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     deleteMessage 
   } = useSimpleChat(activeChannel);
 
-  // Enhanced default channels with proper ordering and descriptions
+  // Enhanced default channels
   const enhancedDefaultChannels = [
     { 
       id: 'general', 
       name: 'general', 
       type: ChannelType.PUBLIC, 
       members: [], 
-      description: 'General discussion and community chat' 
+      description: 'General discussion and community chat',
+      unreadCount: 0,
+      isPinned: false
     },
     { 
       id: 'morning-journey', 
       name: 'morning journey', 
       type: ChannelType.PUBLIC, 
       members: [], 
-      description: 'Start your day with motivation and morning routines' 
+      description: 'Start your day with motivation and morning routines',
+      unreadCount: 0,
+      isPinned: false
     },
     { 
       id: 'announcement', 
       name: 'announcement', 
       type: ChannelType.PUBLIC, 
       members: [], 
-      description: 'Important announcements and updates' 
+      description: 'Important announcements and updates',
+      unreadCount: 0,
+      isPinned: false
     }
   ];
 
   const displayChannels = channels.length > 0 ? 
     channels.map(channel => ({
       ...channel,
-      description: channel.description || getChannelDescription(channel.name)
+      description: channel.description || getChannelDescription(channel.name),
+      unreadCount: 0,
+      isPinned: false
     })) : 
     enhancedDefaultChannels;
 
@@ -133,14 +139,6 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     }
   }, [user?.id, deleteMessage]);
 
-  const toggleSidebar = useCallback(() => {
-    if (isMobile) {
-      setSidebarOpen(!sidebarOpen);
-    } else {
-      setSidebarCollapsed(!sidebarCollapsed);
-    }
-  }, [isMobile, sidebarOpen, sidebarCollapsed]);
-
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
@@ -152,6 +150,10 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
       setSearchResults([]);
     }
   }, [messages]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(!sidebarOpen);
+  }, [sidebarOpen]);
 
   if (!user) {
     return (
@@ -180,114 +182,91 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
   return (
     <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 p-4 ${className}`}>
       <div className="h-full flex rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 relative">
-        {/* Mobile Menu Button */}
+        
+        {/* Mobile Header with Toggle */}
         {isMobile && (
-          <div className="absolute top-4 left-4 z-50">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleSidebar}
-              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-200"
+              className="h-8 w-8 p-0"
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
+            
+            <QuickChannelSwitcher
+              channels={displayChannels}
+              activeChannel={activeChannel}
+              onChannelSelect={handleChannelSelect}
+              className="flex-1 mx-4"
+            />
+            
+            <div className="w-8" /> {/* Spacer */}
           </div>
         )}
 
-        {/* Desktop Sidebar Toggle */}
-        {!isMobile && (
-          <div className="absolute top-4 left-4 z-50">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSidebar}
-              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-200"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Enhanced Sidebar with Tabs */}
+        {/* Enhanced Sidebar */}
         {(!isMobile || sidebarOpen) && (
-          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''} ${sidebarCollapsed ? 'w-16' : 'w-80'} border-r border-gray-200 dark:border-gray-800`}>
-            <Card className="h-full border-0 rounded-none">
-              <Tabs defaultValue="channels" className="h-full flex flex-col">
-                {!sidebarCollapsed && (
-                  <TabsList className="grid grid-cols-4 m-4">
-                    <TabsTrigger value="channels" className="text-xs">
-                      <Hash className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="search" className="text-xs">
-                      <Search className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="bookmarks" className="text-xs">
-                      <Bookmark className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="analytics" className="text-xs">
-                      <BarChart3 className="h-4 w-4" />
-                    </TabsTrigger>
-                  </TabsList>
-                )}
-                
-                <div className="flex-1 overflow-hidden">
-                  <TabsContent value="channels" className="h-full m-0">
-                    <ChannelNavigator
-                      channels={displayChannels}
-                      activeChannel={activeChannel}
-                      onChannelSelect={handleChannelSelect}
-                      isCollapsed={sidebarCollapsed}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="search" className="h-full m-0 p-4">
-                    <MessageSearch
-                      messages={messages}
-                      onSearch={handleSearch}
-                      searchResults={searchResults}
-                      currentQuery={searchQuery}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="bookmarks" className="h-full m-0 p-4">
-                    <div className="text-center text-gray-500 mt-8">
-                      <Bookmark className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Bookmarked messages will appear here</p>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="analytics" className="h-full m-0 p-4">
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg">
-                        <h3 className="font-semibold text-sm mb-2">Channel Activity</h3>
-                        <p className="text-2xl font-bold text-blue-600">{messages.length}</p>
-                        <p className="text-xs text-gray-600">Total Messages</p>
-                      </div>
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg">
-                        <h3 className="font-semibold text-sm mb-2">Online Status</h3>
-                        <p className="text-2xl font-bold text-green-600">{isConnected ? 'Connected' : 'Offline'}</p>
-                        <p className="text-xs text-gray-600">Connection Status</p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </Card>
+          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''} flex-shrink-0`}>
+            <EnhancedSidebar
+              channels={displayChannels}
+              activeChannel={activeChannel}
+              onChannelSelect={handleChannelSelect}
+              messages={messages}
+              onSearch={handleSearch}
+              searchResults={searchResults}
+              currentQuery={searchQuery}
+              isConnected={isConnected}
+            />
           </div>
         )}
 
-        {/* Enhanced Chat Area */}
-        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0`}>
-          <EnhancedChatArea
-            activeChannel={activeChannel}
-            messages={messages}
-            isLoading={chatLoading}
-            isConnected={isConnected}
-            error={error}
-            onSendMessage={handleSendMessage}
-            onDeleteMessage={handleDeleteMessage}
-            channelsLoading={channelsLoading}
-          />
+        {/* Chat Area */}
+        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${isMobile ? 'pt-16' : ''}`}>
+          {/* Desktop Header with Status */}
+          {!isMobile && (
+            <div className="flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-white dark:bg-gray-900">
+                <QuickChannelSwitcher
+                  channels={displayChannels}
+                  activeChannel={activeChannel}
+                  onChannelSelect={handleChannelSelect}
+                />
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSidebar}
+                  className="h-8 w-8 p-0"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <ChatStatusBar
+                isConnected={isConnected}
+                isLoading={chatLoading || channelsLoading}
+                messageCount={messages.length}
+                activeUsers={1}
+                onReconnect={() => window.location.reload()}
+              />
+            </div>
+          )}
+
+          {/* Chat Messages Area */}
+          <div className="flex-1 min-h-0">
+            <EnhancedChatArea
+              activeChannel={activeChannel}
+              messages={messages}
+              isLoading={chatLoading}
+              isConnected={isConnected}
+              error={error}
+              onSendMessage={handleSendMessage}
+              onDeleteMessage={handleDeleteMessage}
+              channelsLoading={channelsLoading}
+            />
+          </div>
         </div>
 
         {/* Mobile overlay when sidebar is open */}
