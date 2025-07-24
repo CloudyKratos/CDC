@@ -9,7 +9,7 @@ interface CommunityPanelProps {
 const CommunityPanel: React.FC<CommunityPanelProps> = ({ 
   channelName = 'general' 
 }) => {
-  return <EnhancedChatContainer channelName={channelName} />;
+  return <EnhancedChatContainer defaultChannel={channelName} />;
 };
 
 export default CommunityPanel;

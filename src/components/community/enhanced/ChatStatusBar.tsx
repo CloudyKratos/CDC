@@ -1,51 +1,86 @@
 
 import React from 'react';
-import { Wifi, WifiOff, Users, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Wifi, WifiOff, Users, MessageSquare, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ChatStatusBarProps {
   isConnected: boolean;
-  onlineUsers: number;
+  isLoading: boolean;
   messageCount: number;
-  channelName: string;
+  activeUsers?: number;
+  lastActivity?: string;
+  onReconnect?: () => void;
+  className?: string;
 }
 
 export const ChatStatusBar: React.FC<ChatStatusBarProps> = ({
   isConnected,
-  onlineUsers,
+  isLoading,
   messageCount,
-  channelName
+  activeUsers = 1,
+  lastActivity,
+  onReconnect,
+  className = ''
 }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border text-sm">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1">
+    <div className={cn(
+      "flex items-center justify-between px-4 py-2 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-b",
+      className
+    )}>
+      <div className="flex items-center gap-3">
+        {/* Connection Status */}
+        <div className="flex items-center gap-2">
           {isConnected ? (
-            <Wifi className="h-3 w-3 text-green-600" />
+            <Wifi className="h-4 w-4 text-green-600 dark:text-green-400" />
           ) : (
-            <WifiOff className="h-3 w-3 text-red-600" />
+            <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
           )}
           <Badge 
             variant={isConnected ? "default" : "destructive"} 
-            className="text-xs"
+            className="text-xs px-2 h-5"
           >
-            {isConnected ? 'Connected' : 'Disconnected'}
+            {isLoading ? 'Connecting...' : isConnected ? 'Connected' : 'Offline'}
           </Badge>
         </div>
-        
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <Users className="h-3 w-3" />
-          <span>{onlineUsers} online</span>
-        </div>
-        
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <MessageSquare className="h-3 w-3" />
-          <span>{messageCount} messages</span>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+            <MessageSquare className="h-3 w-3" />
+            <span>{messageCount} messages</span>
+          </div>
+          
+          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+            <Users className="h-3 w-3" />
+            <span>{activeUsers} online</span>
+          </div>
         </div>
       </div>
-      
-      <div className="text-muted-foreground">
-        #{channelName}
+
+      <div className="flex items-center gap-2">
+        {lastActivity && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Last: {lastActivity}
+          </span>
+        )}
+        
+        {!isConnected && onReconnect && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReconnect}
+            className="h-6 px-2 text-xs"
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn(
+              "h-3 w-3 mr-1",
+              isLoading && "animate-spin"
+            )} />
+            Reconnect
+          </Button>
+        )}
       </div>
     </div>
   );

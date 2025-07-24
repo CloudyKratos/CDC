@@ -13,7 +13,7 @@ export const SimpleCommunityPanel: React.FC<SimpleCommunityPanelProps> = ({
 }) => {
   return (
     <div className={`h-full ${className}`}>
-      <EnhancedChatContainer channelName={channelName} />
+      <EnhancedChatContainer defaultChannel={channelName} />
     </div>
   );
 };
