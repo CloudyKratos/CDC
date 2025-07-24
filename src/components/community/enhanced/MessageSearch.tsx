@@ -16,9 +16,9 @@ interface MessageSearchProps {
 }
 
 export const MessageSearch: React.FC<MessageSearchProps> = ({
-  messages,
+  messages = [],
   onSearch,
-  searchResults,
+  searchResults = [],
   currentQuery,
   className = ''
 }) => {
@@ -26,20 +26,39 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [selectedUser, setSelectedUser] = useState<string>('');
 
+  // Ensure messages is always an array with proper structure
+  const safeMessages = useMemo(() => {
+    if (!Array.isArray(messages)) return [];
+    return messages.filter(msg => 
+      msg && 
+      typeof msg === 'object' && 
+      typeof msg.content === 'string'
+    );
+  }, [messages]);
+
+  const safeSearchResults = useMemo(() => {
+    if (!Array.isArray(searchResults)) return [];
+    return searchResults.filter(msg => 
+      msg && 
+      typeof msg === 'object' && 
+      typeof msg.content === 'string'
+    );
+  }, [searchResults]);
+
   // Get unique users from messages
   const uniqueUsers = useMemo(() => {
     const users = new Map();
-    messages.forEach(msg => {
-      if (msg.sender && !users.has(msg.sender.id)) {
+    safeMessages.forEach(msg => {
+      if (msg?.sender && msg.sender.id && !users.has(msg.sender.id)) {
         users.set(msg.sender.id, msg.sender);
       }
     });
-    return Array.from(users.values());
-  }, [messages]);
+    return Array.from(users.values()).slice(0, 5); // Limit to 5 users
+  }, [safeMessages]);
 
   // Filter messages based on search criteria
   const filteredResults = useMemo(() => {
-    let results = searchResults;
+    let results = safeSearchResults;
 
     // Filter by date
     if (selectedFilter !== 'all') {
@@ -58,20 +77,29 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
           break;
       }
       
-      results = results.filter(msg => new Date(msg.created_at) >= filterDate);
+      results = results.filter(msg => {
+        if (!msg?.created_at) return false;
+        try {
+          return new Date(msg.created_at) >= filterDate;
+        } catch {
+          return false;
+        }
+      });
     }
 
     // Filter by user
     if (selectedUser) {
-      results = results.filter(msg => msg.sender_id === selectedUser);
+      results = results.filter(msg => msg?.sender_id === selectedUser);
     }
 
     return results;
-  }, [searchResults, selectedFilter, selectedUser]);
+  }, [safeSearchResults, selectedFilter, selectedUser]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    onSearch(value);
+    if (onSearch) {
+      onSearch(value);
+    }
   };
 
   const handleFilterClick = (filter: typeof selectedFilter) => {
@@ -79,18 +107,22 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   };
 
   const highlightSearchTerm = (text: string, term: string) => {
-    if (!term) return text;
+    if (!term || !text) return text;
     
-    const regex = new RegExp(`(${term})`, 'gi');
-    const parts = text.split(regex);
-    
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
-          {part}
-        </mark>
-      ) : part
-    );
+    try {
+      const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      const parts = text.split(regex);
+      
+      return parts.map((part, index) => 
+        regex.test(part) ? (
+          <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
+            {part}
+          </mark>
+        ) : part
+      );
+    } catch {
+      return text;
+    }
   };
 
   return (
@@ -158,15 +190,15 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
               >
                 All Users
               </Badge>
-              {uniqueUsers.slice(0, 5).map((user: any) => (
+              {uniqueUsers.map((user: any) => (
                 <Badge 
-                  key={user.id}
-                  variant={selectedUser === user.id ? 'default' : 'outline'}
+                  key={user?.id || 'unknown'}
+                  variant={selectedUser === user?.id ? 'default' : 'outline'}
                   className="cursor-pointer text-xs"
-                  onClick={() => setSelectedUser(user.id)}
+                  onClick={() => setSelectedUser(user?.id || '')}
                 >
                   <User className="h-3 w-3 mr-1" />
-                  {user.full_name || user.username || 'Unknown'}
+                  {user?.full_name || user?.username || 'Unknown'}
                 </Badge>
               ))}
             </div>
@@ -192,24 +224,30 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
           <div className="space-y-2">
             {filteredResults.map((message) => (
               <div 
-                key={message.id}
+                key={message?.id || Math.random()}
                 className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {(message.sender?.full_name || message.sender?.username || 'U').charAt(0).toUpperCase()}
+                      {(message?.sender?.full_name || message?.sender?.username || 'U').charAt(0).toUpperCase()}
                     </div>
                     <span className="font-medium text-sm">
-                      {message.sender?.full_name || message.sender?.username || 'Unknown User'}
+                      {message?.sender?.full_name || message?.sender?.username || 'Unknown User'}
                     </span>
                   </div>
                   <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                    {message?.created_at ? (() => {
+                      try {
+                        return formatDistanceToNow(new Date(message.created_at), { addSuffix: true });
+                      } catch {
+                        return 'Unknown time';
+                      }
+                    })() : ''}
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {highlightSearchTerm(message.content, currentQuery)}
+                  {highlightSearchTerm(message?.content || '', currentQuery)}
                 </p>
               </div>
             ))}

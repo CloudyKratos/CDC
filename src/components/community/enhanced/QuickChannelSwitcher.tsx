@@ -13,6 +13,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Hash, ChevronDown, Plus, Star } from 'lucide-react';
@@ -28,7 +29,7 @@ interface QuickChannelSwitcherProps {
 }
 
 export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
-  channels,
+  channels = [],
   activeChannel,
   onChannelSelect,
   onCreateChannel,
@@ -37,16 +38,31 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  const currentChannel = channels.find(c => c.name === activeChannel);
+  // Ensure channels is always an array with proper structure
+  const safeChannels = React.useMemo(() => {
+    if (!Array.isArray(channels)) return [];
+    return channels.filter(channel => 
+      channel && 
+      typeof channel === 'object' && 
+      typeof channel.name === 'string'
+    );
+  }, [channels]);
   
-  const filteredChannels = channels.filter(channel =>
-    channel.name.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const currentChannel = safeChannels.find(c => c.name === activeChannel);
+  
+  const filteredChannels = React.useMemo(() => {
+    if (!searchValue.trim()) return safeChannels;
+    return safeChannels.filter(channel =>
+      channel.name.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  }, [safeChannels, searchValue]);
 
   const handleSelect = (channelName: string) => {
-    onChannelSelect(channelName);
-    setOpen(false);
-    setSearchValue('');
+    if (channelName && onChannelSelect) {
+      onChannelSelect(channelName);
+      setOpen(false);
+      setSearchValue('');
+    }
   };
 
   const handleCreateChannel = () => {
@@ -71,7 +87,7 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
         >
           <div className="flex items-center gap-2 min-w-0">
             <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-            <span className="truncate">{activeChannel}</span>
+            <span className="truncate">{activeChannel || 'Select Channel'}</span>
             {currentChannel?.isPinned && (
               <Star className="h-3 w-3 text-yellow-500 flex-shrink-0" />
             )}
@@ -81,54 +97,65 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
       </PopoverTrigger>
       
       <PopoverContent className="w-80 p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder="Search channels..." 
             value={searchValue}
             onValueChange={setSearchValue}
           />
-          <CommandEmpty>
-            <div className="p-4 text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                No channels found
-              </p>
-              {searchValue.trim() && onCreateChannel && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCreateChannel}
-                  className="gap-2"
-                >
-                  <Plus className="h-3 w-3" />
-                  Create "{searchValue}"
-                </Button>
-              )}
-            </div>
-          </CommandEmpty>
           
-          <CommandGroup heading="Channels">
-            {filteredChannels.map((channel) => (
-              <CommandItem
-                key={channel.id}
-                value={channel.name}
-                onSelect={() => handleSelect(channel.name)}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span>{channel.name}</span>
-                  {channel.isPinned && (
-                    <Star className="h-3 w-3 text-yellow-500" />
+          <CommandList>
+            {filteredChannels.length === 0 && searchValue ? (
+              <CommandEmpty>
+                <div className="p-4 text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    No channels found
+                  </p>
+                  {searchValue.trim() && onCreateChannel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCreateChannel}
+                      className="gap-2"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Create "{searchValue}"
+                    </Button>
                   )}
                 </div>
-                {channel.unreadCount && channel.unreadCount > 0 && (
-                  <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2">
-                    {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-                  </Badge>
+              </CommandEmpty>
+            ) : (
+              <CommandGroup heading="Channels">
+                {filteredChannels.map((channel) => (
+                  <CommandItem
+                    key={channel.id || channel.name}
+                    value={channel.name}
+                    onSelect={() => handleSelect(channel.name)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                      <span>{channel.name}</span>
+                      {channel.isPinned && (
+                        <Star className="h-3 w-3 text-yellow-500" />
+                      )}
+                    </div>
+                    {channel.unreadCount && channel.unreadCount > 0 && (
+                      <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2">
+                        {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+                      </Badge>
+                    )}
+                  </CommandItem>
+                ))}
+                
+                {filteredChannels.length === 0 && !searchValue && (
+                  <div className="p-4 text-center text-sm text-gray-500">
+                    No channels available
+                  </div>
                 )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+              </CommandGroup>
+            )}
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
