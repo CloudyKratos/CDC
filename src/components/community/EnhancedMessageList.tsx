@@ -1,15 +1,17 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Message } from '@/types/chat';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { EnhancedModernMessageBubble } from './modern/EnhancedModernMessageBubble';
+import { EnhancedMessageBubble } from './EnhancedMessageBubble';
 import { MessageSquare, Loader2, Sparkles } from 'lucide-react';
 
 interface EnhancedMessageListProps {
   messages: Message[];
   isLoading?: boolean;
   onDeleteMessage: (messageId: string) => void;
+  onReplyToMessage?: (messageId: string) => void;
+  onReactToMessage?: (messageId: string, emoji: string) => void;
   className?: string;
 }
 
@@ -17,6 +19,8 @@ const EnhancedMessageList: React.FC<EnhancedMessageListProps> = ({
   messages,
   isLoading = false,
   onDeleteMessage,
+  onReplyToMessage,
+  onReactToMessage,
   className = ''
 }) => {
   const { user } = useAuth();
@@ -30,6 +34,14 @@ const EnhancedMessageList: React.FC<EnhancedMessageListProps> = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     await onDeleteMessage(messageId);
+  };
+
+  const handleReplyToMessage = (messageId: string) => {
+    onReplyToMessage?.(messageId);
+  };
+
+  const handleReactToMessage = (messageId: string, emoji: string) => {
+    onReactToMessage?.(messageId, emoji);
   };
 
   if (isLoading && messages.length === 0) {
@@ -67,44 +79,30 @@ const EnhancedMessageList: React.FC<EnhancedMessageListProps> = ({
 
   return (
     <ScrollArea className={`h-full ${className}`} ref={scrollAreaRef}>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-2">
         {messages.map((message, index) => {
           const prevMessage = messages[index - 1];
-          const nextMessage = messages[index + 1];
           
           // Group consecutive messages from the same sender within 5 minutes
           const isConsecutive = prevMessage && 
             prevMessage.sender_id === message.sender_id &&
             new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000;
-          
-          const isLastInGroup = !nextMessage || 
-            nextMessage.sender_id !== message.sender_id ||
-            new Date(nextMessage.created_at).getTime() - new Date(message.created_at).getTime() > 300000;
 
           return (
-            <div
+            <EnhancedMessageBubble
               key={message.id}
-              className={`animate-fade-in ${
-                isLastInGroup ? 'mb-2' : 'mb-1'
-              }`}
-            >
-              <EnhancedModernMessageBubble
-                message={message}
-                isOwn={message.sender_id === user?.id}
-                onDelete={handleDeleteMessage}
-                showAvatar={!isConsecutive}
-                isConsecutive={isConsecutive}
-                isConnected={true}
-                className="hover:bg-gray-50/30 dark:hover:bg-slate-800/30 transition-all duration-200 rounded-xl p-2 -m-2"
-              />
-            </div>
+              message={message}
+              isOwn={message.sender_id === user?.id}
+              showAvatar={!isConsecutive}
+              isConsecutive={isConsecutive}
+              onReply={handleReplyToMessage}
+              onReact={handleReactToMessage}
+              onDelete={handleDeleteMessage}
+            />
           );
         })}
         <div ref={messagesEndRef} />
       </div>
-      
-      {/* Gradient overlay for smooth scrolling effect */}
-      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white via-white/50 to-transparent dark:from-slate-900 dark:via-slate-900/50 pointer-events-none" />
     </ScrollArea>
   );
 };
