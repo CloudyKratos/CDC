@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,8 +7,8 @@ import { toast } from 'sonner';
 import ChannelSidebar from './ChannelSidebar';
 import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
-import EnhancedMessageList from './EnhancedMessageList';
-import EnhancedMessageInput from './EnhancedMessageInput';
+import { EnhancedMessageList } from './EnhancedMessageList';
+import { EnhancedMessageInput } from './EnhancedMessageInput';
 
 interface OptimizedCommunityPanelProps {
   defaultChannel?: string;
