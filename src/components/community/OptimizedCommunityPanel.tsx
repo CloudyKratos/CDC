@@ -1,11 +1,10 @@
+
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSimpleChat } from './hooks/useSimpleChat';
 import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
-import ChannelSidebar from './ChannelSidebar';
-import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
 import { EnhancedMessageList } from './EnhancedMessageList';
 import { EnhancedMessageInput } from './EnhancedMessageInput';
@@ -18,9 +17,7 @@ interface OptimizedCommunityPanelProps {
 const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
   defaultChannel = 'general'
 }) => {
-  const [activeChannel, setActiveChannel] = useState(defaultChannel);
-  const [showChannelList, setShowChannelList] = useState(true);
-  const [showMembersList, setShowMembersList] = useState(false);
+  const [activeChannel] = useState(defaultChannel);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -34,24 +31,6 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     sendMessage,
     deleteMessage
   } = useSimpleChat(activeChannel);
-
-  // Default channels for the app
-  const channels = [
-    { id: 'general', name: 'general', type: ChannelType.PUBLIC, members: [], description: 'General discussion' },
-    { id: 'announcements', name: 'announcements', type: ChannelType.PUBLIC, members: [], description: 'Important announcements' },
-    { id: 'entrepreneurs', name: 'entrepreneurs', type: ChannelType.PUBLIC, members: [], description: 'Entrepreneurial discussions' },
-    { id: 'tech-talk', name: 'tech-talk', type: ChannelType.PUBLIC, members: [], description: 'Technology discussions' },
-    { id: 'motivation', name: 'motivation', type: ChannelType.PUBLIC, members: [], description: 'Daily motivation' },
-    { id: 'resources', name: 'resources', type: ChannelType.PUBLIC, members: [], description: 'Useful resources' }
-  ];
-
-  const handleChannelSelect = useCallback((channelId: string) => {
-    console.log('🔄 Switching to channel:', channelId);
-    setActiveChannel(channelId);
-    if (isMobile) {
-      setShowChannelList(false);
-    }
-  }, [isMobile]);
 
   const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim()) return false;
@@ -68,8 +47,8 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
 
     try {
       console.log('📤 Attempting to send message to channel:', activeChannel);
-      const success = await sendMessage(content);
-      return success;
+      await sendMessage(content);
+      return true;
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
@@ -140,7 +119,7 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
+    <div className="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 p-4">
       <div className="h-full rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50">
         <EnhancedChatArea
           activeChannel={activeChannel}

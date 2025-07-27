@@ -4,7 +4,7 @@ import { Message } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Reply, Heart, Smile, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Reply, Heart, Smile, Trash2, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EnhancedMessageBubbleProps {
@@ -34,24 +34,29 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
   const senderName = message.sender?.full_name || message.sender?.username || 'Unknown User';
   const timeAgo = formatDistanceToNow(new Date(message.created_at), { addSuffix: true });
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(message.content);
+  };
+
   return (
     <div 
       className={cn(
-        "group relative transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 rounded-xl p-3",
+        "group relative transition-all duration-200 px-4 py-2",
+        "hover:bg-slate-50/50 dark:hover:bg-slate-800/20 rounded-lg",
         isConsecutive ? "mt-1" : "mt-4",
         className
       )}
       onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseLeave={() => {
+        setShowActions(false);
+        setShowReactions(false);
+      }}
     >
-      <div className={cn(
-        "flex gap-3",
-        isOwn ? "flex-row-reverse" : "flex-row"
-      )}>
-        {/* Avatar */}
-        <div className="flex-shrink-0">
+      <div className="flex gap-3">
+        {/* Avatar Column */}
+        <div className="flex-shrink-0 w-10">
           {showAvatar ? (
-            <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-slate-800 shadow-lg">
+            <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-slate-800 shadow-sm">
               <AvatarImage src={message.sender?.avatar_url || ''} alt={senderName} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
                 {senderName[0]?.toUpperCase() || 'U'}
@@ -67,18 +72,12 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
         </div>
 
         {/* Message Content */}
-        <div className={cn(
-          "flex-1 min-w-0",
-          isOwn ? "text-right" : "text-left"
-        )}>
+        <div className="flex-1 min-w-0">
           {/* Header with name and timestamp */}
           {showAvatar && (
-            <div className={cn(
-              "flex items-center gap-2 mb-2",
-              isOwn ? "justify-end" : "justify-start"
-            )}>
+            <div className="flex items-baseline gap-2 mb-1">
               <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {isOwn ? 'You' : senderName}
+                {senderName}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 {timeAgo}
@@ -86,37 +85,34 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
             </div>
           )}
 
-          {/* Message Bubble */}
-          <div className={cn(
-            "relative max-w-md",
-            isOwn ? "ml-auto" : "mr-auto"
-          )}>
+          {/* Message Body */}
+          <div className="relative">
             <div className={cn(
-              "px-4 py-3 rounded-2xl shadow-sm border transition-all duration-200 hover:shadow-md",
+              "p-3 rounded-2xl max-w-2xl shadow-sm border transition-all duration-200",
               isOwn 
-                ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-600 rounded-br-md" 
-                : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 rounded-bl-md hover:border-blue-200 dark:hover:border-blue-800"
+                ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-600 ml-auto rounded-br-md" 
+                : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 rounded-bl-md",
+              "hover:shadow-md"
             )}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {message.content}
               </p>
               
-              {/* Delivery status for own messages */}
+              {/* Message status for own messages */}
               {isOwn && (
-                <div className="flex items-center justify-end mt-1 gap-1">
-                  <div className="w-1 h-1 bg-blue-200 rounded-full"></div>
-                  <div className="w-1 h-1 bg-blue-300 rounded-full"></div>
+                <div className="flex items-center justify-end mt-2 gap-1">
+                  <div className="flex gap-0.5">
+                    <div className="w-1 h-1 bg-blue-200 rounded-full"></div>
+                    <div className="w-1 h-1 bg-blue-300 rounded-full"></div>
+                  </div>
                   <span className="text-xs text-blue-200 ml-1">Sent</span>
                 </div>
               )}
             </div>
 
-            {/* Message Actions */}
+            {/* Hover Actions */}
             {showActions && (
-              <div className={cn(
-                "absolute -top-2 opacity-100 transition-all duration-200 transform scale-100",
-                isOwn ? "-left-2" : "-right-2"
-              )}>
+              <div className="absolute -top-2 right-0 opacity-100 transition-all duration-200">
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg px-2 py-1">
                   <Button
                     variant="ghost"
@@ -144,6 +140,15 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
                   >
                     <Reply className="h-3 w-3" />
                   </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyToClipboard}
+                    className="h-6 w-6 p-0 text-slate-500 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
                   
                   {isOwn && (
                     <Button
@@ -155,24 +160,13 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
                 </div>
               </div>
             )}
 
             {/* Quick Reactions Panel */}
             {showReactions && (
-              <div className={cn(
-                "absolute top-full mt-2 z-10",
-                isOwn ? "right-0" : "left-0"
-              )}>
+              <div className="absolute top-full right-0 mt-2 z-10">
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg px-3 py-2">
                   {['👍', '❤️', '😊', '😢', '😮', '🔥'].map((emoji) => (
                     <Button
