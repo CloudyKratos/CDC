@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -52,25 +53,27 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     }
   }, [isMobile]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return;
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
+    if (!content.trim()) return false;
 
     if (!user?.id) {
       toast.error("You must be logged in to send messages");
-      return;
+      return false;
     }
 
     if (!isConnected) {
       toast.error("Not connected to chat. Please wait...");
-      return;
+      return false;
     }
 
     try {
       console.log('📤 Attempting to send message to channel:', activeChannel);
-      await sendMessage(content);
+      const success = await sendMessage(content);
+      return success;
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
+      return false;
     }
   }, [user?.id, isConnected, sendMessage, activeChannel]);
 
@@ -159,8 +162,6 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
                 {/* Enhanced Message Input */}
                 <EnhancedMessageInput 
                   onSendMessage={handleSendMessage} 
-                  isLoading={isLoading} 
-                  channelName={activeChannel}
                   disabled={!isConnected && !!user?.id}
                 />
               </>
