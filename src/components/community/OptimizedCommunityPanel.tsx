@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,6 +9,7 @@ import ChatHeader from './ChatHeader';
 import UnauthenticatedView from './UnauthenticatedView';
 import { EnhancedMessageList } from './EnhancedMessageList';
 import { EnhancedMessageInput } from './EnhancedMessageInput';
+import { EnhancedChatArea } from './EnhancedChatArea';
 
 interface OptimizedCommunityPanelProps {
   defaultChannel?: string;
@@ -97,10 +97,10 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
               Chat Temporarily Unavailable
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
               {error}
             </p>
             <button 
@@ -115,71 +115,43 @@ const OptimizedCommunityPanel: React.FC<OptimizedCommunityPanelProps> = ({
     );
   }
 
-  return (
-    <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
-      {/* Enhanced Channel Sidebar */}
-      <ChannelSidebar
-        channels={channels}
-        activeChannel={activeChannel}
-        onChannelSelect={handleChannelSelect}
-        isLoading={false}
-        isMobile={isMobile}
-        showChannelList={showChannelList}
-        setShowChannelList={setShowChannelList}
-      />
-
-      {/* Main Chat Container */}
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-slate-900 shadow-xl border-l border-slate-200 dark:border-slate-700">
-        {/* Enhanced Chat Header */}
-        <ChatHeader
-          activeChannel={activeChannel}
-          isOnline={isConnected}
-          reconnecting={!isConnected && !!user?.id}
-          isMobile={isMobile}
-          showChannelList={showChannelList}
-          setShowChannelList={setShowChannelList}
-          showMembersList={showMembersList}
-          setShowMembersList={setShowMembersList}
-        />
-        
-        {/* Messages and Input Area */}
-        <div className="flex flex-1 overflow-hidden relative">
-          {/* Main Chat Content */}
-          <div className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-slate-900">
-            {!user ? (
-              <UnauthenticatedView />
-            ) : (
-              <>
-                {/* Enhanced Messages Area */}
-                <div className="flex-1 overflow-hidden bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50">
-                  <EnhancedMessageList 
-                    messages={messages} 
-                    isLoading={isLoading}
-                    onDeleteMessage={handleDeleteMessage}
-                  />
-                </div>
-                
-                {/* Enhanced Message Input */}
-                <EnhancedMessageInput 
-                  onSendMessage={handleSendMessage} 
-                  disabled={!isConnected && !!user?.id}
-                />
-              </>
-            )}
+  if (!user) {
+    return (
+      <div className="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <span className="text-3xl">💬</span>
           </div>
-
-          {/* Members List Sidebar (if needed) */}
-          {showMembersList && (
-            <div className="w-64 bg-slate-50 dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 p-4">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                Online Members
-              </h3>
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Members list coming soon...
-              </div>
-            </div>
-          )}
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+            Join the Community
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+            Sign in to participate in community discussions and connect with other members.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+          >
+            Sign In
+          </button>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
+      <div className="h-full rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50">
+        <EnhancedChatArea
+          activeChannel={activeChannel}
+          messages={messages}
+          isLoading={isLoading}
+          isConnected={isConnected}
+          error={error}
+          onSendMessage={handleSendMessage}
+          onDeleteMessage={handleDeleteMessage}
+          channelsLoading={false}
+        />
       </div>
     </div>
   );

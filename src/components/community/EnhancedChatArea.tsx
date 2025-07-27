@@ -1,15 +1,16 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
 import { Message } from '@/types/chat';
-import { EnhancedMessageList } from './EnhancedMessageList';
+import { useAuth } from '@/contexts/AuthContext';
 import { EnhancedMessageInput } from './EnhancedMessageInput';
-import { ChannelHeader } from './enhanced/ChannelHeader';
+import { CollapsibleChatSidebar } from './enhanced/CollapsibleChatSidebar';
+import { EnhancedMessageBubble } from './enhanced/EnhancedMessageBubble';
+import { IntegratedChatFeatures } from './enhanced/IntegratedChatFeatures';
 import { ConnectionIndicator } from './enhanced/ConnectionIndicator';
-import { TypingIndicator } from './enhanced/TypingIndicator';
 
 interface EnhancedChatAreaProps {
   activeChannel: string;
@@ -34,6 +35,30 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
   onDeleteMessage,
   className = ''
 }) => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredMessages, setFilteredMessages] = useState(messages);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Filter messages based on search
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = messages.filter(msg => 
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (msg.sender?.full_name || msg.sender?.username || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredMessages(filtered);
+    } else {
+      setFilteredMessages(messages);
+    }
+  }, [messages, searchQuery]);
+
   const handleRetry = () => {
     window.location.reload();
   };
@@ -52,6 +77,51 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
         return `Discussion channel for ${channelName}`;
     }
   };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilter = (filter: string) => {
+    // Handle different filter types
+    console.log('Filtering by:', filter);
+  };
+
+  const handleReply = (messageId: string) => {
+    console.log('Replying to message:', messageId);
+  };
+
+  const handleReact = (messageId: string, emoji: string) => {
+    console.log('Reacting to message:', messageId, 'with:', emoji);
+  };
+
+  // Default channels for sidebar
+  const channels = [
+    { 
+      id: 'general', 
+      name: 'general', 
+      type: 'public', 
+      description: 'General discussion',
+      unreadCount: 0,
+      isPinned: false
+    },
+    { 
+      id: 'morning-journey', 
+      name: 'morning journey', 
+      type: 'public', 
+      description: 'Morning routines and motivation',
+      unreadCount: 0,
+      isPinned: false
+    },
+    { 
+      id: 'announcement', 
+      name: 'announcement', 
+      type: 'public', 
+      description: 'Important announcements',
+      unreadCount: 0,
+      isPinned: false
+    }
+  ];
 
   // Error state
   if (error) {
@@ -79,10 +149,10 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
             <MessageSquare className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
             Loading Messages...
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-slate-600 dark:text-slate-400">
             Setting up real-time chat for #{activeChannel}
           </p>
         </div>
@@ -91,58 +161,103 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
   }
 
   return (
-    <div className={`h-full flex flex-col bg-white dark:bg-gray-900 ${className}`}>
-      {/* Enhanced Channel Header */}
-      <div className="flex-shrink-0">
-        <ChannelHeader
-          channelName={activeChannel}
-          description={getChannelDescription(activeChannel)}
-          memberCount={0} // This would come from real data
+    <div className={`h-full flex bg-white dark:bg-slate-900 ${className}`}>
+      {/* Collapsible Sidebar */}
+      <CollapsibleChatSidebar
+        isCollapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        channels={channels}
+        activeChannel={activeChannel}
+        onChannelSelect={(channelId) => {
+          // This would trigger channel switching in parent component
+          console.log('Switching to channel:', channelId);
+        }}
+      />
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Integrated Features Header */}
+        <IntegratedChatFeatures
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          searchResults={searchQuery ? filteredMessages : []}
+          activeUsers={1}
         />
-        
-        {/* Connection Status Bar */}
-        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-          <div className="flex items-center justify-between">
-            <ConnectionIndicator
-              isConnected={isConnected}
-              isReconnecting={channelsLoading}
-              onRetry={handleRetry}
-            />
-            
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {messages.length} messages
-            </div>
-          </div>
+
+        {/* Connection Status */}
+        <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+          <ConnectionIndicator
+            isConnected={isConnected}
+            isReconnecting={channelsLoading}
+            onRetry={handleRetry}
+          />
         </div>
-      </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 min-h-0 relative">
-        <ScrollArea className="h-full">
-          <div className="p-4">
-            <EnhancedMessageList
-              messages={messages}
-              onDeleteMessage={onDeleteMessage}
-              isLoading={isLoading && messages.length > 0}
-            />
-          </div>
-        </ScrollArea>
-        
-        {/* Typing Indicator */}
-        <TypingIndicator users={[]} className="absolute bottom-0 left-0 right-0" />
-      </div>
+        {/* Messages Area */}
+        <div className="flex-1 min-h-0 relative">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-0">
+              {filteredMessages.length === 0 && !isLoading ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-2xl">💬</span>
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    {searchQuery ? 'No messages found' : 'No messages yet'}
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    {searchQuery ? 'Try a different search term' : 'Be the first to start the conversation!'}
+                  </p>
+                </div>
+              ) : (
+                filteredMessages.map((message, index) => {
+                  const prevMessage = filteredMessages[index - 1];
+                  const isOwn = message.sender_id === user?.id;
+                  const isConsecutive = prevMessage &&
+                    prevMessage.sender_id === message.sender_id &&
+                    new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000; // 5 minutes
+                  
+                  return (
+                    <EnhancedMessageBubble
+                      key={message.id}
+                      message={message}
+                      isOwn={isOwn}
+                      showAvatar={!isConsecutive}
+                      isConsecutive={isConsecutive}
+                      onReply={handleReply}
+                      onReact={handleReact}
+                      onDelete={isOwn ? onDeleteMessage : undefined}
+                    />
+                  );
+                })
+              )}
+              
+              {isLoading && filteredMessages.length > 0 && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div ref={messagesEndRef} />
+          </ScrollArea>
+        </div>
 
-      {/* Enhanced Message Input */}
-      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <EnhancedMessageInput
-          onSendMessage={onSendMessage}
-          disabled={!isConnected || isLoading}
-          placeholder={
-            !isConnected 
-              ? "Disconnected - messages will be sent when connection is restored"
-              : `Message #${activeChannel}`
-          }
-        />
+        {/* Enhanced Message Input */}
+        <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+          <EnhancedMessageInput
+            onSendMessage={onSendMessage}
+            disabled={!isConnected || isLoading}
+            placeholder={
+              !isConnected 
+                ? "Disconnected - messages will be sent when connection is restored"
+                : `Message #${activeChannel}`
+            }
+          />
+        </div>
       </div>
     </div>
   );
