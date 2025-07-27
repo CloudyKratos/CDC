@@ -1,17 +1,15 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Message } from '@/types/chat';
+import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { EnhancedModernMessageBubble } from './modern/EnhancedModernMessageBubble';
-import { ModernMessageInput } from './modern/ModernMessageInput';
-import { EnhancedChatHeader } from './modern/EnhancedChatHeader';
-import { EnhancedTypingIndicator } from './modern/EnhancedTypingIndicator';
-import { EnhancedConnectionStatus } from './modern/EnhancedConnectionStatus';
-import { Loader2, AlertCircle, Users, MessageSquare, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
+import { Message } from '@/types/chat';
+import { EnhancedMessageList } from './EnhancedMessageList';
+import { EnhancedMessageInput } from './EnhancedMessageInput';
+import { ChannelHeader } from './enhanced/ChannelHeader';
+import { ConnectionIndicator } from './enhanced/ConnectionIndicator';
+import { TypingIndicator } from './enhanced/TypingIndicator';
 
 interface EnhancedChatAreaProps {
   activeChannel: string;
@@ -19,9 +17,10 @@ interface EnhancedChatAreaProps {
   isLoading: boolean;
   isConnected: boolean;
   error?: string | null;
-  onSendMessage: (content: string) => Promise<boolean>;
-  onDeleteMessage: (messageId: string) => Promise<void>;
   channelsLoading?: boolean;
+  onSendMessage: (content: string) => Promise<boolean>;
+  onDeleteMessage: (messageId: string) => void;
+  className?: string;
 }
 
 export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
@@ -30,190 +29,118 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
   isLoading,
   isConnected,
   error,
+  channelsLoading = false,
   onSendMessage,
   onDeleteMessage,
-  channelsLoading = false
+  className = ''
 }) => {
-  const { user } = useAuth();
-  const [messageText, setMessageText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<any[]>([]);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!messageText.trim() || isSending || !isConnected) {
-      if (!isConnected) {
-        toast.error("Cannot send message while offline");
-      }
-      return;
-    }
-
-    setIsSending(true);
-    try {
-      const success = await onSendMessage(messageText.trim());
-      if (success) {
-        setMessageText('');
-        scrollToBottom();
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      toast.error('Failed to send message');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleInputChange = (value: string) => {
-    setMessageText(value);
-    // TODO: Implement typing indicator logic
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    try {
-      await onDeleteMessage(messageId);
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-      toast.error('Failed to delete message');
-    }
-  };
-
-  const getChannelDescription = () => {
-    switch (activeChannel) {
-      case 'morning journey':
-        return 'Start your day with motivation and morning routines 🌅';
-      case 'announcement':
-        return 'Important announcements and updates 📢';
-      case 'general':
-      default:
-        return 'General discussion and community chat 💬';
-    }
-  };
-
-  const reconnect = () => {
+  const handleRetry = () => {
     window.location.reload();
   };
 
-  return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
-      {/* Enhanced Header */}
-      <EnhancedChatHeader
-        channelName={activeChannel}
-        messageCount={messages.length}
-        onlineUsers={1} // TODO: Implement actual online user count
-        isConnected={isConnected}
-        isLoading={isLoading || channelsLoading}
-        onReconnect={reconnect}
-      />
+  const getChannelDescription = (channelName: string) => {
+    switch (channelName.toLowerCase()) {
+      case 'general':
+        return '💬 General community discussions and introductions';
+      case 'morning-journey':
+      case 'morning journey':
+        return '🌅 Start your day with motivation and morning routines';
+      case 'announcement':
+      case 'announcements':
+        return '📢 Important community announcements and updates';
+      default:
+        return `Discussion channel for ${channelName}`;
+    }
+  };
 
-      {/* Connection Status */}
-      <div className="px-6 py-2 border-b bg-gray-50/50 dark:bg-gray-800/50">
-        <EnhancedConnectionStatus
-          isConnected={isConnected}
-          isLoading={isLoading || channelsLoading}
-          error={error}
-          onReconnect={reconnect}
-          connectionHealth={isConnected ? 'excellent' : 'poor'}
+  // Error state
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20">
+        <Alert className="max-w-md border-red-200 bg-red-50 dark:bg-red-950/20">
+          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-800 dark:text-red-200 space-y-3">
+            <div>{error}</div>
+            <Button onClick={handleRetry} variant="outline" size="sm" className="w-full">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry Connection
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading && messages.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <MessageSquare className="h-8 w-8 text-white" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Loading Messages...
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Setting up real-time chat for #{activeChannel}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`h-full flex flex-col bg-white dark:bg-gray-900 ${className}`}>
+      {/* Enhanced Channel Header */}
+      <div className="flex-shrink-0">
+        <ChannelHeader
+          channelName={activeChannel}
+          description={getChannelDescription(activeChannel)}
+          memberCount={0} // This would come from real data
         />
+        
+        {/* Connection Status Bar */}
+        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between">
+            <ConnectionIndicator
+              isConnected={isConnected}
+              isReconnecting={channelsLoading}
+              onRetry={handleRetry}
+            />
+            
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {messages.length} messages
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-6 space-y-4">
-            {/* Channel Welcome Message */}
-            {messages.length === 0 && !isLoading && (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                  <MessageSquare className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 capitalize">
-                  Welcome to #{activeChannel}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto leading-relaxed">
-                  {getChannelDescription()}
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <Users className="h-4 w-4" />
-                  <span>Be the first to start the conversation!</span>
-                </div>
-              </div>
-            )}
-
-            {/* Loading State */}
-            {isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-12">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
-                  <div className="text-center">
-                    <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      Loading messages...
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Connecting to #{activeChannel}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Messages */}
-            {messages.map((message, index) => {
-              const prevMessage = messages[index - 1];
-              const isConsecutive = prevMessage && 
-                prevMessage.sender_id === message.sender_id &&
-                new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000;
-
-              return (
-                <EnhancedModernMessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={message.sender_id === user?.id}
-                  onDelete={handleDeleteMessage}
-                  showAvatar={!isConsecutive}
-                  isConsecutive={isConsecutive}
-                  isConnected={isConnected}
-                />
-              );
-            })}
-
-            <div ref={messagesEndRef} />
+      <div className="flex-1 min-h-0 relative">
+        <ScrollArea className="h-full">
+          <div className="p-4">
+            <EnhancedMessageList
+              messages={messages}
+              onDeleteMessage={onDeleteMessage}
+              isLoading={isLoading && messages.length > 0}
+            />
           </div>
         </ScrollArea>
+        
+        {/* Typing Indicator */}
+        <TypingIndicator users={[]} className="absolute bottom-0 left-0 right-0" />
       </div>
 
-      {/* Typing Indicator */}
-      <EnhancedTypingIndicator typingUsers={typingUsers} />
-
-      {/* Message Input */}
-      <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900">
-        <ModernMessageInput
-          value={messageText}
-          onChange={handleInputChange}
-          onSend={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          disabled={!isConnected || isSending}
-          isLoading={isSending}
+      {/* Enhanced Message Input */}
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <EnhancedMessageInput
+          onSendMessage={onSendMessage}
+          disabled={!isConnected || isLoading}
           placeholder={
             !isConnected 
-              ? "Reconnecting..." 
-              : `Message #${activeChannel}...`
+              ? "Disconnected - messages will be sent when connection is restored"
+              : `Message #${activeChannel}`
           }
         />
       </div>
