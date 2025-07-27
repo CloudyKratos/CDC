@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import StageService from '@/services/StageService';
-import { StageRoom } from '@/components/stage-call/StageRoom';
+import StageRoom from '@/components/stage-call/StageRoom';
 import StageDetails from './components/StageDetails';
 import StageError from './components/StageError';
 import StageLoading from './components/StageLoading';

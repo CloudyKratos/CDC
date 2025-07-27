@@ -314,11 +314,13 @@ const StageCallPanel: React.FC = () => {
                         )}
                         {stage.status === 'live' ? 'Live' : 'Scheduled'}
                       </Badge>
-                      {stage.is_public ? (
-                        <Globe className="w-4 h-4 text-green-500" title="Public stage" />
-                      ) : (
-                        <Lock className="w-4 h-4 text-orange-500" title="Private stage" />
-                      )}
+                      <div title={stage.is_public ? "Public stage" : "Private stage"}>
+                        {stage.is_public ? (
+                          <Globe className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Lock className="w-4 h-4 text-orange-500" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
