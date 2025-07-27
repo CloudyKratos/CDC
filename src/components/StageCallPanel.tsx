@@ -24,7 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import StageService from '@/services/StageService';
 import { supabase } from '@/integrations/supabase/client';
-import StageRoom from './stage-call/StageRoom';
+import StageRoom from '@/components/stage-call/StageRoom';
 import { toast } from 'sonner';
 
 interface Stage {
@@ -36,8 +36,9 @@ interface Stage {
   creator_id: string;
   created_at: string;
   host_id: string;
-  is_public?: boolean;
-  max_participants?: number;
+  topic?: string;
+  max_speakers?: number;
+  max_audience?: number;
 }
 
 const StageCallPanel: React.FC = () => {
@@ -50,8 +51,9 @@ const StageCallPanel: React.FC = () => {
   const [newStage, setNewStage] = useState({
     title: '',
     description: '',
-    isPublic: true,
-    maxParticipants: 50
+    topic: '',
+    maxSpeakers: 10,
+    maxAudience: 100
   });
 
   useEffect(() => {
@@ -94,15 +96,18 @@ const StageCallPanel: React.FC = () => {
 
       console.log('Creating new stage:', newStage.title);
       
+      // Create stage data that matches the database schema
       const stageData = {
         title: newStage.title,
         description: newStage.description || '',
+        topic: newStage.topic || '',
         creator_id: user.id,
         host_id: user.id,
         status: 'live',
         is_active: true,
-        is_public: newStage.isPublic,
-        max_participants: newStage.maxParticipants
+        max_speakers: newStage.maxSpeakers,
+        max_audience: newStage.maxAudience,
+        actual_start_time: new Date().toISOString()
       };
 
       const result = await StageService.createStage(stageData);
@@ -111,8 +116,9 @@ const StageCallPanel: React.FC = () => {
         setNewStage({ 
           title: '', 
           description: '', 
-          isPublic: true, 
-          maxParticipants: 50 
+          topic: '',
+          maxSpeakers: 10, 
+          maxAudience: 100 
         });
         setShowCreateForm(false);
         await loadStages();
@@ -200,9 +206,19 @@ const StageCallPanel: React.FC = () => {
                   </div>
                   
                   <div>
+                    <label className="text-sm font-medium mb-2 block">Topic</label>
+                    <Input
+                      placeholder="What's the main topic?"
+                      value={newStage.topic}
+                      onChange={(e) => setNewStage({ ...newStage, topic: e.target.value })}
+                      className="border-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  
+                  <div>
                     <label className="text-sm font-medium mb-2 block">Description</label>
                     <Textarea
-                      placeholder="What's this stage about?"
+                      placeholder="Describe your stage"
                       value={newStage.description}
                       onChange={(e) => setNewStage({ ...newStage, description: e.target.value })}
                       className="border-primary/20 focus:border-primary min-h-[100px]"
@@ -212,28 +228,49 @@ const StageCallPanel: React.FC = () => {
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Maximum Participants</label>
+                    <label className="text-sm font-medium mb-2 block">Max Speakers</label>
                     <Input
                       type="number"
                       min="2"
-                      max="100"
-                      value={newStage.maxParticipants}
-                      onChange={(e) => setNewStage({ ...newStage, maxParticipants: parseInt(e.target.value) || 50 })}
+                      max="20"
+                      value={newStage.maxSpeakers}
+                      onChange={(e) => setNewStage({ ...newStage, maxSpeakers: parseInt(e.target.value) || 10 })}
                       className="border-primary/20 focus:border-primary"
                     />
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isPublic"
-                      checked={newStage.isPublic}
-                      onChange={(e) => setNewStage({ ...newStage, isPublic: e.target.checked })}
-                      className="rounded border-primary/20"
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Max Audience</label>
+                    <Input
+                      type="number"
+                      min="10"
+                      max="500"
+                      value={newStage.maxAudience}
+                      onChange={(e) => setNewStage({ ...newStage, maxAudience: parseInt(e.target.value) || 100 })}
+                      className="border-primary/20 focus:border-primary"
                     />
-                    <label htmlFor="isPublic" className="text-sm font-medium">
-                      Public stage (anyone can join)
-                    </label>
+                  </div>
+                  
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <h4 className="text-sm font-medium mb-2">Features Included:</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Mic className="w-4 h-4 text-green-500" />
+                        <span>Audio</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-blue-500" />
+                        <span>Video</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-purple-500" />
+                        <span>Screen Share</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-orange-500" />
+                        <span>Hand Raising</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -252,7 +289,7 @@ const StageCallPanel: React.FC = () => {
                   ) : (
                     <>
                       <Radio className="w-4 h-4 mr-2" />
-                      Create Stage
+                      Go Live Now
                     </>
                   )}
                 </Button>
@@ -295,6 +332,11 @@ const StageCallPanel: React.FC = () => {
                       <CardTitle className="text-lg font-semibold truncate group-hover:text-primary transition-colors duration-200">
                         {stage.title}
                       </CardTitle>
+                      {stage.topic && (
+                        <p className="text-sm text-primary/70 font-medium mt-1">
+                          {stage.topic}
+                        </p>
+                      )}
                       {stage.description && (
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                           {stage.description}
@@ -305,22 +347,15 @@ const StageCallPanel: React.FC = () => {
                       <Badge 
                         variant={stage.status === 'live' ? 'default' : 'secondary'}
                         className={`${stage.status === 'live' 
-                          ? 'bg-green-500 hover:bg-green-600 text-white border-0' 
+                          ? 'bg-red-500 hover:bg-red-600 text-white border-0 animate-pulse' 
                           : 'bg-muted text-muted-foreground'
                         } transition-colors duration-200`}
                       >
                         {stage.status === 'live' && (
-                          <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-1.5" />
+                          <div className="w-2 h-2 bg-white rounded-full mr-1.5" />
                         )}
                         {stage.status === 'live' ? 'Live' : 'Scheduled'}
                       </Badge>
-                      <div title={stage.is_public ? "Public stage" : "Private stage"}>
-                        {stage.is_public ? (
-                          <Globe className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Lock className="w-4 h-4 text-orange-500" />
-                        )}
-                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -331,7 +366,7 @@ const StageCallPanel: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <Users className="w-4 h-4" />
                       <span className="font-medium">{stage.participant_count || 0}</span>
-                      <span>/{stage.max_participants || 50}</span>
+                      <span>participants</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4" />
@@ -357,6 +392,12 @@ const StageCallPanel: React.FC = () => {
                       <Star className="w-4 h-4 text-yellow-500" />
                       <span className="text-xs text-yellow-600 font-medium">HD</span>
                     </div>
+                  </div>
+
+                  {/* Creator Info */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                    <Crown className="w-3 h-3" />
+                    <span>Hosted by CDC Admin</span>
                   </div>
 
                   {/* Join Button */}

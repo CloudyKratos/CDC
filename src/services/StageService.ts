@@ -18,7 +18,30 @@ class StageService {
 
   // Core stage operations
   async createStage(stageData: any) {
-    return this.coreService.createStage(stageData);
+    try {
+      console.log('Creating stage with data:', stageData);
+      
+      // Ensure we only send fields that exist in the database
+      const cleanedStageData = {
+        title: stageData.title,
+        description: stageData.description || '',
+        topic: stageData.topic || '',
+        creator_id: stageData.creator_id,
+        host_id: stageData.host_id,
+        status: stageData.status || 'live',
+        is_active: stageData.is_active !== false,
+        max_speakers: stageData.max_speakers || 10,
+        max_audience: stageData.max_audience || 100,
+        actual_start_time: stageData.actual_start_time || new Date().toISOString(),
+        allow_hand_raising: stageData.allow_hand_raising !== false,
+        recording_enabled: stageData.recording_enabled || false
+      };
+
+      return this.coreService.createStage(cleanedStageData);
+    } catch (error) {
+      console.error('Error in createStage service:', error);
+      throw error;
+    }
   }
 
   async getActiveStages() {

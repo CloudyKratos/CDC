@@ -1,140 +1,51 @@
 
-import { Database } from '@/integrations/supabase/types';
-
-// Use the actual database types as the foundation
-export type ExtendedStage = Database['public']['Tables']['stages']['Row'];
-export type ExtendedStageInsert = Database['public']['Tables']['stages']['Insert'];
-
-// Enhanced StageParticipant type with proper profile data
-export type StageParticipant = Database['public']['Tables']['stage_participants']['Row'] & {
-  profiles?: {
-    id: string;
-    full_name?: string | null;
-    username?: string | null;
-    avatar_url?: string | null;
-  } | null;
-};
-
-export type StageParticipantInsert = Database['public']['Tables']['stage_participants']['Insert'];
-
-// Enhanced speaker request type with profile data
-export type ExtendedSpeakerRequest = Database['public']['Tables']['speaker_requests']['Row'] & {
-  profiles?: {
-    id: string;
-    full_name?: string | null;
-    username?: string | null;
-    avatar_url?: string | null;
-  } | null;
-};
-export type ExtendedSpeakerRequestInsert = Database['public']['Tables']['speaker_requests']['Insert'];
-
-// Enhanced types for user_roles - fix the enum issue
-export type UserRole = 'admin' | 'moderator' | 'user';
-export type UserRoleInsert = Database['public']['Tables']['user_roles']['Insert'];
-
-// User with role interface for admin components
-export interface UserWithRole {
+// Extended types for Supabase database tables
+export interface ExtendedStage {
   id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  isHidden?: boolean;
-  profile?: {
-    full_name?: string | null;
-    username?: string | null;
-    email?: string | null;
-    created_at?: string;
-  };
-}
-
-// Enhanced types for events table - fix the event_type issue
-export type Event = Database['public']['Tables']['events']['Row'];
-export type EventInsert = Database['public']['Tables']['events']['Insert'];
-
-// Enhanced event data with proper typing
-export type EnhancedEventData = Database['public']['Tables']['events']['Row'] & {
-  event_type: CalendarEventType | null;
-};
-
-// Service response types
-export interface StageAccessValidation {
-  canAccess: boolean;
-  reason?: string;
-}
-
-// Type helpers for common operations
-export type StageRole = 'moderator' | 'speaker' | 'audience';
-export type StageStatus = 'scheduled' | 'live' | 'ended';
-export type SpeakerRequestStatus = 'pending' | 'approved' | 'denied';
-export type UserRoleType = 'admin' | 'moderator' | 'user';
-
-// Calendar event type that matches SupabaseService EventData
-export type CalendarEventType = 
-  | 'mission_call'
-  | 'reflection_hour' 
-  | 'wisdom_drop'
-  | 'tribe_meetup'
-  | 'office_hours'
-  | 'accountability_circle'
-  | 'solo_ritual'
-  | 'workshop'
-  | 'course_drop'
-  | 'challenge_sprint'
-  | 'deep_work_day';
-
-// Platform metrics for analytics - updated to match component expectations
-export interface PlatformMetrics {
-  totalUsers: number;
-  activeUsers: number;
-  totalEvents: number;
-  upcomingEvents: number;
-  totalStages: number;
-  activeStages: number;
-  totalMessages: number;
-  userGrowth: number;
-}
-
-// User statistics for admin dashboard
-export interface UserStats {
-  totalUsers: number;
-  adminCount: number;
-  moderatorCount: number;
-  memberCount: number;
-  activeUsers: number;
-}
-
-// Fixed DirectMessage interface with proper sender info
-export interface DirectMessage {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
+  title: string;
+  description?: string;
+  topic?: string;
+  status: StageStatus;
+  creator_id: string;
+  host_id: string;
   created_at: string;
   updated_at?: string;
-  is_read: boolean;
-  is_deleted?: boolean;
-  reply_to_id?: string | null;
-  sender?: {
-    id: string;
-    username?: string | null;
-    full_name?: string | null;
-    avatar_url?: string | null;
-  };
+  is_active: boolean;
+  participant_count?: number;
+  max_speakers?: number;
+  max_audience?: number;
+  scheduled_start_time?: string;
+  actual_start_time?: string;
+  end_time?: string;
+  allow_hand_raising?: boolean;
+  recording_enabled?: boolean;
 }
 
-// Fixed Conversation interface with proper participant info
-export interface Conversation {
+export interface ExtendedStageInsert {
+  title: string;
+  description?: string;
+  topic?: string;
+  status?: StageStatus;
+  creator_id: string;
+  host_id: string;
+  is_active?: boolean;
+  max_speakers?: number;
+  max_audience?: number;
+  scheduled_start_time?: string;
+  actual_start_time?: string;
+  allow_hand_raising?: boolean;
+  recording_enabled?: boolean;
+}
+
+export type StageStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
+
+export interface StageParticipant {
   id: string;
-  participants: string[];
-  last_message?: DirectMessage;
-  created_at: string;
-  updated_at: string;
-  last_activity_at: string;
-  unread_count?: number;
-  other_participant?: {
-    id: string;
-    username?: string | null;
-    full_name?: string | null;
-    avatar_url?: string | null;
-  };
+  stage_id: string;
+  user_id: string;
+  role: 'moderator' | 'speaker' | 'audience';
+  joined_at: string;
+  left_at?: string;
+  is_muted?: boolean;
+  hand_raised?: boolean;
 }
