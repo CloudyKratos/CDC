@@ -1,6 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WarriorProgress {
   level: number;
@@ -31,11 +32,11 @@ const RANKS = [
   { threshold: 3000, name: "Legendary Warrior", color: "red" }
 ];
 
-// Auto-save functionality
-const AUTOSAVE_INTERVAL = 30000; // 30 seconds
+const AUTOSAVE_INTERVAL = 30000;
 const BACKUP_KEY = 'warriorProgress_backup';
 
 export const useWarriorProgress = () => {
+  const { user } = useAuth();
   const [progress, setProgress] = useState<WarriorProgress>({
     level: 1,
     currentXp: 0,
@@ -56,7 +57,6 @@ export const useWarriorProgress = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Enhanced calculation functions
   const calculateLevel = useCallback((totalXp: number) => {
     for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
       if (totalXp >= LEVEL_THRESHOLDS[i]) {
@@ -86,29 +86,36 @@ export const useWarriorProgress = () => {
     return new Date().toDateString();
   }, []);
 
-  // Enhanced save function with backup
-  const saveProgress = useCallback((progressData: WarriorProgress) => {
+  const saveProgress = useCallback(async (progressData: WarriorProgress) => {
     try {
       const dataToSave = {
         ...progressData,
         lastSaved: new Date().toISOString()
       };
       
-      // Primary save
       localStorage.setItem('warriorProgress', JSON.stringify(dataToSave));
-      
-      // Backup save
       localStorage.setItem(BACKUP_KEY, JSON.stringify(dataToSave));
       
+      if (user) {
+        await supabase.rpc('update_warrior_leaderboard', {
+          p_user_id: user.id,
+          p_level: progressData.level,
+          p_total_xp: progressData.totalXp,
+          p_current_streak: progressData.streak,
+          p_completed_quests: progressData.completedQuests,
+          p_total_coins: progressData.totalCoins,
+          p_rank_name: progressData.rank,
+        });
+      }
+      
       setLastSaved(new Date());
-      console.log('✅ Progress saved successfully');
+      console.log('✅ Progress saved and synced with leaderboard');
     } catch (error) {
       console.error('❌ Failed to save progress:', error);
       toast.error('Failed to save progress');
     }
-  }, []);
+  }, [user]);
 
-  // Auto-save functionality
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
       if (progress.totalXp > 0) {
@@ -119,7 +126,6 @@ export const useWarriorProgress = () => {
     return () => clearInterval(autoSaveInterval);
   }, [progress, saveProgress]);
 
-  // Enhanced load function with recovery
   const loadProgress = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -138,7 +144,6 @@ export const useWarriorProgress = () => {
         lastActiveDate: ''
       };
 
-      // Try to load from primary storage, fallback to backup
       if (stored) {
         try {
           savedProgress = JSON.parse(stored);
@@ -154,7 +159,6 @@ export const useWarriorProgress = () => {
         toast.info('Progress restored from backup');
       }
 
-      // Enhanced streak logic
       let newStreak = savedProgress.streak;
       if (savedProgress.lastActiveDate) {
         const lastActive = new Date(savedProgress.lastActiveDate);
@@ -164,12 +168,10 @@ export const useWarriorProgress = () => {
         if (daysDiff > 1) {
           newStreak = 0;
         } else if (daysDiff === 1) {
-          // Maintain streak for consecutive days
           newStreak = savedProgress.streak;
         }
       }
 
-      // Load weekly progress with validation
       const weeklyData = localStorage.getItem('weeklyProgress');
       let weeklyXp = 0;
       if (weeklyData) {
@@ -183,7 +185,6 @@ export const useWarriorProgress = () => {
         }
       }
 
-      // Load daily quest progress with validation
       const dailyData = localStorage.getItem('dailyQuestProgress');
       let dailyQuestProgress = 0;
       if (dailyData) {
@@ -217,6 +218,10 @@ export const useWarriorProgress = () => {
 
       setProgress(newProgress);
       setLastSaved(new Date());
+
+      if (user && savedProgress.totalXp > 0) {
+        await saveProgress(newProgress);
+      }
     } catch (err) {
       console.error('Error loading warrior progress:', err);
       setError('Failed to load progress');
@@ -224,20 +229,17 @@ export const useWarriorProgress = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [calculateLevel, getRank, getWeekKey, getDayKey]);
+  }, [calculateLevel, getRank, getWeekKey, getDayKey, user, saveProgress]);
 
-  // Enhanced reward system
   const addReward = useCallback(async (xp: number, coins: number = 0) => {
     try {
       const today = getDayKey();
       const thisWeek = getWeekKey();
       
-      // Validate inputs
       if (xp < 0 || coins < 0) {
         throw new Error('Invalid reward values');
       }
 
-      // Update weekly progress with validation
       const weeklyData = localStorage.getItem('weeklyProgress');
       let weeklyXp = xp;
       if (weeklyData) {
@@ -252,7 +254,6 @@ export const useWarriorProgress = () => {
       }
       localStorage.setItem('weeklyProgress', JSON.stringify({ week: thisWeek, xp: weeklyXp }));
 
-      // Update daily quest progress with validation
       const dailyData = localStorage.getItem('dailyQuestProgress');
       let dailyQuestProgress = 1;
       if (dailyData) {
@@ -272,7 +273,6 @@ export const useWarriorProgress = () => {
       const newTotalCoins = progress.totalCoins + coins;
       const newCompletedQuests = progress.completedQuests + 1;
       
-      // Enhanced streak calculation
       let newStreak = progress.streak;
       if (progress.lastActiveDate !== today) {
         const lastActive = progress.lastActiveDate ? new Date(progress.lastActiveDate) : null;
@@ -309,9 +309,8 @@ export const useWarriorProgress = () => {
       };
 
       setProgress(updatedProgress);
-      saveProgress(updatedProgress);
+      await saveProgress(updatedProgress);
 
-      // Enhanced notifications
       if (newLevel > oldLevel) {
         toast.success(`🎉 LEVEL UP! You're now Level ${newLevel}!`, {
           duration: 6000,
@@ -322,7 +321,6 @@ export const useWarriorProgress = () => {
         toast.success('🏆 Daily quest goal completed!', { duration: 4000 });
       }
 
-      // Milestone celebrations
       if ([100, 500, 1000, 2500, 5000].includes(newTotalXp)) {
         toast.success(`🌟 Milestone achieved! ${newTotalXp} total XP!`, {
           duration: 5000,
@@ -342,12 +340,10 @@ export const useWarriorProgress = () => {
     }
   }, [progress, calculateLevel, getRank, getWeekKey, getDayKey, saveProgress]);
 
-  // Initialize on mount
   useEffect(() => {
     loadProgress();
   }, [loadProgress]);
 
-  // Window beforeunload handler for emergency save
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (progress.totalXp > 0) {
