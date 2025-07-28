@@ -17,7 +17,7 @@ export interface CalendarEventData {
   replay_url?: string;
   meeting_url?: string;
   resources?: any;
-  visibility_level?: string;
+  visibility_level?: 'public' | 'private' | 'restricted';
   xp_reward?: number;
   created_by?: string;
   workspace_id?: string;

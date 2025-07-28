@@ -61,7 +61,8 @@ export class DatabaseService {
       return (data || []).map(event => ({
         ...event,
         event_type: (event.event_type as CalendarEventType) || 'mission_call',
-        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
+        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled',
+        visibility_level: (event.visibility_level as 'public' | 'private' | 'restricted') || 'public'
       }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in getEvents:', error);
@@ -113,7 +114,8 @@ export class DatabaseService {
       return {
         ...data,
         event_type: (data.event_type as CalendarEventType) || 'mission_call',
-        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
+        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled',
+        visibility_level: (data.visibility_level as 'public' | 'private' | 'restricted') || 'public'
       };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in insertEvent:', error);
@@ -145,7 +147,8 @@ export class DatabaseService {
       return {
         ...data,
         event_type: (data.event_type as CalendarEventType) || 'mission_call',
-        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
+        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled',
+        visibility_level: (data.visibility_level as 'public' | 'private' | 'restricted') || 'public'
       };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in updateEvent:', error);
@@ -224,7 +227,8 @@ export class DatabaseService {
       return (data || []).map(event => ({
         ...event,
         event_type: (event.event_type as CalendarEventType) || 'mission_call',
-        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
+        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled',
+        visibility_level: (event.visibility_level as 'public' | 'private' | 'restricted') || 'public'
       }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in checkForOverlappingEvents:', error);

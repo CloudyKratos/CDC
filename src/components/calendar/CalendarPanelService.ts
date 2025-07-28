@@ -1,4 +1,3 @@
-
 import { CalendarEventData } from '@/types/calendar-events';
 import { EventData } from '@/services/SupabaseService';
 import CalendarService from '@/services/CalendarService';
@@ -11,7 +10,7 @@ export class CalendarPanelService {
     const eventsData = await CalendarService.getEvents();
     console.log('📅 CalendarPanelService: Events loaded:', eventsData.length);
     
-    // Convert EnhancedEventData to CalendarEventData
+    // Convert EnhancedEventData to CalendarEventData with proper type filtering
     const calendarEvents: CalendarEventData[] = eventsData.map(event => ({
       id: event.id,
       title: event.title,
@@ -29,7 +28,7 @@ export class CalendarPanelService {
       replay_url: event.replay_url,
       meeting_url: event.meeting_url,
       resources: event.resources,
-      visibility_level: event.visibility_level,
+      visibility_level: event.visibility_level as CalendarEventData['visibility_level'],
       xp_reward: event.xp_reward,
       created_by: event.created_by,
       workspace_id: event.workspace_id
@@ -48,7 +47,7 @@ export class CalendarPanelService {
       description: eventData.description || '',
       start_time: eventData.start_time,
       end_time: eventData.end_time,
-      event_type: eventData.event_type || 'mission_call',
+      event_type: eventData.event_type as EventData['event_type'] || 'mission_call',
       status: eventData.status || 'scheduled',
       max_attendees: eventData.max_attendees,
       is_recurring: eventData.is_recurring || false,
@@ -84,7 +83,7 @@ export class CalendarPanelService {
       description: eventData.description,
       start_time: eventData.start_time,
       end_time: eventData.end_time,
-      event_type: eventData.event_type,
+      event_type: eventData.event_type as EventData['event_type'],
       status: eventData.status,
       max_attendees: eventData.max_attendees,
       is_recurring: eventData.is_recurring,
