@@ -43,6 +43,20 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
     diagnostics
   } = useUnifiedCommunityChat(channelName);
 
+  // Map connectionHealth values to what ConnectionStatusIndicator expects
+  const mapConnectionHealth = (health: 'healthy' | 'degraded' | 'failed'): 'excellent' | 'good' | 'degraded' | 'poor' => {
+    switch (health) {
+      case 'healthy':
+        return 'excellent';
+      case 'degraded':
+        return 'degraded';
+      case 'failed':
+        return 'poor';
+      default:
+        return 'poor';
+    }
+  };
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,7 +111,7 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
         </CardContent>
       </Card>
     );
-  }
+  };
 
   return (
     <Card className={`h-full flex flex-col ${className}`}>
@@ -116,7 +130,7 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
         <div className="px-4 py-2 border-b bg-gray-50 dark:bg-gray-800/50">
           <ConnectionStatusIndicator
             isConnected={isConnected}
-            connectionHealth={connectionHealth}
+            connectionHealth={mapConnectionHealth(connectionHealth)}
             isLoading={isLoading}
             onReconnect={reconnect}
             diagnostics={diagnostics}
