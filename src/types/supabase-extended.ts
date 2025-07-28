@@ -135,7 +135,9 @@ export interface ExtendedSpeakerRequestInsert {
   requested_at: string;
 }
 
-// Calendar and Event types
+// Updated Calendar and Event types with aligned event types
+export type CalendarEventType = 'mission_call' | 'workshop' | 'meeting' | 'social' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
+
 export interface EnhancedEventData {
   id: string;
   title: string;
@@ -144,7 +146,7 @@ export interface EnhancedEventData {
   end_time: string;
   created_by: string;
   workspace_id?: string;
-  event_type: 'mission_call' | 'workshop' | 'meeting' | 'social';
+  event_type: CalendarEventType;
   status: 'scheduled' | 'live' | 'completed' | 'cancelled';
   max_attendees?: number;
   is_recurring: boolean;
@@ -160,8 +162,6 @@ export interface EnhancedEventData {
   meeting_url?: string;
   visibility_level: 'public' | 'private' | 'restricted';
 }
-
-export type CalendarEventType = 'mission_call' | 'workshop' | 'meeting' | 'social';
 
 // Messaging types
 export interface DirectMessage {

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EnhancedEventData, CalendarEventType } from '@/types/supabase-extended';
 
@@ -58,10 +57,11 @@ export class DatabaseService {
 
       console.log('✅ DatabaseService: Events fetched successfully:', data?.length || 0);
       
-      // Transform the data to match EnhancedEventData type
+      // Transform the data to match EnhancedEventData type with proper type assertions
       return (data || []).map(event => ({
         ...event,
-        event_type: event.event_type as CalendarEventType | null
+        event_type: (event.event_type as CalendarEventType) || 'mission_call',
+        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
       }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in getEvents:', error);
@@ -112,7 +112,8 @@ export class DatabaseService {
       console.log('✅ DatabaseService: Event created successfully:', data);
       return {
         ...data,
-        event_type: data.event_type as CalendarEventType | null
+        event_type: (data.event_type as CalendarEventType) || 'mission_call',
+        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
       };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in insertEvent:', error);
@@ -143,7 +144,8 @@ export class DatabaseService {
       console.log('✅ DatabaseService: Event updated successfully:', data);
       return {
         ...data,
-        event_type: data.event_type as CalendarEventType | null
+        event_type: (data.event_type as CalendarEventType) || 'mission_call',
+        status: (data.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
       };
     } catch (error) {
       console.error('💥 DatabaseService: Exception in updateEvent:', error);
@@ -221,7 +223,8 @@ export class DatabaseService {
 
       return (data || []).map(event => ({
         ...event,
-        event_type: event.event_type as CalendarEventType | null
+        event_type: (event.event_type as CalendarEventType) || 'mission_call',
+        status: (event.status as 'scheduled' | 'live' | 'completed' | 'cancelled') || 'scheduled'
       }));
     } catch (error) {
       console.error('💥 DatabaseService: Exception in checkForOverlappingEvents:', error);

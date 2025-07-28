@@ -1,12 +1,12 @@
 
-// Unified Calendar Event Data Types
+// Unified Calendar Event Data Types - aligned with EnhancedEventData
 export interface CalendarEventData {
   id?: string;
   title: string;
   description?: string;
   start_time: string;
   end_time: string;
-  event_type?: 'mission_call' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'workshop' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
+  event_type?: 'mission_call' | 'workshop' | 'meeting' | 'social' | 'reflection_hour' | 'wisdom_drop' | 'tribe_meetup' | 'office_hours' | 'accountability_circle' | 'solo_ritual' | 'course_drop' | 'challenge_sprint' | 'deep_work_day';
   status?: 'scheduled' | 'live' | 'completed' | 'cancelled';
   max_attendees?: number;
   is_recurring?: boolean;
