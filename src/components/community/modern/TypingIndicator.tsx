@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { MessageCircle } from 'lucide-react';
 
 interface TypingIndicatorProps {
   typingUsers: string[];
@@ -14,25 +15,30 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
     return null;
   }
 
-  const getTypingText = () => {
+  const formatTypingText = () => {
     if (typingUsers.length === 1) {
       return `${typingUsers[0]} is typing...`;
     } else if (typingUsers.length === 2) {
       return `${typingUsers[0]} and ${typingUsers[1]} are typing...`;
     } else {
-      return `${typingUsers.length} people are typing...`;
+      return `${typingUsers.slice(0, -1).join(', ')}, and ${typingUsers[typingUsers.length - 1]} are typing...`;
     }
   };
 
   return (
-    <div className={`px-4 py-2 border-t bg-gray-50 dark:bg-gray-800/50 ${className}`}>
-      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-        <div className="flex space-x-1">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+    <div className={`px-6 py-3 border-t bg-gradient-to-r from-muted/30 via-muted/20 to-muted/30 backdrop-blur-sm ${className}`}>
+      <div className="flex items-center gap-3 animate-fade-in">
+        <div className="flex items-center gap-1">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
+            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" />
+          </div>
         </div>
-        <span>{getTypingText()}</span>
+        <span className="text-sm text-muted-foreground font-medium">
+          {formatTypingText()}
+        </span>
       </div>
     </div>
   );

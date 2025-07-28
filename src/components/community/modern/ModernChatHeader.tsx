@@ -37,21 +37,29 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
   onSettings
 }) => {
   return (
-    <div className="flex items-center justify-between p-4 border-b bg-white dark:bg-gray-900 theme-border">
+    <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-background via-background/95 to-background backdrop-blur-sm">
       {/* Left side - Channel info */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-            <Hash className="h-5 w-5 text-blue-600 dark:text-accent" />
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm border border-primary/20">
+              <Hash className="h-5 w-5 text-primary" />
+            </div>
+            {isConnected && (
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+            )}
           </div>
           <div>
-            <h2 className="text-lg font-semibold theme-text-primary">
+            <h2 className="text-xl font-bold text-foreground tracking-tight">
               {channelName}
             </h2>
-            <div className="flex items-center gap-3 text-sm theme-text-secondary">
-              <span>{messageCount} messages</span>
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <div className="w-1 h-1 rounded-full bg-muted-foreground/60" />
+                {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
                 <span>{onlineUsers} online</span>
               </div>
             </div>
@@ -60,18 +68,24 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
       </div>
 
       {/* Right side - Actions and status */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Connection status */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           {isConnected ? (
-            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400">
-              <Wifi className="h-3 w-3 mr-1" />
-              Connected
+            <Badge 
+              variant="outline" 
+              className="text-green-600 border-green-200/50 bg-green-50/80 dark:bg-green-900/20 dark:border-green-800/50 dark:text-green-400 px-3 py-1.5 rounded-lg font-medium backdrop-blur-sm"
+            >
+              <Wifi className="h-3.5 w-3.5 mr-2" />
+              Live
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-              <WifiOff className="h-3 w-3 mr-1" />
-              {isLoading ? 'Connecting...' : 'Disconnected'}
+            <Badge 
+              variant="outline" 
+              className="text-red-600 border-red-200/50 bg-red-50/80 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-400 px-3 py-1.5 rounded-lg font-medium"
+            >
+              <WifiOff className="h-3.5 w-3.5 mr-2" />
+              {isLoading ? 'Connecting...' : 'Offline'}
             </Badge>
           )}
         </div>
@@ -84,7 +98,7 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
               size="sm"
               onClick={onReconnect}
               disabled={isLoading}
-              className="h-9 px-3"
+              className="h-9 px-3 rounded-lg hover:bg-muted/80 transition-all duration-200"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Reconnect
@@ -97,7 +111,8 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
               size="sm"
               onClick={onStartCall}
               disabled={!isConnected}
-              className="h-9 w-9 p-0"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-muted/80 transition-all duration-200"
+              title="Start voice call"
             >
               <Phone className="h-4 w-4" />
             </Button>
@@ -109,7 +124,8 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
               size="sm"
               onClick={onStartVideo}
               disabled={!isConnected}
-              className="h-9 w-9 p-0"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-muted/80 transition-all duration-200"
+              title="Start video call"
             >
               <Video className="h-4 w-4" />
             </Button>
@@ -120,7 +136,8 @@ export const ModernChatHeader: React.FC<ModernChatHeaderProps> = ({
               variant="ghost"
               size="sm"
               onClick={onSettings}
-              className="h-9 w-9 p-0"
+              className="h-9 w-9 p-0 rounded-lg hover:bg-muted/80 transition-all duration-200"
+              title="Settings"
             >
               <Settings className="h-4 w-4" />
             </Button>

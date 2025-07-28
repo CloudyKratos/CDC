@@ -1,113 +1,116 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Wifi, 
   WifiOff, 
-  AlertTriangle, 
-  RefreshCw,
-  Activity
+  RefreshCw, 
+  AlertTriangle,
+  Signal,
+  SignalLow,
+  SignalMedium,
+  SignalHigh
 } from 'lucide-react';
 
 interface ConnectionStatusIndicatorProps {
   isConnected: boolean;
-  connectionHealth: 'healthy' | 'degraded' | 'failed';
+  connectionHealth?: 'excellent' | 'good' | 'degraded' | 'poor';
   isLoading: boolean;
   onReconnect: () => void;
   diagnostics?: {
-    isHealthy: boolean;
-    policyValidation: boolean;
-    networkLatency: number;
-    lastChecked: Date | null;
-    errors: string[];
+    lastPing?: number;
+    reconnectAttempts?: number;
   };
-  className?: string;
 }
 
 export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
   isConnected,
-  connectionHealth,
+  connectionHealth = 'excellent',
   isLoading,
   onReconnect,
-  diagnostics,
-  className = ''
+  diagnostics
 }) => {
-  const getStatusConfig = () => {
-    if (isLoading) {
-      return {
-        icon: RefreshCw,
-        text: 'Connecting...',
-        variant: 'outline' as const,
-        className: 'text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
-      };
+  const getConnectionIcon = () => {
+    if (!isConnected) return WifiOff;
+    
+    switch (connectionHealth) {
+      case 'poor': return SignalLow;
+      case 'degraded': return SignalMedium;
+      case 'good': return SignalHigh;
+      case 'excellent': return Wifi;
+      default: return Wifi;
     }
-
-    if (!isConnected || connectionHealth === 'failed') {
-      return {
-        icon: WifiOff,
-        text: 'Disconnected',
-        variant: 'outline' as const,
-        className: 'text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'
-      };
-    }
-
-    if (connectionHealth === 'degraded') {
-      return {
-        icon: AlertTriangle,
-        text: 'Limited',
-        variant: 'outline' as const,
-        className: 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400'
-      };
-    }
-
-    return {
-      icon: Wifi,
-      text: 'Connected',
-      variant: 'outline' as const,
-      className: 'text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
-    };
   };
 
-  const statusConfig = getStatusConfig();
-  const Icon = statusConfig.icon;
+  const getConnectionColor = () => {
+    if (!isConnected) return 'text-red-500';
+    
+    switch (connectionHealth) {
+      case 'poor': return 'text-red-500';
+      case 'degraded': return 'text-yellow-500';
+      case 'good': return 'text-blue-500';
+      case 'excellent': return 'text-green-500';
+      default: return 'text-green-500';
+    }
+  };
+
+  const getStatusText = () => {
+    if (isLoading) return 'Connecting...';
+    if (!isConnected) return 'Disconnected';
+    
+    switch (connectionHealth) {
+      case 'poor': return 'Poor connection';
+      case 'degraded': return 'Limited connectivity';
+      case 'good': return 'Good connection';
+      case 'excellent': return 'Excellent connection';
+      default: return 'Connected';
+    }
+  };
+
+  const Icon = getConnectionIcon();
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <Badge 
-        variant={statusConfig.variant} 
-        className={statusConfig.className}
-      >
-        <Icon className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-        {statusConfig.text}
-      </Badge>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-2 ${getConnectionColor()}`}>
+          <Icon className="h-4 w-4" />
+          <span className="text-sm font-medium">{getStatusText()}</span>
+        </div>
+        
+        {diagnostics && (
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            {diagnostics.lastPing && (
+              <span>Ping: {diagnostics.lastPing}ms</span>
+            )}
+            {diagnostics.reconnectAttempts && diagnostics.reconnectAttempts > 0 && (
+              <Badge variant="outline" className="text-xs px-2 py-0.5">
+                {diagnostics.reconnectAttempts} attempts
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Latency indicator */}
-      {diagnostics?.networkLatency && diagnostics.networkLatency > 0 && (
-        <Badge variant="outline" className="text-xs">
-          <Activity className="h-3 w-3 mr-1" />
-          {diagnostics.networkLatency}ms
-        </Badge>
-      )}
-
-      {/* Reconnect button for failed connections */}
-      {(!isConnected || connectionHealth === 'failed') && !isLoading && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onReconnect}
-          className="h-6 px-2 text-xs"
-        >
-          <RefreshCw className="h-3 w-3 mr-1" />
-          Retry
-        </Button>
-      )}
-
-      {/* Error count indicator */}
-      {diagnostics?.errors && diagnostics.errors.length > 0 && (
-        <Badge variant="outline" className="text-xs text-red-600 border-red-200">
-          {diagnostics.errors.length} error{diagnostics.errors.length !== 1 ? 's' : ''}
-        </Badge>
+      {(!isConnected || connectionHealth === 'poor') && (
+        <div className="flex items-center gap-2">
+          {connectionHealth === 'poor' && (
+            <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+              <AlertTriangle className="h-3 w-3" />
+              <span className="text-xs">Unstable</span>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReconnect}
+            disabled={isLoading}
+            className="h-8 px-3 text-xs rounded-lg hover:bg-muted/60"
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Retry
+          </Button>
+        </div>
       )}
     </div>
   );
