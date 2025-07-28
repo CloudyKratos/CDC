@@ -8,7 +8,6 @@ import { ModernChatHeader } from './ModernChatHeader';
 import { ModernMessageInput } from './ModernMessageInput';
 import { EnhancedModernMessageBubble } from './EnhancedModernMessageBubble';
 import { TypingIndicator } from './TypingIndicator';
-import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -42,20 +41,6 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
     connectionHealth,
     diagnostics
   } = useUnifiedCommunityChat(channelName);
-
-  // Map connectionHealth values to what ConnectionStatusIndicator expects
-  const mapConnectionHealth = (health: 'healthy' | 'degraded' | 'failed'): 'excellent' | 'good' | 'degraded' | 'poor' => {
-    switch (health) {
-      case 'healthy':
-        return 'excellent';
-      case 'degraded':
-        return 'degraded';
-      case 'failed':
-        return 'poor';
-      default:
-        return 'poor';
-    }
-  };
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -100,13 +85,18 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
 
   if (!user) {
     return (
-      <Card className={`h-full ${className}`}>
+      <Card className={`h-full bg-gradient-to-br from-background to-muted/20 shadow-xl border-0 ${className}`}>
         <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
-              Please sign in to join the chat
-            </p>
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Join the Conversation</h3>
+              <p className="text-muted-foreground">
+                Please sign in to access the community chat
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -114,9 +104,10 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
   };
 
   return (
-    <Card className={`h-full flex flex-col ${className}`}>
-      {/* Enhanced Header with Connection Status */}
-      <div className="flex-shrink-0">
+    <Card className={`h-full flex flex-col bg-gradient-to-br from-background via-background/98 to-muted/10 shadow-2xl border-border/50 overflow-hidden ${className}`}>
+      {/* Enhanced Header */}
+      <div className="flex-shrink-0 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
         <ModernChatHeader
           channelName={channelName}
           messageCount={messages.length}
@@ -125,39 +116,29 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
           isLoading={isLoading}
           onReconnect={reconnect}
         />
-        
-        {/* Connection Status Bar */}
-        <div className="px-4 py-2 border-b bg-gray-50 dark:bg-gray-800/50">
-          <ConnectionStatusIndicator
-            isConnected={isConnected}
-            connectionHealth={mapConnectionHealth(connectionHealth)}
-            isLoading={isLoading}
-            onReconnect={reconnect}
-            diagnostics={diagnostics}
-          />
-        </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Error Alert with enhanced styling */}
       {error && (
-        <Alert className="m-4 border-red-200 bg-red-50 dark:bg-red-900/20">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-red-800 dark:text-red-400">
+        <Alert className="m-4 border-destructive/20 bg-destructive/5 dark:bg-destructive/10 backdrop-blur-sm">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive/90 font-medium">
             {error}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Messages Area */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-4 space-y-4">
+      {/* Messages Area with enhanced background */}
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-muted/5 to-transparent pointer-events-none" />
+        <ScrollArea className="h-full relative z-10" ref={scrollAreaRef}>
+          <div className="p-6 space-y-4">
             {/* Loading State */}
             {isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-8">
-                <div className="flex items-center gap-3 text-blue-600 dark:text-accent">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm">Loading messages...</span>
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center gap-4 px-6 py-4 bg-muted/30 rounded-2xl backdrop-blur-sm border border-muted/40">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm font-medium text-muted-foreground">Loading messages...</span>
                 </div>
               </div>
             )}
@@ -184,14 +165,17 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
 
             {/* Empty State */}
             {!isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="text-gray-400 dark:text-gray-600 mb-2">
-                    💬
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center space-y-4">
+                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-2xl">💬</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    No messages yet. Start the conversation!
-                  </p>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Start the Conversation</h3>
+                    <p className="text-muted-foreground text-sm max-w-xs">
+                      No messages yet. Be the first to share something with the community!
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -201,28 +185,31 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
         </ScrollArea>
       </div>
 
-      {/* Typing Indicator */}
+      {/* Enhanced Typing Indicator */}
       <TypingIndicator 
         typingUsers={typingUsers}
-        className="flex-shrink-0"
+        className="flex-shrink-0 relative"
       />
 
-      {/* Message Input */}
-      <div className="flex-shrink-0 border-t">
-        <ModernMessageInput
-          value={messageText}
-          onChange={handleInputChange}
-          onSend={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          disabled={!isConnected || !isReady}
-          placeholder={
-            !isConnected 
-              ? "Reconnecting..." 
-              : connectionHealth === 'degraded'
-              ? "Limited connectivity - messages may be delayed"
-              : `Message #${channelName}...`
-          }
-        />
+      {/* Enhanced Message Input */}
+      <div className="flex-shrink-0 relative">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+        <div className="bg-gradient-to-r from-background/95 via-background to-background/95 backdrop-blur-sm">
+          <ModernMessageInput
+            value={messageText}
+            onChange={handleInputChange}
+            onSend={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            disabled={!isConnected || !isReady}
+            placeholder={
+              !isConnected 
+                ? "Reconnecting..." 
+                : connectionHealth === 'degraded'
+                ? "Limited connectivity - messages may be delayed"
+                : `Message #${channelName}...`
+            }
+          />
+        </div>
       </div>
     </Card>
   );
