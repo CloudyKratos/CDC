@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -40,13 +39,37 @@ const ImprovedCalendarView: React.FC<ImprovedCalendarViewProps> = ({
       console.log('📅 ImprovedCalendarView: Loading events...');
       const eventsData = await CalendarService.getEvents();
       
-      setEvents(eventsData);
+      // Convert EventData[] to CalendarEventData[] with proper type assertions
+      const calendarEvents: CalendarEventData[] = eventsData.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start_time: event.start_time,
+        end_time: event.end_time,
+        event_type: (event.event_type as CalendarEventData['event_type']) || 'mission_call',
+        status: (event.status as CalendarEventData['status']) || 'scheduled',
+        max_attendees: event.max_attendees,
+        is_recurring: event.is_recurring,
+        recurrence_pattern: event.recurrence_pattern,
+        tags: event.tags,
+        cohort_id: event.cohort_id,
+        coach_id: event.coach_id,
+        replay_url: event.replay_url,
+        meeting_url: event.meeting_url,
+        resources: event.resources,
+        visibility_level: (event.visibility_level as CalendarEventData['visibility_level']) || 'public',
+        xp_reward: event.xp_reward,
+        created_by: event.created_by,
+        workspace_id: event.workspace_id
+      }));
+      
+      setEvents(calendarEvents);
       
       if (showToast) {
-        toast.success(`Loaded ${eventsData.length} events`);
+        toast.success(`Loaded ${calendarEvents.length} events`);
       }
       
-      console.log(`✅ ImprovedCalendarView: Loaded ${eventsData.length} events`);
+      console.log(`✅ ImprovedCalendarView: Loaded ${calendarEvents.length} events`);
     } catch (error) {
       console.error('📅 ImprovedCalendarView: Error loading events:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load events';
