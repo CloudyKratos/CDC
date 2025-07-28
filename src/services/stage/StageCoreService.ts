@@ -18,7 +18,12 @@ class StageCoreService {
       throw new Error(`Failed to fetch stages: ${error.message}`);
     }
 
-    return data || [];
+    // Type assertion to handle the database return type
+    return (data || []).map(stage => ({
+      ...stage,
+      status: stage.status as StageStatus,
+      name: stage.name || stage.title // Fallback if name is missing
+    })) as ExtendedStage[];
   }
 
   async getActiveStages(): Promise<ExtendedStage[]> {
@@ -35,7 +40,12 @@ class StageCoreService {
       throw new Error(`Failed to fetch active stages: ${error.message}`);
     }
 
-    return data || [];
+    // Type assertion to handle the database return type
+    return (data || []).map(stage => ({
+      ...stage,
+      status: stage.status as StageStatus,
+      name: stage.name || stage.title // Fallback if name is missing
+    })) as ExtendedStage[];
   }
 
   async getStageById(stageId: string): Promise<ExtendedStage | null> {
@@ -55,15 +65,26 @@ class StageCoreService {
       throw new Error(`Failed to fetch stage: ${error.message}`);
     }
 
-    return data;
+    // Type assertion to handle the database return type
+    return {
+      ...data,
+      status: data.status as StageStatus,
+      name: data.name || data.title // Fallback if name is missing
+    } as ExtendedStage;
   }
 
   async createStage(stageData: ExtendedStageInsert): Promise<ExtendedStage> {
     console.log('Creating new stage:', stageData);
     
+    // Ensure name field is included (use title as fallback)
+    const stageWithName = {
+      ...stageData,
+      name: stageData.name || stageData.title
+    };
+    
     const { data, error } = await supabase
       .from('stages')
-      .insert(stageData)
+      .insert(stageWithName)
       .select()
       .single();
 
@@ -72,7 +93,12 @@ class StageCoreService {
       throw new Error(`Failed to create stage: ${error.message}`);
     }
 
-    return data;
+    // Type assertion to handle the database return type
+    return {
+      ...data,
+      status: data.status as StageStatus,
+      name: data.name || data.title // Fallback if name is missing
+    } as ExtendedStage;
   }
 
   async validateStageAccess(stageId: string): Promise<{ canAccess: boolean; reason?: string }> {

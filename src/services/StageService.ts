@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import StageCleanupService from "./StageCleanupService";
 import StageCoreService, { StageStatus } from "./stage/StageCoreService";
@@ -24,14 +23,17 @@ class StageService {
       // Ensure we only send fields that exist in the database
       const cleanedStageData = {
         title: stageData.title,
+        name: stageData.name || stageData.title, // Use title as name fallback
         description: stageData.description || '',
         topic: stageData.topic || '',
         creator_id: stageData.creator_id,
         host_id: stageData.host_id,
+        workspace_id: stageData.workspace_id || null,
         status: stageData.status || 'live',
         is_active: stageData.is_active !== false,
         max_speakers: stageData.max_speakers || 10,
         max_audience: stageData.max_audience || 100,
+        max_participants: stageData.max_participants || 110,
         actual_start_time: stageData.actual_start_time || new Date().toISOString(),
         allow_hand_raising: stageData.allow_hand_raising !== false,
         recording_enabled: stageData.recording_enabled || false
