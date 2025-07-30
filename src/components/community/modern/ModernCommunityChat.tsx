@@ -1,69 +1,104 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useUnifiedCommunityChat } from '@/hooks/useUnifiedCommunityChat';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ModernChatHeader } from './ModernChatHeader';
-import { ModernMessageInput } from './ModernMessageInput';
-import { EnhancedModernMessageBubble } from './EnhancedModernMessageBubble';
-import { TypingIndicator } from './TypingIndicator';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Send, Hash } from 'lucide-react';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 interface ModernCommunityChatProps {
-  channelName?: string;
-  className?: string;
+  defaultChannel?: string;
 }
 
-export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
-  channelName = 'general',
-  className = ''
-}) => {
-  const { user } = useAuth();
-  const [messageText, setMessageText] = useState('');
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const {
-    messages,
-    users,
-    typingUsers,
-    isConnected,
-    isLoading,
-    error,
-    sendMessage,
-    deleteMessage,
-    startTyping,
-    clearUnreadCount,
-    reconnect,
-    isReady,
-    connectionHealth,
-    diagnostics
-  } = useUnifiedCommunityChat(channelName);
-
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+interface Message {
+  id: string;
+  content: string;
+  created_at: string;
+  sender_id: string;
+  channel_id: string;
+  profiles?: {
+    full_name: string;
+    avatar_url: string;
   };
+}
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+}
 
-  // Clear unread count when component is focused
-  useEffect(() => {
-    const handleFocus = () => clearUnreadCount();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [clearUnreadCount]);
+const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({ defaultChannel = 'general' }) => {
+  const { user } = useAuth();
+  const [selectedChannel, setSelectedChannel] = useState<string>(defaultChannel);
+  const [newMessage, setNewMessage] = useState('');
+
+  // Fetch channels
+  const { data: channels = [] } = useQuery({
+    queryKey: ['channels'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Channel[];
+    }
+  });
+
+  // Fetch messages for selected channel
+  const { data: messages = [], refetch: refetchMessages } = useQuery({
+    queryKey: ['messages', selectedChannel],
+    queryFn: async () => {
+      const channel = channels.find(c => c.name === selectedChannel);
+      if (!channel) return [];
+
+      const { data, error } = await supabase
+        .from('community_messages')
+        .select(`
+          *,
+          profiles (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('channel_id', channel.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data as Message[];
+    },
+    enabled: !!channels.find(c => c.name === selectedChannel)
+  });
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !isConnected) return;
+    if (!newMessage.trim() || !user) return;
 
-    const success = await sendMessage(messageText.trim());
-    if (success) {
-      setMessageText('');
+    const channel = channels.find(c => c.name === selectedChannel);
+    if (!channel) return;
+
+    try {
+      const { error } = await supabase
+        .from('community_messages')
+        .insert({
+          content: newMessage.trim(),
+          sender_id: user.id,
+          channel_id: channel.id
+        });
+
+      if (error) throw error;
+
+      setNewMessage('');
+      refetchMessages();
+      toast.success('Message sent!');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -74,143 +109,76 @@ export const ModernCommunityChat: React.FC<ModernCommunityChatProps> = ({
     }
   };
 
-  const handleInputChange = (value: string) => {
-    setMessageText(value);
-    startTyping();
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    await deleteMessage(messageId);
-  };
-
-  if (!user) {
-    return (
-      <Card className={`h-full bg-gradient-to-br from-background to-muted/20 shadow-xl border-0 ${className}`}>
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Join the Conversation</h3>
-              <p className="text-muted-foreground">
-                Please sign in to access the community chat
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
-    <Card className={`h-full flex flex-col bg-gradient-to-br from-background via-background/98 to-muted/10 shadow-2xl border-border/50 overflow-hidden ${className}`}>
-      {/* Enhanced Header */}
-      <div className="flex-shrink-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
-        <ModernChatHeader
-          channelName={channelName}
-          messageCount={messages.length}
-          onlineUsers={users.length}
-          isConnected={isConnected}
-          isLoading={isLoading}
-          onReconnect={reconnect}
-        />
-      </div>
-
-      {/* Error Alert with enhanced styling */}
-      {error && (
-        <Alert className="m-4 border-destructive/20 bg-destructive/5 dark:bg-destructive/10 backdrop-blur-sm">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive/90 font-medium">
-            {error}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Messages Area with enhanced background */}
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-muted/5 to-transparent pointer-events-none" />
-        <ScrollArea className="h-full relative z-10" ref={scrollAreaRef}>
-          <div className="p-6 space-y-4">
-            {/* Loading State */}
-            {isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-4 px-6 py-4 bg-muted/30 rounded-2xl backdrop-blur-sm border border-muted/40">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm font-medium text-muted-foreground">Loading messages...</span>
-                </div>
-              </div>
-            )}
-
-            {/* Messages */}
-            {messages.map((message, index) => {
-              const prevMessage = messages[index - 1];
-              const isConsecutive = prevMessage && 
-                prevMessage.sender_id === message.sender_id &&
-                new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000;
-
-              return (
-                <EnhancedModernMessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={message.sender_id === user.id}
-                  onDelete={handleDeleteMessage}
-                  showAvatar={!isConsecutive}
-                  isConsecutive={isConsecutive}
-                  isConnected={isConnected}
-                />
-              );
-            })}
-
-            {/* Empty State */}
-            {!isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-center space-y-4">
-                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-2xl">💬</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Start the Conversation</h3>
-                    <p className="text-muted-foreground text-sm max-w-xs">
-                      No messages yet. Be the first to share something with the community!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Enhanced Typing Indicator */}
-      <TypingIndicator 
-        typingUsers={typingUsers}
-        className="flex-shrink-0 relative"
-      />
-
-      {/* Enhanced Message Input */}
-      <div className="flex-shrink-0 relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
-        <div className="bg-gradient-to-r from-background/95 via-background to-background/95 backdrop-blur-sm">
-          <ModernMessageInput
-            value={messageText}
-            onChange={handleInputChange}
-            onSend={handleSendMessage}
-            onKeyPress={handleKeyPress}
-            disabled={!isConnected || !isReady}
-            placeholder={
-              !isConnected 
-                ? "Reconnecting..." 
-                : connectionHealth === 'degraded'
-                ? "Limited connectivity - messages may be delayed"
-                : `Message #${channelName}...`
-            }
-          />
+    <div className="flex h-full bg-slate-900/50 backdrop-blur-sm">
+      {/* Channel Sidebar */}
+      <div className="w-64 bg-black/30 border-r border-purple-800/30 p-4">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <Hash className="h-4 w-4" />
+          Channels
+        </h3>
+        <div className="space-y-2">
+          {channels.map((channel) => (
+            <button
+              key={channel.id}
+              onClick={() => setSelectedChannel(channel.name)}
+              className={`w-full text-left p-2 rounded-lg transition-colors ${
+                selectedChannel === channel.name
+                  ? 'bg-purple-600/50 text-white'
+                  : 'text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              #{channel.name}
+            </button>
+          ))}
         </div>
       </div>
-    </Card>
+
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message) => (
+            <div key={message.id} className="flex items-start gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={message.profiles?.avatar_url} />
+                <AvatarFallback className="bg-purple-600 text-white text-xs">
+                  {message.profiles?.full_name?.[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-medium text-sm">
+                    {message.profiles?.full_name || 'Unknown User'}
+                  </span>
+                  <span className="text-gray-400 text-xs">
+                    {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className="text-gray-300 text-sm">{message.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Message Input */}
+        <div className="p-4 bg-black/20 border-t border-purple-800/30">
+          <div className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={`Message #${selectedChannel}`}
+              className="flex-1 bg-black/40 border-purple-800/50 text-white placeholder-gray-400"
+            />
+            <Button onClick={handleSendMessage} size="sm" className="bg-purple-600 hover:bg-purple-700">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
+
+export default ModernCommunityChat;

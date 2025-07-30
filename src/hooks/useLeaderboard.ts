@@ -16,9 +16,9 @@ interface LeaderboardEntry {
   rank_name: string;
   last_updated: string;
   profiles?: {
-    full_name: string;
-    avatar_url: string;
-  };
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 export const useLeaderboard = () => {
@@ -41,7 +41,15 @@ export const useLeaderboard = () => {
         .order('total_xp', { ascending: false });
 
       if (error) throw error;
-      return data as LeaderboardEntry[];
+      
+      // Transform the data to match our interface
+      return (data || []).map(item => ({
+        ...item,
+        profiles: item.profiles ? {
+          full_name: item.profiles.full_name || '',
+          avatar_url: item.profiles.avatar_url || ''
+        } : null
+      })) as LeaderboardEntry[];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
