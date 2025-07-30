@@ -28,9 +28,15 @@ interface Channel {
   description?: string;
 }
 
-export const EnhancedChatContainer: React.FC = () => {
+interface EnhancedChatContainerProps {
+  defaultChannel?: string;
+}
+
+export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({ 
+  defaultChannel = 'general' 
+}) => {
   const { user } = useAuth();
-  const [selectedChannel, setSelectedChannel] = useState<string>('general');
+  const [selectedChannel, setSelectedChannel] = useState<string>(defaultChannel);
   const [newMessage, setNewMessage] = useState('');
 
   // Fetch channels
