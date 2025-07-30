@@ -1,2 +1,2 @@
 
-export type ActivePanel = "command-room" | "calendar" | "community" | "leaderboard" | "stage";
+export type ActivePanel = "command-room" | "calendar" | "community" | "stage";
