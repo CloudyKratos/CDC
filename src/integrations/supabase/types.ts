@@ -1157,7 +1157,15 @@ export type Database = {
           total_xp?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "warrior_leaderboard_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_logs: {
         Row: {

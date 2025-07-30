@@ -42,12 +42,12 @@ export const useLeaderboard = () => {
 
       if (error) throw error;
       
-      // Transform the data to match our interface
+      // Transform the data to match our interface with proper null checking
       return (data || []).map(item => ({
         ...item,
-        profiles: item.profiles ? {
-          full_name: item.profiles.full_name || '',
-          avatar_url: item.profiles.avatar_url || ''
+        profiles: item.profiles && typeof item.profiles === 'object' && !Array.isArray(item.profiles) ? {
+          full_name: item.profiles.full_name || null,
+          avatar_url: item.profiles.avatar_url || null
         } : null
       })) as LeaderboardEntry[];
     },
