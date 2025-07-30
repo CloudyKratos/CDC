@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { EnhancedChatContainer } from './community/EnhancedChatContainer';
+import EnhancedChatContainer from './community/EnhancedChatContainer';
 
 interface CommunityPanelProps {
   channelName?: string;
