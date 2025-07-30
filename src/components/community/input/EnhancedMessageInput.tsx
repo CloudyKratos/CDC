@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Send, Smile, Paperclip, Image, File } from 'lucide-react';
+import { Send, Smile, Paperclip, Image, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Popover,
@@ -33,11 +33,8 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
 }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lastTypingTime = useRef<number>(0);
   
-  // Use activeChannel or channelName or default to "general"
   const displayChannelName = activeChannel || channelName || "general";
   
   // Auto-resize textarea
@@ -55,45 +52,24 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
     textareaRef.current?.focus();
   }, []);
 
-  // Typing indicator logic
-  useEffect(() => {
-    if (message.trim()) {
-      setIsTyping(true);
-      lastTypingTime.current = Date.now();
-      
-      const timer = setTimeout(() => {
-        if (Date.now() - lastTypingTime.current >= 1000) {
-          setIsTyping(false);
-        }
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else {
-      setIsTyping(false);
-    }
-  }, [message]);
-  
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!message.trim() || isLoading || isSending || disabled) return;
     
     const messageToSend = message.trim();
-    setMessage(""); // Clear input immediately for better UX
+    setMessage(""); // Clear input immediately
     
     try {
       const success = await onSendMessage(messageToSend);
       if (success) {
-        // Reset textarea height
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
       } else {
-        // Restore message if sending failed
         setMessage(messageToSend);
       }
     } catch (error) {
-      // Restore message on error
       setMessage(messageToSend);
       console.error("Error sending message:", error);
     } finally {
@@ -114,67 +90,35 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
     textareaRef.current?.focus();
   }, []);
 
-  const getChannelDisplayName = () => {
-    return displayChannelName.replace(/-/g, ' ');
-  };
-
-  const handleFileUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = 'image/*,video/*,.pdf,.doc,.docx,.txt';
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
-        const fileNames = Array.from(files).map(file => file.name).join(', ');
-        toast.info(`File sharing coming soon! Selected: ${fileNames}`);
-      }
-    };
-    input.click();
-  };
-
   const emojis = [
     '😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', 
     '💯', '🎉', '😎', '🤝', '💪', '🙌', '👏', '✨',
     '🚀', '⭐', '💡', '🎯', '🏆', '🌟', '💎', '🔮'
   ];
 
-  const defaultPlaceholder = placeholder || `Message #${getChannelDisplayName()}...`;
+  const defaultPlaceholder = placeholder || `Type a message in #${displayChannelName}...`;
   const isDisabled = disabled || !isConnected;
+  const canSend = message.trim().length > 0 && !isSending && !isDisabled;
   
   return (
-    <div className="relative">
-      {/* Typing indicator */}
-      {isTyping && (
-        <div className="absolute -top-8 left-4 text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex items-center space-x-1">
-            <div className="flex space-x-1">
-              <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
-              <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce delay-100"></div>
-              <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce delay-200"></div>
-            </div>
-            <span>typing...</span>
-          </div>
-        </div>
-      )}
-      
-      <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+    <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="p-4">
         <form onSubmit={handleSendMessage} className="space-y-3">
           {/* Main input container */}
           <div className={cn(
-            "flex items-end gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl border transition-all duration-200 p-3 shadow-sm",
-            isDisabled ? "border-red-200 dark:border-red-800" : "border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20"
+            "flex items-end gap-3 bg-muted/30 rounded-xl border border-border/50 p-3 transition-all duration-200 shadow-sm",
+            "focus-within:border-primary/50 focus-within:bg-muted/50 focus-within:shadow-md"
           )}>
-            {/* File upload button */}
+            
+            {/* Attachment button */}
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
-              onClick={handleFileUpload}
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0 rounded-lg hover:bg-muted"
               disabled={isDisabled}
             >
-              <Paperclip size={18} />
+              <Plus size={16} />
             </Button>
             
             {/* Message input */}
@@ -184,9 +128,9 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={isDisabled ? "Chat temporarily unavailable..." : defaultPlaceholder}
+                placeholder={isDisabled ? "Reconnecting..." : defaultPlaceholder}
                 className={cn(
-                  "w-full bg-transparent border-0 outline-none resize-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 text-sm leading-relaxed min-h-[24px] max-h-[120px] overflow-y-auto",
+                  "w-full bg-transparent border-0 outline-none resize-none text-foreground placeholder:text-muted-foreground text-sm leading-relaxed min-h-[24px] max-h-[120px] overflow-y-auto",
                   isDisabled && "cursor-not-allowed opacity-50"
                 )}
                 disabled={isDisabled || isLoading || isSending}
@@ -202,19 +146,19 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0 rounded-lg hover:bg-muted"
                   disabled={isDisabled}
                 >
-                  <Smile size={18} />
+                  <Smile size={16} />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-3" align="end">
-                <div className="grid grid-cols-8 gap-2">
+                <div className="grid grid-cols-8 gap-1">
                   {emojis.map((emoji) => (
                     <button
                       key={emoji}
                       type="button"
-                      className="text-xl hover:bg-slate-100 dark:hover:bg-slate-700 rounded p-2 transition-colors duration-150 hover:scale-110"
+                      className="text-lg hover:bg-muted rounded-md p-2 transition-all duration-150 hover:scale-110"
                       onClick={() => handleEmojiSelect(emoji)}
                     >
                       {emoji}
@@ -228,30 +172,32 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
             <Button
               type="submit"
               size="sm"
-              disabled={!message.trim() || isLoading || isSending || isDisabled}
+              disabled={!canSend}
               className={cn(
                 "h-8 w-8 p-0 shrink-0 transition-all duration-200 rounded-lg",
-                message.trim() && !isLoading && !isSending && !isDisabled
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg hover:scale-105'
-                  : 'bg-slate-300 dark:bg-slate-600 text-slate-500 cursor-not-allowed'
+                canSend
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md hover:scale-105"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
               {isSending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent"></div>
               ) : (
-                <Send size={16} />
+                <Send size={14} />
               )}
             </Button>
           </div>
           
-          {/* Status and character count */}
-          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-1">
+          {/* Helper text */}
+          <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
             <span>
               {isDisabled ? "Reconnecting..." : "Press Enter to send, Shift+Enter for new line"}
             </span>
-            <span className={message.length > 1800 ? 'text-orange-500' : ''}>
-              {message.length}/2000
-            </span>
+            {message.length > 1600 && (
+              <span className={message.length > 1900 ? 'text-destructive' : 'text-warning'}>
+                {message.length}/2000
+              </span>
+            )}
           </div>
         </form>
       </div>
