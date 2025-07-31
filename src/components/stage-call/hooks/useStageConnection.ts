@@ -43,6 +43,7 @@ export const useStageConnection = () => {
       const stageConfig = {
         stageId: config.stageId,
         userId: config.userId,
+        userRole: config.role || 'audience' as const,
         enableAudio: true,
         enableVideo: true,
         enableSecurity: false,

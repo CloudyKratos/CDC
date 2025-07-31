@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useStageOrchestrator } from './hooks/useStageOrchestrator';
+import { useStageConnection } from './hooks/useStageConnection';
 import StageVideoGrid from './components/StageVideoGrid';
 import StageControls from './components/StageControls';
 import StageHeader from './components/StageHeader';
@@ -19,7 +19,6 @@ interface StageRoomProps {
 const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { toast } = useToast();
   const [showSidebar, setShowSidebar] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   
   const {
     state,
@@ -29,9 +28,15 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     toggleAudio,
     toggleVideo,
     switchAudioDevice,
-    switchVideoDevice,
-    currentStage
+    switchVideoDevice
   } = useStageOrchestrator();
+
+  const {
+    localStream,
+    remoteStreams,
+    isConnected,
+    connectionError
+  } = useStageConnection();
 
   useEffect(() => {
     const initStage = async () => {
@@ -40,7 +45,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         
         const stageConfig = {
           stageId,
-          userId: 'current-user-id', // This should come from auth context
+          userId: 'current-user-id',
+          userRole: 'speaker' as const,
           enableAudio: true,
           enableVideo: true,
           enableSecurity: true,
@@ -87,7 +93,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       });
     } catch (error) {
       console.error('Error leaving stage:', error);
-      onLeave(); // Leave anyway
+      onLeave();
     }
   };
 
@@ -139,7 +145,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
-  if (state.connectionState === 'error') {
+  if (state.connectionState === 'error' || connectionError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
         <Card className="w-96">
@@ -149,10 +155,18 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             </div>
             <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
             <p className="text-muted-foreground mb-4">
-              {state.errors.join(', ') || 'Unable to connect to the stage'}
+              {connectionError || state.errors.join(', ') || 'Unable to connect to the stage'}
             </p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={() => initializeStage({ stageId, userId: 'current-user-id' })}>
+              <Button onClick={() => initializeStage({ 
+                stageId, 
+                userId: 'current-user-id',
+                userRole: 'speaker',
+                enableAudio: true,
+                enableVideo: true,
+                enableSecurity: false,
+                enableCompliance: false
+              })}>
                 Retry
               </Button>
               <Button variant="outline" onClick={onLeave}>
@@ -165,13 +179,37 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
+  const mockParticipants = [
+    {
+      id: 'user-1',
+      name: 'Alice Johnson',
+      role: 'host' as const,
+      isAudioEnabled: true,
+      isVideoEnabled: true,
+      isSpeaking: false
+    },
+    {
+      id: 'user-2', 
+      name: 'Bob Smith',
+      role: 'speaker' as const,
+      isAudioEnabled: true,
+      isVideoEnabled: false,
+      isSpeaking: true
+    }
+  ];
+
+  const mockDevices = {
+    audio: [] as MediaDeviceInfo[],
+    video: [] as MediaDeviceInfo[]
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
       {/* Stage Header */}
       <StageHeader 
         stageId={stageId}
         connectionState={state.connectionState}
-        participantCount={state.participantCount}
+        participantCount={state.participantCount + 1}
         networkQuality={state.networkQuality}
         onToggleSidebar={() => setShowSidebar(!showSidebar)}
         onLeave={handleLeave}
@@ -182,10 +220,13 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         {/* Video Grid */}
         <div className="flex-1">
           <StageVideoGrid 
-            localStream={null} // This should come from media service
-            remoteStreams={new Map()} // This should come from WebRTC service
-            isAudioEnabled={state.mediaState.audioEnabled}
-            isVideoEnabled={state.mediaState.videoEnabled}
+            localStream={localStream}
+            remoteStreams={remoteStreams}
+            participants={mockParticipants}
+            localParticipant={{
+              isAudioEnabled: state.mediaState.audioEnabled,
+              isVideoEnabled: state.mediaState.videoEnabled
+            }}
           />
         </div>
 
@@ -193,7 +234,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         {showSidebar && (
           <StageSidebar 
             stageId={stageId}
-            participants={[]} // This should come from stage state
+            participants={mockParticipants}
             onClose={() => setShowSidebar(false)}
           />
         )}
@@ -203,8 +244,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       <StageControls 
         isAudioEnabled={state.mediaState.audioEnabled}
         isVideoEnabled={state.mediaState.videoEnabled}
-        audioDevices={state.mediaState.devices.audio}
-        videoDevices={state.mediaState.devices.video}
+        audioDevices={mockDevices.audio}
+        videoDevices={mockDevices.video}
         onToggleAudio={handleToggleAudio}
         onToggleVideo={handleToggleVideo}
         onSwitchAudioDevice={switchAudioDevice}
