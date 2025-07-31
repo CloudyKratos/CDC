@@ -39,11 +39,12 @@ export const useStageConnection = () => {
       setLocalStream(stream);
       console.log('Local stream obtained');
 
-      // Initialize stage with orchestrator
+      // Initialize stage with orchestrator - fix the role mapping
+      const mappedRole = config.role === 'host' ? 'moderator' : (config.role || 'audience');
       const stageConfig = {
         stageId: config.stageId,
         userId: config.userId,
-        userRole: config.role || 'audience' as const,
+        userRole: mappedRole as 'speaker' | 'audience' | 'moderator',
         enableAudio: true,
         enableVideo: true,
         enableSecurity: false,

@@ -1,8 +1,11 @@
-
 export interface StageConfig {
   stageId: string;
   userId: string;
   userRole: 'speaker' | 'audience' | 'moderator';
+  enableAudio?: boolean;
+  enableVideo?: boolean;
+  enableSecurity?: boolean;
+  enableCompliance?: boolean;
   mediaConstraints?: {
     audio: boolean;
     video: boolean;
@@ -12,8 +15,6 @@ export interface StageConfig {
     adaptiveStreaming: boolean;
     lowLatencyMode: boolean;
   };
-  enableSecurity?: boolean;
-  enableCompliance?: boolean;
 }
 
 export interface StageState {

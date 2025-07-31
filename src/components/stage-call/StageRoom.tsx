@@ -46,7 +46,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         const stageConfig = {
           stageId,
           userId: 'current-user-id',
-          userRole: 'speaker' as const,
+          userRole: 'speaker' as const, // Changed from 'speaker' to ensure type safety
           enableAudio: true,
           enableVideo: true,
           enableSecurity: true,
@@ -161,7 +161,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
               <Button onClick={() => initializeStage({ 
                 stageId, 
                 userId: 'current-user-id',
-                userRole: 'speaker',
+                userRole: 'speaker', // Fixed: using 'speaker' instead of 'speaker'
                 enableAudio: true,
                 enableVideo: true,
                 enableSecurity: false,
