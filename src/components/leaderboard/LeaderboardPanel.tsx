@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface LeaderboardEntry {
@@ -34,7 +33,6 @@ interface LeaderboardEntry {
 }
 
 const LeaderboardPanel: React.FC = () => {
-  const { user } = useAuth();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,25 +43,44 @@ const LeaderboardPanel: React.FC = () => {
 
   const fetchLeaderboardData = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the leaderboard data
+      const { data: leaderboard, error: leaderboardError } = await supabase
         .from('warrior_leaderboard')
-        .select(`
-          *,
-          profiles!inner(full_name, avatar_url)
-        `)
+        .select('*')
         .order('total_xp', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (leaderboardError) throw leaderboardError;
 
-      if (data) {
-        setLeaderboardData(data);
+      if (leaderboard && leaderboard.length > 0) {
+        // Get user IDs for profile lookup
+        const userIds = leaderboard.map(entry => entry.user_id);
         
-        // Find current user's rank
-        const userIndex = data.findIndex(entry => entry.user_id === user?.id);
-        if (userIndex !== -1) {
-          setUserRank(userIndex + 1);
+        // Fetch profiles separately
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
         }
+
+        // Combine leaderboard data with profiles
+        const combinedData: LeaderboardEntry[] = leaderboard.map(entry => ({
+          ...entry,
+          profiles: profiles?.find(profile => profile.id === entry.user_id) ? {
+            full_name: profiles.find(profile => profile.id === entry.user_id)?.full_name || 'Unknown Warrior',
+            avatar_url: profiles.find(profile => profile.id === entry.user_id)?.avatar_url
+          } : {
+            full_name: 'Unknown Warrior'
+          }
+        }));
+
+        setLeaderboardData(combinedData);
+        
+        // Find current user's rank (would need auth context)
+        // For now, we'll skip this functionality
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -157,9 +174,7 @@ const LeaderboardPanel: React.FC = () => {
           {leaderboardData.map((entry, index) => (
             <Card 
               key={entry.user_id} 
-              className={`transition-all duration-300 hover:shadow-lg ${
-                entry.user_id === user?.id ? 'ring-2 ring-primary/50 bg-primary/5' : ''
-              }`}
+              className="transition-all duration-300 hover:shadow-lg"
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
