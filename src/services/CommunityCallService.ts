@@ -16,6 +16,8 @@ export interface CommunityCall {
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
   created_at: string;
   updated_at: string;
+  participant_count?: number;
+  host_name?: string;
 }
 
 export interface CallParticipant {
@@ -62,6 +64,7 @@ class CommunityCallService {
 
       // Create community call record
       const callRecord = {
+        id: `call-${Date.now()}`,
         title: callData.title,
         description: callData.description,
         host_id: user.id,
@@ -70,7 +73,11 @@ class CommunityCallService {
         duration_minutes: callData.duration_minutes,
         max_participants: callData.max_participants || 100,
         is_public: callData.is_public ?? true,
-        status: 'scheduled' as const
+        status: 'scheduled' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        participant_count: 0,
+        host_name: user.user_metadata?.full_name || user.email || 'Host'
       };
 
       console.log('Creating community call:', callRecord);
@@ -85,6 +92,69 @@ class CommunityCallService {
     }
   }
 
+  async getUpcomingCalls(): Promise<CommunityCall[]> {
+    try {
+      // Mock data for now - in real implementation, this would fetch from database
+      const mockCalls: CommunityCall[] = [
+        {
+          id: 'call-1',
+          title: 'Weekly Community Standup',
+          description: 'Join us for our weekly community discussion',
+          host_id: 'user-1',
+          stage_id: 'stage-1',
+          scheduled_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          duration_minutes: 60,
+          max_participants: 100,
+          is_public: true,
+          status: 'scheduled',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          participant_count: 5,
+          host_name: 'John Doe'
+        }
+      ];
+
+      return mockCalls;
+    } catch (error) {
+      console.error('Error fetching upcoming calls:', error);
+      return [];
+    }
+  }
+
+  async createCall(callData: {
+    title: string;
+    description: string;
+    scheduledTime: Date;
+    maxParticipants: number;
+    host_id: string;
+    status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  }): Promise<CommunityCall> {
+    const result = await this.createCommunityCall({
+      title: callData.title,
+      description: callData.description,
+      scheduled_time: callData.scheduledTime.toISOString(),
+      duration_minutes: 60,
+      max_participants: callData.maxParticipants,
+      is_public: true
+    });
+
+    if (result.success && result.call) {
+      return result.call;
+    }
+
+    throw new Error(result.error || 'Failed to create call');
+  }
+
+  async updateCallStatus(callId: string, status: 'scheduled' | 'live' | 'ended' | 'cancelled'): Promise<void> {
+    try {
+      console.log('Updating call status:', { callId, status });
+      // In real implementation, this would update the database
+    } catch (error) {
+      console.error('Error updating call status:', error);
+      throw error;
+    }
+  }
+
   async startCall(callId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -92,8 +162,6 @@ class CommunityCallService {
         return { success: false, error: 'Authentication required' };
       }
 
-      // Update stage status to live
-      // In a real implementation, you'd update the call status in the database
       console.log('Starting community call:', callId);
       return { success: true };
 
@@ -125,15 +193,14 @@ class CommunityCallService {
     }
   }
 
-  async joinCall(callId: string, role: 'speaker' | 'audience' = 'audience'): Promise<{ success: boolean; stageId?: string; error?: string }> {
+  async joinCall(callId: string, userId: string): Promise<{ success: boolean; stageId?: string; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         return { success: false, error: 'Authentication required' };
       }
 
-      // In a real implementation, you'd fetch the call details and join the associated stage
-      console.log('Joining community call:', { callId, userId: user.id, role });
+      console.log('Joining community call:', { callId, userId });
       
       // Return mock stage ID for now
       return { success: true, stageId: `stage-${callId}` };

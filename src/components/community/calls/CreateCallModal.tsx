@@ -10,15 +10,20 @@ import { toast } from 'sonner';
 import CommunityCallService from '@/services/CommunityCallService';
 
 interface CreateCallModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCallCreated: (callId: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateCall: (callData: {
+    title: string;
+    description: string;
+    scheduledTime: Date;
+    maxParticipants: number;
+  }) => Promise<void>;
 }
 
 export const CreateCallModal: React.FC<CreateCallModalProps> = ({
-  isOpen,
-  onClose,
-  onCallCreated
+  open,
+  onOpenChange,
+  onCreateCall
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,25 +46,25 @@ export const CreateCallModal: React.FC<CreateCallModalProps> = ({
     setIsCreating(true);
 
     try {
-      const result = await CommunityCallService.createCommunityCall(formData);
+      await onCreateCall({
+        title: formData.title,
+        description: formData.description,
+        scheduledTime: new Date(formData.scheduled_time),
+        maxParticipants: formData.max_participants
+      });
       
-      if (result.success && result.call) {
-        toast.success('Community call created successfully!');
-        onCallCreated(result.call.id);
-        onClose();
-        
-        // Reset form
-        setFormData({
-          title: '',
-          description: '',
-          scheduled_time: '',
-          duration_minutes: 60,
-          max_participants: 100,
-          is_public: true
-        });
-      } else {
-        toast.error(result.error || 'Failed to create call');
-      }
+      onOpenChange(false);
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        scheduled_time: '',
+        duration_minutes: 60,
+        max_participants: 100,
+        is_public: true
+      });
+      
     } catch (error) {
       console.error('Error creating call:', error);
       toast.error('Failed to create call');
@@ -73,7 +78,7 @@ export const CreateCallModal: React.FC<CreateCallModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -184,7 +189,7 @@ export const CreateCallModal: React.FC<CreateCallModalProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => onOpenChange(false)}
               className="flex-1"
               disabled={isCreating}
             >
