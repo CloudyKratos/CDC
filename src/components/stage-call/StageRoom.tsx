@@ -10,6 +10,7 @@ import StageVideoGrid from './components/StageVideoGrid';
 import StageControls from './components/StageControls';
 import StageHeader from './components/StageHeader';
 import StageSidebar from './components/StageSidebar';
+import { getUserName } from '@/utils/user-data';
 import { Loader2 } from 'lucide-react';
 
 interface StageRoomProps {
@@ -214,11 +215,11 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
-  // Mock participants for community meeting
+  // Mock participants for community meeting - using proper user data utility
   const mockParticipants = [
     {
       id: user.id,
-      name: user.full_name || user.email || 'You',
+      name: getUserName(user),
       role: 'speaker' as const,
       isAudioEnabled: state.mediaState.audioEnabled,
       isVideoEnabled: state.mediaState.videoEnabled,
