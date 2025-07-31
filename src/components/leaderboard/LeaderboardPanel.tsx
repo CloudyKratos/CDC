@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,9 +42,9 @@ const LeaderboardPanel: React.FC = () => {
 
   const fetchLeaderboardData = async () => {
     try {
-      // First get the leaderboard data
+      // First get the leaderboard data using type assertion
       const { data: leaderboard, error: leaderboardError } = await supabase
-        .from('warrior_leaderboard')
+        .from('warrior_leaderboard' as any)
         .select('*')
         .order('total_xp', { ascending: false })
         .limit(50);
@@ -54,7 +53,7 @@ const LeaderboardPanel: React.FC = () => {
 
       if (leaderboard && leaderboard.length > 0) {
         // Get user IDs for profile lookup
-        const userIds = leaderboard.map(entry => entry.user_id);
+        const userIds = (leaderboard as any[]).map((entry: any) => entry.user_id);
         
         // Fetch profiles separately
         const { data: profiles, error: profilesError } = await supabase
@@ -67,7 +66,7 @@ const LeaderboardPanel: React.FC = () => {
         }
 
         // Combine leaderboard data with profiles
-        const combinedData: LeaderboardEntry[] = leaderboard.map(entry => ({
+        const combinedData: LeaderboardEntry[] = (leaderboard as any[]).map((entry: any) => ({
           ...entry,
           profiles: profiles?.find(profile => profile.id === entry.user_id) ? {
             full_name: profiles.find(profile => profile.id === entry.user_id)?.full_name || 'Unknown Warrior',
