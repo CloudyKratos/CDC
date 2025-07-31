@@ -1,0 +1,68 @@
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Home, LayoutDashboard, Settings, Users } from 'lucide-react';
+import WorkspaceContent from './WorkspaceContent';
+import SettingsContent from './SettingsContent';
+import { useAuth } from '@/contexts/AuthContext';
+import { redirect, useRouter } from 'next/navigation';
+import { CommunityTabsPanel } from './community/CommunityTabsPanel';
+
+const DashboardContent: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('workspace');
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user && !loading) {
+      router.push('/sign-in');
+    }
+  }, [user, loading, router]);
+
+  if (!user) {
+    return null;
+  }
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'workspace':
+        return <WorkspaceContent />;
+      case 'community':
+        return <CommunityTabsPanel />;
+      case 'settings':
+        return <SettingsContent />;
+      default:
+        return <WorkspaceContent />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen">
+      <div className="w-64 border-r border-gray-200 dark:border-gray-700">
+        <div className="p-4">
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+        </div>
+        <Tabs defaultValue="workspace" className="flex flex-col h-full">
+          <TabsList className="flex flex-col space-y-1 p-4">
+            <TabsTrigger value="workspace" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Workspace</span>
+            </TabsTrigger>
+            <TabsTrigger value="community" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Community</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      <div className="flex-1 p-4">
+        {renderTabContent()}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardContent;
