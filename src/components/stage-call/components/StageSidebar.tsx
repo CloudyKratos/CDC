@@ -1,10 +1,22 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { X, Mic, MicOff, Video, VideoOff, Crown, Hand } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  X, 
+  Users, 
+  MessageSquare, 
+  Settings,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Crown,
+  Hand
+} from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Participant {
   id: string;
@@ -12,8 +24,7 @@ interface Participant {
   role: 'host' | 'speaker' | 'audience';
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
-  isHandRaised?: boolean;
-  avatar?: string;
+  isSpeaking?: boolean;
 }
 
 interface StageSidebarProps {
@@ -27,151 +38,152 @@ const StageSidebar: React.FC<StageSidebarProps> = ({
   participants,
   onClose
 }) => {
-  const getRoleBadge = (role: string) => {
+  const [activeTab, setActiveTab] = useState('participants');
+
+  const getRoleIcon = (role: string) => {
     switch (role) {
       case 'host':
-        return <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Host</Badge>;
+        return <Crown className="w-4 h-4 text-yellow-400" />;
       case 'speaker':
-        return <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Speaker</Badge>;
+        return <Mic className="w-4 h-4 text-green-400" />;
       default:
-        return <Badge variant="outline">Audience</Badge>;
+        return <Users className="w-4 h-4 text-gray-400" />;
     }
   };
 
-  const ParticipantItem = ({ participant }: { participant: Participant }) => (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
-      <Avatar className="w-10 h-10">
-        <AvatarImage src={participant.avatar} alt={participant.name} />
-        <AvatarFallback className="bg-gray-700 text-white">
-          {participant.name.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="text-sm font-medium text-white truncate">{participant.name}</p>
-          {participant.role === 'host' && <Crown className="w-4 h-4 text-yellow-400" />}
-        </div>
-        {getRoleBadge(participant.role)}
-      </div>
-      
-      <div className="flex items-center gap-1">
-        {participant.isHandRaised && (
-          <Hand className="w-4 h-4 text-yellow-400 animate-bounce" />
-        )}
-        
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-          participant.isAudioEnabled 
-            ? 'bg-green-500/20' 
-            : 'bg-red-500/20'
-        }`}>
-          {participant.isAudioEnabled ? (
-            <Mic className="w-3 h-3 text-green-400" />
-          ) : (
-            <MicOff className="w-3 h-3 text-red-400" />
-          )}
-        </div>
-        
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-          participant.isVideoEnabled 
-            ? 'bg-green-500/20' 
-            : 'bg-red-500/20'
-        }`}>
-          {participant.isVideoEnabled ? (
-            <Video className="w-3 h-3 text-green-400" />
-          ) : (
-            <VideoOff className="w-3 h-3 text-red-400" />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Mock participants if none provided
-  const mockParticipants: Participant[] = participants.length > 0 ? participants : [
-    {
-      id: '1',
-      name: 'You',
-      role: 'host',
-      isAudioEnabled: true,
-      isVideoEnabled: true
-    },
-    {
-      id: '2', 
-      name: 'John Speaker',
-      role: 'speaker',
-      isAudioEnabled: true,
-      isVideoEnabled: false
-    },
-    {
-      id: '3',
-      name: 'Jane Listener',
-      role: 'audience',
-      isAudioEnabled: false,
-      isVideoEnabled: false,
-      isHandRaised: true
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'host':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'speaker':
+        return 'bg-green-500/20 text-green-300 border-green-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
-  ];
-
-  const hosts = mockParticipants.filter(p => p.role === 'host');
-  const speakers = mockParticipants.filter(p => p.role === 'speaker');
-  const audience = mockParticipants.filter(p => p.role === 'audience');
+  };
 
   return (
-    <div className="w-80 bg-gray-900/95 backdrop-blur-sm border-l border-white/10 flex flex-col">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Participants</h3>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+    <div className="w-80 bg-black/40 backdrop-blur-sm border-l border-white/10 flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <h3 className="text-lg font-semibold text-white">Stage Info</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="text-white/60 hover:text-white"
+        >
           <X className="w-4 h-4" />
         </Button>
       </div>
-      
-      <div className="flex-1 p-4 space-y-6 overflow-y-auto">
-        
-        {/* Hosts */}
-        {hosts.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
-              <Crown className="w-4 h-4" />
-              Hosts ({hosts.length})
-            </h4>
-            <div className="space-y-2">
-              {hosts.map(participant => (
-                <ParticipantItem key={participant.id} participant={participant} />
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Speakers */}
-        {speakers.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
-              <Mic className="w-4 h-4" />
-              Speakers ({speakers.length})
-            </h4>
-            <div className="space-y-2">
-              {speakers.map(participant => (
-                <ParticipantItem key={participant.id} participant={participant} />
-              ))}
-            </div>
-          </div>
-        )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-3 m-4 mb-0">
+          <TabsTrigger value="participants">
+            <Users className="w-4 h-4 mr-2" />
+            People
+          </TabsTrigger>
+          <TabsTrigger value="chat">
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Chat
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Audience */}
-        {audience.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-white/80 mb-3">
-              Audience ({audience.length})
-            </h4>
-            <div className="space-y-2">
-              {audience.map(participant => (
-                <ParticipantItem key={participant.id} participant={participant} />
-              ))}
+        <div className="flex-1 p-4">
+          <TabsContent value="participants" className="mt-0 h-full">
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-white/80 mb-2">
+                Participants ({participants.length})
+              </h4>
+              <ScrollArea className="h-96">
+                <div className="space-y-2">
+                  {participants.map((participant) => (
+                    <Card key={participant.id} className="bg-white/5 border-white/10">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-semibold text-white">
+                                {participant.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">
+                                {participant.name}
+                              </p>
+                              <div className="flex items-center gap-1 mt-1">
+                                {getRoleIcon(participant.role)}
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${getRoleBadgeColor(participant.role)}`}
+                                >
+                                  {participant.role}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            {participant.isAudioEnabled ? (
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                participant.isSpeaking ? 'bg-green-500/30' : 'bg-green-500/20'
+                              }`}>
+                                <Mic className="w-3 h-3 text-green-400" />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
+                                <MicOff className="w-3 h-3 text-red-400" />
+                              </div>
+                            )}
+                            
+                            {participant.isVideoEnabled ? (
+                              <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center">
+                                <Video className="w-3 h-3 text-blue-400" />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
+                                <VideoOff className="w-3 h-3 text-red-400" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-          </div>
-        )}
-      </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-0 h-full">
+            <div className="h-96 flex items-center justify-center text-white/60">
+              <div className="text-center">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Chat feature coming soon</p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-0 h-full">
+            <div className="space-y-4">
+              <Card className="bg-white/5 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm">Stage Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm">Stage ID</span>
+                    <span className="text-white/60 text-sm font-mono">{stageId.slice(0, 8)}...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 };

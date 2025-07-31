@@ -2,21 +2,21 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
   Mic, 
   MicOff, 
   Video, 
   VideoOff, 
   PhoneOff, 
   Settings, 
-  Monitor,
-  ChevronDown
+  Hand,
+  MoreVertical
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface StageControlsProps {
   isAudioEnabled: boolean;
@@ -41,108 +41,115 @@ const StageControls: React.FC<StageControlsProps> = ({
   onSwitchVideoDevice,
   onLeave
 }) => {
-  const [showSettings, setShowSettings] = useState(false);
+  const [isHandRaised, setIsHandRaised] = useState(false);
+
+  const handleRaiseHand = () => {
+    setIsHandRaised(!isHandRaised);
+    // TODO: Implement actual hand raising logic
+    console.log('Hand raised:', !isHandRaised);
+  };
 
   return (
-    <div className="bg-black/40 backdrop-blur-lg border-t border-white/10 p-4">
+    <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/20 backdrop-blur-sm border-t border-white/10">
       <div className="flex items-center justify-center gap-4">
-        
-        {/* Audio Control with Device Selector */}
-        <div className="flex items-center">
-          <Button
-            onClick={onToggleAudio}
-            size="lg"
-            variant={isAudioEnabled ? "default" : "destructive"}
-            className="w-12 h-12 rounded-l-full hover-scale transition-all duration-200"
-          >
-            {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </Button>
-          
-          <DropdownMenu>
+        {/* Audio Control */}
+        <DropdownMenu>
+          <div className="flex">
+            <Button
+              variant={isAudioEnabled ? "secondary" : "destructive"}
+              size="lg"
+              onClick={onToggleAudio}
+              className="rounded-r-none"
+            >
+              {isAudioEnabled ? (
+                <Mic className="w-5 h-5" />
+              ) : (
+                <MicOff className="w-5 h-5" />
+              )}
+            </Button>
             <DropdownMenuTrigger asChild>
               <Button
-                variant={isAudioEnabled ? "default" : "destructive"}
+                variant={isAudioEnabled ? "secondary" : "destructive"}
                 size="lg"
-                className="w-8 h-12 rounded-r-full rounded-l-none border-l border-white/20"
+                className="rounded-l-none border-l border-white/20 px-2"
               >
-                <ChevronDown className="w-3 h-3" />
+                <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {audioDevices.map((device) => (
-                <DropdownMenuItem 
-                  key={device.deviceId}
-                  onClick={() => onSwitchAudioDevice(device.deviceId)}
-                >
-                  {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          </div>
+          <DropdownMenuContent>
+            {audioDevices.map((device) => (
+              <DropdownMenuItem
+                key={device.deviceId}
+                onClick={() => onSwitchAudioDevice(device.deviceId)}
+              >
+                {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Video Control with Device Selector */}
-        <div className="flex items-center">
-          <Button
-            onClick={onToggleVideo}
-            size="lg"
-            variant={isVideoEnabled ? "default" : "destructive"}
-            className="w-12 h-12 rounded-l-full hover-scale transition-all duration-200"
-          >
-            {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-          </Button>
-          
-          <DropdownMenu>
+        {/* Video Control */}
+        <DropdownMenu>
+          <div className="flex">
+            <Button
+              variant={isVideoEnabled ? "secondary" : "destructive"}
+              size="lg"
+              onClick={onToggleVideo}
+              className="rounded-r-none"
+            >
+              {isVideoEnabled ? (
+                <Video className="w-5 h-5" />
+              ) : (
+                <VideoOff className="w-5 h-5" />
+              )}
+            </Button>
             <DropdownMenuTrigger asChild>
               <Button
-                variant={isVideoEnabled ? "default" : "destructive"}
+                variant={isVideoEnabled ? "secondary" : "destructive"}
                 size="lg"
-                className="w-8 h-12 rounded-r-full rounded-l-none border-l border-white/20"
+                className="rounded-l-none border-l border-white/20 px-2"
               >
-                <ChevronDown className="w-3 h-3" />
+                <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {videoDevices.map((device) => (
-                <DropdownMenuItem 
-                  key={device.deviceId}
-                  onClick={() => onSwitchVideoDevice(device.deviceId)}
-                >
-                  {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          </div>
+          <DropdownMenuContent>
+            {videoDevices.map((device) => (
+              <DropdownMenuItem
+                key={device.deviceId}
+                onClick={() => onSwitchVideoDevice(device.deviceId)}
+              >
+                {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Screen Share */}
+        {/* Raise Hand */}
         <Button
+          variant={isHandRaised ? "default" : "outline"}
           size="lg"
-          variant="outline"
-          className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
+          onClick={handleRaiseHand}
+          className={isHandRaised ? "bg-yellow-600 hover:bg-yellow-700" : ""}
         >
-          <Monitor className="w-5 h-5" />
+          <Hand className="w-5 h-5" />
         </Button>
 
         {/* Settings */}
-        <Button
-          size="lg"
-          variant="outline"
-          className="w-12 h-12 rounded-full hover-scale transition-all duration-200"
-          onClick={() => setShowSettings(!showSettings)}
-        >
+        <Button variant="outline" size="lg">
           <Settings className="w-5 h-5" />
         </Button>
 
         {/* Leave Button */}
         <Button
-          onClick={onLeave}
           variant="destructive"
           size="lg"
-          className="ml-8 hover-scale transition-all duration-200"
+          onClick={onLeave}
+          className="ml-4"
         >
-          <PhoneOff className="w-4 h-4 mr-2" />
-          Leave Stage
+          <PhoneOff className="w-5 h-5 mr-2" />
+          Leave
         </Button>
       </div>
     </div>

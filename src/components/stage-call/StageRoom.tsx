@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { useStageOrchestrator } from './hooks/useStageOrchestrator';
 import { useStageConnection } from './hooks/useStageConnection';
 import StageVideoGrid from './components/StageVideoGrid';
@@ -18,7 +19,12 @@ interface StageRoomProps {
 
 const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showSidebar, setShowSidebar] = useState(false);
+  const [availableDevices, setAvailableDevices] = useState<{
+    audio: MediaDeviceInfo[];
+    video: MediaDeviceInfo[];
+  }>({ audio: [], video: [] });
   
   const {
     state,
@@ -35,52 +41,71 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     localStream,
     remoteStreams,
     isConnected,
-    connectionError
+    connectionError,
+    connect
   } = useStageConnection();
+
+  // Get available devices on mount
+  useEffect(() => {
+    const getDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        setAvailableDevices({
+          audio: devices.filter(device => device.kind === 'audioinput'),
+          video: devices.filter(device => device.kind === 'videoinput')
+        });
+      } catch (error) {
+        console.error('Error getting devices:', error);
+      }
+    };
+
+    getDevices();
+  }, []);
 
   useEffect(() => {
     const initStage = async () => {
-      try {
-        console.log('Initializing stage room:', stageId);
-        
-        const stageConfig = {
-          stageId,
-          userId: 'current-user-id',
-          userRole: 'speaker' as const, // Changed from 'speaker' to ensure type safety
-          enableAudio: true,
-          enableVideo: true,
-          enableSecurity: true,
-          enableCompliance: true
-        };
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to join the stage",
+          variant: "destructive",
+        });
+        return;
+      }
 
-        const result = await initializeStage(stageConfig);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
+      try {
+        console.log('Initializing stage room for community meeting:', stageId);
+        
+        // First connect using the hook
+        await connect({
+          stageId,
+          userId: user.id,
+          role: 'speaker' // Default to speaker for community meetings
+        });
 
         toast({
-          title: "Connected",
-          description: "Successfully joined the stage",
+          title: "Connected to Community Meeting",
+          description: "You've successfully joined the stage",
         });
 
       } catch (error) {
         console.error('Failed to initialize stage:', error);
         toast({
           title: "Connection Failed",
-          description: error instanceof Error ? error.message : "Failed to join stage",
+          description: error instanceof Error ? error.message : "Failed to join community meeting",
           variant: "destructive",
         });
       }
     };
 
-    if (stageId) {
+    if (stageId && user) {
       initStage();
     }
 
     return () => {
       handleLeave();
     };
-  }, [stageId]);
+  }, [stageId, user]);
 
   const handleLeave = async () => {
     try {
@@ -88,8 +113,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       onLeave();
       
       toast({
-        title: "Disconnected",
-        description: "You've left the stage",
+        title: "Left Meeting",
+        description: "You've left the community meeting",
       });
     } catch (error) {
       console.error('Error leaving stage:', error);
@@ -131,13 +156,27 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     }
   };
 
-  if (!isInitialized && state.connectionState === 'connecting') {
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+        <Card className="w-96">
+          <CardContent className="text-center p-8">
+            <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+            <p className="text-muted-foreground mb-4">Please log in to join the community meeting</p>
+            <Button onClick={onLeave}>Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isInitialized && (state.connectionState === 'connecting' || state.isConnecting)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
         <Card className="w-96 animate-fade-in">
           <CardContent className="text-center p-8">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h3 className="text-lg font-semibold mb-2">Joining Stage</h3>
+            <h3 className="text-lg font-semibold mb-2">Joining Community Meeting</h3>
             <p className="text-muted-foreground">Setting up your connection...</p>
           </CardContent>
         </Card>
@@ -155,19 +194,15 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             </div>
             <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
             <p className="text-muted-foreground mb-4">
-              {connectionError || state.errors.join(', ') || 'Unable to connect to the stage'}
+              {connectionError || state.errors.join(', ') || 'Unable to connect to the community meeting'}
             </p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={() => initializeStage({ 
+              <Button onClick={() => connect({ 
                 stageId, 
-                userId: 'current-user-id',
-                userRole: 'speaker', // Fixed: using 'speaker' instead of 'speaker'
-                enableAudio: true,
-                enableVideo: true,
-                enableSecurity: false,
-                enableCompliance: false
+                userId: user.id,
+                role: 'speaker'
               })}>
-                Retry
+                Retry Connection
               </Button>
               <Button variant="outline" onClick={onLeave}>
                 Go Back
@@ -179,29 +214,25 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
+  // Mock participants for community meeting
   const mockParticipants = [
     {
-      id: 'user-1',
-      name: 'Alice Johnson',
+      id: user.id,
+      name: user.full_name || user.email || 'You',
+      role: 'speaker' as const,
+      isAudioEnabled: state.mediaState.audioEnabled,
+      isVideoEnabled: state.mediaState.videoEnabled,
+      isSpeaking: false
+    },
+    {
+      id: 'community-host',
+      name: 'Community Host',
       role: 'host' as const,
       isAudioEnabled: true,
       isVideoEnabled: true,
       isSpeaking: false
-    },
-    {
-      id: 'user-2', 
-      name: 'Bob Smith',
-      role: 'speaker' as const,
-      isAudioEnabled: true,
-      isVideoEnabled: false,
-      isSpeaking: true
     }
   ];
-
-  const mockDevices = {
-    audio: [] as MediaDeviceInfo[],
-    video: [] as MediaDeviceInfo[]
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
@@ -209,7 +240,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       <StageHeader 
         stageId={stageId}
         connectionState={state.connectionState}
-        participantCount={state.participantCount + 1}
+        participantCount={mockParticipants.length}
         networkQuality={state.networkQuality}
         onToggleSidebar={() => setShowSidebar(!showSidebar)}
         onLeave={handleLeave}
@@ -244,8 +275,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       <StageControls 
         isAudioEnabled={state.mediaState.audioEnabled}
         isVideoEnabled={state.mediaState.videoEnabled}
-        audioDevices={mockDevices.audio}
-        videoDevices={mockDevices.video}
+        audioDevices={availableDevices.audio}
+        videoDevices={availableDevices.video}
         onToggleAudio={handleToggleAudio}
         onToggleVideo={handleToggleVideo}
         onSwitchAudioDevice={switchAudioDevice}
