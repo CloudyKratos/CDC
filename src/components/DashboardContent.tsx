@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Home, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { Home, LayoutDashboard, Settings, Users, Trophy } from 'lucide-react';
 import WorkspaceContent from './WorkspaceContent';
 import SettingsContent from './SettingsContent';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CommunityTabsPanel } from './community/CommunityTabsPanel';
+import LeaderboardPanel from './leaderboard/LeaderboardPanel';
 
 const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('workspace');
@@ -29,6 +30,8 @@ const DashboardContent: React.FC = () => {
         return <WorkspaceContent />;
       case 'community':
         return <CommunityTabsPanel />;
+      case 'leaderboard':
+        return <LeaderboardPanel />;
       case 'settings':
         return <SettingsContent />;
       default:
@@ -51,6 +54,10 @@ const DashboardContent: React.FC = () => {
             <TabsTrigger value="community" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Community</span>
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
+              <Trophy className="w-4 h-4" />
+              <span>Leaderboard</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
               <Settings className="w-4 h-4" />
