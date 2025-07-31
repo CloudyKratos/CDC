@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import EnhancedChatContainer from './EnhancedChatContainer';
+import { EnhancedChatContainer } from './EnhancedChatContainer';
 
 interface EnhancedCommunityChatProps {
   defaultChannel?: string;

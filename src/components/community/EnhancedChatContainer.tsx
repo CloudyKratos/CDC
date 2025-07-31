@@ -1,194 +1,282 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Hash,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  Users,
-  AlertCircle
-} from 'lucide-react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useImprovedChat } from '@/hooks/use-improved-chat';
-import { MessageContent } from './message/MessageContent';
-import EnhancedMessageInput from './input/EnhancedMessageInput';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useSimpleChat } from './hooks/useSimpleChat';
+import { useCommunityData } from './hooks/useCommunityData';
+import { ChannelType } from '@/types/chat';
+import { toast } from 'sonner';
+import { EnhancedChatArea } from './EnhancedChatArea';
+import { EnhancedSidebar } from './enhanced/EnhancedSidebar';
+import { ChatStatusBar } from './enhanced/ChatStatusBar';
+import { QuickChannelSwitcher } from './enhanced/QuickChannelSwitcher';
+import { Menu, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EnhancedChatContainerProps {
   defaultChannel?: string;
+  className?: string;
 }
 
-const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
-  defaultChannel = 'general'
+export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
+  defaultChannel = 'general',
+  className = ''
 }) => {
+  const [activeChannel, setActiveChannel] = useState(defaultChannel);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  
+  const isMobile = useIsMobile();
   const { user } = useAuth();
-  const [selectedChannel, setSelectedChannel] = useState(defaultChannel);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { channels, isLoading: channelsLoading } = useCommunityData();
+  
+  const { 
+    messages, 
+    isLoading: chatLoading, 
+    error, 
+    isConnected, 
+    sendMessage, 
+    deleteMessage 
+  } = useSimpleChat(activeChannel);
 
-  const {
-    messages,
-    isLoading,
-    isSending,
-    isConnected,
-    isReconnecting,
-    error,
-    sendMessage,
-    deleteMessage,
-    reconnect
-  } = useImprovedChat(selectedChannel);
+  // Enhanced default channels
+  const enhancedDefaultChannels = [
+    { 
+      id: 'general', 
+      name: 'general', 
+      type: ChannelType.PUBLIC, 
+      members: [], 
+      description: 'General discussion and community chat',
+      unreadCount: 0,
+      isPinned: false
+    },
+    { 
+      id: 'morning-journey', 
+      name: 'morning journey', 
+      type: ChannelType.PUBLIC, 
+      members: [], 
+      description: 'Start your day with motivation and morning routines',
+      unreadCount: 0,
+      isPinned: false
+    },
+    { 
+      id: 'announcement', 
+      name: 'announcement', 
+      type: ChannelType.PUBLIC, 
+      members: [], 
+      description: 'Important announcements and updates',
+      unreadCount: 0,
+      isPinned: false
+    }
+  ];
 
-  // Auto scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const displayChannels = channels.length > 0 ? 
+    channels.map(channel => ({
+      ...channel,
+      description: channel.description || getChannelDescription(channel.name),
+      unreadCount: 0,
+      isPinned: false
+    })) : 
+    enhancedDefaultChannels;
+
+  const getChannelDescription = (channelName: string) => {
+    switch (channelName) {
+      case 'morning journey':
+        return 'Start your day with motivation and morning routines';
+      case 'announcement':
+        return 'Important announcements and updates';
+      case 'general':
+      default:
+        return 'General discussion and community chat';
+    }
+  };
+
+  const handleChannelSelect = useCallback((channelName: string) => {
+    console.log('🔄 Switching to channel:', channelName);
+    setActiveChannel(channelName);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
+
+  const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
+    if (!content.trim()) {
+      console.log('⚠️ Empty message, not sending');
+      return false;
+    }
+
+    if (!user?.id) {
+      console.log('⚠️ User not authenticated, cannot send message');
+      toast.error("You must be logged in to send messages");
+      return false;
+    }
+
+    if (!isConnected) {
+      console.log('⚠️ Not connected to chat, cannot send message');
+      toast.error("Unable to send message - connection lost");
+      return false;
+    }
+
+    try {
+      console.log('📤 Handling message send:', content.substring(0, 50) + '...');
+      await sendMessage(content);
+      console.log('✅ Message sent successfully');
+      return true;
+    } catch (error) {
+      console.error("💥 Error in handleSendMessage:", error);
+      return false;
+    }
+  }, [user?.id, isConnected, sendMessage]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
+
+    try {
+      await deleteMessage(messageId);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  }, [user?.id, deleteMessage]);
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      const results = messages.filter(msg => 
+        msg.content.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
   }, [messages]);
 
-  const handleSendMessage = async (content: string): Promise<boolean> => {
-    return await sendMessage(content);
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    await deleteMessage(messageId);
-  };
-
-  const channels = ['general', 'random', 'help'];
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(!sidebarOpen);
+  }, [sidebarOpen]);
 
   if (!user) {
     return (
-      <Card className="h-full flex items-center justify-center">
-        <CardContent className="text-center space-y-4">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-            <Hash className="h-8 w-8 text-muted-foreground" />
+      <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-6 ${className}`}>
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <span className="text-3xl">💬</span>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Community Chat</h3>
-            <p className="text-muted-foreground">Sign in to join the conversation</p>
-          </div>
-        </CardContent>
-      </Card>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Join the Community
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+            Sign in to participate in community discussions and connect with other members.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="h-full flex flex-col border-0 shadow-sm">
-      {/* Header */}
-      <CardHeader className="pb-3 border-b bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Hash className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">{selectedChannel}</h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-3 w-3" />
-                <span>{messages.length} messages</span>
-                <Separator orientation="vertical" className="h-3" />
-                <div className="flex items-center gap-1">
-                  {isConnected ? (
-                    <>
-                      <Wifi className="h-3 w-3 text-green-600" />
-                      <span className="text-green-600">Connected</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-3 w-3 text-destructive" />
-                      <span className="text-destructive">
-                        {isReconnecting ? 'Reconnecting...' : 'Disconnected'}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+    <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 p-4 ${className}`}>
+      <div className="h-full flex rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 relative">
+        
+        {/* Mobile Header with Toggle */}
+        {isMobile && (
+          <div className="absolute top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="h-8 w-8 p-0"
+            >
+              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+            
+            <QuickChannelSwitcher
+              channels={displayChannels}
+              activeChannel={activeChannel}
+              onChannelSelect={handleChannelSelect}
+              className="flex-1 mx-4"
+            />
+            
+            <div className="w-8" /> {/* Spacer */}
           </div>
-
-          {!isConnected && !isReconnecting && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={reconnect}
-              className="h-8"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Reconnect
-            </Button>
-          )}
-        </div>
-
-        {/* Channel tabs */}
-        <div className="flex gap-1 mt-3">
-          {channels.map((channel) => (
-            <Button
-              key={channel}
-              variant={selectedChannel === channel ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setSelectedChannel(channel)}
-              className={cn(
-                "h-7 px-3 text-xs rounded-full",
-                selectedChannel === channel 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {channel}
-            </Button>
-          ))}
-        </div>
-      </CardHeader>
-
-      {/* Messages */}
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        {error && (
-          <Alert className="mx-4 mt-4 border-destructive/20 bg-destructive/5">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <AlertDescription className="text-destructive">
-              {error}
-            </AlertDescription>
-          </Alert>
         )}
 
-        <ScrollArea className="h-full">
-          {isLoading && messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-3">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent mx-auto"></div>
-                <p className="text-sm text-muted-foreground">Loading messages...</p>
-              </div>
-            </div>
-          ) : (
-            <div className="py-4">
-              {messages.map((message) => (
-                <MessageContent
-                  key={message.id}
-                  message={message}
-                  onDelete={handleDeleteMessage}
-                  onReply={() => {}} // TODO: Implement reply functionality
+        {/* Enhanced Sidebar */}
+        {(!isMobile || sidebarOpen) && (
+          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''} flex-shrink-0`}>
+            <EnhancedSidebar
+              channels={displayChannels}
+              activeChannel={activeChannel}
+              onChannelSelect={handleChannelSelect}
+              messages={messages}
+              onSearch={handleSearch}
+              searchResults={searchResults}
+              currentQuery={searchQuery}
+              isConnected={isConnected}
+            />
+          </div>
+        )}
+
+        {/* Chat Area */}
+        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${isMobile ? 'pt-16' : ''}`}>
+          {/* Desktop Header with Status */}
+          {!isMobile && (
+            <div className="flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-white dark:bg-gray-900">
+                <QuickChannelSwitcher
+                  channels={displayChannels}
+                  activeChannel={activeChannel}
+                  onChannelSelect={handleChannelSelect}
                 />
-              ))}
-              <div ref={messagesEndRef} />
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSidebar}
+                  className="h-8 w-8 p-0"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <ChatStatusBar
+                isConnected={isConnected}
+                isLoading={chatLoading || channelsLoading}
+                messageCount={messages.length}
+                activeUsers={1}
+                onReconnect={() => window.location.reload()}
+              />
             </div>
           )}
-        </ScrollArea>
-      </CardContent>
 
-      {/* Input */}
-      <EnhancedMessageInput
-        onSendMessage={handleSendMessage}
-        disabled={!isConnected || isSending}
-        isLoading={isSending}
-        placeholder={
-          isConnected 
-            ? `Message #${selectedChannel}...` 
-            : 'Reconnecting...'
-        }
-      />
-    </Card>
+          {/* Chat Messages Area */}
+          <div className="flex-1 min-h-0">
+            <EnhancedChatArea
+              activeChannel={activeChannel}
+              messages={messages}
+              isLoading={chatLoading}
+              isConnected={isConnected}
+              error={error}
+              onSendMessage={handleSendMessage}
+              onDeleteMessage={handleDeleteMessage}
+              channelsLoading={channelsLoading}
+            />
+          </div>
+        </div>
+
+        {/* Mobile overlay when sidebar is open */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </div>
+    </div>
   );
 };
-
-export default EnhancedChatContainer;
