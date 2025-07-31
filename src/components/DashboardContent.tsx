@@ -1,22 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Home, LayoutDashboard, Settings, Users } from 'lucide-react';
 import WorkspaceContent from './WorkspaceContent';
 import SettingsContent from './SettingsContent';
 import { useAuth } from '@/contexts/AuthContext';
-import { redirect, useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { CommunityTabsPanel } from './community/CommunityTabsPanel';
 
 const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('workspace');
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user && !loading) {
-      router.push('/sign-in');
+    if (!user) {
+      navigate('/sign-in');
     }
-  }, [user, loading, router]);
+  }, [user, navigate]);
 
   if (!user) {
     return null;

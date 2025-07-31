@@ -1,65 +1,92 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Video, 
-  Globe, 
-  Lock,
-  Play,
-  Square
-} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Calendar, Clock, Users, Video, Plus, Play, Settings } from 'lucide-react';
 import { CreateCallModal } from './CreateCallModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import CommunityCallService from '@/services/CommunityCallService';
+import CommunityCallService, { CommunityCall } from '@/services/CommunityCallService';
+
+type CallStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
 
 export const CommunityCallsPanel: React.FC = () => {
+  const [calls, setCalls] = useState<CommunityCall[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [upcomingCalls] = useState([
-    {
-      id: '1',
-      title: 'Weekly Community Standup',
-      description: 'Join us for our weekly community updates and discussions',
-      scheduled_time: '2024-02-01T15:00:00',
-      duration_minutes: 60,
-      max_participants: 100,
-      is_public: true,
-      status: 'scheduled' as const,
-      participant_count: 23
-    },
-    {
-      id: '2', 
-      title: 'Product Roadmap Discussion',
-      description: 'Let\'s discuss upcoming features and get your feedback',
-      scheduled_time: '2024-02-03T14:00:00',
-      duration_minutes: 90,
-      max_participants: 50,
-      is_public: false,
-      status: 'scheduled' as const,
-      participant_count: 12
-    }
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const handleCreateCall = (callId: string) => {
-    console.log('Call created:', callId);
-    toast.success('Community call created successfully!');
+  useEffect(() => {
+    loadCalls();
+  }, []);
+
+  const loadCalls = async () => {
+    try {
+      setIsLoading(true);
+      const upcomingCalls = await CommunityCallService.getUpcomingCalls();
+      setCalls(upcomingCalls);
+    } catch (error) {
+      console.error('Error loading calls:', error);
+      toast.error('Failed to load community calls');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleJoinCall = async (callId: string) => {
+  const handleCreateCall = async (callData: {
+    title: string;
+    description: string;
+    scheduledTime: Date;
+    maxParticipants: number;
+  }) => {
     try {
-      const result = await CommunityCallService.joinCall(callId, 'audience');
-      
-      if (result.success && result.stageId) {
-        toast.success('Joining call...');
-        // In a real app, you would navigate to the stage room
-        console.log('Joining stage:', result.stageId);
+      if (!user) {
+        toast.error('You must be logged in to create a call');
+        return;
+      }
+
+      const newCall = await CommunityCallService.createCall({
+        ...callData,
+        host_id: user.id,
+        status: 'scheduled' as CallStatus
+      });
+
+      setCalls(prev => [newCall, ...prev]);
+      setIsCreateModalOpen(false);
+      toast.success('Community call created successfully!');
+    } catch (error) {
+      console.error('Error creating call:', error);
+      toast.error('Failed to create community call');
+    }
+  };
+
+  const handleJoinCall = async (call: CommunityCall) => {
+    try {
+      if (!user) {
+        toast.error('You must be logged in to join a call');
+        return;
+      }
+
+      // Check if call is live or about to start (within 5 minutes)
+      const callTime = new Date(call.scheduled_time);
+      const now = new Date();
+      const timeDiff = callTime.getTime() - now.getTime();
+      const fiveMinutes = 5 * 60 * 1000;
+
+      if (call.status === 'live' || (timeDiff <= fiveMinutes && timeDiff >= -fiveMinutes)) {
+        // Join the call
+        await CommunityCallService.joinCall(call.id, user.id);
+        
+        // Navigate to the stage room
+        navigate(`/stage-call/community/${call.id}`);
+        toast.success('Joining community call...');
+      } else if (call.status === 'scheduled') {
+        toast.info('This call is scheduled for later. You can join 5 minutes before the start time.');
       } else {
-        toast.error(result.error || 'Failed to join call');
+        toast.error('This call is no longer available');
       }
     } catch (error) {
       console.error('Error joining call:', error);
@@ -67,136 +94,180 @@ export const CommunityCallsPanel: React.FC = () => {
     }
   };
 
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-  };
+  const handleStartCall = async (call: CommunityCall) => {
+    try {
+      if (!user || call.host_id !== user.id) {
+        toast.error('Only the host can start this call');
+        return;
+      }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'live': return 'bg-green-500';
-      case 'scheduled': return 'bg-blue-500';
-      case 'ended': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      await CommunityCallService.updateCallStatus(call.id, 'live');
+      
+      // Update local state
+      setCalls(prev => prev.map(c => 
+        c.id === call.id ? { ...c, status: 'live' as CallStatus } : c
+      ));
+
+      // Navigate to the stage room
+      navigate(`/stage-call/community/${call.id}`);
+      toast.success('Starting community call...');
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast.error('Failed to start call');
     }
   };
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div>
-          <h2 className="text-lg font-semibold">Community Calls</h2>
-          <p className="text-sm text-muted-foreground">Host and join community discussions</p>
+  const formatCallTime = (scheduledTime: string) => {
+    const date = new Date(scheduledTime);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+  };
+
+  const getStatusColor = (status: CallStatus) => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'live':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'ended':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const canJoinCall = (call: CommunityCall) => {
+    if (call.status === 'live') return true;
+    
+    const callTime = new Date(call.scheduled_time);
+    const now = new Date();
+    const timeDiff = callTime.getTime() - now.getTime();
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    return timeDiff <= fiveMinutes && timeDiff >= -fiveMinutes;
+  };
+
+  const isHost = (call: CommunityCall) => {
+    return user?.id === call.host_id;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading community calls...</p>
         </div>
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Host Call
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Community Calls</h1>
+          <p className="text-muted-foreground">Join or host community discussions</p>
+        </div>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Schedule Call
         </Button>
       </div>
 
-      {/* Calls List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {upcomingCalls.length > 0 ? (
-          upcomingCalls.map((call) => {
-            const { date, time } = formatDateTime(call.scheduled_time);
-            
-            return (
-              <Card key={call.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {call.title}
-                        {call.is_public ? (
-                          <Globe className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <Lock className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </CardTitle>
-                      {call.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {call.description}
-                        </p>
-                      )}
-                    </div>
-                    <Badge className={`${getStatusColor(call.status)} text-white`}>
-                      {call.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {date}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {time} ({call.duration_minutes}m)
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {call.participant_count}/{call.max_participants}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {call.status === 'scheduled' && (
-                      <Button
-                        onClick={() => handleJoinCall(call.id)}
-                        className="flex-1 flex items-center gap-2"
-                      >
-                        <Video className="w-4 h-4" />
-                        Join Call
-                      </Button>
-                    )}
-                    
-                    {call.status === 'live' && (
-                      <>
-                        <Button
-                          onClick={() => handleJoinCall(call.id)}
-                          className="flex-1 flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                        >
-                          <Play className="w-4 h-4" />
-                          Join Live
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Video className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No scheduled calls</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first community call to get started
+      {calls.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No upcoming calls</h3>
+            <p className="text-muted-foreground mb-6">
+              Schedule your first community call to bring people together for discussions, presentations, or casual conversations.
             </p>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Host Your First Call
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule Your First Call
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto space-y-4">
+          {calls.map((call) => (
+            <Card key={call.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CardTitle className="text-lg">{call.title}</CardTitle>
+                      <Badge className={getStatusColor(call.status)}>
+                        {call.status}
+                      </Badge>
+                    </div>
+                    <CardDescription>{call.description}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isHost(call) && call.status === 'scheduled' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartCall(call)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Start
+                      </Button>
+                    )}
+                    {canJoinCall(call) && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleJoinCall(call)}
+                        variant={call.status === 'live' ? 'default' : 'outline'}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        {call.status === 'live' ? 'Join Live' : 'Join'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {formatCallTime(call.scheduled_time)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    {call.participant_count || 0} / {call.max_participants} participants
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback className="text-xs">
+                        {call.host_name?.charAt(0) || 'H'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>Hosted by {call.host_name || 'Community Member'}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <CreateCallModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onCallCreated={handleCreateCall}
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onCreateCall={handleCreateCall}
       />
     </div>
   );

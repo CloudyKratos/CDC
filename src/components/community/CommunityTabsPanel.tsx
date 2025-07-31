@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageCircle, Video, Users } from 'lucide-react';
-import EnhancedChatContainer from './EnhancedChatContainer';
+import { EnhancedChatContainer } from './EnhancedChatContainer';
 import { CommunityCallsPanel } from './calls/CommunityCallsPanel';
 
 export const CommunityTabsPanel: React.FC = () => {
