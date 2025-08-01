@@ -1,5 +1,5 @@
 
-import { EventEmitter } from 'events';
+import { BrowserEventEmitter } from '../core/BrowserEventEmitter';
 
 interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'user-joined' | 'user-left' | 'control';
@@ -9,7 +9,7 @@ interface SignalingMessage {
   timestamp: number;
 }
 
-export class SignalingService extends EventEmitter {
+export class SignalingService extends BrowserEventEmitter {
   private static instance: SignalingService;
   private ws: WebSocket | null = null;
   private stageId: string | null = null;

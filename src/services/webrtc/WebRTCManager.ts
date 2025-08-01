@@ -1,5 +1,5 @@
 
-import { EventEmitter } from 'events';
+import { BrowserEventEmitter } from '../core/BrowserEventEmitter';
 
 interface WebRTCConfig {
   iceServers: RTCIceServer[];
@@ -16,7 +16,7 @@ interface PeerConnectionInfo {
   connectionState: RTCPeerConnectionState;
 }
 
-export class WebRTCManager extends EventEmitter {
+export class WebRTCManager extends BrowserEventEmitter {
   private static instance: WebRTCManager;
   private localStream: MediaStream | null = null;
   private peerConnections: Map<string, PeerConnectionInfo> = new Map();
