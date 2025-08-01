@@ -3,152 +3,148 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import WebRTCManager from '@/services/webrtc/WebRTCManager';
 import SignalingService from '@/services/signaling/SignalingService';
+import MediaDeviceManager from '@/services/media/MediaDeviceManager';
+import CallStateManager from '@/services/call/CallStateManager';
 import { useToast } from '@/hooks/use-toast';
+import type { CallParticipant, CallState } from '@/services/call/CallStateManager';
 
-interface MediaState {
+interface UseRealTimeStageReturn {
+  // Connection state
+  isConnected: boolean;
+  isConnecting: boolean;
+  callState: CallState;
+  error: string | null;
+  
+  // Media state
+  localStream: MediaStream | null;
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
   isScreenSharing: boolean;
+  
+  // Participants
+  participants: CallParticipant[];
+  remoteStreams: Map<string, MediaStream>;
+  
+  // Actions
+  connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  toggleAudio: () => Promise<boolean>;
+  toggleVideo: () => Promise<boolean>;
+  toggleScreenShare: () => Promise<boolean>;
 }
 
-interface Participant {
-  userId: string;
-  stream?: MediaStream;
-  mediaState: MediaState;
-  connectionState: RTCPeerConnectionState;
-}
-
-interface StageState {
-  isConnected: boolean;
-  isConnecting: boolean;
-  participants: Map<string, Participant>;
-  localStream: MediaStream | null;
-  mediaState: MediaState;
-  error: string | null;
-}
-
-export const useRealTimeStage = (stageId: string) => {
+export const useRealTimeStage = (stageId: string): UseRealTimeStageReturn => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [state, setState] = useState<StageState>({
-    isConnected: false,
-    isConnecting: false,
-    participants: new Map(),
-    localStream: null,
-    mediaState: {
-      isAudioEnabled: false,
-      isVideoEnabled: true,
-      isScreenSharing: false
-    },
-    error: null
-  });
+  const [callState, setCallState] = useState<CallState>('idle');
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [participants, setParticipants] = useState<CallParticipant[]>([]);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [error, setError] = useState<string | null>(null);
 
   const webrtcManager = useRef(WebRTCManager);
   const signalingService = useRef(SignalingService);
+  const mediaManager = useRef(MediaDeviceManager);
+  const callManager = useRef(CallStateManager);
   const isInitialized = useRef(false);
   const screenShareStream = useRef<MediaStream | null>(null);
 
-  const updateState = useCallback((updates: Partial<StageState>) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const initializeMedia = useCallback(async (): Promise<MediaStream> => {
-    try {
-      console.log('Initializing user media...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        }
-      });
-
-      // Start with audio muted for better UX
-      stream.getAudioTracks().forEach(track => {
-        track.enabled = false;
-      });
-
-      console.log('Media initialized successfully');
-      return stream;
-    } catch (error) {
-      console.error('Failed to initialize media:', error);
-      throw new Error('Failed to access camera/microphone');
-    }
-  }, []);
-
-  const setupWebRTCHandlers = useCallback(() => {
-    const webrtc = webrtcManager.current;
-
-    webrtc.on('remoteStream', ({ userId, stream }) => {
-      console.log(`Adding remote stream for user: ${userId}`);
-      setState(prev => {
-        const newParticipants = new Map(prev.participants);
-        const existing = newParticipants.get(userId) || {
-          userId,
-          mediaState: { isAudioEnabled: true, isVideoEnabled: true, isScreenSharing: false },
-          connectionState: 'connecting' as RTCPeerConnectionState
-        };
-        
-        newParticipants.set(userId, { ...existing, stream });
-        return { ...prev, participants: newParticipants };
-      });
+  // Set up event handlers
+  const setupEventHandlers = useCallback(() => {
+    // Media device events
+    mediaManager.current.on('streamCreated', ({ stream }) => {
+      setLocalStream(stream);
+      webrtcManager.current.updateLocalStream(stream);
     });
 
-    webrtc.on('connectionStateChange', ({ userId, state: connectionState }) => {
-      setState(prev => {
-        const newParticipants = new Map(prev.participants);
-        const existing = newParticipants.get(userId);
-        if (existing) {
-          newParticipants.set(userId, { ...existing, connectionState });
-        }
-        return { ...prev, participants: newParticipants };
+    mediaManager.current.on('audioToggled', ({ enabled }) => {
+      setIsAudioEnabled(enabled);
+      // Update call manager
+      if (user) {
+        callManager.current.updateParticipant(user.id, { isAudioEnabled: enabled });
+      }
+    });
+
+    mediaManager.current.on('videoToggled', ({ enabled }) => {
+      setIsVideoEnabled(enabled);
+      // Update call manager
+      if (user) {
+        callManager.current.updateParticipant(user.id, { isVideoEnabled: enabled });
+      }
+    });
+
+    // Call state events
+    callManager.current.on('callStateChanged', ({ state }) => {
+      setCallState(state);
+    });
+
+    callManager.current.on('participantsChanged', ({ participants }) => {
+      setParticipants(participants);
+    });
+
+    callManager.current.on('callError', () => {
+      setError('Call connection failed');
+    });
+
+    // WebRTC events
+    webrtcManager.current.on('remoteStream', ({ userId, stream }) => {
+      setRemoteStreams(prev => new Map(prev.set(userId, stream)));
+      // Update participant stream
+      callManager.current.updateParticipant(userId, { stream });
+    });
+
+    webrtcManager.current.on('connectionStateChange', ({ userId, state }) => {
+      callManager.current.updateParticipant(userId, { connectionState: state });
+    });
+
+    webrtcManager.current.on('peerDisconnected', ({ userId }) => {
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(userId);
+        return newMap;
       });
+      callManager.current.removeParticipant(userId);
     });
 
-    webrtc.on('peerDisconnected', ({ userId }) => {
-      console.log(`Removing participant: ${userId}`);
-      setState(prev => {
-        const newParticipants = new Map(prev.participants);
-        newParticipants.delete(userId);
-        return { ...prev, participants: newParticipants };
-      });
-    });
-
-    webrtc.on('dataChannelMessage', ({ userId, message }) => {
-      handleControlMessage(userId, message);
-    });
-  }, []);
-
-  const setupSignalingHandlers = useCallback(() => {
-    const signaling = signalingService.current;
-
-    signaling.on('userJoined', async ({ userId }) => {
-      console.log(`User joined: ${userId}`);
+    // Signaling events
+    signalingService.current.on('userJoined', async ({ userId }) => {
       if (userId !== user?.id) {
+        console.log(`New user joined: ${userId}`);
+        
+        // Add as participant
+        callManager.current.addParticipant({
+          userId,
+          name: `User ${userId.slice(0, 8)}`,
+          isAudioEnabled: true,
+          isVideoEnabled: true,
+          isSpeaking: false,
+          connectionState: 'connecting',
+          joinedAt: new Date()
+        });
+
+        // Create offer
         try {
           const offer = await webrtcManager.current.createOffer(userId);
-          signaling.sendMessage({
+          signalingService.current.sendMessage({
             type: 'offer',
             to: userId,
             data: offer
           });
         } catch (error) {
-          console.error('Error creating offer for new user:', error);
+          console.error('Error creating offer:', error);
         }
       }
     });
 
-    signaling.on('offer', async ({ userId, offer }) => {
+    signalingService.current.on('offer', async ({ userId, offer }) => {
       console.log(`Received offer from: ${userId}`);
       try {
         const answer = await webrtcManager.current.createAnswer(userId, offer);
-        signaling.sendMessage({
+        signalingService.current.sendMessage({
           type: 'answer',
           to: userId,
           data: answer
@@ -158,8 +154,7 @@ export const useRealTimeStage = (stageId: string) => {
       }
     });
 
-    signaling.on('answer', async ({ userId, answer }) => {
-      console.log(`Received answer from: ${userId}`);
+    signalingService.current.on('answer', async ({ userId, answer }) => {
       try {
         await webrtcManager.current.handleAnswer(userId, answer);
       } catch (error) {
@@ -167,7 +162,7 @@ export const useRealTimeStage = (stageId: string) => {
       }
     });
 
-    signaling.on('iceCandidate', async ({ userId, candidate }) => {
+    signalingService.current.on('iceCandidate', async ({ userId, candidate }) => {
       try {
         await webrtcManager.current.handleIceCandidate(userId, candidate);
       } catch (error) {
@@ -175,83 +170,52 @@ export const useRealTimeStage = (stageId: string) => {
       }
     });
 
-    signaling.on('userLeft', ({ userId }) => {
-      console.log(`User left: ${userId}`);
+    signalingService.current.on('userLeft', ({ userId }) => {
       webrtcManager.current.closePeerConnection(userId);
     });
 
-    signaling.on('controlMessage', ({ userId, data }) => {
-      handleControlMessage(userId, data);
+    // Forward ICE candidates
+    webrtcManager.current.on('iceCandidate', ({ userId, candidate }) => {
+      signalingService.current.sendMessage({
+        type: 'ice-candidate',
+        to: userId,
+        data: candidate
+      });
     });
-  }, [user?.id]);
-
-  const handleControlMessage = useCallback((userId: string, message: any) => {
-    console.log('Received control message:', message);
-    
-    switch (message.type) {
-      case 'audio-toggle':
-        setState(prev => {
-          const newParticipants = new Map(prev.participants);
-          const participant = newParticipants.get(userId);
-          if (participant) {
-            newParticipants.set(userId, {
-              ...participant,
-              mediaState: { ...participant.mediaState, isAudioEnabled: message.enabled }
-            });
-          }
-          return { ...prev, participants: newParticipants };
-        });
-        break;
-      
-      case 'video-toggle':
-        setState(prev => {
-          const newParticipants = new Map(prev.participants);
-          const participant = newParticipants.get(userId);
-          if (participant) {
-            newParticipants.set(userId, {
-              ...participant,
-              mediaState: { ...participant.mediaState, isVideoEnabled: message.enabled }
-            });
-          }
-          return { ...prev, participants: newParticipants };
-        });
-        break;
-    }
-  }, []);
+  }, [user]);
 
   const connect = useCallback(async () => {
-    if (!user || state.isConnecting || state.isConnected) return;
+    if (!user || callState === 'connecting' || callState === 'connected') return;
 
-    updateState({ isConnecting: true, error: null });
+    setError(null);
+    console.log('Connecting to stage...');
 
     try {
-      // Initialize media
-      const localStream = await initializeMedia();
-      updateState({ localStream });
+      // Initialize media manager
+      await mediaManager.current.initialize();
+      
+      // Create local stream
+      const stream = await mediaManager.current.createStream({
+        audio: true,
+        video: true
+      });
 
+      // Start call
+      callManager.current.startCall(stageId, user.id, user.name || 'Anonymous');
+      
       // Initialize WebRTC
-      await webrtcManager.current.initialize(localStream);
+      await webrtcManager.current.initialize(stream);
       
       // Set up event handlers
-      setupWebRTCHandlers();
-      setupSignalingHandlers();
+      setupEventHandlers();
 
       // Connect signaling
-      const signalingConnected = await signalingService.current.connect(stageId, user.id);
-      if (!signalingConnected) {
+      const connected = await signalingService.current.connect(stageId, user.id);
+      if (!connected) {
         throw new Error('Failed to connect to signaling server');
       }
 
-      // Set up ICE candidate forwarding
-      webrtcManager.current.on('iceCandidate', ({ userId, candidate }) => {
-        signalingService.current.sendMessage({
-          type: 'ice-candidate',
-          to: userId,
-          data: candidate
-        });
-      });
-
-      updateState({ isConnected: true, isConnecting: false });
+      callManager.current.setCallState('connected');
       isInitialized.current = true;
 
       toast({
@@ -261,11 +225,8 @@ export const useRealTimeStage = (stageId: string) => {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Connection failed';
-      updateState({ 
-        isConnecting: false, 
-        isConnected: false, 
-        error: errorMessage 
-      });
+      setError(errorMessage);
+      callManager.current.setCallState('error');
 
       toast({
         title: "Connection Failed",
@@ -273,103 +234,67 @@ export const useRealTimeStage = (stageId: string) => {
         variant: "destructive",
       });
     }
-  }, [user, stageId, state.isConnecting, state.isConnected, initializeMedia, setupWebRTCHandlers, setupSignalingHandlers, updateState, toast]);
+  }, [user, stageId, callState, setupEventHandlers, toast]);
 
   const disconnect = useCallback(async () => {
     console.log('Disconnecting from stage...');
 
-    // Stop screen sharing if active
-    if (screenShareStream.current) {
-      screenShareStream.current.getTracks().forEach(track => track.stop());
-      screenShareStream.current = null;
-    }
-
-    // Stop local stream
-    if (state.localStream) {
-      state.localStream.getTracks().forEach(track => track.stop());
-    }
-
-    // Cleanup WebRTC and signaling
-    webrtcManager.current.cleanup();
-    signalingService.current.disconnect();
-
-    updateState({
-      isConnected: false,
-      isConnecting: false,
-      participants: new Map(),
-      localStream: null,
-      error: null
-    });
-
-    isInitialized.current = false;
-
-    toast({
-      title: "Disconnected",
-      description: "Left the stage successfully",
-    });
-  }, [state.localStream, updateState, toast]);
-
-  const toggleAudio = useCallback(async () => {
-    if (!state.localStream) return false;
-
-    const audioTrack = state.localStream.getAudioTracks()[0];
-    if (audioTrack) {
-      const newEnabled = !audioTrack.enabled;
-      audioTrack.enabled = newEnabled;
-
-      updateState({
-        mediaState: { ...state.mediaState, isAudioEnabled: newEnabled }
-      });
-
-      // Broadcast state change
-      webrtcManager.current.broadcastDataChannelMessage({
-        type: 'audio-toggle',
-        enabled: newEnabled
-      });
-
-      return newEnabled;
-    }
-    return false;
-  }, [state.localStream, state.mediaState, updateState]);
-
-  const toggleVideo = useCallback(async () => {
-    if (!state.localStream) return false;
-
-    const videoTrack = state.localStream.getVideoTracks()[0];
-    if (videoTrack) {
-      const newEnabled = !videoTrack.enabled;
-      videoTrack.enabled = newEnabled;
-
-      updateState({
-        mediaState: { ...state.mediaState, isVideoEnabled: newEnabled }
-      });
-
-      // Broadcast state change
-      webrtcManager.current.broadcastDataChannelMessage({
-        type: 'video-toggle',
-        enabled: newEnabled
-      });
-
-      return newEnabled;
-    }
-    return false;
-  }, [state.localStream, state.mediaState, updateState]);
-
-  const toggleScreenShare = useCallback(async () => {
     try {
-      if (state.mediaState.isScreenSharing && screenShareStream.current) {
+      // Stop screen sharing if active
+      if (screenShareStream.current) {
+        screenShareStream.current.getTracks().forEach(track => track.stop());
+        screenShareStream.current = null;
+        setIsScreenSharing(false);
+      }
+
+      // Cleanup services
+      webrtcManager.current.cleanup();
+      signalingService.current.disconnect();
+      mediaManager.current.cleanup();
+      callManager.current.cleanup();
+
+      // Reset state
+      setLocalStream(null);
+      setRemoteStreams(new Map());
+      setParticipants([]);
+      setIsAudioEnabled(false);
+      setIsVideoEnabled(false);
+      setError(null);
+
+      isInitialized.current = false;
+
+      toast({
+        title: "Disconnected",
+        description: "Left the stage successfully",
+      });
+
+    } catch (error) {
+      console.error('Error during disconnect:', error);
+    }
+  }, [toast]);
+
+  const toggleAudio = useCallback(async (): Promise<boolean> => {
+    const enabled = mediaManager.current.toggleAudio();
+    return enabled;
+  }, []);
+
+  const toggleVideo = useCallback(async (): Promise<boolean> => {
+    const enabled = mediaManager.current.toggleVideo();
+    return enabled;
+  }, []);
+
+  const toggleScreenShare = useCallback(async (): Promise<boolean> => {
+    try {
+      if (isScreenSharing && screenShareStream.current) {
         // Stop screen sharing
         screenShareStream.current.getTracks().forEach(track => track.stop());
         screenShareStream.current = null;
+        setIsScreenSharing(false);
 
         // Switch back to camera
-        if (state.localStream) {
-          webrtcManager.current.updateLocalStream(state.localStream);
+        if (localStream) {
+          webrtcManager.current.updateLocalStream(localStream);
         }
-
-        updateState({
-          mediaState: { ...state.mediaState, isScreenSharing: false }
-        });
 
         return false;
       } else {
@@ -381,20 +306,15 @@ export const useRealTimeStage = (stageId: string) => {
 
         screenShareStream.current = displayStream;
         webrtcManager.current.updateLocalStream(displayStream);
+        setIsScreenSharing(true);
 
         // Handle stream ended
         displayStream.getVideoTracks()[0].addEventListener('ended', () => {
           screenShareStream.current = null;
-          if (state.localStream) {
-            webrtcManager.current.updateLocalStream(state.localStream);
+          setIsScreenSharing(false);
+          if (localStream) {
+            webrtcManager.current.updateLocalStream(localStream);
           }
-          updateState({
-            mediaState: { ...state.mediaState, isScreenSharing: false }
-          });
-        });
-
-        updateState({
-          mediaState: { ...state.mediaState, isScreenSharing: true }
         });
 
         return true;
@@ -403,11 +323,11 @@ export const useRealTimeStage = (stageId: string) => {
       console.error('Error toggling screen share:', error);
       return false;
     }
-  }, [state.mediaState, state.localStream, updateState]);
+  }, [isScreenSharing, localStream]);
 
   // Initialize on mount
   useEffect(() => {
-    if (user && stageId && !isInitialized.current) {
+    if (user && stageId && !isInitialized.current && callState === 'idle') {
       connect();
     }
 
@@ -416,21 +336,30 @@ export const useRealTimeStage = (stageId: string) => {
         disconnect();
       }
     };
-  }, [user, stageId]);
+  }, [user, stageId, callState, connect, disconnect]);
 
   return {
-    ...state,
+    // Connection state
+    isConnected: callState === 'connected',
+    isConnecting: callState === 'connecting',
+    callState,
+    error,
+    
+    // Media state
+    localStream,
+    isAudioEnabled,
+    isVideoEnabled,
+    isScreenSharing,
+    
+    // Participants
+    participants,
+    remoteStreams,
+    
+    // Actions
     connect,
     disconnect,
     toggleAudio,
     toggleVideo,
-    toggleScreenShare,
-    participants: Array.from(state.participants.values()),
-    remoteStreams: new Map(
-      Array.from(state.participants.entries())
-        .filter(([_, participant]) => participant.stream)
-        .map(([userId, participant]) => [userId, participant.stream!])
-    ),
-    screenShareStream: screenShareStream.current
+    toggleScreenShare
   };
 };

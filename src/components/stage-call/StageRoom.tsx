@@ -2,16 +2,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealTimeStage } from './hooks/useRealTimeStage';
 import { useStageChat } from './hooks/useStageChat';
-import StageVideoGrid from './components/StageVideoGrid';
-import StageControls from './components/StageControls';
-import StageHeader from './components/StageHeader';
-import StageSidebar from './components/StageSidebar';
-import StageChat from './components/StageChat';
+import ParticipantVideo from './ParticipantVideo';
+import StageControls from './ui/StageControls';
 import { getUserName } from '@/utils/user-data';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users, Wifi, WifiOff, Settings } from 'lucide-react';
 
 interface StageRoomProps {
   stageId: string;
@@ -20,26 +18,25 @@ interface StageRoomProps {
 
 const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { user } = useAuth();
-  const [showSidebar, setShowSidebar] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [isHost] = useState(true); // For demo - in real app, determine from backend
   const [isHandRaised, setIsHandRaised] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
 
-  // Use the new real-time stage hook
+  // Use the improved real-time stage hook
   const {
     isConnected,
     isConnecting,
-    participants,
+    callState,
     localStream,
     remoteStreams,
-    mediaState,
+    participants,
+    isAudioEnabled,
+    isVideoEnabled,
+    isScreenSharing,
     error,
     disconnect,
     toggleAudio,
     toggleVideo,
-    toggleScreenShare,
-    screenShareStream
+    toggleScreenShare
   } = useRealTimeStage(stageId);
 
   const {
@@ -82,55 +79,12 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     addSystemMessage(`${getUserName(user)} ${message}`);
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    addSystemMessage("Recording started");
-  };
-
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    addSystemMessage("Recording stopped");
-  };
-
-  const handleSendChatMessage = (message: string) => {
-    addMessage({
-      userId: user?.id || 'unknown',
-      userName: getUserName(user),
-      message,
-      type: 'text'
-    });
-  };
-
   const handleToggleChat = () => {
     setShowChat(!showChat);
     if (!showChat) {
       clearUnread();
     }
   };
-
-  // Create participants list including current user
-  const allParticipants = [
-    {
-      id: user?.id || 'local-user',
-      name: getUserName(user),
-      role: isHost ? 'host' as const : 'speaker' as const,
-      isAudioEnabled: mediaState.isAudioEnabled,
-      isVideoEnabled: mediaState.isVideoEnabled,
-      isSpeaking: false,
-      isHandRaised,
-      isScreenSharing: mediaState.isScreenSharing
-    },
-    ...participants.map(p => ({
-      id: p.userId,
-      name: `User ${p.userId.slice(0, 8)}`,
-      role: 'speaker' as const,
-      isAudioEnabled: p.mediaState.isAudioEnabled,
-      isVideoEnabled: p.mediaState.isVideoEnabled,
-      isSpeaking: false,
-      isHandRaised: false,
-      isScreenSharing: p.mediaState.isScreenSharing
-    }))
-  ];
 
   if (!user) {
     return (
@@ -153,7 +107,21 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
           <CardContent className="text-center p-8">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
             <h3 className="text-lg font-semibold mb-2">Connecting to Stage</h3>
-            <p className="text-muted-foreground">Setting up your connection...</p>
+            <p className="text-muted-foreground mb-4">Setting up your connection...</p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <span>Initializing media devices</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse delay-200" />
+                <span>Establishing WebRTC connection</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse delay-500" />
+                <span>Joining stage room</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -166,13 +134,13 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         <Card className="w-96">
           <CardContent className="text-center p-8">
             <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">⚠️</span>
+              <WifiOff className="w-8 h-8 text-destructive" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <div className="flex gap-2 justify-center">
               <Button onClick={() => window.location.reload()}>
-                Retry
+                Retry Connection
               </Button>
               <Button variant="outline" onClick={onLeave}>
                 Go Back
@@ -184,81 +152,157 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col overflow-hidden">
-      {/* Stage Header */}
-      <StageHeader 
-        stageId={stageId}
-        connectionState={isConnected ? 'connected' : 'disconnected'}
-        participantCount={allParticipants.length}
-        networkQuality={{ quality: 'good', ping: 0, bandwidth: 0 }}
-        onToggleSidebar={() => setShowSidebar(!showSidebar)}
-        onLeave={handleLeave}
-      />
+  // Create video grid layout
+  const allParticipants = [
+    // Current user
+    {
+      userId: user.id,
+      name: getUserName(user),
+      role: 'moderator' as const,
+      stream: localStream,
+      isAudioEnabled,
+      isVideoEnabled,
+      isHandRaised,
+      isSpeaking: false,
+      isLocal: true
+    },
+    // Remote participants
+    ...participants
+      .filter(p => p.userId !== user.id)
+      .map(p => ({
+        userId: p.userId,
+        name: p.name,
+        role: 'speaker' as const,
+        stream: remoteStreams.get(p.userId),
+        isAudioEnabled: p.isAudioEnabled,
+        isVideoEnabled: p.isVideoEnabled,
+        isHandRaised: false,
+        isSpeaking: p.isSpeaking,
+        isLocal: false
+      }))
+  ];
 
-      {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
-        {/* Video Grid */}
-        <div className="flex-1 pb-20">
-          <StageVideoGrid 
-            localStream={localStream}
-            remoteStreams={remoteStreams}
-            participants={allParticipants}
-            localParticipant={{
-              isAudioEnabled: mediaState.isAudioEnabled,
-              isVideoEnabled: mediaState.isVideoEnabled
-            }}
-            currentUserId={user.id}
-            isHost={isHost}
-            screenShareStream={screenShareStream}
-            isScreenSharing={mediaState.isScreenSharing}
-          />
+  const getGridLayout = (count: number) => {
+    if (count <= 1) return 'grid-cols-1';
+    if (count <= 4) return 'grid-cols-2';
+    if (count <= 9) return 'grid-cols-3';
+    return 'grid-cols-4';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col relative overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-black/30 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold text-white">Stage Room</h1>
+          <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+            Stage ID: {stageId.slice(0, 8)}
+          </Badge>
         </div>
 
-        {/* Sidebar */}
-        {showSidebar && (
-          <StageSidebar 
-            stageId={stageId}
-            participants={allParticipants}
-            onClose={() => setShowSidebar(false)}
-          />
+        <div className="flex items-center gap-4">
+          {/* Connection Status */}
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <Wifi className="w-4 h-4 text-green-400" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-red-400" />
+            )}
+            <span className="text-sm text-white/70">
+              {callState === 'connected' ? 'Connected' : 'Connecting...'}
+            </span>
+          </div>
+
+          {/* Participant Count */}
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-white/70" />
+            <span className="text-sm text-white/70">{allParticipants.length}</span>
+          </div>
+
+          {/* Settings */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white/70 hover:text-white"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 relative">
+        {/* Video Grid */}
+        <div className="h-full p-6">
+          {allParticipants.length > 0 ? (
+            <div className={`grid ${getGridLayout(allParticipants.length)} gap-4 h-full`}>
+              {allParticipants.map((participant) => (
+                <ParticipantVideo
+                  key={participant.userId}
+                  userId={participant.userId}
+                  name={participant.name}
+                  role={participant.role}
+                  stream={participant.stream}
+                  isAudioEnabled={participant.isAudioEnabled}
+                  isVideoEnabled={participant.isVideoEnabled}
+                  isHandRaised={participant.isHandRaised}
+                  isSpeaking={participant.isSpeaking}
+                  isLocal={participant.isLocal}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <Card className="w-96">
+                <CardContent className="text-center p-8">
+                  <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Waiting for participants</h3>
+                  <p className="text-muted-foreground">
+                    Share the stage ID with others to start the meeting
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+
+        {/* Screen Share Indicator */}
+        {isScreenSharing && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+              You are sharing your screen
+            </Badge>
+          </div>
         )}
 
-        {/* Chat */}
+        {/* Chat Sidebar */}
         {showChat && (
-          <StageChat
-            messages={messages}
-            onSendMessage={handleSendChatMessage}
-            onClose={handleToggleChat}
-            currentUserId={user.id}
-            currentUserName={getUserName(user)}
-          />
+          <div className="absolute top-0 right-0 w-80 h-full bg-black/80 backdrop-blur-sm border-l border-white/10">
+            <div className="p-4">
+              <h3 className="text-lg font-semibold text-white mb-4">Chat</h3>
+              {/* Chat content would go here */}
+              <div className="text-center text-muted-foreground">
+                Chat functionality coming soon
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Stage Controls */}
-      <StageControls 
-        isAudioEnabled={mediaState.isAudioEnabled}
-        isVideoEnabled={mediaState.isVideoEnabled}
-        audioDevices={[]}
-        videoDevices={[]}
-        onToggleAudio={handleToggleAudio}
-        onToggleVideo={handleToggleVideo}
-        onSwitchAudioDevice={() => {}}
-        onSwitchVideoDevice={() => {}}
-        onToggleScreenShare={handleScreenShare}
-        onStartRecording={handleStartRecording}
-        onStopRecording={handleStopRecording}
-        onRaiseHand={handleRaiseHand}
-        onToggleChat={handleToggleChat}
-        onLeave={handleLeave}
-        isHost={isHost}
-        isHandRaised={isHandRaised}
-        isRecording={isRecording}
-        isScreenSharing={mediaState.isScreenSharing}
-        participantCount={allParticipants.length}
-        stageId={stageId}
-      />
+      {/* Controls */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <StageControls
+          isAudioEnabled={isAudioEnabled}
+          isVideoEnabled={isVideoEnabled}
+          isHandRaised={isHandRaised}
+          userRole="moderator"
+          onToggleAudio={handleToggleAudio}
+          onToggleVideo={handleToggleVideo}
+          onRaiseHand={handleRaiseHand}
+          onToggleChat={handleToggleChat}
+          onLeave={handleLeave}
+        />
+      </div>
     </div>
   );
 };
