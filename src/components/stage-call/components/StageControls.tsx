@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Monitor,
   StopCircle,
-  Record,
+  Circle,
   Volume2
 } from 'lucide-react';
 import {
@@ -106,7 +106,7 @@ const StageControls: React.FC<StageControlsProps> = ({
 
             {isRecording && (
               <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/30">
-                <Record className="w-3 h-3 mr-1 animate-pulse" />
+                <Circle className="w-3 h-3 mr-1 animate-pulse fill-red-400" />
                 Recording
               </Badge>
             )}
@@ -261,7 +261,7 @@ const StageControls: React.FC<StageControlsProps> = ({
                       </>
                     ) : (
                       <>
-                        <Record className="w-4 h-4 mr-2" />
+                        <Circle className="w-4 h-4 mr-2 fill-red-500" />
                         Start recording
                       </>
                     )}
