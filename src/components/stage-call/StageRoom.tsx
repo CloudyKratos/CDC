@@ -6,10 +6,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStageOrchestrator } from './hooks/useStageOrchestrator';
 import { useStageConnection } from './hooks/useStageConnection';
+import { useStageWebRTC } from './hooks/useStageWebRTC';
+import { useStageChat } from './hooks/useStageChat';
 import StageVideoGrid from './components/StageVideoGrid';
 import StageControls from './components/StageControls';
 import StageHeader from './components/StageHeader';
 import StageSidebar from './components/StageSidebar';
+import StageChat from './components/StageChat';
 import { getUserName } from '@/utils/user-data';
 import { Loader2 } from 'lucide-react';
 
@@ -22,6 +25,11 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [isHandRaised, setIsHandRaised] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<{
     audio: MediaDeviceInfo[];
     video: MediaDeviceInfo[];
@@ -45,6 +53,20 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     connectionError,
     connect
   } = useStageConnection();
+
+  const {
+    remoteStreams: webrtcRemoteStreams,
+    createOffer,
+    sendControlMessage
+  } = useStageWebRTC(localStream);
+
+  const {
+    messages,
+    unreadCount,
+    addMessage,
+    addSystemMessage,
+    clearUnread
+  } = useStageChat();
 
   // Get available devices on mount
   useEffect(() => {
@@ -77,12 +99,17 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       try {
         console.log('Initializing stage room for community meeting:', stageId);
         
-        // First connect using the hook
+        // Check if user is host (could be determined by backend)
+        setIsHost(true); // For demo purposes, set first user as host
+        
+        // Connect using the hook
         await connect({
           stageId,
           userId: user.id,
-          role: 'speaker' // Default to speaker for community meetings
+          role: 'speaker'
         });
+
+        addSystemMessage(`${getUserName(user)} joined the stage`);
 
         toast({
           title: "Connected to Community Meeting",
@@ -111,6 +138,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const handleLeave = async () => {
     try {
       await leaveStage();
+      addSystemMessage(`${getUserName(user)} left the stage`);
       onLeave();
       
       toast({
@@ -126,6 +154,15 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const handleToggleAudio = async () => {
     try {
       const enabled = await toggleAudio();
+      addSystemMessage(`${getUserName(user)} ${enabled ? 'unmuted' : 'muted'} their microphone`);
+      
+      // Send control message to other participants
+      sendControlMessage({
+        type: 'audio-toggle',
+        userId: user?.id,
+        enabled
+      });
+      
       toast({
         title: enabled ? "Microphone On" : "Microphone Off",
         description: enabled ? "You are now unmuted" : "You are now muted",
@@ -143,6 +180,15 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const handleToggleVideo = async () => {
     try {
       const enabled = await toggleVideo();
+      addSystemMessage(`${getUserName(user)} turned their camera ${enabled ? 'on' : 'off'}`);
+      
+      // Send control message to other participants
+      sendControlMessage({
+        type: 'video-toggle',
+        userId: user?.id,
+        enabled
+      });
+      
       toast({
         title: enabled ? "Camera On" : "Camera Off",
         description: enabled ? "Your camera is now on" : "Your camera is now off",
@@ -156,6 +202,121 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       });
     }
   };
+
+  const handleRaiseHand = () => {
+    setIsHandRaised(!isHandRaised);
+    const message = isHandRaised ? 'lowered their hand' : 'raised their hand';
+    addSystemMessage(`${getUserName(user)} ${message}`);
+    
+    // Send control message to other participants
+    sendControlMessage({
+      type: 'hand-raise',
+      userId: user?.id,
+      raised: !isHandRaised
+    });
+    
+    toast({
+      title: isHandRaised ? "Hand Lowered" : "Hand Raised",
+      description: isHandRaised ? "You lowered your hand" : "You raised your hand",
+    });
+  };
+
+  const handleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        setIsScreenSharing(false);
+        addSystemMessage(`${getUserName(user)} stopped screen sharing`);
+        toast({
+          title: "Screen Sharing Stopped",
+          description: "You stopped sharing your screen",
+        });
+      } else {
+        // Start screen sharing
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+        
+        setIsScreenSharing(true);
+        addSystemMessage(`${getUserName(user)} started screen sharing`);
+        
+        // Handle stream ended
+        screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+          setIsScreenSharing(false);
+          addSystemMessage(`${getUserName(user)} stopped screen sharing`);
+        });
+        
+        toast({
+          title: "Screen Sharing Started",
+          description: "You are now sharing your screen",
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling screen share:', error);
+      toast({
+        title: "Screen Share Error",
+        description: "Failed to toggle screen sharing",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStartRecording = () => {
+    setIsRecording(true);
+    addSystemMessage("Recording started");
+    toast({
+      title: "Recording Started",
+      description: "The stage session is now being recorded",
+    });
+  };
+
+  const handleStopRecording = () => {
+    setIsRecording(false);
+    addSystemMessage("Recording stopped");
+    toast({
+      title: "Recording Stopped",
+      description: "The recording has been saved",
+    });
+  };
+
+  const handleSendChatMessage = (message: string) => {
+    addMessage({
+      userId: user?.id || 'unknown',
+      userName: getUserName(user),
+      message,
+      type: 'text'
+    });
+  };
+
+  const handleToggleChat = () => {
+    setShowChat(!showChat);
+    if (!showChat) {
+      clearUnread();
+    }
+  };
+
+  // Mock participants for demonstration
+  const mockParticipants = [
+    {
+      id: user?.id || 'local-user',
+      name: getUserName(user),
+      role: isHost ? 'host' as const : 'speaker' as const,
+      isAudioEnabled: state.mediaState.audioEnabled,
+      isVideoEnabled: state.mediaState.videoEnabled,
+      isSpeaking: false,
+      isHandRaised
+    },
+    {
+      id: 'demo-participant-1',
+      name: 'Sarah Wilson',
+      role: 'speaker' as const,
+      isAudioEnabled: true,
+      isVideoEnabled: true,
+      isSpeaking: false,
+      isHandRaised: false
+    }
+  ];
 
   if (!user) {
     return (
@@ -215,26 +376,6 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
-  // Mock participants for community meeting - using proper user data utility
-  const mockParticipants = [
-    {
-      id: user.id,
-      name: getUserName(user),
-      role: 'speaker' as const,
-      isAudioEnabled: state.mediaState.audioEnabled,
-      isVideoEnabled: state.mediaState.videoEnabled,
-      isSpeaking: false
-    },
-    {
-      id: 'community-host',
-      name: 'Community Host',
-      role: 'host' as const,
-      isAudioEnabled: true,
-      isVideoEnabled: true,
-      isSpeaking: false
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
       {/* Stage Header */}
@@ -253,12 +394,14 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         <div className="flex-1">
           <StageVideoGrid 
             localStream={localStream}
-            remoteStreams={remoteStreams}
+            remoteStreams={remoteStreams.size > 0 ? remoteStreams : webrtcRemoteStreams}
             participants={mockParticipants}
             localParticipant={{
               isAudioEnabled: state.mediaState.audioEnabled,
               isVideoEnabled: state.mediaState.videoEnabled
             }}
+            currentUserId={user.id}
+            isHost={isHost}
           />
         </div>
 
@@ -268,6 +411,17 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             stageId={stageId}
             participants={mockParticipants}
             onClose={() => setShowSidebar(false)}
+          />
+        )}
+
+        {/* Chat */}
+        {showChat && (
+          <StageChat
+            messages={messages}
+            onSendMessage={handleSendChatMessage}
+            onClose={handleToggleChat}
+            currentUserId={user.id}
+            currentUserName={getUserName(user)}
           />
         )}
       </div>
@@ -282,7 +436,18 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         onToggleVideo={handleToggleVideo}
         onSwitchAudioDevice={switchAudioDevice}
         onSwitchVideoDevice={switchVideoDevice}
+        onToggleScreenShare={handleScreenShare}
+        onStartRecording={handleStartRecording}
+        onStopRecording={handleStopRecording}
+        onRaiseHand={handleRaiseHand}
+        onToggleChat={handleToggleChat}
         onLeave={handleLeave}
+        isHost={isHost}
+        isHandRaised={isHandRaised}
+        isRecording={isRecording}
+        isScreenSharing={isScreenSharing}
+        participantCount={mockParticipants.length}
+        stageId={stageId}
       />
     </div>
   );
