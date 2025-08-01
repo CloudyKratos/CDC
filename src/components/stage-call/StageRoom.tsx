@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -8,6 +7,7 @@ import { useStageOrchestrator } from './hooks/useStageOrchestrator';
 import { useStageConnection } from './hooks/useStageConnection';
 import { useStageWebRTC } from './hooks/useStageWebRTC';
 import { useStageChat } from './hooks/useStageChat';
+import { useStageMediaCleanup } from './hooks/useStageMediaCleanup';
 import StageVideoGrid from './components/StageVideoGrid';
 import StageControls from './components/StageControls';
 import StageHeader from './components/StageHeader';
@@ -30,10 +30,14 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenShareStream, setScreenShareStream] = useState<MediaStream | null>(null);
   const [availableDevices, setAvailableDevices] = useState<{
     audio: MediaDeviceInfo[];
     video: MediaDeviceInfo[];
   }>({ audio: [], video: [] });
+  
+  const { registerStream, cleanupAllStreams, cleanupSpecificStream } = useStageMediaCleanup();
+  const screenShareRef = useRef<MediaStream | null>(null);
   
   const {
     state,
@@ -67,6 +71,20 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     addSystemMessage,
     clearUnread
   } = useStageChat();
+
+  // Register local stream for cleanup
+  useEffect(() => {
+    if (localStream) {
+      registerStream(localStream);
+    }
+  }, [localStream, registerStream]);
+
+  // Register screen share stream for cleanup
+  useEffect(() => {
+    if (screenShareStream) {
+      registerStream(screenShareStream);
+    }
+  }, [screenShareStream, registerStream]);
 
   // Get available devices on mount
   useEffect(() => {
@@ -130,14 +148,40 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       initStage();
     }
 
+    // Cleanup function
     return () => {
-      handleLeave();
+      handleLeaveCleanup();
     };
   }, [stageId, user]);
 
+  const handleLeaveCleanup = async () => {
+    console.log('Cleaning up stage room...');
+    
+    try {
+      // Stop screen sharing if active
+      if (screenShareRef.current) {
+        screenShareRef.current.getTracks().forEach(track => {
+          console.log('Stopping screen share track:', track.kind);
+          track.stop();
+        });
+        screenShareRef.current = null;
+      }
+      
+      // Cleanup all registered streams
+      cleanupAllStreams();
+      
+      // Leave stage through orchestrator
+      await leaveStage();
+      
+      console.log('Stage cleanup completed');
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+  };
+
   const handleLeave = async () => {
     try {
-      await leaveStage();
+      await handleLeaveCleanup();
       addSystemMessage(`${getUserName(user)} left the stage`);
       onLeave();
       
@@ -223,9 +267,19 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
 
   const handleScreenShare = async () => {
     try {
-      if (isScreenSharing) {
+      if (isScreenSharing && screenShareRef.current) {
         // Stop screen sharing
+        console.log('Stopping screen share...');
+        screenShareRef.current.getTracks().forEach(track => {
+          console.log('Stopping screen share track:', track.kind);
+          track.stop();
+        });
+        
+        cleanupSpecificStream(screenShareRef.current);
+        screenShareRef.current = null;
+        setScreenShareStream(null);
         setIsScreenSharing(false);
+        
         addSystemMessage(`${getUserName(user)} stopped screen sharing`);
         toast({
           title: "Screen Sharing Stopped",
@@ -233,17 +287,32 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         });
       } else {
         // Start screen sharing
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true
+        console.log('Starting screen share...');
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
         });
         
+        screenShareRef.current = displayStream;
+        setScreenShareStream(displayStream);
+        registerStream(displayStream);
         setIsScreenSharing(true);
+        
         addSystemMessage(`${getUserName(user)} started screen sharing`);
         
-        // Handle stream ended
-        screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+        // Handle stream ended (user stops sharing via browser)
+        displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+          console.log('Screen share ended by user');
           setIsScreenSharing(false);
+          setScreenShareStream(null);
+          screenShareRef.current = null;
           addSystemMessage(`${getUserName(user)} stopped screen sharing`);
         });
         
@@ -256,7 +325,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       console.error('Error toggling screen share:', error);
       toast({
         title: "Screen Share Error",
-        description: "Failed to toggle screen sharing",
+        description: error instanceof Error ? error.message : "Failed to toggle screen sharing",
         variant: "destructive",
       });
     }
@@ -296,7 +365,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     }
   };
 
-  // Mock participants for demonstration
+  // Mock participants for demonstration - include screen share stream
   const mockParticipants = [
     {
       id: user?.id || 'local-user',
@@ -305,7 +374,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       isAudioEnabled: state.mediaState.audioEnabled,
       isVideoEnabled: state.mediaState.videoEnabled,
       isSpeaking: false,
-      isHandRaised
+      isHandRaised,
+      isScreenSharing
     },
     {
       id: 'demo-participant-1',
@@ -314,7 +384,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       isAudioEnabled: true,
       isVideoEnabled: true,
       isSpeaking: false,
-      isHandRaised: false
+      isHandRaised: false,
+      isScreenSharing: false
     }
   ];
 
@@ -377,7 +448,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col overflow-hidden">
       {/* Stage Header */}
       <StageHeader 
         stageId={stageId}
@@ -389,9 +460,9 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-h-0">
         {/* Video Grid */}
-        <div className="flex-1">
+        <div className="flex-1 pb-20">
           <StageVideoGrid 
             localStream={localStream}
             remoteStreams={remoteStreams.size > 0 ? remoteStreams : webrtcRemoteStreams}
@@ -402,6 +473,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             }}
             currentUserId={user.id}
             isHost={isHost}
+            screenShareStream={screenShareStream}
+            isScreenSharing={isScreenSharing}
           />
         </div>
 

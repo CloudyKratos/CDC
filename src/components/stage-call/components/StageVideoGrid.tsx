@@ -2,48 +2,40 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
   Mic, 
   MicOff, 
   Video, 
   VideoOff, 
-  Users, 
-  Crown, 
-  VolumeX,
-  Volume2,
-  Pin,
-  MoreVertical
+  Crown,
+  Hand,
+  Monitor
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+
+interface Participant {
+  id: string;
+  name: string;
+  role: 'host' | 'speaker' | 'audience';
+  isAudioEnabled: boolean;
+  isVideoEnabled: boolean;
+  isSpeaking: boolean;
+  isHandRaised: boolean;
+  isScreenSharing?: boolean;
+}
 
 interface StageVideoGridProps {
   localStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
-  participants: Array<{
-    id: string;
-    name: string;
-    role: 'host' | 'speaker' | 'audience';
-    isAudioEnabled: boolean;
-    isVideoEnabled: boolean;
-    isSpeaking?: boolean;
-    isHandRaised?: boolean;
-  }>;
+  participants: Participant[];
   localParticipant: {
     isAudioEnabled: boolean;
     isVideoEnabled: boolean;
   };
   currentUserId: string;
-  isHost?: boolean;
-  onMuteParticipant?: (userId: string) => void;
-  onRemoveParticipant?: (userId: string) => void;
-  onPromoteToSpeaker?: (userId: string) => void;
-  onPinParticipant?: (userId: string) => void;
+  isHost: boolean;
+  screenShareStream?: MediaStream | null;
+  isScreenSharing?: boolean;
 }
 
 const StageVideoGrid: React.FC<StageVideoGridProps> = ({
@@ -52,260 +44,211 @@ const StageVideoGrid: React.FC<StageVideoGridProps> = ({
   participants,
   localParticipant,
   currentUserId,
-  isHost = false,
-  onMuteParticipant,
-  onRemoveParticipant,
-  onPromoteToSpeaker,
-  onPinParticipant
+  isHost,
+  screenShareStream,
+  isScreenSharing = false
 }) => {
-  const [pinnedParticipant, setPinnedParticipant] = React.useState<string | null>(null);
-  const [mutedParticipants, setMutedParticipants] = React.useState<Set<string>>(new Set());
-
-  const VideoTile = ({ 
-    stream, 
-    participant,
-    isLocal = false,
-    isPinned = false,
-    className = ""
-  }: {
-    stream: MediaStream | null;
-    participant: {
-      id: string;
-      name: string;
-      role: 'host' | 'speaker' | 'audience';
-      isAudioEnabled: boolean;
-      isVideoEnabled: boolean;
-      isSpeaking?: boolean;
-      isHandRaised?: boolean;
-    } | null;
+  const VideoTile: React.FC<{
+    participant: Participant;
+    stream?: MediaStream;
     isLocal?: boolean;
-    isPinned?: boolean;
-    className?: string;
-  }) => {
+  }> = ({ participant, stream, isLocal = false }) => {
     const videoRef = React.useRef<HTMLVideoElement>(null);
-    const [isLocalMuted, setIsLocalMuted] = React.useState(false);
-
+    
     React.useEffect(() => {
       if (videoRef.current && stream) {
         videoRef.current.srcObject = stream;
       }
     }, [stream]);
 
-    const displayName = isLocal ? 'You' : (participant?.name || 'Unknown');
-    const isVideoEnabled = isLocal ? localParticipant.isVideoEnabled : (participant?.isVideoEnabled ?? false);
-    const isAudioEnabled = isLocal ? localParticipant.isAudioEnabled : (participant?.isAudioEnabled ?? false);
-    const isMuted = mutedParticipants.has(participant?.id || '');
-
-    const handleLocalMute = () => {
-      if (participant && !isLocal) {
-        setIsLocalMuted(!isLocalMuted);
-        if (videoRef.current) {
-          videoRef.current.muted = !isLocalMuted;
-        }
-      }
-    };
-
-    const getRoleIcon = (role: string) => {
-      switch (role) {
-        case 'host':
-          return <Crown className="w-3 h-3 text-yellow-400" />;
-        case 'speaker':
-          return <Mic className="w-3 h-3 text-green-400" />;
-        default:
-          return null;
-      }
-    };
-
-    const getRoleBadgeColor = (role: string) => {
-      switch (role) {
-        case 'host':
-          return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-        case 'speaker':
-          return 'bg-green-500/20 text-green-300 border-green-500/30';
-        default:
-          return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-      }
-    };
+    const isCurrentUser = participant.id === currentUserId;
+    const showVideo = isLocal ? localParticipant.isVideoEnabled : participant.isVideoEnabled;
+    const isAudioEnabled = isLocal ? localParticipant.isAudioEnabled : participant.isAudioEnabled;
 
     return (
-      <Card className={`relative aspect-video bg-gray-800 border-gray-700 overflow-hidden group transition-all duration-200 ${
-        isPinned ? 'ring-2 ring-blue-500' : ''
-      } ${
-        participant?.isSpeaking ? 'ring-2 ring-green-500' : ''
-      } ${className}`}>
-        {isVideoEnabled && stream ? (
+      <Card className={cn(
+        "relative overflow-hidden bg-gray-900 border-gray-700",
+        participant.isSpeaking && "ring-2 ring-green-500",
+        isCurrentUser && "ring-2 ring-blue-500"
+      )}>
+        {/* Video Element */}
+        {showVideo && stream ? (
           <video
             ref={videoRef}
             autoPlay
+            muted={isLocal}
             playsInline
-            muted={isLocal || isLocalMuted}
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+          <div className="w-full h-full flex items-center justify-center bg-gray-800">
             <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center">
-              <span className="text-xl font-semibold text-white">
-                {displayName.charAt(0).toUpperCase()}
+              <span className="text-2xl font-semibold text-white">
+                {participant.name.charAt(0).toUpperCase()}
               </span>
             </div>
           </div>
         )}
+
+        {/* Overlay Information */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Top controls */}
-          <div className="absolute top-2 left-2 right-2 flex justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={`text-xs ${getRoleBadgeColor(participant?.role || 'audience')}`}>
-                <span className="flex items-center gap-1">
-                  {getRoleIcon(participant?.role || 'audience')}
-                  {displayName}
-                </span>
-              </Badge>
-              
-              {participant?.isHandRaised && (
-                <Badge variant="outline" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 text-xs">
-                  ✋ Hand raised
-                </Badge>
-              )}
+        {/* Top Right - Status Indicators */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          {participant.role === 'host' && (
+            <Badge variant="secondary" className="bg-yellow-600/80 text-yellow-100">
+              <Crown className="w-3 h-3 mr-1" />
+              Host
+            </Badge>
+          )}
+          {participant.isHandRaised && (
+            <div className="p-1 bg-yellow-600 rounded-full animate-bounce">
+              <Hand className="w-3 h-3 text-white" />
             </div>
-            
-            {/* Host controls */}
-            {isHost && !isLocal && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => onPinParticipant?.(participant?.id || '')}>
-                    <Pin className="w-4 h-4 mr-2" />
-                    {isPinned ? 'Unpin' : 'Pin'} participant
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onMuteParticipant?.(participant?.id || '')}>
-                    <MicOff className="w-4 h-4 mr-2" />
-                    {isMuted ? 'Unmute' : 'Mute'} participant
-                  </DropdownMenuItem>
-                  {participant?.role === 'audience' && (
-                    <DropdownMenuItem onClick={() => onPromoteToSpeaker?.(participant?.id || '')}>
-                      <Mic className="w-4 h-4 mr-2" />
-                      Promote to speaker
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem 
-                    onClick={() => onRemoveParticipant?.(participant?.id || '')}
-                    className="text-red-400"
-                  >
-                    Remove from stage
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          )}
+          {participant.isScreenSharing && (
+            <div className="p-1 bg-blue-600 rounded-full">
+              <Monitor className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Left - Name and Audio Status */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-2">
+          <div className={cn(
+            "p-1 rounded-full",
+            isAudioEnabled ? "bg-green-600" : "bg-red-600"
+          )}>
+            {isAudioEnabled ? (
+              <Mic className="w-3 h-3 text-white" />
+            ) : (
+              <MicOff className="w-3 h-3 text-white" />
             )}
           </div>
-          
-          {/* Bottom controls */}
-          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-end">
-            <div className="flex gap-1">
-              {isAudioEnabled ? (
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  participant?.isSpeaking ? 'bg-green-500/40 animate-pulse' : 'bg-green-500/20'
-                }`}>
-                  <Mic className="w-3 h-3 text-green-400" />
-                </div>
-              ) : (
-                <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <MicOff className="w-3 h-3 text-red-400" />
-                </div>
-              )}
-              
-              {!isVideoEnabled && (
-                <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <VideoOff className="w-3 h-3 text-red-400" />
-                </div>
-              )}
-            </div>
+          <span className="text-white text-sm font-medium bg-black/50 px-2 py-1 rounded">
+            {participant.name}
+            {isCurrentUser && ' (You)'}
+          </span>
+        </div>
 
-            {/* Local audio control for remote participants */}
-            {!isLocal && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLocalMute}
-                className="opacity-0 group-hover:opacity-100"
-              >
-                {isLocalMuted ? (
-                  <VolumeX className="w-4 h-4 text-red-400" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-white" />
-                )}
-              </Button>
-            )}
+        {/* Video Off Indicator */}
+        {!showVideo && (
+          <div className="absolute bottom-2 right-2">
+            <div className="p-1 bg-gray-600 rounded-full">
+              <VideoOff className="w-3 h-3 text-white" />
+            </div>
+          </div>
+        )}
+      </Card>
+    );
+  };
+
+  const ScreenShareDisplay: React.FC = () => {
+    const screenVideoRef = React.useRef<HTMLVideoElement>(null);
+    
+    React.useEffect(() => {
+      if (screenVideoRef.current && screenShareStream) {
+        screenVideoRef.current.srcObject = screenShareStream;
+        console.log('Screen share stream set to video element');
+      }
+    }, []);
+
+    if (!screenShareStream) return null;
+
+    return (
+      <Card className="h-full bg-black border-gray-700 overflow-hidden">
+        <div className="relative h-full">
+          <video
+            ref={screenVideoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-contain bg-black"
+          />
+          <div className="absolute top-4 left-4">
+            <Badge variant="secondary" className="bg-blue-600/80 text-blue-100 flex items-center gap-2">
+              <Monitor className="w-4 h-4" />
+              Screen Share
+            </Badge>
           </div>
         </div>
       </Card>
     );
   };
 
-  // Separate pinned participant
-  const pinnedParticipantData = participants.find(p => p.id === pinnedParticipant);
-  const unpinnedParticipants = participants.filter(p => p.id !== pinnedParticipant);
-
-  return (
-    <div className="p-6 h-full flex flex-col gap-4">
-      {/* Pinned participant (large view) */}
-      {pinnedParticipant && pinnedParticipantData && (
-        <div className="h-2/3">
-          <VideoTile 
-            stream={pinnedParticipant === currentUserId ? localStream : remoteStreams.get(pinnedParticipant) || null}
-            participant={pinnedParticipantData}
-            isLocal={pinnedParticipant === currentUserId}
-            isPinned={true}
-            className="h-full"
-          />
+  if (isScreenSharing && screenShareStream) {
+    return (
+      <div className="h-full flex flex-col gap-4 p-4">
+        {/* Screen Share - Takes most of the space */}
+        <div className="flex-1">
+          <ScreenShareDisplay />
         </div>
-      )}
-
-      {/* Grid of other participants */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ${
-        pinnedParticipant ? 'h-1/3' : 'h-full'
-      }`}>
-        {/* Local video (if not pinned) */}
-        {pinnedParticipant !== currentUserId && (
-          <VideoTile 
-            stream={localStream}
-            participant={{
-              id: currentUserId,
-              name: 'You',
-              role: 'speaker',
-              isAudioEnabled: localParticipant.isAudioEnabled,
-              isVideoEnabled: localParticipant.isVideoEnabled
-            }}
-            isLocal={true}
-          />
-        )}
-
-        {/* Remote participants (excluding pinned) */}
-        {unpinnedParticipants
-          .filter(p => p.id !== currentUserId)
-          .map((participant) => (
-            <VideoTile 
-              key={participant.id}
-              stream={remoteStreams.get(participant.id) || null}
-              participant={participant}
+        
+        {/* Participant Thumbnails */}
+        <div className="h-32 flex gap-2 overflow-x-auto">
+          {/* Local participant */}
+          <div className="min-w-48">
+            <VideoTile
+              participant={{
+                id: currentUserId,
+                name: participants.find(p => p.id === currentUserId)?.name || 'You',
+                role: isHost ? 'host' : 'speaker',
+                isAudioEnabled: localParticipant.isAudioEnabled,
+                isVideoEnabled: localParticipant.isVideoEnabled,
+                isSpeaking: false,
+                isHandRaised: participants.find(p => p.id === currentUserId)?.isHandRaised || false
+              }}
+              stream={localStream || undefined}
+              isLocal={true}
             />
-          ))}
-
-        {/* Empty state when no participants */}
-        {participants.length === 0 && !pinnedParticipant && (
-          <div className="col-span-full flex items-center justify-center text-white/40 text-center">
-            <div>
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Waiting for others to join...</p>
-              <p className="text-sm">Share the stage link to invite participants</p>
-            </div>
           </div>
-        )}
+          
+          {/* Remote participants */}
+          {participants.filter(p => p.id !== currentUserId).map((participant) => (
+            <div key={participant.id} className="min-w-48">
+              <VideoTile
+                participant={participant}
+                stream={remoteStreams.get(participant.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal grid layout when no screen sharing
+  return (
+    <div className="h-full p-4">
+      <div className={cn(
+        "grid gap-4 h-full",
+        participants.length === 1 && "grid-cols-1",
+        participants.length === 2 && "grid-cols-2",
+        participants.length <= 4 && participants.length > 2 && "grid-cols-2 grid-rows-2",
+        participants.length > 4 && "grid-cols-3 auto-rows-fr"
+      )}>
+        {/* Local participant */}
+        <VideoTile
+          participant={{
+            id: currentUserId,
+            name: participants.find(p => p.id === currentUserId)?.name || 'You',
+            role: isHost ? 'host' : 'speaker',
+            isAudioEnabled: localParticipant.isAudioEnabled,
+            isVideoEnabled: localParticipant.isVideoEnabled,
+            isSpeaking: false,
+            isHandRaised: participants.find(p => p.id === currentUserId)?.isHandRaised || false
+          }}
+          stream={localStream || undefined}
+          isLocal={true}
+        />
+        
+        {/* Remote participants */}
+        {participants.filter(p => p.id !== currentUserId).map((participant) => (
+          <VideoTile
+            key={participant.id}
+            participant={participant}
+            stream={remoteStreams.get(participant.id)}
+          />
+        ))}
       </div>
     </div>
   );
