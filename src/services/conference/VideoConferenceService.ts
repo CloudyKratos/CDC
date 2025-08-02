@@ -1,4 +1,3 @@
-
 import { BrowserEventEmitter } from '../core/BrowserEventEmitter';
 
 export interface ConferenceParticipant {
@@ -11,6 +10,7 @@ export interface ConferenceParticipant {
   isHandRaised: boolean;
   connectionState: RTCPeerConnectionState;
   joinedAt: Date;
+  audioLevel?: number;
 }
 
 export interface ConferenceStats {
@@ -18,6 +18,14 @@ export interface ConferenceStats {
   audioQuality: 'excellent' | 'good' | 'fair' | 'poor';
   videoQuality: 'excellent' | 'good' | 'fair' | 'poor';
   networkLatency: number;
+  bandwidth: number;
+}
+
+export interface MediaDeviceSettings {
+  audioDeviceId?: string;
+  videoDeviceId?: string;
+  audioQuality: 'low' | 'medium' | 'high';
+  videoQuality: 'low' | 'medium' | 'high';
 }
 
 export class VideoConferenceService extends BrowserEventEmitter {
@@ -26,16 +34,27 @@ export class VideoConferenceService extends BrowserEventEmitter {
   private localParticipant: ConferenceParticipant | null = null;
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
+  private screenShareStream: MediaStream | null = null;
   private isConnected = false;
   private roomId: string | null = null;
+  private mediaDeviceSettings: MediaDeviceSettings = {
+    audioQuality: 'high',
+    videoQuality: 'high'
+  };
+  private activeSpeakerDetector: any = null;
+  private connectionQualityMonitor: any = null;
 
   private readonly config = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' }
     ],
-    iceCandidatePoolSize: 10
+    iceCandidatePoolSize: 10,
+    bundlePolicy: 'max-bundle' as RTCBundlePolicy,
+    rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy
   };
 
   static getInstance(): VideoConferenceService {
@@ -47,11 +66,11 @@ export class VideoConferenceService extends BrowserEventEmitter {
 
   async joinConference(roomId: string, userId: string, userName: string): Promise<boolean> {
     try {
-      console.log(`Joining conference room: ${roomId} as ${userName}`);
+      console.log(`🎥 Joining conference room: ${roomId} as ${userName}`);
       
       this.roomId = roomId;
       
-      // Initialize local media
+      // Initialize local media with enhanced settings
       await this.initializeLocalMedia();
       
       // Create local participant
@@ -64,63 +83,196 @@ export class VideoConferenceService extends BrowserEventEmitter {
         isSpeaking: false,
         isHandRaised: false,
         connectionState: 'connected',
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        audioLevel: 0
       };
 
       this.participants.set(userId, this.localParticipant);
       this.isConnected = true;
 
-      // Simulate joining existing participants (in real app, this would come from signaling)
+      // Start monitoring systems
+      this.startActiveSpeakerDetection();
+      this.startConnectionQualityMonitoring();
+
+      // Simulate joining existing participants
       setTimeout(() => {
         this.simulateExistingParticipants();
       }, 1000);
 
       this.emit('conferenceJoined', { roomId, participant: this.localParticipant });
+      this.emit('localStreamReady', { stream: this.localStream });
       this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
 
       return true;
     } catch (error) {
-      console.error('Failed to join conference:', error);
+      console.error('❌ Failed to join conference:', error);
+      this.emit('error', { type: 'join_failed', error });
       return false;
     }
   }
 
   private async initializeLocalMedia(): Promise<void> {
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
-        },
-        video: {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          frameRate: { ideal: 30 }
-        }
+      const constraints = this.getMediaConstraints();
+      console.log('🎬 Initializing media with constraints:', constraints);
+      
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Add error handling for media tracks
+      this.localStream.getTracks().forEach(track => {
+        track.addEventListener('ended', () => {
+          console.warn(`🔇 Media track ended: ${track.kind}`);
+          this.handleTrackEnded(track);
+        });
       });
 
-      this.emit('localStreamReady', { stream: this.localStream });
+      console.log('✅ Local media initialized successfully');
     } catch (error) {
-      console.error('Failed to get local media:', error);
-      throw new Error('Could not access camera/microphone');
+      console.error('❌ Failed to get local media:', error);
+      
+      // Try with fallback constraints
+      try {
+        console.log('🔄 Trying fallback media constraints...');
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { width: 640, height: 480 }
+        });
+      } catch (fallbackError) {
+        console.error('❌ Fallback media also failed:', fallbackError);
+        throw new Error('Could not access camera/microphone');
+      }
+    }
+  }
+
+  private getMediaConstraints() {
+    const { audioQuality, videoQuality } = this.mediaDeviceSettings;
+    
+    const audioConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: audioQuality === 'high' ? 48000 : 44100,
+      channelCount: 1
+    };
+
+    const videoConstraints = {
+      width: videoQuality === 'high' ? { ideal: 1280, max: 1920 } : 
+             videoQuality === 'medium' ? { ideal: 854, max: 1280 } : 
+             { ideal: 640, max: 854 },
+      height: videoQuality === 'high' ? { ideal: 720, max: 1080 } : 
+              videoQuality === 'medium' ? { ideal: 480, max: 720 } : 
+              { ideal: 360, max: 480 },
+      frameRate: { ideal: 30, max: 60 }
+    };
+
+    return { audio: audioConstraints, video: videoConstraints };
+  }
+
+  private handleTrackEnded(track: MediaStreamTrack): void {
+    if (track.kind === 'video') {
+      this.emit('videoTrackEnded', { trackKind: track.kind });
+    } else if (track.kind === 'audio') {
+      this.emit('audioTrackEnded', { trackKind: track.kind });
+    }
+  }
+
+  private startActiveSpeakerDetection(): void {
+    if (!this.localStream) return;
+
+    try {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(this.localStream);
+      
+      analyser.fftSize = 256;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      microphone.connect(analyser);
+
+      const detectAudio = () => {
+        if (!this.isConnected) return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        
+        const isSpeaking = average > 20; // Threshold for speaking detection
+        
+        if (this.localParticipant && this.localParticipant.isSpeaking !== isSpeaking) {
+          this.localParticipant.isSpeaking = isSpeaking;
+          this.localParticipant.audioLevel = average;
+          this.participants.set(this.localParticipant.id, this.localParticipant);
+          
+          this.emit('speakingChanged', { 
+            userId: this.localParticipant.id, 
+            isSpeaking,
+            audioLevel: average 
+          });
+          this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
+        }
+
+        this.activeSpeakerDetector = requestAnimationFrame(detectAudio);
+      };
+
+      detectAudio();
+    } catch (error) {
+      console.warn('⚠️ Could not start audio level detection:', error);
+    }
+  }
+
+  private startConnectionQualityMonitoring(): void {
+    this.connectionQualityMonitor = setInterval(() => {
+      this.monitorConnectionQuality();
+    }, 5000);
+  }
+
+  private async monitorConnectionQuality(): Promise<void> {
+    for (const [userId, pc] of this.peerConnections) {
+      try {
+        const stats = await pc.getStats();
+        let bytesReceived = 0;
+        let bytesSent = 0;
+        let packetsLost = 0;
+        let rtt = 0;
+
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp') {
+            bytesReceived += report.bytesReceived || 0;
+            packetsLost += report.packetsLost || 0;
+          } else if (report.type === 'outbound-rtp') {
+            bytesSent += report.bytesSent || 0;
+          } else if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            rtt = report.currentRoundTripTime || 0;
+          }
+        });
+
+        // Update participant connection quality
+        const participant = this.participants.get(userId);
+        if (participant) {
+          if (packetsLost > 10) {
+            participant.connectionState = 'failed';
+          } else if (rtt > 300) {
+            participant.connectionState = 'connecting';
+          } else {
+            participant.connectionState = 'connected';
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️ Could not get stats for ${userId}:`, error);
+      }
     }
   }
 
   private simulateExistingParticipants(): void {
-    // Simulate 2-3 existing participants
     const mockParticipants = [
-      { id: 'user-1', name: 'Alice Johnson' },
-      { id: 'user-2', name: 'Bob Smith' },
-      { id: 'user-3', name: 'Carol Davis' }
+      { id: 'alice-demo', name: 'Alice Johnson' },
+      { id: 'bob-demo', name: 'Bob Smith' }
     ];
 
     mockParticipants.forEach((mock, index) => {
       if (mock.id !== this.localParticipant?.id) {
         setTimeout(() => {
           this.addRemoteParticipant(mock.id, mock.name);
-        }, (index + 1) * 500);
+        }, (index + 1) * 800);
       }
     });
   }
@@ -130,11 +282,12 @@ export class VideoConferenceService extends BrowserEventEmitter {
       id: userId,
       name: userName,
       isAudioEnabled: true,
-      isVideoEnabled: true,
-      isSpeaking: Math.random() > 0.7, // Random speaking state
+      isVideoEnabled: Math.random() > 0.3, // Some participants without video
+      isSpeaking: false,
       isHandRaised: false,
-      connectionState: 'connected',
-      joinedAt: new Date()
+      connectionState: 'connecting',
+      joinedAt: new Date(),
+      audioLevel: 0
     };
 
     this.participants.set(userId, participant);
@@ -145,10 +298,11 @@ export class VideoConferenceService extends BrowserEventEmitter {
     this.emit('participantJoined', { participant });
     this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
 
-    // Simulate receiving remote stream
+    // Simulate connection establishment
     setTimeout(() => {
+      participant.connectionState = 'connected';
       this.simulateRemoteStream(userId);
-    }, 1000);
+    }, 2000);
   }
 
   private async createPeerConnection(userId: string): Promise<void> {
@@ -163,6 +317,7 @@ export class VideoConferenceService extends BrowserEventEmitter {
 
     // Handle remote stream
     pc.ontrack = (event) => {
+      console.log(`📹 Received remote track from ${userId}:`, event.track.kind);
       const remoteStream = event.streams[0];
       const participant = this.participants.get(userId);
       if (participant) {
@@ -174,29 +329,83 @@ export class VideoConferenceService extends BrowserEventEmitter {
 
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
+      console.log(`🔗 Connection state changed for ${userId}: ${pc.connectionState}`);
       const participant = this.participants.get(userId);
       if (participant) {
         participant.connectionState = pc.connectionState;
         this.emit('participantConnectionChanged', { userId, state: pc.connectionState });
+        this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
+      }
+    };
+
+    // Handle ICE connection state changes
+    pc.oniceconnectionstatechange = () => {
+      console.log(`🧊 ICE connection state for ${userId}: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'failed') {
+        this.handleConnectionFailure(userId);
       }
     };
 
     this.peerConnections.set(userId, pc);
   }
 
+  private async handleConnectionFailure(userId: string): Promise<void> {
+    console.log(`🔧 Attempting to recover connection for ${userId}`);
+    
+    const pc = this.peerConnections.get(userId);
+    if (pc) {
+      try {
+        // Attempt ICE restart
+        await pc.restartIce();
+        console.log(`✅ ICE restart initiated for ${userId}`);
+      } catch (error) {
+        console.error(`❌ Failed to restart ICE for ${userId}:`, error);
+        // Remove failed participant
+        this.removeParticipant(userId);
+      }
+    }
+  }
+
+  private removeParticipant(userId: string): void {
+    this.participants.delete(userId);
+    const pc = this.peerConnections.get(userId);
+    if (pc) {
+      pc.close();
+      this.peerConnections.delete(userId);
+    }
+    this.emit('participantLeft', { userId });
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
+  }
+
   private simulateRemoteStream(userId: string): void {
-    // Create a mock remote stream for demo purposes
-    // In real implementation, this would come through WebRTC
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(stream => {
-        const participant = this.participants.get(userId);
-        if (participant) {
-          participant.stream = stream;
-          this.emit('participantStreamUpdated', { userId, stream });
-          this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
-        }
-      })
-      .catch(console.error);
+    // Create a canvas-based mock stream for demo
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      // Create a simple animated background
+      const colors = ['#1e40af', '#7c3aed', '#dc2626', '#059669'];
+      const colorIndex = Math.floor(Math.random() * colors.length);
+      
+      ctx.fillStyle = colors[colorIndex];
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(userId.split('-')[0], canvas.width / 2, canvas.height / 2);
+    }
+
+    const stream = canvas.captureStream(30);
+    
+    const participant = this.participants.get(userId);
+    if (participant) {
+      participant.stream = stream;
+      this.emit('participantStreamUpdated', { userId, stream });
+      this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
+    }
   }
 
   toggleLocalAudio(): boolean {
@@ -213,6 +422,7 @@ export class VideoConferenceService extends BrowserEventEmitter {
       this.emit('localAudioToggled', { enabled });
       this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
       
+      console.log(`🎤 Audio ${enabled ? 'enabled' : 'disabled'}`);
       return enabled;
     }
     return false;
@@ -232,6 +442,7 @@ export class VideoConferenceService extends BrowserEventEmitter {
       this.emit('localVideoToggled', { enabled });
       this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
       
+      console.log(`📹 Video ${enabled ? 'enabled' : 'disabled'}`);
       return enabled;
     }
     return false;
@@ -249,30 +460,48 @@ export class VideoConferenceService extends BrowserEventEmitter {
     });
     this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     
+    console.log(`✋ Hand ${this.localParticipant.isHandRaised ? 'raised' : 'lowered'}`);
     return this.localParticipant.isHandRaised;
   }
 
   async startScreenShare(): Promise<MediaStream | null> {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { width: 1920, height: 1080 },
-        audio: true
-      });
-
-      // Replace video track in all peer connections
-      this.peerConnections.forEach(async (pc) => {
-        const sender = pc.getSenders().find(s => 
-          s.track && s.track.kind === 'video'
-        );
-        if (sender && screenStream.getVideoTracks()[0]) {
-          await sender.replaceTrack(screenStream.getVideoTracks()[0]);
+      console.log('🖥️ Starting screen share...');
+      
+      this.screenShareStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { 
+          width: 1920, 
+          height: 1080,
+          frameRate: { ideal: 30 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
         }
       });
 
-      this.emit('screenShareStarted', { stream: screenStream });
-      return screenStream;
+      // Handle screen share end
+      this.screenShareStream.getVideoTracks()[0].addEventListener('ended', () => {
+        console.log('🖥️ Screen share ended by user');
+        this.stopScreenShare();
+      });
+
+      // Replace video track in all peer connections
+      for (const [userId, pc] of this.peerConnections) {
+        const sender = pc.getSenders().find(s => 
+          s.track && s.track.kind === 'video'
+        );
+        if (sender && this.screenShareStream.getVideoTracks()[0]) {
+          await sender.replaceTrack(this.screenShareStream.getVideoTracks()[0]);
+        }
+      }
+
+      this.emit('screenShareStarted', { stream: this.screenShareStream });
+      console.log('✅ Screen share started successfully');
+      return this.screenShareStream;
     } catch (error) {
-      console.error('Failed to start screen share:', error);
+      console.error('❌ Failed to start screen share:', error);
+      this.emit('error', { type: 'screen_share_failed', error });
       return null;
     }
   }
@@ -280,8 +509,16 @@ export class VideoConferenceService extends BrowserEventEmitter {
   async stopScreenShare(): Promise<void> {
     if (!this.localStream) return;
 
+    console.log('🛑 Stopping screen share...');
+
+    // Stop screen share tracks
+    if (this.screenShareStream) {
+      this.screenShareStream.getTracks().forEach(track => track.stop());
+      this.screenShareStream = null;
+    }
+
     // Replace screen share track back to camera
-    this.peerConnections.forEach(async (pc) => {
+    for (const [userId, pc] of this.peerConnections) {
       const sender = pc.getSenders().find(s => 
         s.track && s.track.kind === 'video'
       );
@@ -291,9 +528,10 @@ export class VideoConferenceService extends BrowserEventEmitter {
           await sender.replaceTrack(videoTrack);
         }
       }
-    });
+    }
 
     this.emit('screenShareStopped');
+    console.log('✅ Screen share stopped');
   }
 
   getParticipants(): ConferenceParticipant[] {
@@ -326,31 +564,83 @@ export class VideoConferenceService extends BrowserEventEmitter {
       participantCount: totalCount,
       audioQuality,
       videoQuality,
-      networkLatency: 45 // Simulated latency
+      networkLatency: Math.floor(Math.random() * 50) + 20,
+      bandwidth: Math.floor(Math.random() * 500) + 100
     };
   }
 
   async leaveConference(): Promise<void> {
-    console.log('Leaving conference...');
+    console.log('👋 Leaving conference...');
+
+    // Stop monitoring
+    if (this.activeSpeakerDetector) {
+      cancelAnimationFrame(this.activeSpeakerDetector);
+    }
+    if (this.connectionQualityMonitor) {
+      clearInterval(this.connectionQualityMonitor);
+    }
 
     // Stop all tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
+    }
+    if (this.screenShareStream) {
+      this.screenShareStream.getTracks().forEach(track => track.stop());
     }
 
     // Close peer connections
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();
 
-    // Clear participants
+    // Clear state
     this.participants.clear();
     this.localParticipant = null;
     this.localStream = null;
+    this.screenShareStream = null;
     this.isConnected = false;
     this.roomId = null;
 
     this.emit('conferenceLeft');
-    this.removeAllListeners();
+    console.log('✅ Successfully left conference');
+  }
+
+  // Device management methods
+  async getAvailableDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return {
+        audioInputs: devices.filter(d => d.kind === 'audioinput'),
+        videoInputs: devices.filter(d => d.kind === 'videoinput'),
+        audioOutputs: devices.filter(d => d.kind === 'audiooutput')
+      };
+    } catch (error) {
+      console.error('❌ Failed to enumerate devices:', error);
+      return { audioInputs: [], videoInputs: [], audioOutputs: [] };
+    }
+  }
+
+  async switchAudioDevice(deviceId: string): Promise<boolean> {
+    try {
+      this.mediaDeviceSettings.audioDeviceId = deviceId;
+      // In a real implementation, you would recreate the stream with the new device
+      console.log(`🎤 Switched to audio device: ${deviceId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to switch audio device:', error);
+      return false;
+    }
+  }
+
+  async switchVideoDevice(deviceId: string): Promise<boolean> {
+    try {
+      this.mediaDeviceSettings.videoDeviceId = deviceId;
+      // In a real implementation, you would recreate the stream with the new device
+      console.log(`📹 Switched to video device: ${deviceId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to switch video device:', error);
+      return false;
+    }
   }
 }
 
