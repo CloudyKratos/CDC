@@ -1,201 +1,178 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  Hand, 
-  Crown, 
-  Shield,
-  VolumeX,
-  Volume2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Video, VideoOff, Hand, Crown, Volume2, Wifi, WifiOff } from 'lucide-react';
+import { ConferenceParticipant } from '@/services/conference/VideoConferenceService';
+import { cn } from '@/lib/utils';
 
 interface ParticipantVideoProps {
-  userId: string;
-  name: string;
-  role: 'moderator' | 'speaker' | 'audience';
-  stream?: MediaStream;
-  isAudioEnabled: boolean;
-  isVideoEnabled: boolean;
-  isHandRaised?: boolean;
-  isSpeaking?: boolean;
-  connectionQuality?: 'excellent' | 'good' | 'fair' | 'poor';
+  participant: ConferenceParticipant;
   isLocal?: boolean;
-  isMuted?: boolean;
-  onToggleMute?: () => void;
-  onPromoteToSpeaker?: () => void;
+  isActiveSpeaker?: boolean;
+  className?: string;
 }
 
 const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
-  userId,
-  name,
-  role,
-  stream,
-  isAudioEnabled,
-  isVideoEnabled,
-  isHandRaised = false,
-  isSpeaking = false,
-  connectionQuality = 'good',
+  participant,
   isLocal = false,
-  isMuted = false,
-  onToggleMute,
-  onPromoteToSpeaker
+  isActiveSpeaker = false,
+  className
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasVideo, setHasVideo] = useState(false);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    if (videoRef.current && participant.stream) {
+      videoRef.current.srcObject = participant.stream;
+      setHasVideo(participant.stream.getVideoTracks().length > 0);
+    } else {
+      setHasVideo(false);
     }
-  }, [stream]);
+  }, [participant.stream]);
 
-  const getRoleIcon = () => {
-    switch (role) {
-      case 'moderator':
-        return <Crown className="w-3 h-3" />;
-      case 'speaker':
-        return <Shield className="w-3 h-3" />;
-      default:
-        return null;
-    }
-  };
-
-  const getRoleColor = () => {
-    switch (role) {
-      case 'moderator':
-        return 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30';
-      case 'speaker':
-        return 'bg-blue-500/20 text-blue-600 border-blue-500/30';
-      default:
-        return 'bg-muted/20 text-muted-foreground border-muted/30';
-    }
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const getConnectionColor = () => {
-    switch (connectionQuality) {
-      case 'excellent':
-        return 'border-green-500/50';
-      case 'good':
-        return 'border-blue-500/50';
-      case 'fair':
-        return 'border-yellow-500/50';
-      case 'poor':
-        return 'border-red-500/50';
-      default:
-        return 'border-border/50';
+    switch (participant.connectionState) {
+      case 'connected': return 'text-green-400';
+      case 'connecting': return 'text-yellow-400';
+      case 'disconnected': return 'text-red-400';
+      case 'failed': return 'text-red-500';
+      default: return 'text-gray-400';
     }
   };
 
   return (
-    <Card className={`
-      relative aspect-video overflow-hidden group transition-all duration-300 hover:shadow-lg
-      ${isSpeaking ? 'ring-2 ring-primary ring-offset-2' : ''}
-      ${getConnectionColor()}
-    `}>
-      <div className="absolute inset-0">
-        {isVideoEnabled && stream ? (
+    <Card className={cn(
+      "relative overflow-hidden bg-gray-900 border-2 transition-all duration-200",
+      isActiveSpeaker && "border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/20",
+      participant.isSpeaking && !isActiveSpeaker && "border-green-400 shadow-md shadow-green-400/10",
+      !isActiveSpeaker && !participant.isSpeaking && "border-gray-700",
+      className
+    )}>
+      {/* Video or Avatar */}
+      <div className="relative aspect-video w-full">
+        {participant.isVideoEnabled && hasVideo ? (
           <video
             ref={videoRef}
             autoPlay
+            muted={isLocal}
             playsInline
-            muted={isLocal || isMuted}
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted/20 to-muted/10 flex items-center justify-center">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
-                <Video className="w-8 h-8 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">{name}</p>
-                <p className="text-xs text-muted-foreground">Camera off</p>
-              </div>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
+              {getInitials(participant.name)}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        
-        {/* Top badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
-          <Badge variant="outline" className={`text-xs ${getRoleColor()}`}>
-            {getRoleIcon()}
-            <span className="ml-1 capitalize">{isLocal ? 'You' : name}</span>
-          </Badge>
-        </div>
+        {/* Speaking indicator animation */}
+        {participant.isSpeaking && (
+          <div className="absolute inset-0 bg-green-400/10 animate-pulse" />
+        )}
 
-        {/* Audio/Video indicators */}
-        <div className="absolute top-3 right-3 flex gap-1">
-          {isAudioEnabled ? (
-            <div className={`w-7 h-7 bg-green-500/90 rounded-full flex items-center justify-center ${isSpeaking ? 'animate-pulse' : ''}`}>
-              <Mic className="w-3 h-3 text-white" />
-            </div>
-          ) : (
-            <div className="w-7 h-7 bg-red-500/90 rounded-full flex items-center justify-center">
-              <MicOff className="w-3 h-3 text-white" />
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+        {/* Top indicators */}
+        <div className="absolute top-2 left-2 flex items-center gap-2">
+          {/* Connection status */}
+          <div className={cn("flex items-center gap-1", getConnectionColor())}>
+            {participant.connectionState === 'connected' ? (
+              <Wifi className="w-3 h-3" />
+            ) : (
+              <WifiOff className="w-3 h-3" />
+            )}
+          </div>
+
+          {/* Hand raised */}
+          {participant.isHandRaised && (
+            <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
+              <Hand className="w-3 h-3 text-white" />
             </div>
           )}
-          
-          {isMuted && (
-            <div className="w-7 h-7 bg-orange-500/90 rounded-full flex items-center justify-center">
-              <VolumeX className="w-3 h-3 text-white" />
-            </div>
+
+          {/* Local indicator */}
+          {isLocal && (
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-600/80 text-white">
+              You
+            </Badge>
           )}
         </div>
 
-        {/* Raised hand */}
-        {isHandRaised && (
-          <div className="absolute bottom-3 right-3">
-            <div className="w-8 h-8 bg-yellow-500/90 rounded-full flex items-center justify-center">
-              <Hand className="w-4 h-4 text-white animate-bounce" />
+        {/* Top right indicators */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          {/* Speaking indicator */}
+          {participant.isSpeaking && (
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <Volume2 className="w-3 h-3 text-green-400" />
+            </div>
+          )}
+
+          {/* Active speaker crown */}
+          {isActiveSpeaker && (
+            <Crown className="w-4 h-4 text-yellow-400" />
+          )}
+        </div>
+
+        {/* Bottom info */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-white text-sm font-medium truncate">
+                {participant.name}
+              </span>
+              
+              {/* Join time for debugging */}
+              <span className="text-white/50 text-xs">
+                {participant.joinedAt.toLocaleTimeString()}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {/* Audio indicator */}
+              {participant.isAudioEnabled ? (
+                <div className="p-1 bg-green-600/80 rounded">
+                  <Mic className="w-3 h-3 text-white" />
+                </div>
+              ) : (
+                <div className="p-1 bg-red-600/80 rounded">
+                  <MicOff className="w-3 h-3 text-white" />
+                </div>
+              )}
+
+              {/* Video indicator */}
+              {participant.isVideoEnabled ? (
+                <div className="p-1 bg-green-600/80 rounded">
+                  <Video className="w-3 h-3 text-white" />
+                </div>
+              ) : (
+                <div className="p-1 bg-red-600/80 rounded">
+                  <VideoOff className="w-3 h-3 text-white" />
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Control buttons for moderators */}
-        {!isLocal && (onToggleMute || onPromoteToSpeaker) && (
-          <div className="absolute bottom-3 left-3 flex gap-2">
-            {onToggleMute && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onToggleMute}
-                className="w-8 h-8 p-0 bg-black/50 border-white/20 hover:bg-black/70"
-              >
-                {isMuted ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
-              </Button>
-            )}
-            
-            {onPromoteToSpeaker && role === 'audience' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onPromoteToSpeaker}
-                className="w-8 h-8 p-0 bg-black/50 border-white/20 hover:bg-black/70"
-              >
-                <Shield className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Connection quality indicator */}
-      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <div className={`w-2 h-2 rounded-full ${
-          connectionQuality === 'excellent' ? 'bg-green-500' :
-          connectionQuality === 'good' ? 'bg-blue-500' :
-          connectionQuality === 'fair' ? 'bg-yellow-500' :
-          'bg-red-500'
-        }`} />
+        {/* Connection quality indicator */}
+        <div className="absolute bottom-2 right-2">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            participant.connectionState === 'connected' ? 'bg-green-400' : 'bg-red-400'
+          )} />
+        </div>
       </div>
     </Card>
   );

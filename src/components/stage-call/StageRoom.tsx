@@ -1,15 +1,25 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRealTimeStage } from './hooks/useRealTimeStage';
-import { useStageChat } from './hooks/useStageChat';
+import { useVideoConference } from './hooks/useVideoConference';
 import ParticipantVideo from './ParticipantVideo';
 import StageControls from './ui/StageControls';
 import { getUserName } from '@/utils/user-data';
-import { Loader2, Users, Wifi, WifiOff, Settings } from 'lucide-react';
+import { 
+  Loader2, 
+  Users, 
+  Wifi, 
+  WifiOff, 
+  Settings, 
+  Monitor,
+  Signal,
+  Clock,
+  Video as VideoIcon
+} from 'lucide-react';
 
 interface StageRoomProps {
   stageId: string;
@@ -18,81 +28,65 @@ interface StageRoomProps {
 
 const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
   const { user } = useAuth();
-  const [showChat, setShowChat] = useState(false);
-  const [isHandRaised, setIsHandRaised] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
-  // Use the improved real-time stage hook
   const {
     isConnected,
     isConnecting,
-    callState,
-    localStream,
-    remoteStreams,
     participants,
+    localParticipant,
+    localStream,
     isAudioEnabled,
     isVideoEnabled,
+    isHandRaised,
     isScreenSharing,
-    error,
-    disconnect,
+    conferenceStats,
+    joinConference,
+    leaveConference,
     toggleAudio,
     toggleVideo,
-    toggleScreenShare
-  } = useRealTimeStage(stageId);
+    toggleHandRaise,
+    startScreenShare,
+    stopScreenShare
+  } = useVideoConference();
 
-  const {
-    messages,
-    unreadCount,
-    addMessage,
-    addSystemMessage,
-    clearUnread
-  } = useStageChat();
+  // Auto-join on mount
+  useEffect(() => {
+    if (user && !isConnected && !isConnecting) {
+      joinConference(stageId);
+    }
+  }, [user, stageId, isConnected, isConnecting, joinConference]);
 
   const handleLeave = async () => {
-    try {
-      await disconnect();
-      addSystemMessage(`${getUserName(user)} left the stage`);
-      onLeave();
-    } catch (error) {
-      console.error('Error leaving stage:', error);
-      onLeave();
-    }
-  };
-
-  const handleToggleAudio = async () => {
-    const enabled = await toggleAudio();
-    addSystemMessage(`${getUserName(user)} ${enabled ? 'unmuted' : 'muted'} their microphone`);
-  };
-
-  const handleToggleVideo = async () => {
-    const enabled = await toggleVideo();
-    addSystemMessage(`${getUserName(user)} turned their camera ${enabled ? 'on' : 'off'}`);
+    await leaveConference();
+    onLeave();
   };
 
   const handleScreenShare = async () => {
-    const isSharing = await toggleScreenShare();
-    addSystemMessage(`${getUserName(user)} ${isSharing ? 'started' : 'stopped'} screen sharing`);
-  };
-
-  const handleRaiseHand = () => {
-    setIsHandRaised(!isHandRaised);
-    const message = isHandRaised ? 'lowered their hand' : 'raised their hand';
-    addSystemMessage(`${getUserName(user)} ${message}`);
-  };
-
-  const handleToggleChat = () => {
-    setShowChat(!showChat);
-    if (!showChat) {
-      clearUnread();
+    if (isScreenSharing) {
+      await stopScreenShare();
+    } else {
+      await startScreenShare();
     }
   };
 
+  const getGridCols = (count: number) => {
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-2';
+    if (count <= 4) return 'grid-cols-2 lg:grid-cols-2';
+    if (count <= 6) return 'grid-cols-2 lg:grid-cols-3';
+    if (count <= 9) return 'grid-cols-3 lg:grid-cols-3';
+    return 'grid-cols-3 lg:grid-cols-4';
+  };
+
+  // Auth check
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
         <Card className="w-96">
           <CardContent className="text-center p-8">
             <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
-            <p className="text-muted-foreground mb-4">Please log in to join the stage</p>
+            <p className="text-muted-foreground mb-4">Please log in to join the video conference</p>
             <Button onClick={onLeave}>Go Back</Button>
           </CardContent>
         </Card>
@@ -100,26 +94,27 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
+  // Connecting state
   if (isConnecting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
         <Card className="w-96 animate-fade-in">
           <CardContent className="text-center p-8">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h3 className="text-lg font-semibold mb-2">Connecting to Stage</h3>
+            <h3 className="text-lg font-semibold mb-2">Joining Video Conference</h3>
             <p className="text-muted-foreground mb-4">Setting up your connection...</p>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                <span>Initializing media devices</span>
+                <span>Initializing camera and microphone</span>
               </div>
               <div className="flex items-center justify-center gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse delay-200" />
-                <span>Establishing WebRTC connection</span>
+                <span>Connecting to conference room</span>
               </div>
               <div className="flex items-center justify-center gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse delay-500" />
-                <span>Joining stage room</span>
+                <span>Loading participants</span>
               </div>
             </div>
           </CardContent>
@@ -128,96 +123,57 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <Card className="w-96">
-          <CardContent className="text-center p-8">
-            <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <WifiOff className="w-8 h-8 text-destructive" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={() => window.location.reload()}>
-                Retry Connection
-              </Button>
-              <Button variant="outline" onClick={onLeave}>
-                Go Back
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Create video grid layout
-  const allParticipants = [
-    // Current user
-    {
-      userId: user.id,
-      name: getUserName(user),
-      role: 'moderator' as const,
-      stream: localStream,
-      isAudioEnabled,
-      isVideoEnabled,
-      isHandRaised,
-      isSpeaking: false,
-      isLocal: true
-    },
-    // Remote participants
-    ...participants
-      .filter(p => p.userId !== user.id)
-      .map(p => ({
-        userId: p.userId,
-        name: p.name,
-        role: 'speaker' as const,
-        stream: remoteStreams.get(p.userId),
-        isAudioEnabled: p.isAudioEnabled,
-        isVideoEnabled: p.isVideoEnabled,
-        isHandRaised: false,
-        isSpeaking: p.isSpeaking,
-        isLocal: false
-      }))
-  ];
-
-  const getGridLayout = (count: number) => {
-    if (count <= 1) return 'grid-cols-1';
-    if (count <= 4) return 'grid-cols-2';
-    if (count <= 9) return 'grid-cols-3';
-    return 'grid-cols-4';
-  };
-
+  // Main conference view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/30 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold text-white">Stage Room</h1>
+          <h1 className="text-xl font-semibold text-white">Video Conference</h1>
           <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
-            Stage ID: {stageId.slice(0, 8)}
+            Room: {stageId.slice(0, 8)}
           </Badge>
+          {isScreenSharing && (
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+              <Monitor className="w-3 h-3 mr-1" />
+              Screen Sharing
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
           {/* Connection Status */}
           <div className="flex items-center gap-2">
             {isConnected ? (
-              <Wifi className="w-4 h-4 text-green-400" />
+              <>
+                <Wifi className="w-4 h-4 text-green-400" />
+                <span className="text-sm text-white/70">Connected</span>
+              </>
             ) : (
-              <WifiOff className="w-4 h-4 text-red-400" />
+              <>
+                <WifiOff className="w-4 h-4 text-red-400" />
+                <span className="text-sm text-white/70">Disconnected</span>
+              </>
             )}
-            <span className="text-sm text-white/70">
-              {callState === 'connected' ? 'Connected' : 'Connecting...'}
-            </span>
           </div>
 
           {/* Participant Count */}
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-white/70" />
-            <span className="text-sm text-white/70">{allParticipants.length}</span>
+            <span className="text-sm text-white/70">{participants.length}</span>
           </div>
+
+          {/* Conference Stats */}
+          {conferenceStats && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+              className="text-white/70 hover:text-white"
+            >
+              <Signal className="w-4 h-4" />
+            </Button>
+          )}
 
           {/* Settings */}
           <Button
@@ -230,78 +186,88 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 relative">
-        {/* Video Grid */}
-        <div className="h-full p-6">
-          {allParticipants.length > 0 ? (
-            <div className={`grid ${getGridLayout(allParticipants.length)} gap-4 h-full`}>
-              {allParticipants.map((participant) => (
-                <ParticipantVideo
-                  key={participant.userId}
-                  userId={participant.userId}
-                  name={participant.name}
-                  role={participant.role}
-                  stream={participant.stream}
-                  isAudioEnabled={participant.isAudioEnabled}
-                  isVideoEnabled={participant.isVideoEnabled}
-                  isHandRaised={participant.isHandRaised}
-                  isSpeaking={participant.isSpeaking}
-                  isLocal={participant.isLocal}
-                />
-              ))}
+      {/* Stats Panel */}
+      {showStats && conferenceStats && (
+        <div className="p-4 bg-black/20 border-b border-white/10">
+          <div className="flex items-center gap-6 text-sm text-white/70">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span>{conferenceStats.participantCount} participants</span>
             </div>
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <Card className="w-96">
-                <CardContent className="text-center p-8">
-                  <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">Waiting for participants</h3>
-                  <p className="text-muted-foreground">
-                    Share the stage ID with others to start the meeting
-                  </p>
-                </CardContent>
-              </Card>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <VideoIcon className="w-4 h-4" />
+              <span>Video: {conferenceStats.videoQuality}</span>
             </div>
-          )}
-        </div>
-
-        {/* Screen Share Indicator */}
-        {isScreenSharing && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-              You are sharing your screen
-            </Badge>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <Signal className="w-4 h-4" />
+              <span>Audio: {conferenceStats.audioQuality}</span>
+            </div>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{conferenceStats.networkLatency}ms latency</span>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Chat Sidebar */}
-        {showChat && (
-          <div className="absolute top-0 right-0 w-80 h-full bg-black/80 backdrop-blur-sm border-l border-white/10">
-            <div className="p-4">
-              <h3 className="text-lg font-semibold text-white mb-4">Chat</h3>
-              {/* Chat content would go here */}
-              <div className="text-center text-muted-foreground">
-                Chat functionality coming soon
-              </div>
-            </div>
+      {/* Video Grid */}
+      <div className="flex-1 p-6 overflow-auto">
+        {participants.length > 0 ? (
+          <div className={`grid ${getGridCols(participants.length)} gap-4 h-full min-h-0`}>
+            {participants.map((participant) => (
+              <ParticipantVideo
+                key={participant.id}
+                participant={participant}
+                isLocal={participant.id === user.id}
+                isActiveSpeaker={participant.isSpeaking}
+                className="min-h-0"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <Card className="w-96">
+              <CardContent className="text-center p-8">
+                <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Waiting for participants</h3>
+                <p className="text-muted-foreground">
+                  Share the room ID with others to start the video conference
+                </p>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="p-4 bg-black/30 backdrop-blur-sm border-t border-white/10">
         <StageControls
           isAudioEnabled={isAudioEnabled}
           isVideoEnabled={isVideoEnabled}
           isHandRaised={isHandRaised}
-          userRole="moderator"
-          onToggleAudio={handleToggleAudio}
-          onToggleVideo={handleToggleVideo}
-          onRaiseHand={handleRaiseHand}
-          onToggleChat={handleToggleChat}
+          userRole="speaker"
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+          onRaiseHand={toggleHandRaise}
+          onToggleChat={() => {}} // TODO: Implement chat
           onLeave={handleLeave}
         />
+        
+        {/* Additional controls */}
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScreenShare}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <Monitor className="w-4 h-4 mr-2" />
+            {isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
+          </Button>
+        </div>
       </div>
     </div>
   );
