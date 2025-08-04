@@ -126,6 +126,20 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     return participants.find(p => p.isSpeaking) || participants[0] || null;
   }, [participants]);
 
+  const getConnectionIndicatorClass = useCallback(() => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'bg-green-400';
+      case 'connecting':
+      case 'reconnecting':
+        return 'bg-yellow-400 animate-pulse';
+      case 'failed':
+        return 'bg-red-400';
+      default:
+        return 'bg-gray-400';
+    }
+  }, [connectionStatus]);
+
   // Auth check
   if (!user) {
     return (
@@ -230,11 +244,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         <div className="flex items-center gap-6">
           {/* Connection Quality */}
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-400' :
-              connectionStatus === 'connecting' || connectionStatus === 'reconnecting' ? 'bg-yellow-400 animate-pulse' :
-              'bg-red-400'
-            }`} />
+            <div className={`w-2 h-2 rounded-full ${getConnectionIndicatorClass()}`} />
             <span className="text-sm text-white/80 capitalize">{connectionStatus}</span>
           </div>
 
