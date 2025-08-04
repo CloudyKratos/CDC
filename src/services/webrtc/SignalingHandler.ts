@@ -26,7 +26,7 @@ export class SignalingHandler {
     }
   }
 
-  private async createOfferForUser(userId: string): Promise<void> {
+  private async createOfferForUser(userId: string, retryCount: number = 0): Promise<void> {
     try {
       const pc = await this.peerManager.createPeerConnection(userId, true);
       
@@ -46,6 +46,11 @@ export class SignalingHandler {
       console.log('Sent offer to:', userId);
     } catch (error) {
       console.error('Error creating offer for user:', userId, error);
+      
+      if (retryCount < 3) {
+        console.log(`Retrying offer creation for ${userId}, attempt ${retryCount + 1}`);
+        setTimeout(() => this.createOfferForUser(userId, retryCount + 1), 1000 * (retryCount + 1));
+      }
     }
   }
 

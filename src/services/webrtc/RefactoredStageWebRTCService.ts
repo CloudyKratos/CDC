@@ -25,17 +25,23 @@ class RefactoredStageWebRTCService {
     console.log('RefactoredStageWebRTCService initialized with local stream');
   }
 
+  private remoteStreamHandler: ((userId: string, stream: MediaStream) => void) | null = null;
+  private connectionStateHandler: ((userId: string, state: RTCPeerConnectionState) => void) | null = null;
+
   onRemoteStream(handler: (userId: string, stream: MediaStream) => void): void {
-    this.peerManager.setEventHandlers(
-      handler,
-      () => {} // placeholder for connection state handler
-    );
+    this.remoteStreamHandler = handler;
+    this.updatePeerManagerHandlers();
   }
 
   onConnectionStateChange(handler: (userId: string, state: RTCPeerConnectionState) => void): void {
+    this.connectionStateHandler = handler;
+    this.updatePeerManagerHandlers();
+  }
+
+  private updatePeerManagerHandlers(): void {
     this.peerManager.setEventHandlers(
-      () => {}, // placeholder for remote stream handler
-      handler
+      this.remoteStreamHandler || (() => {}),
+      this.connectionStateHandler || (() => {})
     );
   }
 
@@ -43,8 +49,8 @@ class RefactoredStageWebRTCService {
     await this.signalingHandler.connectToExistingUsers();
   }
 
-  updateLocalStream(stream: MediaStream): void {
-    this.peerManager.updateLocalStream(stream);
+  async updateLocalStream(stream: MediaStream): Promise<void> {
+    await this.peerManager.updateLocalStream(stream);
   }
 
   cleanup(): void {

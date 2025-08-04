@@ -72,8 +72,15 @@ export class PeerConnectionManager {
         this.onConnectionStateChangeHandler(userId, pc.connectionState);
       }
 
-      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      if (pc.connectionState === 'failed') {
         this.handleConnectionFailure(userId);
+      } else if (pc.connectionState === 'disconnected') {
+        // Give disconnected connections some time to recover
+        setTimeout(() => {
+          if (pc.connectionState === 'disconnected') {
+            this.handleConnectionFailure(userId);
+          }
+        }, 5000);
       }
     };
 
@@ -81,9 +88,37 @@ export class PeerConnectionManager {
     return pc;
   }
 
-  private handleConnectionFailure(userId: string): void {
+  private async handleConnectionFailure(userId: string): Promise<void> {
     console.log('Connection failed for user:', userId);
-    // Could implement reconnection logic here
+    
+    const connection = this.peerConnections.get(userId);
+    if (connection) {
+      console.log('Attempting to restart connection for user:', userId);
+      
+      // Close the failed connection
+      connection.pc.close();
+      this.peerConnections.delete(userId);
+      
+      // Wait a bit before attempting reconnection
+      setTimeout(async () => {
+        try {
+          if (connection.isOfferer) {
+            // If we were the offerer, create a new offer
+            const newPc = await this.createPeerConnection(userId, true);
+            const offer = await newPc.createOffer({
+              offerToReceiveAudio: true,
+              offerToReceiveVideo: true
+            });
+            await newPc.setLocalDescription(offer);
+            
+            // Signal through StageSignalingService (would need import)
+            console.log('Would send reconnection offer to:', userId);
+          }
+        } catch (error) {
+          console.error('Failed to reconnect to user:', userId, error);
+        }
+      }, 2000);
+    }
   }
 
   getPeerConnection(userId: string): RTCPeerConnection | undefined {
@@ -99,23 +134,37 @@ export class PeerConnectionManager {
     }
   }
 
-  updateLocalStream(stream: MediaStream): void {
+  async updateLocalStream(stream: MediaStream): Promise<void> {
     this.localStream = stream;
     
     // Update all existing peer connections with new stream
-    this.peerConnections.forEach(({ pc }) => {
-      // Remove old tracks
-      pc.getSenders().forEach(sender => {
-        if (sender.track) {
-          pc.removeTrack(sender);
+    for (const [userId, { pc }] of this.peerConnections) {
+      try {
+        // Replace tracks instead of removing/adding to maintain connection
+        const senders = pc.getSenders();
+        const newTracks = stream.getTracks();
+        
+        // Replace existing tracks with new ones
+        for (const sender of senders) {
+          const newTrack = newTracks.find(track => track.kind === sender.track?.kind);
+          if (newTrack && sender.track) {
+            await sender.replaceTrack(newTrack);
+            console.log(`Replaced ${newTrack.kind} track for user:`, userId);
+          }
         }
-      });
-      
-      // Add new tracks
-      stream.getTracks().forEach(track => {
-        pc.addTrack(track, stream);
-      });
-    });
+        
+        // Add any missing tracks
+        for (const track of newTracks) {
+          const hasTrackOfKind = senders.some(sender => sender.track?.kind === track.kind);
+          if (!hasTrackOfKind) {
+            pc.addTrack(track, stream);
+            console.log(`Added ${track.kind} track for user:`, userId);
+          }
+        }
+      } catch (error) {
+        console.error(`Error updating stream for user ${userId}:`, error);
+      }
+    }
   }
 
   cleanup(): void {
