@@ -215,15 +215,18 @@ export const useVideoConference = (): UseVideoConferenceReturn => {
   }, [toast]);
 
   const toggleAudio = useCallback((): boolean => {
-    return VideoConferenceService.toggleLocalAudio();
+    VideoConferenceService.toggleAudio();
+    return true;
   }, []);
 
   const toggleVideo = useCallback((): boolean => {
-    return VideoConferenceService.toggleLocalVideo();
+    VideoConferenceService.toggleVideo();
+    return true;
   }, []);
 
   const toggleHandRaise = useCallback((): boolean => {
-    return VideoConferenceService.toggleHandRaise();
+    VideoConferenceService.toggleHandRaise();
+    return true;
   }, []);
 
   const startScreenShare = useCallback(async (): Promise<MediaStream | null> => {

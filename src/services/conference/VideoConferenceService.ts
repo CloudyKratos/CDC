@@ -1,6 +1,6 @@
 import { BrowserEventEmitter } from '../core/BrowserEventEmitter';
 
-export interface WebinarParticipant {
+export interface ConferenceParticipant {
   id: string;
   name: string;
   email?: string;
@@ -13,7 +13,11 @@ export interface WebinarParticipant {
   joinedAt: Date;
   connectionState: RTCPeerConnectionState;
   networkQuality: 'excellent' | 'good' | 'poor' | 'unknown';
+  stream?: MediaStream;
+  audioLevel?: number;
 }
+
+export interface WebinarParticipant extends ConferenceParticipant {}
 
 export interface WebinarSettings {
   allowAttendeeVideo: boolean;
@@ -28,12 +32,28 @@ export interface WebinarSettings {
 export interface ConferenceStats {
   totalParticipants: number;
   activeParticipants: number;
+  participantCount: number;
   duration: number;
   networkQuality: string;
+  networkLatency: number;
   connectionErrors: number;
   bandwidthUsage: {
     upload: number;
     download: number;
+  };
+  bandwidth: {
+    upload: number;
+    download: number;
+  };
+  videoQuality: {
+    resolution: string;
+    frameRate: number;
+    bitrate: number;
+  };
+  audioQuality: {
+    bitrate: number;
+    sampleRate: number;
+    channels: number;
   };
 }
 
@@ -60,6 +80,31 @@ class VideoConferenceService extends BrowserEventEmitter {
       VideoConferenceService.instance = new VideoConferenceService();
     }
     return VideoConferenceService.instance;
+  }
+
+  async joinConference(
+    roomId: string,
+    userId: string,
+    name: string
+  ): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+
+      const participantInfo = {
+        id: userId,
+        name,
+        role: 'attendee' as const
+      };
+
+      await this.initializeWebinar(stream, participantInfo);
+      return true;
+    } catch (error) {
+      console.error('Failed to join conference:', error);
+      return false;
+    }
   }
 
   async initializeWebinar(
@@ -143,7 +188,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     }
 
     const screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { mediaSource: 'screen' },
+      video: true,
       audio: true
     });
 
@@ -229,10 +274,23 @@ class VideoConferenceService extends BrowserEventEmitter {
       activeParticipants: Array.from(this.participants.values()).filter(p => 
         p.connectionState === 'connected'
       ).length,
+      participantCount: this.participants.size,
       duration,
       networkQuality: 'good',
+      networkLatency: 50,
       connectionErrors: 0,
-      bandwidthUsage: { upload: 0, download: 0 }
+      bandwidthUsage: { upload: 0, download: 0 },
+      bandwidth: { upload: 0, download: 0 },
+      videoQuality: {
+        resolution: '720p',
+        frameRate: 30,
+        bitrate: 1000
+      },
+      audioQuality: {
+        bitrate: 128,
+        sampleRate: 48000,
+        channels: 2
+      }
     };
   }
 }

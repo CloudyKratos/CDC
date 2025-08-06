@@ -293,13 +293,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
               <div className="flex items-center gap-2">
                 <VideoIcon className="w-4 h-4 text-green-400" />
                 <span>Video: </span>
-                <Badge variant="outline" className={`text-xs ${
-                  conferenceStats.videoQuality === 'excellent' ? 'border-green-400 text-green-400' :
-                  conferenceStats.videoQuality === 'good' ? 'border-blue-400 text-blue-400' :
-                  conferenceStats.videoQuality === 'fair' ? 'border-yellow-400 text-yellow-400' :
-                  'border-red-400 text-red-400'
-                }`}>
-                  {conferenceStats.videoQuality}
+                <Badge variant="outline" className="text-xs border-green-400 text-green-400">
+                  {conferenceStats.videoQuality.resolution}
                 </Badge>
               </div>
               
@@ -308,13 +303,8 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
               <div className="flex items-center gap-2">
                 <Mic className="w-4 h-4 text-green-400" />
                 <span>Audio: </span>
-                <Badge variant="outline" className={`text-xs ${
-                  conferenceStats.audioQuality === 'excellent' ? 'border-green-400 text-green-400' :
-                  conferenceStats.audioQuality === 'good' ? 'border-blue-400 text-blue-400' :
-                  conferenceStats.audioQuality === 'fair' ? 'border-yellow-400 text-yellow-400' :
-                  'border-red-400 text-red-400'
-                }`}>
-                  {conferenceStats.audioQuality}
+                <Badge variant="outline" className="text-xs border-green-400 text-green-400">
+                  {conferenceStats.audioQuality.bitrate}kbps
                 </Badge>
               </div>
               
@@ -329,7 +319,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
               
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-yellow-400" />
-                <span>{conferenceStats.bandwidth} kbps</span>
+                <span>{conferenceStats.bandwidth.upload} kbps</span>
               </div>
             </div>
             
