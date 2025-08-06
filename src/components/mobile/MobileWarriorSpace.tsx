@@ -1,0 +1,295 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Sword, 
+  Target, 
+  TrendingUp, 
+  Calendar,
+  Trophy,
+  Star,
+  Flame,
+  Clock,
+  Users,
+  ChevronRight,
+  Plus
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import MobileHeader from './MobileHeader';
+
+const MobileWarriorSpace: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'quests' | 'stats'>('overview');
+
+  const warriorStats = {
+    level: 12,
+    currentXp: 1240,
+    nextLevelXp: 1500,
+    rank: 'Silver Warrior',
+    streak: 15,
+    totalCoins: 2850,
+    completedQuests: 47,
+    dailyQuestProgress: 7,
+    totalDailyQuests: 10
+  };
+
+  const quickActions = [
+    {
+      title: 'Daily Challenge',
+      description: 'Complete today\'s warrior mission',
+      icon: Target,
+      color: 'from-blue-500 to-blue-600',
+      action: () => {},
+      status: 'active'
+    },
+    {
+      title: 'Log Workout',
+      description: 'Record your training session',
+      icon: Sword,
+      color: 'from-green-500 to-green-600',
+      action: () => {},
+      status: 'pending'
+    },
+    {
+      title: 'Weekly Goal',
+      description: 'Set your next milestone',
+      icon: Trophy,
+      color: 'from-purple-500 to-purple-600',
+      action: () => {},
+      status: 'completed'
+    }
+  ];
+
+  const todayQuests = [
+    { id: 1, title: 'Morning Workout', xp: 50, completed: true, category: 'Fitness' },
+    { id: 2, title: 'Read 30 Minutes', xp: 30, completed: true, category: 'Learning' },
+    { id: 3, title: 'Meditation', xp: 25, completed: false, category: 'Mindfulness' },
+    { id: 4, title: 'Healthy Meal Prep', xp: 40, completed: false, category: 'Nutrition' },
+    { id: 5, title: 'Connect with Team', xp: 35, completed: true, category: 'Social' }
+  ];
+
+  const xpProgress = (warriorStats.currentXp / warriorStats.nextLevelXp) * 100;
+  const dailyProgress = (warriorStats.dailyQuestProgress / warriorStats.totalDailyQuests) * 100;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-purple-500/10 lg:hidden">
+      <MobileHeader 
+        title="Warrior Space"
+        subtitle="Transform your potential into power"
+        showBack={true}
+        backPath="/dashboard"
+        actions={
+          <Button variant="ghost" size="icon" className="touch-target">
+            <Plus className="h-5 w-5" />
+          </Button>
+        }
+      />
+      
+      {/* Main content */}
+      <main className="pt-20 pb-20 mobile-container space-y-6">
+        {/* Warrior profile card */}
+        <Card className="bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent border-primary/20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12" />
+          <CardHeader className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                  <Sword className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Level {warriorStats.level}</h2>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    {warriorStats.rank}
+                  </Badge>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-1 text-orange-500">
+                  <Flame className="h-4 w-4" />
+                  <span className="font-bold">{warriorStats.streak}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">day streak</p>
+              </div>
+            </div>
+            
+            {/* XP Progress */}
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span>XP Progress</span>
+                <span className="font-medium">
+                  {warriorStats.currentXp} / {warriorStats.nextLevelXp}
+                </span>
+              </div>
+              <Progress value={xpProgress} className="h-2" />
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Tab navigation */}
+        <div className="flex bg-muted/50 rounded-xl p-1">
+          {[
+            { id: 'overview', label: 'Overview', icon: Target },
+            { id: 'quests', label: 'Quests', icon: Sword },
+            { id: 'stats', label: 'Stats', icon: TrendingUp }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? "secondary" : "ghost"}
+                className={cn(
+                  "flex-1 touch-target gap-2",
+                  activeTab === tab.id && "bg-background shadow-sm"
+                )}
+                onClick={() => setActiveTab(tab.id as any)}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="text-sm">{tab.label}</span>
+              </Button>
+            );
+          })}
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Daily progress */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Today's Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Daily Quests</span>
+                    <span className="font-medium">
+                      {warriorStats.dailyQuestProgress}/{warriorStats.totalDailyQuests}
+                    </span>
+                  </div>
+                  <Progress value={dailyProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {warriorStats.totalDailyQuests - warriorStats.dailyQuestProgress} quests remaining
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick actions */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Quick Actions</h3>
+              {quickActions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full justify-between p-4 h-auto touch-feedback group"
+                    onClick={action.action}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "p-3 rounded-xl bg-gradient-to-br text-white",
+                        action.color
+                      )}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">{action.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {action.description}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {action.status === 'completed' && (
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      )}
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'quests' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Today's Quests</h3>
+              <Badge variant="outline">
+                {todayQuests.filter(q => q.completed).length}/{todayQuests.length}
+              </Badge>
+            </div>
+            
+            {todayQuests.map((quest) => (
+              <Card key={quest.id} className={cn(
+                "touch-feedback transition-all duration-200",
+                quest.completed && "bg-muted/50 opacity-75"
+              )}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center",
+                      quest.completed 
+                        ? "bg-green-500 border-green-500" 
+                        : "border-muted-foreground"
+                    )}>
+                      {quest.completed && (
+                        <div className="w-3 h-3 bg-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className={cn(
+                        "font-medium",
+                        quest.completed && "line-through text-muted-foreground"
+                      )}>
+                        {quest.title}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {quest.category}
+                        </Badge>
+                        <span className="text-xs text-primary font-medium">
+                          +{quest.xp} XP
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Total Coins', value: warriorStats.totalCoins.toLocaleString(), icon: Star, color: 'text-yellow-600' },
+              { label: 'Completed Quests', value: warriorStats.completedQuests, icon: Trophy, color: 'text-green-600' },
+              { label: 'Current Level', value: warriorStats.level, icon: TrendingUp, color: 'text-blue-600' },
+              { label: 'Community Rank', value: '#247', icon: Users, color: 'text-purple-600' }
+            ].map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <Card key={index} className="touch-feedback hover-lift">
+                  <CardContent className="p-4 text-center">
+                    <Icon className={cn("h-6 w-6 mx-auto mb-2", stat.color)} />
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default MobileWarriorSpace;
