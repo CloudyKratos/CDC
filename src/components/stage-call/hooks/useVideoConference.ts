@@ -72,13 +72,18 @@ export const useVideoConference = (): UseVideoConferenceReturn => {
     };
 
     const handleParticipantsUpdated = ({ participants }: { participants: ConferenceParticipant[] }) => {
-      setParticipants(participants);
-      const local = participants.find(p => p.id === user?.id);
-      if (local) {
-        setLocalParticipant(local);
-        setIsAudioEnabled(local.isAudioEnabled);
-        setIsVideoEnabled(local.isVideoEnabled);
-        setIsHandRaised(local.isHandRaised);
+      // Ensure participants is always an array
+      const participantsList = participants || [];
+      
+      setParticipants(participantsList);
+      if (user?.id) {
+        const local = participantsList.find(p => p.id === user.id);
+        if (local) {
+          setLocalParticipant(local);
+          setIsAudioEnabled(local.isAudioEnabled);
+          setIsVideoEnabled(local.isVideoEnabled);
+          setIsHandRaised(local.isHandRaised);
+        }
       }
     };
 

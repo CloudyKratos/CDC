@@ -134,7 +134,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     this.isInitialized = true;
 
     this.emit('conferenceJoined', { participant: this.localParticipant });
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
   }
 
   async toggleAudio(): Promise<boolean> {
@@ -151,7 +151,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     }
     
     this.emit('localAudioToggled', this.localParticipant.isAudioEnabled);
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     return this.localParticipant.isAudioEnabled;
   }
 
@@ -169,7 +169,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     }
     
     this.emit('localVideoToggled', this.localParticipant.isVideoEnabled);
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     return this.localParticipant.isVideoEnabled;
   }
 
@@ -177,7 +177,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     if (!this.localParticipant) return false;
     this.localParticipant.isHandRaised = !this.localParticipant.isHandRaised;
     this.emit('handRaiseToggled', this.localParticipant.isHandRaised);
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     return this.localParticipant.isHandRaised;
   }
 
@@ -195,7 +195,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     this.localStream = screenStream;
     this.localParticipant.isScreenSharing = true;
     this.emit('screenShareStarted', screenStream);
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     
     screenStream.getVideoTracks()[0].onended = () => this.stopScreenShare();
     return screenStream;
@@ -205,7 +205,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     if (!this.localParticipant) return;
     this.localParticipant.isScreenSharing = false;
     this.emit('screenShareStopped');
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
   }
 
   async updateWebinarSettings(settings: Partial<WebinarSettings>): Promise<void> {
@@ -224,7 +224,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     if (participant && participant.role === 'attendee') {
       participant.isAudioEnabled = false;
       this.emit('participantMuted', { participantId });
-      this.emit('participantsUpdated', Array.from(this.participants.values()));
+      this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
     }
   }
 
@@ -234,7 +234,7 @@ class VideoConferenceService extends BrowserEventEmitter {
     }
     this.participants.delete(participantId);
     this.emit('participantRemoved', { participantId });
-    this.emit('participantsUpdated', Array.from(this.participants.values()));
+    this.emit('participantsUpdated', { participants: Array.from(this.participants.values()) });
   }
 
   async leaveConference(): Promise<void> {
