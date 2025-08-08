@@ -90,7 +90,7 @@ const MobileDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background lg:hidden">
+    <div className="mobile-smooth-scroll mobile-gpu-boost min-h-screen bg-gradient-to-br from-background via-muted/10 to-background lg:hidden">
       <MobileHeader 
         title={`${greeting}!`}
         subtitle={user?.email?.split('@')[0] || 'Warrior'}
@@ -99,124 +99,117 @@ const MobileDashboard: React.FC = () => {
       {/* Main content with top padding for fixed header */}
       <main className="pt-20 pb-20 mobile-container space-y-6">
         {/* Hero card */}
-        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
-          <CardHeader className="relative">
+        <div className="mobile-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 relative overflow-hidden rounded-2xl p-6">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 mobile-gpu-boost" />
+          <div className="relative">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl mb-2">Ready to Dominate Today?</CardTitle>
+                <h2 className="text-xl font-bold mb-2">Ready to Dominate Today?</h2>
                 <p className="text-muted-foreground text-sm">
                   You're 70% through your daily goals. Keep pushing forward!
                 </p>
               </div>
-              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+              <Sparkles className="h-8 w-8 text-primary animate-pulse mobile-gpu-boost" />
             </div>
-            <Progress value={70} className="mt-4" />
-          </CardHeader>
-        </Card>
+            <Progress value={70} className="mt-4 h-2" />
+          </div>
+        </div>
 
         {/* Quick stats grid */}
         <div className="grid grid-cols-2 gap-4">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="touch-feedback hover-lift">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-lg", stat.bgColor)}>
-                      <Icon className={cn("h-4 w-4", stat.color)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-lg">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {stat.label}
-                      </p>
-                    </div>
+              <div key={index} className="mobile-card touch-feedback mobile-hover:scale-105 rounded-2xl p-4 animate-mobile-fade-in" 
+                   style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-xl mobile-gpu-boost", stat.bgColor)}>
+                    <Icon className={cn("h-4 w-4", stat.color)} />
                   </div>
-                  {stat.percentage && (
-                    <Progress value={stat.percentage} className="mt-3 h-1.5" />
-                  )}
-                </CardContent>
-              </Card>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-lg">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {stat.label}
+                    </p>
+                  </div>
+                </div>
+                {stat.percentage && (
+                  <Progress value={stat.percentage} className="mt-3 h-1.5" />
+                )}
+              </div>
             );
           })}
         </div>
 
         {/* Quick actions */}
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Quick Actions</h3>
+          <h3 className="text-lg font-semibold px-2">Quick Actions</h3>
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
-              <Button
-                key={index}
-                variant="outline"
-                className={cn(
-                  "w-full justify-between p-6 h-auto touch-feedback",
-                  "hover:bg-gradient-to-r hover:from-background hover:to-muted/50"
-                )}
-                asChild
-              >
-                <a href={action.path}>
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "p-3 rounded-xl bg-gradient-to-br text-white",
-                      action.color
-                    )}>
-                      <Icon className="h-5 w-5" />
+              <div key={index} className="mobile-card rounded-2xl overflow-hidden touch-feedback">
+                <a href={action.path} className="block p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "p-3 rounded-xl bg-gradient-to-br text-white mobile-gpu-boost",
+                        action.color
+                      )}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">{action.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {action.description}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium">{action.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {action.description}
-                      </p>
-                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </a>
-              </Button>
+              </div>
             );
           })}
         </div>
 
         {/* Today's tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Today's Focus
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {todaysTasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 touch-feedback">
-                <div className={cn(
-                  "w-4 h-4 rounded-full border-2 flex-shrink-0",
-                  task.completed 
-                    ? "bg-green-500 border-green-500" 
-                    : "border-muted-foreground"
-                )}>
-                  {task.completed && (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className={cn(
-                    "font-medium",
-                    task.completed && "line-through text-muted-foreground"
+        <div className="mobile-card rounded-2xl">
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Today's Focus</h3>
+            </div>
+            <div className="space-y-3">
+              {todaysTasks.map((task) => (
+                <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 touch-feedback -mx-3">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full border-2 flex-shrink-0",
+                    task.completed 
+                      ? "bg-green-500 border-green-500" 
+                      : "border-muted-foreground"
                   )}>
-                    {task.title}
-                  </p>
+                    {task.completed && (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className={cn(
+                      "font-medium text-sm",
+                      task.completed && "line-through text-muted-foreground"
+                    )}>
+                      {task.title}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {task.time}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {task.time}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

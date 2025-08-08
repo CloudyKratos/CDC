@@ -395,21 +395,40 @@
 .mobile-header {
   height: var(--mobile-header-height);
   padding-top: var(--safe-area-inset-top);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .mobile-bottom-nav {
   height: var(--mobile-bottom-nav-height);
   padding-bottom: var(--safe-area-inset-bottom);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .touch-target {
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
+  @apply flex items-center justify-center;
 }
 
 .touch-target-optimal {
   min-height: var(--touch-target-optimal);
   min-width: var(--touch-target-optimal);
+  @apply flex items-center justify-center p-3;
+}
+
+/* Enhanced mobile UI improvements */
+.mobile-card {
+  @apply bg-card/95 backdrop-blur-md border border-border/50 shadow-lg;
+}
+
+.mobile-button {
+  @apply touch-target-optimal rounded-xl transition-all duration-200 active:scale-95;
+}
+
+.mobile-input {
+  @apply min-h-[44px] rounded-xl border-border/50 focus:border-primary/50;
 }
 
 /* Mobile gestures */
@@ -478,10 +497,54 @@
 
 /* Touch feedback */
 .touch-feedback {
-  transition: all 0.1s ease-out;
+  transition: all 0.15s ease-out;
+  transform-origin: center;
 }
 
 .touch-feedback:active {
-  transform: scale(0.97);
-  opacity: 0.8;
+  transform: scale(0.95);
+  background-color: hsl(var(--muted)/0.5);
+}
+
+/* Mobile performance optimizations */
+.mobile-smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
+.mobile-gpu-boost {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Mobile-specific shadows and effects */
+.mobile-shadow-sm {
+  box-shadow: 0 2px 4px -1px hsl(var(--primary) / 0.1);
+}
+
+.mobile-shadow-md {
+  box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.15);
+}
+
+.mobile-shadow-lg {
+  box-shadow: 0 8px 25px -5px hsl(var(--primary) / 0.2);
+}
+
+/* Mobile-friendly hover states (for devices with hover) */
+@media (hover: hover) {
+  .mobile-hover\\:bg-muted:hover {
+    background-color: hsl(var(--muted));
+  }
+  
+  .mobile-hover\\:scale-105:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .touch-target {
+    border: 2px solid currentColor;
+  }
 }

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileBottomNavigation from './MobileBottomNavigation';
 import MobileDashboard from './MobileDashboard';
-import MobileCommunityChat from './MobileCommunityChat';
+
 import MobileWarriorSpace from './MobileWarriorSpace';
 
 interface MobileLayoutProps {
@@ -26,7 +26,11 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       case '/dashboard':
         return <MobileDashboard />;
       case '/community':
-        return <MobileCommunityChat />;
+        return (
+          <div className="min-h-screen pt-16 pb-20">
+            {children}
+          </div>
+        );
       case '/warrior-space':
         return <MobileWarriorSpace />;
       default:
