@@ -23,14 +23,14 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const getMobileComponent = () => {
     switch (location.pathname) {
       case '/':
-        // Show desktop home page on mobile
+        return <MobileDashboard />;
+      case '/dashboard':
+        // For dashboard tabs, show the desktop version with mobile wrapper
         return (
-          <div className="min-h-screen">
+          <div className="min-h-screen pt-16 pb-20">
             {children}
           </div>
         );
-      case '/dashboard':
-        return <MobileDashboard />;
       case '/community':
         return (
           <div className="min-h-screen pt-16 pb-20">
@@ -50,7 +50,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
 
   // Routes that should hide the bottom navigation
   const hideBottomNav = [
-    '/',
     '/login',
     '/signup',
     '/sign-in',
