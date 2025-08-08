@@ -1,231 +1,199 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
-  TrendingUp, 
-  Calendar, 
   Users, 
-  Target,
-  ChevronRight,
-  Sparkles,
-  BarChart3,
+  Calendar, 
+  Command, 
+  Sword, 
+  Bell,
+  Plus,
+  TrendingUp,
   Clock,
-  Compass,
-  Phone
+  Star
 } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import MobileHeader from './MobileHeader';
-import { useAuth } from '@/contexts/AuthContext';
+import MobileCalendarView from '../calendar/MobileCalendarView';
 
 const MobileDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [greeting] = useState(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  });
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'home';
 
-  const quickStats = [
+  const coreFeatures = [
     {
-      label: 'Today\'s Progress',
-      value: '7/10',
-      percentage: 70,
-      icon: Target,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/20'
-    },
-    {
-      label: 'Current Streak',
-      value: '12 days',
-      icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20'
-    },
-    {
-      label: 'Weekly Score',
-      value: '485 pts',
-      icon: BarChart3,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
-    },
-    {
-      label: 'Community Rank',
-      value: '#247',
-      icon: Users,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50 dark:bg-orange-900/20'
-    }
-  ];
-
-  const quickActions = [
-    {
+      id: 'arena',
       title: "CDC's Arena",
-      description: 'Elite training ground',
-      icon: Target,
+      description: "Warrior's training ground",
+      icon: Sword,
       path: '/warrior-space',
-      color: 'from-orange-500 to-red-600'
+      color: 'from-purple-500 to-pink-500',
+      stats: 'Level 12 • 1,240 XP'
     },
     {
+      id: 'command',
       title: 'Command Room',
-      description: 'Main workspace',
-      icon: Compass,
-      path: '/dashboard?tab=command-room',
-      color: 'from-blue-500 to-cyan-600'
+      description: 'Mission control center',
+      icon: Command,
+      path: '/command-room',
+      color: 'from-blue-500 to-cyan-500',
+      stats: '5 Active Missions'
     },
     {
+      id: 'calendar',
       title: 'Calendar',
-      description: 'Schedule and events',
+      description: 'Community events',
       icon: Calendar,
       path: '/dashboard?tab=calendar',
-      color: 'from-green-500 to-emerald-600'
+      color: 'from-green-500 to-emerald-500',
+      stats: '3 Events Today'
     },
     {
+      id: 'community',
       title: 'Community',
       description: 'Connect with warriors',
       icon: Users,
       path: '/community',
-      color: 'from-purple-500 to-violet-600'
+      color: 'from-orange-500 to-red-500',
+      stats: '247 Members Online'
     },
     {
+      id: 'stage',
       title: 'Stage Rooms',
       description: 'Live sessions',
-      icon: Phone,
-      path: '/dashboard?tab=stage',
-      color: 'from-red-500 to-pink-600'
+      icon: Star,
+      path: '/stage-rooms',
+      color: 'from-indigo-500 to-purple-500',
+      stats: '2 Live Sessions'
     }
   ];
 
-  const todaysTasks = [
-    { id: 1, title: 'Morning workout', completed: true, time: '06:00' },
-    { id: 2, title: 'Read 30 minutes', completed: true, time: '07:30' },
-    { id: 3, title: 'Meditation session', completed: false, time: '20:00' },
-    { id: 4, title: 'Journal writing', completed: false, time: '21:00' }
+  const quickStats = [
+    { label: 'Today\'s Focus', value: '2h 45m', icon: Clock },
+    { label: 'Streak', value: '15 days', icon: TrendingUp },
+    { label: 'Rank', value: '#247', icon: Star }
   ];
 
+  // Show calendar tab content
+  if (activeTab === 'calendar') {
+    return (
+      <div className="min-h-screen bg-background">
+        <MobileHeader 
+          title="Community Calendar"
+          subtitle="Stay connected with events"
+          showBack={true}
+          backPath="/dashboard"
+        />
+        
+        <div className="pt-20 pb-20 p-4">
+          <MobileCalendarView />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mobile-smooth-scroll mobile-gpu-boost min-h-screen bg-gradient-to-br from-background via-muted/10 to-background lg:hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-purple-500/10">
       <MobileHeader 
-        title={`${greeting}!`}
-        subtitle={user?.email?.split('@')[0] || 'Warrior'}
+        title="Command Center"
+        subtitle="Your warrior dashboard"
+        actions={
+          <Button variant="ghost" size="icon" className="touch-target">
+            <Bell className="h-5 w-5" />
+          </Button>
+        }
       />
       
-      {/* Main content with top padding for fixed header */}
-      <main className="pt-20 pb-20 mobile-container space-y-6">
-        {/* Hero card */}
-        <div className="mobile-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 relative overflow-hidden rounded-2xl p-6">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 mobile-gpu-boost" />
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold mb-2">Ready to Dominate Today?</h2>
-                <p className="text-muted-foreground text-sm">
-                  You're 70% through your daily goals. Keep pushing forward!
-                </p>
-              </div>
-              <Sparkles className="h-8 w-8 text-primary animate-pulse mobile-gpu-boost" />
-            </div>
-            <Progress value={70} className="mt-4 h-2" />
-          </div>
+      <main className="pt-20 pb-20 p-4 space-y-6">
+        {/* Welcome Section */}
+        <div className="text-center py-4">
+          <h2 className="text-2xl font-bold mb-2">Welcome back, Warrior!</h2>
+          <p className="text-muted-foreground">Ready to conquer today's challenges?</p>
         </div>
 
-        {/* Quick stats grid */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-3">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="mobile-card touch-feedback mobile-hover:scale-105 rounded-2xl p-4 animate-mobile-fade-in" 
-                   style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl mobile-gpu-boost", stat.bgColor)}>
-                    <Icon className={cn("h-4 w-4", stat.color)} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-lg">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {stat.label}
-                    </p>
-                  </div>
-                </div>
-                {stat.percentage && (
-                  <Progress value={stat.percentage} className="mt-3 h-1.5" />
-                )}
-              </div>
+              <Card key={index} className="text-center">
+                <CardContent className="p-4">
+                  <Icon className="h-5 w-5 mx-auto mb-2 text-primary" />
+                  <p className="text-lg font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
 
-        {/* Quick actions */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold px-2">Five Core Features</h3>
-          <div className="mobile-dashboard-grid">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
+        {/* Core Features */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Five Main Cores</h3>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+              All Active
+            </Badge>
+          </div>
+          
+          <div className="space-y-3">
+            {coreFeatures.map((feature) => {
+              const Icon = feature.icon;
               return (
-                <div key={index} className="mobile-core-feature touch-feedback animate-mobile-fade-in" 
-                     style={{ animationDelay: `${index * 100}ms` }}>
-                  <a href={action.path} className="block">
-                    <div className="flex flex-col items-center text-center gap-3">
-                      <div className={cn(
-                        "mobile-feature-icon mobile-gpu-boost",
-                        action.color
-                      )}>
-                        <Icon className="h-6 w-6" />
+                <Link key={feature.id} to={feature.path}>
+                  <Card className="touch-feedback hover:shadow-md transition-all">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "p-3 rounded-xl bg-gradient-to-br text-white",
+                          feature.color
+                        )}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{feature.title}</h4>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {feature.description}
+                          </p>
+                          <p className="text-xs text-primary font-medium">
+                            {feature.stats}
+                          </p>
+                        </div>
+                        
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                       </div>
-                      <div>
-                        <p className="font-semibold text-base">{action.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {action.description}
-                        </p>
-                      </div>
-                    </div>
-                  </a>
-                </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
         </div>
 
-        {/* Today's tasks */}
-        <div className="mobile-card rounded-2xl">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold">Today's Focus</h3>
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-auto p-4 flex-col gap-2">
+                <Clock className="h-5 w-5" />
+                <span className="text-sm">Start Focus</span>
+              </Button>
+              <Button variant="outline" className="h-auto p-4 flex-col gap-2">
+                <Sword className="h-5 w-5" />
+                <span className="text-sm">Log Workout</span>
+              </Button>
             </div>
-            <div className="space-y-3">
-              {todaysTasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 touch-feedback -mx-3">
-                  <div className={cn(
-                    "w-4 h-4 rounded-full border-2 flex-shrink-0",
-                    task.completed 
-                      ? "bg-green-500 border-green-500" 
-                      : "border-muted-foreground"
-                  )}>
-                    {task.completed && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className={cn(
-                      "font-medium text-sm",
-                      task.completed && "line-through text-muted-foreground"
-                    )}>
-                      {task.title}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {task.time}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

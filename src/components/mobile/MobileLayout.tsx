@@ -4,8 +4,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import MobileBottomNavigation from './MobileBottomNavigation';
 import MobileDashboard from './MobileDashboard';
 
-import MobileWarriorSpace from './MobileWarriorSpace';
-
 interface MobileLayoutProps {
   children: React.ReactNode;
 }
@@ -23,14 +21,13 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const getMobileComponent = () => {
     switch (location.pathname) {
       case '/':
-        return <MobileDashboard />;
-      case '/dashboard':
-        // For dashboard tabs, show the desktop version with mobile wrapper
         return (
           <div className="min-h-screen pt-16 pb-20">
             {children}
           </div>
         );
+      case '/dashboard':
+        return <MobileDashboard />;
       case '/community':
         return (
           <div className="min-h-screen pt-16 pb-20">
@@ -38,7 +35,12 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           </div>
         );
       case '/warrior-space':
-        return <MobileWarriorSpace />;
+        // Use the desktop version for warrior space to keep all features
+        return (
+          <div className="min-h-screen pt-16 pb-20">
+            {children}
+          </div>
+        );
       default:
         return (
           <div className="min-h-screen pt-16 pb-20">

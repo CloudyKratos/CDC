@@ -638,3 +638,79 @@
 .mobile-text-subtitle {
   @apply text-sm text-muted-foreground;
 }
+
+@layer utilities {
+  /* Mobile-specific utilities */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  .touch-feedback {
+    @apply active:scale-95 transition-transform duration-150;
+  }
+  
+  .mobile-container {
+    @apply px-4 mx-auto max-w-sm;
+  }
+  
+  .mobile-card {
+    @apply bg-background/95 backdrop-blur-sm border border-border/50 shadow-sm;
+  }
+  
+  .mobile-shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .mobile-gpu-boost {
+    @apply will-change-transform;
+  }
+  
+  .mobile-smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-hover\:scale-105:hover {
+    @apply scale-105;
+  }
+  
+  @media (max-width: 640px) {
+    .animate-mobile-fade-in {
+      animation: mobileSlideUp 0.3s ease-out forwards;
+    }
+    
+    .animate-mobile-bounce-in {
+      animation: mobileBounceIn 0.4s ease-out forwards;
+    }
+  }
+}
+
+@keyframes mobileSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobileBounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
