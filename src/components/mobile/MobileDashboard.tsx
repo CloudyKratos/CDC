@@ -11,7 +11,9 @@ import {
   ChevronRight,
   Sparkles,
   BarChart3,
-  Clock
+  Clock,
+  Compass,
+  Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MobileHeader from './MobileHeader';
@@ -60,25 +62,39 @@ const MobileDashboard: React.FC = () => {
 
   const quickActions = [
     {
-      title: 'Join Community',
-      description: 'Connect with fellow warriors',
-      icon: Users,
-      path: '/community',
-      color: 'from-green-500 to-emerald-600'
-    },
-    {
-      title: 'Warrior Space',
-      description: 'Track your progress',
+      title: "CDC's Arena",
+      description: 'Elite training ground',
       icon: Target,
       path: '/warrior-space',
-      color: 'from-purple-500 to-violet-600'
+      color: 'from-orange-500 to-red-600'
     },
     {
       title: 'Command Room',
-      description: 'Access training content',
-      icon: Calendar,
-      path: '/command-room',
+      description: 'Main workspace',
+      icon: Compass,
+      path: '/dashboard?tab=command-room',
       color: 'from-blue-500 to-cyan-600'
+    },
+    {
+      title: 'Calendar',
+      description: 'Schedule and events',
+      icon: Calendar,
+      path: '/dashboard?tab=calendar',
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      title: 'Community',
+      description: 'Connect with warriors',
+      icon: Users,
+      path: '/community',
+      color: 'from-purple-500 to-violet-600'
+    },
+    {
+      title: 'Stage Rooms',
+      description: 'Live sessions',
+      icon: Phone,
+      path: '/dashboard?tab=stage',
+      color: 'from-red-500 to-pink-600'
     }
   ];
 
@@ -143,33 +159,33 @@ const MobileDashboard: React.FC = () => {
 
         {/* Quick actions */}
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold px-2">Quick Actions</h3>
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <div key={index} className="mobile-card rounded-2xl overflow-hidden touch-feedback">
-                <a href={action.path} className="block p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+          <h3 className="text-lg font-semibold px-2">Five Core Features</h3>
+          <div className="mobile-dashboard-grid">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <div key={index} className="mobile-core-feature touch-feedback animate-mobile-fade-in" 
+                     style={{ animationDelay: `${index * 100}ms` }}>
+                  <a href={action.path} className="block">
+                    <div className="flex flex-col items-center text-center gap-3">
                       <div className={cn(
-                        "p-3 rounded-xl bg-gradient-to-br text-white mobile-gpu-boost",
+                        "mobile-feature-icon mobile-gpu-boost",
                         action.color
                       )}>
-                        <Icon className="h-5 w-5" />
+                        <Icon className="h-6 w-6" />
                       </div>
-                      <div className="text-left">
-                        <p className="font-medium">{action.title}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div>
+                        <p className="font-semibold text-base">{action.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
                           {action.description}
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </a>
-              </div>
-            );
-          })}
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Today's tasks */}

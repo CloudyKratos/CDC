@@ -23,8 +23,14 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const getMobileComponent = () => {
     switch (location.pathname) {
       case '/':
-      case '/dashboard':
         return <MobileDashboard />;
+      case '/dashboard':
+        // For dashboard tabs, show the desktop version with mobile wrapper
+        return (
+          <div className="min-h-screen pt-16 pb-20">
+            {children}
+          </div>
+        );
       case '/community':
         return (
           <div className="min-h-screen pt-16 pb-20">

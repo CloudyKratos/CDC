@@ -20,36 +20,49 @@ const MobileBottomNavigation: React.FC<MobileBottomNavigationProps> = ({ classNa
 
   const primaryNavItems = [
     { 
-      path: '/dashboard', 
-      icon: Home, 
-      label: 'Home',
+      path: '/warrior-space', 
+      icon: Gamepad2, 
+      label: "CDC's Arena",
+      color: 'text-orange-600'
+    },
+    { 
+      path: '/dashboard?tab=command-room', 
+      icon: Compass, 
+      label: 'Command',
       color: 'text-blue-600'
+    },
+    { 
+      path: '/dashboard?tab=calendar', 
+      icon: Calendar, 
+      label: 'Calendar',
+      color: 'text-green-600'
     },
     { 
       path: '/community', 
       icon: Users, 
       label: 'Community',
-      color: 'text-green-600'
-    },
-    { 
-      path: '/warrior-space', 
-      icon: Gamepad2, 
-      label: 'Warrior',
       color: 'text-purple-600'
     },
     { 
-      path: '/command-room', 
-      icon: Compass, 
-      label: 'Command',
-      color: 'text-orange-600'
+      path: '/dashboard?tab=stage', 
+      icon: Phone, 
+      label: 'Stage',
+      color: 'text-red-600'
     }
   ];
 
   const isActive = (path: string) => {
-    if (path === '/dashboard') {
-      return location.pathname === '/' || location.pathname === '/dashboard';
+    if (path === '/warrior-space') {
+      return location.pathname === '/warrior-space';
     }
-    return location.pathname.startsWith(path);
+    if (path === '/community') {
+      return location.pathname === '/community';
+    }
+    if (path.includes('dashboard?tab=')) {
+      const tab = path.split('tab=')[1];
+      return location.pathname === '/dashboard' && location.search.includes(`tab=${tab}`);
+    }
+    return location.pathname === path;
   };
 
   return (

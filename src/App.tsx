@@ -18,6 +18,9 @@ import WarriorSpace from "./pages/WarriorSpace";
 import ProfileSettings from "./pages/ProfileSettings";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
+import CommandRoom from "./pages/CommandRoom";
+import Calendar from "./pages/Calendar";
+import StageRooms from "./pages/StageRooms";
 import NotFound from "./pages/NotFound";
 import MobileLayout from "./components/mobile/MobileLayout";
 import "./App.css";
@@ -35,19 +38,22 @@ function App() {
                 <Router>
                   <MobileLayout>
                     <div className="min-h-screen bg-background">
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/signup" element={<SignUp />} />
-                        <Route path="/community" element={<CommunityPage />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/admin" element={<Admin />} />
-                        <Route path="/warrior-space" element={<WarriorSpace />} />
-                        <Route path="/profile-settings" element={<ProfileSettings />} />
-                        <Route path="/verify-email" element={<VerifyEmail />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/signup" element={<SignUp />} />
+                          <Route path="/community" element={<CommunityPage />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/admin" element={<Admin />} />
+                          <Route path="/warrior-space" element={<WarriorSpace />} />
+                          <Route path="/command-room" element={<CommandRoom />} />
+                          <Route path="/calendar" element={<Calendar />} />
+                          <Route path="/stage-rooms" element={<StageRooms />} />
+                          <Route path="/profile-settings" element={<ProfileSettings />} />
+                          <Route path="/verify-email" element={<VerifyEmail />} />
+                          <Route path="/reset-password" element={<ResetPassword />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
                       <Toaster />
                     </div>
                   </MobileLayout>
