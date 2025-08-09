@@ -14,6 +14,12 @@ const MobileBottomNavigation: React.FC = () => {
       isActive: location.pathname === '/'
     },
     { 
+      path: '/community', 
+      icon: Users, 
+      label: 'Community',
+      isActive: location.pathname === '/community'
+    },
+    { 
       path: '/dashboard', 
       icon: Command, 
       label: 'Command',
@@ -24,12 +30,6 @@ const MobileBottomNavigation: React.FC = () => {
       icon: Calendar, 
       label: 'Calendar',
       isActive: location.search.includes('tab=calendar') || location.pathname === '/calendar'
-    },
-    { 
-      path: '/community', 
-      icon: Users, 
-      label: 'Community',
-      isActive: location.pathname === '/community'
     },
     { 
       path: '/warrior-space', 
