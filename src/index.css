@@ -520,17 +520,17 @@
   }
 }
 
-  .animate-mobile-slide-up {
-    animation: mobile-slide-up 0.3s ease-out;
-  }
+/* Animation utilities */
+.animate-mobile-slide-up {
+  animation: mobile-slide-up 0.3s ease-out;
+}
 
-  .animate-mobile-fade-in {
-    animation: mobile-fade-in 0.2s ease-out;
-  }
+.animate-mobile-fade-in {
+  animation: mobile-fade-in 0.2s ease-out;
+}
 
-  .animate-mobile-bounce-in {
-    animation: mobile-bounce-in 0.5s ease-out;
-  }
+.animate-mobile-bounce-in {
+  animation: mobile-bounce-in 0.5s ease-out;
 }
 
 /* Touch feedback */
