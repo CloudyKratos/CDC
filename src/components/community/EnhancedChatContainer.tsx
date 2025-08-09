@@ -185,12 +185,12 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
         
         {/* Mobile Header with Toggle */}
         {isMobile && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3 sm:p-4 flex items-center justify-between mobile-safe-area-top">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleSidebar}
-              className="h-8 w-8 p-0"
+              className="h-10 w-10 p-0 touch-target"
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
@@ -199,16 +199,16 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
               channels={displayChannels}
               activeChannel={activeChannel}
               onChannelSelect={handleChannelSelect}
-              className="flex-1 mx-4"
+              className="flex-1 mx-4 max-w-none"
             />
             
-            <div className="w-8" /> {/* Spacer */}
+            <div className="w-10" /> {/* Spacer */}
           </div>
         )}
 
         {/* Enhanced Sidebar */}
         {(!isMobile || sidebarOpen) && (
-          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl' : ''} flex-shrink-0`}>
+          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl w-full max-w-sm' : 'flex-shrink-0'}`}>
             <EnhancedSidebar
               channels={displayChannels}
               activeChannel={activeChannel}
@@ -223,11 +223,11 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
         )}
 
         {/* Chat Area */}
-        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${isMobile ? 'pt-16' : ''}`}>
+        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${isMobile ? 'pt-20' : ''} mobile-safe-area-bottom`}>
           {/* Desktop Header with Status */}
           {!isMobile && (
             <div className="flex-shrink-0">
-              <div className="flex items-center justify-between px-6 py-4 border-b bg-white dark:bg-gray-900">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-white dark:bg-gray-900">
                 <QuickChannelSwitcher
                   channels={displayChannels}
                   activeChannel={activeChannel}
@@ -238,7 +238,7 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={toggleSidebar}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0 touch-target"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>

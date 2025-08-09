@@ -102,21 +102,25 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
   const favoriteChannels = channels.filter(c => c.isPinned);
 
   return (
-    <Card className={`w-80 h-full border-0 rounded-none bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-gray-800 ${className}`}>
+    <Card className={`w-full sm:w-80 h-full border-0 rounded-none bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-gray-800 ${className}`}>
       <Tabs defaultValue="channels" className="h-full flex flex-col">
-        <div className="p-4 border-b bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+        <div className="p-3 sm:p-4 border-b bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
           <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">
-            <TabsTrigger value="channels" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Hash className="h-3 w-3" />
+            <TabsTrigger value="channels" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
+              <Hash className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sr-only">Channels</span>
             </TabsTrigger>
-            <TabsTrigger value="search" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Search className="h-3 w-3" />
+            <TabsTrigger value="search" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
+              <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sr-only">Search</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Users className="h-3 w-3" />
+            <TabsTrigger value="users" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sr-only">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Settings className="h-3 w-3" />
+            <TabsTrigger value="settings" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sr-only">Settings</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -124,7 +128,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
         <div className="flex-1 overflow-hidden">
           <TabsContent value="channels" className="h-full m-0 p-0">
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
+              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                 {/* Connection Status */}
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800">
                   <div className={cn(
@@ -142,16 +146,16 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-between p-0 h-auto font-medium text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400"
+                      className="w-full justify-between p-2 h-auto font-medium text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400 touch-target"
                       onClick={() => toggleGroup('favorites')}
                     >
                       <div className="flex items-center gap-2">
                         <Star className="h-3 w-3" />
-                        Favorites
+                        <span className="truncate">Favorites</span>
                       </div>
                       {expandedGroups.has('favorites') ? 
-                        <ChevronDown className="h-3 w-3" /> : 
-                        <ChevronRight className="h-3 w-3" />
+                        <ChevronDown className="h-3 w-3 flex-shrink-0" /> : 
+                        <ChevronRight className="h-3 w-3 flex-shrink-0" />
                       }
                     </Button>
                     
@@ -168,14 +172,14 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                               onClick={() => onChannelSelect(channel.name)}
                               variant={isActive ? "secondary" : "ghost"}
                               className={cn(
-                                "w-full justify-start gap-3 h-9 px-3 text-left font-normal",
+                                "w-full justify-start gap-3 min-h-[44px] px-3 text-left font-normal touch-target",
                                 isActive 
                                   ? "bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100" 
                                   : `hover:bg-gray-100 dark:hover:bg-gray-800 ${colorClass}`
                               )}
                             >
                               <Icon className="h-4 w-4 flex-shrink-0" />
-                              <span className="flex-1 truncate">{channel.name}</span>
+                              <span className="flex-1 truncate text-sm">{channel.name}</span>
                               {channel.unreadCount && channel.unreadCount > 0 && (
                                 <Badge variant="destructive" className="h-5 px-1.5 text-xs">
                                   {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
@@ -196,19 +200,19 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-between p-0 h-auto font-medium text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400"
+                    className="w-full justify-between p-2 h-auto font-medium text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400 touch-target"
                     onClick={() => toggleGroup('channels')}
                   >
-                    <div className="flex items-center gap-2">
-                      <Hash className="h-3 w-3" />
-                      Channels
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Hash className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">Channels</span>
                       <Badge variant="secondary" className="h-4 px-1.5 text-xs">
                         {publicChannels.length}
                       </Badge>
                     </div>
                     {expandedGroups.has('channels') ? 
-                      <ChevronDown className="h-3 w-3" /> : 
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronDown className="h-3 w-3 flex-shrink-0" /> : 
+                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
                     }
                   </Button>
                   
@@ -231,7 +235,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                               onClick={() => onChannelSelect(channel.name)}
                               variant={isActive ? "secondary" : "ghost"}
                               className={cn(
-                                "w-full justify-start gap-3 h-9 px-3 text-left font-normal",
+                                "w-full justify-start gap-3 min-h-[44px] px-3 text-left font-normal touch-target",
                                 isActive 
                                   ? "bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100" 
                                   : `hover:bg-gray-100 dark:hover:bg-gray-800 ${colorClass}`
@@ -243,13 +247,13 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                                   {channel.name}
                                 </div>
                                 {channel.description && (
-                                  <div className="text-xs opacity-70 truncate">
+                                  <div className="text-xs opacity-70 line-clamp-2">
                                     {channel.description}
                                   </div>
                                 )}
                               </div>
                               {channel.unreadCount && channel.unreadCount > 0 && (
-                                <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                                <Badge variant="destructive" className="h-5 px-1.5 text-xs flex-shrink-0">
                                   {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
                                 </Badge>
                               )}
@@ -265,7 +269,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs border-dashed"
+                  className="w-full justify-start gap-2 min-h-[44px] text-xs border-dashed touch-target"
                 >
                   <Plus className="h-3 w-3" />
                   Add Channel
@@ -275,18 +279,18 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
           </TabsContent>
 
           <TabsContent value="search" className="h-full m-0 p-0">
-            <div className="p-4 space-y-4">
+            <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <Input
                   placeholder="Search messages..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="bg-white dark:bg-gray-800"
+                  className="bg-white dark:bg-gray-800 min-h-[44px]"
                 />
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <Button variant="outline" size="sm" className="h-8 text-xs touch-target">
                     <Filter className="h-3 w-3 mr-1" />
-                    Filters
+                    <span className="hidden xs:inline">Filters</span>
                   </Button>
                 </div>
               </div>
@@ -298,9 +302,9 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                       searchResults.map((result, index) => (
                         <div
                           key={index}
-                          className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                          className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors touch-target"
                         >
-                          <div className="text-sm font-medium mb-1">
+                          <div className="text-sm font-medium mb-1 truncate">
                             {result.sender?.full_name || result.sender?.username || 'Unknown User'}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
@@ -312,15 +316,15 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                        <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                      <div className="text-center py-8">
+                        <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No results found</p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                  <div className="text-center py-8">
+                    <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Type to search messages</p>
                   </div>
                 )}

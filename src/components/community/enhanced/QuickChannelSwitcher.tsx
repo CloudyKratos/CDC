@@ -81,13 +81,13 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "justify-between font-medium text-left max-w-xs",
+            "justify-between font-medium text-left max-w-xs touch-target-optimal min-h-[44px]",
             className
           )}
         >
           <div className="flex items-center gap-2 min-w-0">
             <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-            <span className="truncate">{activeChannel || 'Select Channel'}</span>
+            <span className="truncate text-sm">{activeChannel || 'Select Channel'}</span>
             {currentChannel?.isPinned && (
               <Star className="h-3 w-3 text-yellow-500 flex-shrink-0" />
             )}
@@ -96,12 +96,13 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-80 p-0 z-50" align="start">
         <Command shouldFilter={false}>
           <CommandInput 
             placeholder="Search channels..." 
             value={searchValue}
             onValueChange={setSearchValue}
+            className="min-h-[44px]"
           />
           
           <CommandList>
@@ -116,7 +117,7 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={handleCreateChannel}
-                      className="gap-2"
+                      className="gap-2 touch-target-optimal"
                     >
                       <Plus className="h-3 w-3" />
                       Create "{searchValue}"
@@ -131,17 +132,17 @@ export const QuickChannelSwitcher: React.FC<QuickChannelSwitcherProps> = ({
                     key={channel.id || channel.name}
                     value={channel.name}
                     onSelect={() => handleSelect(channel.name)}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between min-h-[44px] px-3 touch-target"
                   >
-                    <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                      <span>{channel.name}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+                      <span className="truncate text-sm">{channel.name}</span>
                       {channel.isPinned && (
-                        <Star className="h-3 w-3 text-yellow-500" />
+                        <Star className="h-3 w-3 text-yellow-500 flex-shrink-0" />
                       )}
                     </div>
                     {channel.unreadCount && channel.unreadCount > 0 && (
-                      <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2">
+                      <Badge variant="destructive" className="h-4 px-1.5 text-xs ml-2 flex-shrink-0">
                         {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
                       </Badge>
                     )}

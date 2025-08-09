@@ -9,19 +9,19 @@ export const CommunityTabsPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-        <div className="border-b border-border/50 px-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="chat" className="flex items-center gap-2">
+        <div className="border-b border-border/50 px-3 sm:px-4">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="chat" className="flex items-center gap-2 min-h-[44px] touch-target">
               <MessageCircle className="w-4 h-4" />
-              Chat
+              <span className="hidden xs:inline">Chat</span>
             </TabsTrigger>
-            <TabsTrigger value="calls" className="flex items-center gap-2">
+            <TabsTrigger value="calls" className="flex items-center gap-2 min-h-[44px] touch-target">
               <Video className="w-4 h-4" />
-              Calls
+              <span className="hidden xs:inline">Calls</span>
             </TabsTrigger>
-            <TabsTrigger value="members" className="flex items-center gap-2">
+            <TabsTrigger value="members" className="flex items-center gap-2 min-h-[44px] touch-target">
               <Users className="w-4 h-4" />
-              Members
+              <span className="hidden xs:inline">Members</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -35,7 +35,7 @@ export const CommunityTabsPanel: React.FC = () => {
             <CommunityCallsPanel />
           </TabsContent>
           
-          <TabsContent value="members" className="h-full m-0 p-4">
+          <TabsContent value="members" className="h-full m-0 p-3 sm:p-4">
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Community Members</h3>
