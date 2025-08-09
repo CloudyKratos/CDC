@@ -39,63 +39,63 @@ const EnhancedCommunityCalendar: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-      {/* Hero Section */}
+      {/* Hero Section - Enhanced mobile responsiveness */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative p-4 md:p-8 text-center">
-          <div className="max-w-4xl mx-auto space-y-4">
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+        <div className="relative p-4 sm:p-6 lg:p-8 text-center">
+          <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
+            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight">
               Community Calendar
             </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-lg lg:text-xl text-white/90 max-w-2xl mx-auto px-2">
               Discover, join, and engage with community events happening around you. 
               Stay connected and never miss out on what matters most.
             </p>
             
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-6 md:mt-8 max-w-3xl mx-auto">
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold">{events.length}</div>
-                <div className="text-sm text-white/80">Total Events</div>
+            {/* Quick Stats - Mobile optimized grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mt-4 sm:mt-6 lg:mt-8 max-w-3xl mx-auto">
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold">{events.length}</div>
+                <div className="text-xs sm:text-sm text-white/80">Total Events</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-red-300">{liveEvents.length}</div>
-                <div className="text-sm text-white/80">Live Now</div>
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-red-300">{liveEvents.length}</div>
+                <div className="text-xs sm:text-sm text-white/80">Live Now</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold">{todayEvents.length}</div>
-                <div className="text-sm text-white/80">Today</div>
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold">{todayEvents.length}</div>
+                <div className="text-xs sm:text-sm text-white/80">Today</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold">{thisWeekEvents.length}</div>
-                <div className="text-sm text-white/80">This Week</div>
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold">{thisWeekEvents.length}</div>
+                <div className="text-xs sm:text-sm text-white/80">This Week</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <TabsList className="grid w-full sm:w-auto max-w-md grid-cols-3">
-              <TabsTrigger value="calendar" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendar
+      {/* Main Content - Enhanced mobile layout */}
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <div className="flex flex-col items-start gap-3 sm:gap-4">
+            <TabsList className="grid w-full max-w-md grid-cols-3 h-10 sm:h-auto">
+              <TabsTrigger value="calendar" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Calendar</span>
               </TabsTrigger>
-              <TabsTrigger value="insights" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Insights
+              <TabsTrigger value="insights" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Insights</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Activity
+              <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Activity</span>
               </TabsTrigger>
             </TabsList>
 
             {canManageCalendar && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs sm:text-sm">
                 Admin Access
               </Badge>
             )}

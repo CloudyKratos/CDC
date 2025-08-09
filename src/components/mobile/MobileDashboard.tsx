@@ -113,16 +113,16 @@ const MobileDashboard: React.FC = () => {
           <p className="text-muted-foreground">Ready to conquer today's challenges?</p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Quick Stats - Enhanced mobile design */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="text-center">
-                <CardContent className="p-4">
-                  <Icon className="h-5 w-5 mx-auto mb-2 text-primary" />
-                  <p className="text-lg font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <Card key={index} className="text-center hover:shadow-md transition-all duration-200">
+                <CardContent className="p-3 sm:p-4">
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm sm:text-lg font-bold truncate">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
                 </CardContent>
               </Card>
             );
@@ -143,27 +143,30 @@ const MobileDashboard: React.FC = () => {
               const Icon = feature.icon;
               return (
                 <Link key={feature.id} to={feature.path}>
-                  <Card className="touch-feedback hover:shadow-md transition-all">
+                  <Card className="touch-feedback hover:shadow-lg transition-all duration-200 overflow-hidden">
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
                         <div className={cn(
-                          "p-3 rounded-xl bg-gradient-to-br text-white",
+                          "p-3 rounded-xl bg-gradient-to-br text-white shadow-sm flex-shrink-0",
                           feature.color
                         )}>
-                          <Icon className="h-6 w-6" />
+                          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                         </div>
                         
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{feature.title}</h4>
-                          <p className="text-sm text-muted-foreground mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm sm:text-base truncate">{feature.title}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1 line-clamp-2">
                             {feature.description}
                           </p>
-                          <p className="text-xs text-primary font-medium">
+                          <p className="text-xs text-primary font-medium truncate">
                             {feature.stats}
                           </p>
                         </div>
                         
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow" />
+                          <span className="text-xs text-muted-foreground">Active</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

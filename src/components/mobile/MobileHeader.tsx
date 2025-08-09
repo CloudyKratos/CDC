@@ -19,26 +19,30 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   actions
 }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
-      <div className="flex items-center justify-between p-4 h-16">
-        <div className="flex items-center gap-3">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/98 backdrop-blur-xl border-b border-border/30 mobile-safe-area-top">
+      <div className="flex items-center justify-between px-4 py-3 min-h-[64px]">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {showBack && (
             <Link to={backPath}>
-              <Button variant="ghost" size="icon" className="touch-target">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="touch-target-optimal h-10 w-10 -ml-2 hover:bg-muted/50 transition-colors"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
           )}
-          <div>
-            <h1 className="text-lg font-bold">{title}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl font-bold truncate">{title}</h1>
             {subtitle && (
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{subtitle}</p>
             )}
           </div>
         </div>
         
         {actions && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {actions}
           </div>
         )}
