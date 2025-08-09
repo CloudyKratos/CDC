@@ -61,63 +61,73 @@ export const IntegratedChatFeatures: React.FC<IntegratedChatFeaturesProps> = ({
 
   return (
     <div className={cn(
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50",
+      "bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50",
+      "safe-area-inset-top", // Mobile safe area support
       className
     )}>
-      {/* Main Header */}
-      <div className="px-6 py-4">
+      {/* Main Header - Mobile responsive */}
+      <div className="px-3 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+              <span className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
                 Community Chat
               </span>
             </div>
             
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200 flex-shrink-0 hidden xs:flex">
               <Users className="h-3 w-3 mr-1" />
-              {activeUsers} online
+              <span className="hidden sm:inline">{activeUsers} online</span>
+              <span className="sm:hidden">{activeUsers}</span>
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "h-8 w-8 p-0",
+                "h-9 w-9 sm:h-8 sm:w-8 p-0 touch-target", // Larger on mobile
                 showFilters && "bg-slate-100 dark:bg-slate-800"
               )}
             >
               <Filter className="h-4 w-4" />
             </Button>
             
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-9 w-9 sm:h-8 sm:w-8 p-0 touch-target hidden sm:flex"
+            >
               <Settings className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mt-4 relative">
+        {/* Search Bar - Mobile optimized */}
+        <div className="mt-3 sm:mt-4 relative">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search messages..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 pr-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500/20"
+              className={cn(
+                "pl-10 pr-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700",
+                "focus:ring-2 focus:ring-blue-500/20 touch-manipulation",
+                "h-10 sm:h-9 text-base sm:text-sm" // Better mobile sizing
+              )}
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearSearch}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 sm:h-6 sm:w-6 p-0 touch-target"
               >
-                <X className="h-3 w-3" />
+                <X className="h-4 w-4 sm:h-3 sm:w-3" />
               </Button>
             )}
           </div>
@@ -130,17 +140,17 @@ export const IntegratedChatFeatures: React.FC<IntegratedChatFeaturesProps> = ({
         </div>
       </div>
 
-      {/* Expandable Filters */}
+      {/* Expandable Filters - Mobile optimized */}
       {showFilters && (
         <>
           <Separator />
-          <div className="px-6 py-3">
-            <div className="flex items-center gap-2 overflow-x-auto">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex-shrink-0">
+          <div className="px-3 sm:px-6 py-3">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex-shrink-0 hidden sm:block">
                 Filter by:
               </span>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-max pb-1">
                 {filters.map((filter) => {
                   const Icon = filter.icon;
                   const isActive = activeFilter === filter.id;
@@ -152,14 +162,18 @@ export const IntegratedChatFeatures: React.FC<IntegratedChatFeaturesProps> = ({
                       size="sm"
                       onClick={() => handleFilter(filter.id)}
                       className={cn(
-                        "h-7 text-xs whitespace-nowrap",
+                        "h-8 sm:h-7 text-xs whitespace-nowrap touch-target px-3 sm:px-2",
+                        "flex-shrink-0", // Prevent shrinking in flex container
                         isActive 
                           ? "bg-blue-600 text-white hover:bg-blue-700" 
                           : "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
                       )}
                     >
                       <Icon className="h-3 w-3 mr-1.5" />
-                      {filter.label}
+                      <span className="hidden sm:inline">{filter.label}</span>
+                      <span className="sm:hidden">
+                        {filter.label.split(' ')[0]} {/* Show first word on mobile */}
+                      </span>
                     </Button>
                   );
                 })}

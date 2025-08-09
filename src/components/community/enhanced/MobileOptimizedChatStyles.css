@@ -1,0 +1,143 @@
+/* Mobile-specific optimizations for community chat */
+
+/* Safe area handling for devices with notches */
+.mobile-header-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.mobile-input-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.mobile-safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Touch targets - Minimum 44px for accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (max-width: 640px) {
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* Prevent layout shifts during message loading */
+.will-change-contents {
+  will-change: contents;
+}
+
+/* Better text wrapping for different languages */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Smooth scrolling optimization */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars on mobile for cleaner look */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Better focus states for mobile */
+@media (max-width: 640px) {
+  .focus\:ring-2:focus {
+    ring-width: 3px;
+  }
+  
+  .focus\:ring-blue-500\/20:focus {
+    ring-color: rgb(59 130 246 / 0.3);
+  }
+}
+
+/* Optimize animations for mobile */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-bounce {
+    animation-duration: 1s;
+  }
+  
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+}
+
+/* Better mobile input styling */
+@media (max-width: 640px) {
+  textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Improve contrast for better readability */
+@media (max-width: 640px) {
+  .text-slate-500 {
+    color: rgb(100 116 139);
+  }
+  
+  .dark .text-slate-400 {
+    color: rgb(148 163 184);
+  }
+}
+
+/* Performance optimizations */
+.gpu-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Mobile-specific message bubble improvements */
+@media (max-width: 640px) {
+  .message-bubble {
+    max-width: calc(100vw - 5rem);
+  }
+  
+  .message-actions {
+    backdrop-filter: blur(8px);
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .message-actions {
+    background-color: rgba(15, 23, 42, 0.95);
+  }
+}
+
+/* Better mobile typography */
+@media (max-width: 640px) {
+  .text-sm {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  
+  .text-xs {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+}

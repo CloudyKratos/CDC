@@ -464,40 +464,61 @@
   -webkit-line-clamp: 3;
 }
 
-/* Mobile-optimized animations */
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes mobile-slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+/* Mobile Chat Optimizations for Community Chat */
+@layer utilities {
+  /* Safe area handling for devices with notches */
+  .mobile-header-safe {
+    padding-top: env(safe-area-inset-top);
   }
 
-  @keyframes mobile-fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  .mobile-input-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  @keyframes mobile-bounce-in {
-    0% {
-      opacity: 0;
-      transform: scale(0.3);
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Better text wrapping for different languages */
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Hide scrollbars on mobile for cleaner look */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  /* Mobile-specific chat improvements */
+  @media (max-width: 640px) {
+    /* Prevent zoom on iOS inputs */
+    textarea, input[type="text"], input[type="search"] {
+      font-size: 16px !important;
     }
-    50% {
-      opacity: 1;
-      transform: scale(1.05);
+    
+    /* Message bubble improvements */
+    .message-bubble {
+      max-width: calc(100vw - 5rem);
     }
-    70% {
-      transform: scale(0.9);
+    
+    .message-actions {
+      backdrop-filter: blur(8px);
+      background-color: rgba(255, 255, 255, 0.95);
     }
+    
+    .dark .message-actions {
+      background-color: rgba(15, 23, 42, 0.95);
+    }
+  }
+}
     100% {
       opacity: 1;
       transform: scale(1);

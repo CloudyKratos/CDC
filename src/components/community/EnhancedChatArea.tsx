@@ -116,55 +116,65 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
 
   return (
     <div className={`h-full flex flex-col bg-white dark:bg-slate-900 ${className}`}>
-      {/* Enhanced Header with Integrated Features */}
-      <IntegratedChatFeatures
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-        searchResults={searchQuery ? filteredMessages : []}
-        activeUsers={1}
-      />
+      {/* Sticky Header with Integrated Features - Mobile optimized */}
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50">
+        <IntegratedChatFeatures
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          searchResults={searchQuery ? filteredMessages : []}
+          activeUsers={1}
+          className="mobile-header-safe" // Add safe area padding
+        />
+      </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 min-h-0 relative">
+      {/* Messages Area - Mobile optimized scrolling */}
+      <div className="flex-1 min-h-0 relative overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="py-4 space-y-0">
+          <div className="py-2 sm:py-4 space-y-0 min-h-full">
             {filteredMessages.length === 0 && !isLoading ? (
-              <div className="flex flex-col items-center justify-center h-64 text-center px-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center mb-4">
+              <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 sm:px-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center mb-4 shadow-sm">
                   <span className="text-2xl">💬</span>
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
                   {searchQuery ? 'No messages found' : 'No messages yet'}
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                <p className="text-slate-600 dark:text-slate-400 text-sm max-w-sm">
                   {searchQuery ? 'Try a different search term' : 'Be the first to start the conversation!'}
                 </p>
               </div>
             ) : (
-              filteredMessages.map((message, index) => {
-                const prevMessage = filteredMessages[index - 1];
-                const isOwn = message.sender_id === user?.id;
-                const isConsecutive = prevMessage &&
-                  prevMessage.sender_id === message.sender_id &&
-                  new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000;
-                
-                return (
-                  <EnhancedMessageBubble
-                    key={message.id}
-                    message={message}
-                    isOwn={isOwn}
-                    showAvatar={!isConsecutive}
-                    isConsecutive={isConsecutive}
-                    onReply={handleReply}
-                    onReact={handleReact}
-                    onDelete={isOwn ? onDeleteMessage : undefined}
-                  />
-                );
-              })
+              <div className="space-y-0">
+                {filteredMessages.map((message, index) => {
+                  const prevMessage = filteredMessages[index - 1];
+                  const isOwn = message.sender_id === user?.id;
+                  const isConsecutive = prevMessage &&
+                    prevMessage.sender_id === message.sender_id &&
+                    new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 300000;
+                  
+                  return (
+                    <div 
+                      key={message.id}
+                      className="will-change-contents" // Prevent layout shifts
+                      style={{ contain: 'layout' }} // Optimize rendering
+                    >
+                      <EnhancedMessageBubble
+                        message={message}
+                        isOwn={isOwn}
+                        showAvatar={!isConsecutive}
+                        isConsecutive={isConsecutive}
+                        onReply={handleReply}
+                        onReact={handleReact}
+                        onDelete={isOwn ? onDeleteMessage : undefined}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             )}
             
             {isLoading && filteredMessages.length > 0 && (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-6">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -172,21 +182,24 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
                 </div>
               </div>
             )}
+            
+            {/* Scroll anchor for new messages */}
+            <div ref={messagesEndRef} className="h-4" />
           </div>
-          <div ref={messagesEndRef} />
         </ScrollArea>
       </div>
 
-      {/* Enhanced Message Input */}
-      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      {/* Fixed Enhanced Message Input - Mobile optimized */}
+      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm sticky bottom-0 z-20">
         <EnhancedMessageInput
           onSendMessage={onSendMessage}
           disabled={!isConnected || isLoading}
           placeholder={
             !isConnected 
-              ? "Disconnected - messages will be sent when connection is restored"
+              ? "Reconnecting..."
               : `Message #${activeChannel}`
           }
+          className="mobile-input-safe" // Safe area padding for mobile
         />
       </div>
     </div>
