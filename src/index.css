@@ -519,11 +519,6 @@
     }
   }
 }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
 
   .animate-mobile-slide-up {
     animation: mobile-slide-up 0.3s ease-out;
