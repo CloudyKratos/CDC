@@ -13,7 +13,7 @@ const WarriorSpaceMobileSidebar = ({ sidebarOpen, onToggleSidebar }: WarriorSpac
     <div className="lg:hidden mb-6">
       <Button
         onClick={onToggleSidebar}
-        className={`w-full ${
+        className={`w-full touch-target-optimal min-h-[48px] ${
           sidebarOpen 
             ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800' 
             : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'

@@ -186,24 +186,26 @@ const WarriorSpace = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Enhanced Background Effects with better performance */}
+      {/* Enhanced Background Effects with better performance (reduced on mobile) */}
       <div className="absolute inset-0">
         {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900/60 to-blue-900/20 animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900/60 to-blue-900/20 animate-pulse" />
         
-        {/* Enhanced grid pattern */}
-        <div className="absolute inset-0 opacity-[0.05]">
-          <div className="h-full w-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent bg-[size:50px_50px]"></div>
+        {/* Subtle grid pattern (hide on very small screens) */}
+        <div className="absolute inset-0 opacity-[0.05] hidden sm:block">
+          <div className="h-full w-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent bg-[size:50px_50px]" />
         </div>
         
-        {/* Dynamic floating orbs with staggered animations */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse opacity-70 transition-all duration-[3s]"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse opacity-70 transition-all duration-[4s] delay-1000"></div>
-        <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse opacity-50 transition-all duration-[5s] delay-2000"></div>
-        <div className="absolute top-1/2 right-1/2 w-48 h-48 bg-green-500/10 rounded-full blur-3xl animate-pulse opacity-60 transition-all duration-[3.5s] delay-500"></div>
+        {/* Floating orbs - fewer on mobile for performance */}
+        <div className="absolute inset-0 hidden sm:block">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse opacity-70 transition-all duration-[3s]" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse opacity-70 transition-all duration-[4s] delay-1000" />
+          <div className="absolute top-3/4 left-1/3 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse opacity-50 transition-all duration-[5s] delay-2000" />
+          <div className="absolute top-1/2 right-1/2 w-48 h-48 bg-green-500/10 rounded-full blur-3xl animate-pulse opacity-60 transition-all duration-[3.5s] delay-500" />
+        </div>
         
-        {/* Enhanced animated particles */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* Animated particles - hide on very small screens */}
+        <div className="absolute inset-0 pointer-events-none hidden sm:block">
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
@@ -218,10 +220,10 @@ const WarriorSpace = () => {
           ))}
         </div>
         
-        {/* Subtle moving gradient lines */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse delay-1000"></div>
+        {/* Moving gradient lines - hide on mobile */}
+        <div className="absolute inset-0 opacity-10 hidden sm:block">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse delay-1000" />
         </div>
       </div>
       
@@ -298,8 +300,8 @@ const WarriorSpace = () => {
       </div>
 
       {/* Progress save indicator */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-green-600/20 border border-green-500/30 text-green-400 px-3 py-1 rounded-full text-xs backdrop-blur-sm">
+      <div className="fixed right-3 bottom-24 sm:bottom-4 z-50 mobile-safe-area-bottom">
+        <div className="bg-green-600/20 border border-green-500/30 text-green-400 px-3 py-1 rounded-full text-xs backdrop-blur-sm shadow-sm">
           <Zap className="h-3 w-3 inline mr-1" />
           Auto-saving progress
         </div>
