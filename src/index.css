@@ -100,35 +100,79 @@
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
+}
+
+/* Mobile optimizations and safe areas */
+@supports (padding: env(safe-area-inset-top)) {
+  .pb-safe {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
-  100% {
-    background-position: 200% 0;
+  
+  .pt-safe {
+    padding-top: calc(1rem + env(safe-area-inset-top));
+  }
+  
+  .mobile-safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-safe-area-top {
+    padding-top: env(safe-area-inset-top);
   }
 }
 
-@keyframes slideUp {
+/* Enhanced mobile interaction patterns */
+.mobile-card {
+  @apply bg-card/50 backdrop-blur-sm border border-border/50 shadow-sm;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.mobile-card:hover {
+  @apply shadow-md;
+  transform: translateZ(0);
+}
+
+.touch-feedback {
+  @apply transition-all duration-150 ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-feedback:active {
+  @apply scale-[0.98] bg-muted/30;
+}
+
+.touch-target-optimal {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile GPU acceleration */
+.mobile-gpu-boost {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Mobile smooth scrolling */
+.mobile-smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Enhanced mobile animations */
+@keyframes mobile-fade-in {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fadeInUp {
+@keyframes mobile-slide-up {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -139,13 +183,94 @@
   }
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 3s ease infinite;
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 4px currentColor;
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 8px currentColor;
+  }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+.animate-mobile-fade-in {
+  animation: mobile-fade-in 0.3s ease-out;
+}
+
+.animate-mobile-slide-up {
+  animation: mobile-slide-up 0.4s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Mobile hover effects */
+@media (hover: hover) {
+  .mobile-hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* Mobile shadow optimizations */
+.mobile-shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Improved mobile text handling */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .backdrop-blur-xl {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  .backdrop-blur-lg {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .backdrop-blur-md {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+}
+
+/* Mobile form optimizations */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 .animate-glow {

@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileBottomNavigation from './MobileBottomNavigation';
-import MobileDashboard from './MobileDashboard';
+import ImprovedMobileDashboard from './ImprovedMobileDashboard';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -27,7 +27,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           </div>
         );
       case '/dashboard':
-        return <MobileDashboard />;
+        return <ImprovedMobileDashboard />;
       case '/community':
         return (
           <div className="min-h-screen pt-16 pb-20">
