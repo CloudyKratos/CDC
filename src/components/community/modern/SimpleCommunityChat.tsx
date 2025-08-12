@@ -191,31 +191,46 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
         }
       }}
     >
-      <div className="h-full flex bg-background">
-        {/* Channel Navigation Sidebar */}
+      <div className="h-full flex flex-col md:flex-row bg-background mobile-safe-area-top mobile-safe-area-bottom">
+        {/* Mobile overlay when sidebar is open */}
         {showChannelNav && (
+          <div 
+            className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            onClick={toggleChannelNav}
+          />
+        )}
+
+        {/* Channel Navigation Sidebar */}
+        <div className={`
+          ${showChannelNav ? 'translate-x-0' : '-translate-x-full'} 
+          md:translate-x-0 fixed md:relative z-50 md:z-auto
+          w-80 md:w-64 h-full
+          transition-transform duration-300 ease-in-out
+          ${isChannelNavCollapsed ? 'md:w-16' : 'md:w-64'}
+        `}>
           <ChannelNavigator
             channels={channels}
             activeChannel={activeChannel}
             onChannelSelect={handleChannelSelect}
             isCollapsed={isChannelNavCollapsed}
             onToggleCollapse={toggleChannelNavCollapse}
+            className="h-full"
           />
-        )}
+        </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <Card className="h-full flex flex-col bg-background border-border border-l-0 rounded-l-none">
-            {/* Enhanced Header with Channel Info and Controls */}
-            <div className="flex-shrink-0 px-6 py-5 border-b border-border bg-gradient-to-r from-background via-background to-background backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+        <div className="flex-1 flex flex-col min-w-0 h-full">
+          <Card className="h-full flex flex-col bg-background border-border md:border-l-0 md:rounded-l-none rounded-none md:rounded-r-lg">
+            {/* Enhanced Mobile-Optimized Header */}
+            <div className="flex-shrink-0 px-3 md:px-6 py-3 md:py-5 border-b border-border bg-gradient-to-r from-background via-background to-background backdrop-blur-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 md:gap-4 min-w-0">
                   {/* Mobile menu toggle */}
                   <Button
                     onClick={toggleChannelNav}
                     size="sm"
                     variant="ghost"
-                    className="lg:hidden p-2 hover-scale rounded-xl"
+                    className="md:hidden flex-shrink-0 h-8 w-8 p-0 touch-target-optimal rounded-lg"
                     title={showChannelNav ? "Hide Channels" : "Show Channels"}
                   >
                     {showChannelNav ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -226,38 +241,46 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
                     onClick={toggleChannelNavCollapse}
                     size="sm"
                     variant="ghost"
-                    className="hidden lg:flex p-2 hover-scale rounded-xl"
+                    className="hidden md:flex flex-shrink-0 h-8 w-8 p-0 touch-target-optimal rounded-lg"
                     title={isChannelNavCollapsed ? "Expand Channels" : "Collapse Channels"}
                   >
                     <Menu className="h-4 w-4" />
                   </Button>
                   
-                  <div className="flex items-center gap-3 animate-fade-in">
-                    <div className="w-2 h-2 bg-gradient-to-br from-primary to-primary/70 rounded-full animate-pulse"></div>
-                    <Hash className="h-5 w-5 text-primary" />
-                    <h2 className="font-bold text-foreground text-lg tracking-tight">
+                  <div className="flex items-center gap-2 md:gap-3 animate-fade-in min-w-0">
+                    <div className="w-2 h-2 bg-gradient-to-br from-primary to-primary/70 rounded-full animate-pulse flex-shrink-0"></div>
+                    <Hash className="h-4 md:h-5 w-4 md:w-5 text-primary flex-shrink-0" />
+                    <h2 className="font-bold text-foreground text-base md:text-lg tracking-tight truncate">
                       {activeChannel}
                     </h2>
                   </div>
-                  <Separator orientation="vertical" className="h-5 bg-border/50" />
-                  <span className="text-sm text-muted-foreground font-medium px-2 py-1 bg-muted/50 rounded-lg">
-                    {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+                  
+                  <Separator orientation="vertical" className="hidden sm:block h-5 bg-border/50 flex-shrink-0" />
+                  
+                  <span className="hidden sm:inline text-xs md:text-sm text-muted-foreground font-medium px-2 py-1 bg-muted/50 rounded-lg flex-shrink-0">
+                    {messages.length} {messages.length === 1 ? 'msg' : 'msgs'}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 md:gap-3 flex-shrink-0">
                   <Badge 
                     variant="outline"
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-300 ${
+                    className={`text-xs font-semibold px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all duration-300 ${
                       isConnected 
                         ? 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/20 dark:border-green-800 shadow-sm animate-pulse' 
                         : 'text-muted-foreground bg-muted border-border'
                     }`}
                   >
                     {isConnected ? (
-                      <><Wifi className="h-3 w-3 mr-1.5" />Live</>
+                      <>
+                        <Wifi className="h-3 w-3 md:mr-1.5" />
+                        <span className="hidden md:inline">Live</span>
+                      </>
                     ) : (
-                      <><WifiOff className="h-3 w-3 mr-1.5" />Offline</>
+                      <>
+                        <WifiOff className="h-3 w-3 md:mr-1.5" />
+                        <span className="hidden md:inline">Offline</span>
+                      </>
                     )}
                   </Badge>
                   
@@ -266,10 +289,10 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
                     onClick={toggleVersion}
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0 opacity-50 hover:opacity-100 rounded-lg hover-scale"
+                    className="h-7 w-7 md:h-8 md:w-8 p-0 opacity-50 hover:opacity-100 rounded-lg hover-scale"
                     title="Switch to Stable Version"
                   >
-                    <Settings className="h-3.5 w-3.5" />
+                    <Settings className="h-3 md:h-3.5 w-3 md:w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -353,8 +376,8 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
               </ScrollArea>
             </div>
 
-            {/* Message Input */}
-            <div className="flex-shrink-0 border-t border-border p-4">
+            {/* Mobile-Optimized Message Input */}
+            <div className="flex-shrink-0 border-t border-border p-3 md:p-4 mobile-safe-area-bottom">
               <ModernMessageInput
                 value={messageText}
                 onChange={setMessageText}
@@ -366,6 +389,7 @@ export const SimpleCommunityChat: React.FC<SimpleCommunityChatProps> = ({
                     ? "Connecting..." 
                     : `Message #${activeChannel}...`
                 }
+                className="touch-target-optimal"
               />
             </div>
           </Card>

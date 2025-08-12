@@ -99,13 +99,13 @@ export const ChannelNavigator: React.FC<ChannelNavigatorProps> = ({
   }
 
   return (
-    <Card className={`w-64 h-full border-r border-border bg-background ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold text-foreground">Channels</h2>
-          <Badge variant="secondary" className="text-xs">
+    <Card className={`w-full md:w-64 h-full border-r border-border bg-background ${className}`}>
+      {/* Mobile-Optimized Header */}
+      <div className="flex items-center justify-between p-3 md:p-4 border-b border-border mobile-safe-area-top">
+        <div className="flex items-center gap-2 min-w-0">
+          <Users className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          <h2 className="font-semibold text-foreground text-base md:text-lg truncate">Channels</h2>
+          <Badge variant="secondary" className="text-xs flex-shrink-0">
             {channels.length}
           </Badge>
         </div>
@@ -114,16 +114,16 @@ export const ChannelNavigator: React.FC<ChannelNavigatorProps> = ({
             onClick={onToggleCollapse}
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 flex-shrink-0 touch-target-optimal"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      {/* Channel List */}
+      {/* Mobile-Optimized Channel List */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-1">
+        <div className="p-2 md:p-3 space-y-1">
           {channels.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -144,7 +144,7 @@ export const ChannelNavigator: React.FC<ChannelNavigatorProps> = ({
                   }}
                   variant={isActive ? "default" : "ghost"}
                   className={cn(
-                    "w-full justify-start gap-3 h-10 px-3 text-left",
+                    "w-full justify-start gap-3 h-12 md:h-10 px-3 text-left touch-target-optimal",
                     isActive 
                       ? "bg-primary text-primary-foreground shadow-sm" 
                       : `hover:bg-muted/70 ${colorClass}`
@@ -152,17 +152,17 @@ export const ChannelNavigator: React.FC<ChannelNavigatorProps> = ({
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
+                    <div className="font-medium text-sm md:text-sm truncate">
                       {channel.name}
                     </div>
                     {channel.description && (
-                      <div className="text-xs opacity-70 truncate">
+                      <div className="text-xs opacity-70 truncate hidden md:block">
                         {channel.description}
                       </div>
                     )}
                   </div>
                   {channel.unreadCount && channel.unreadCount > 0 && (
-                    <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                    <Badge variant="destructive" className="h-5 px-1.5 text-xs flex-shrink-0">
                       {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
                     </Badge>
                   )}
@@ -173,8 +173,8 @@ export const ChannelNavigator: React.FC<ChannelNavigatorProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-border">
+      {/* Mobile-Optimized Footer */}
+      <div className="p-2 md:p-3 border-t border-border mobile-safe-area-bottom">
         <div className="text-xs text-muted-foreground text-center">
           {channels.length} channels available
         </div>

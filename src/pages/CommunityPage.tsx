@@ -42,7 +42,7 @@ const CommunityPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col mobile-safe-area-top mobile-safe-area-bottom">
+    <div className="h-screen flex flex-col bg-background">
       <div className="flex-1 overflow-hidden">
         <SimpleCommunityChat />
       </div>
