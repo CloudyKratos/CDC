@@ -807,6 +807,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_change_audit: {
+        Row: {
+          action: string
+          changed_by_user_id: string
+          changed_user_id: string
+          created_at: string | null
+          id: string
+          new_role: string
+          old_role: string | null
+        }
+        Insert: {
+          action: string
+          changed_by_user_id: string
+          changed_user_id: string
+          created_at?: string | null
+          id?: string
+          new_role: string
+          old_role?: string | null
+        }
+        Update: {
+          action?: string
+          changed_by_user_id?: string
+          changed_user_id?: string
+          created_at?: string | null
+          id?: string
+          new_role?: string
+          old_role?: string | null
+        }
+        Relationships: []
+      }
       speaker_requests: {
         Row: {
           created_at: string | null
@@ -1120,6 +1150,53 @@ export type Database = {
         }
         Relationships: []
       }
+      warrior_leaderboard: {
+        Row: {
+          completed_quests: number
+          created_at: string
+          current_streak: number
+          id: string
+          last_updated: string
+          level: number
+          rank_name: string
+          total_coins: number
+          total_xp: number
+          user_id: string
+        }
+        Insert: {
+          completed_quests?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_updated?: string
+          level?: number
+          rank_name?: string
+          total_coins?: number
+          total_xp?: number
+          user_id: string
+        }
+        Update: {
+          completed_quests?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_updated?: string
+          level?: number
+          rank_name?: string
+          total_coins?: number
+          total_xp?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warrior_leaderboard_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_logs: {
         Row: {
           created_at: string | null
@@ -1320,6 +1397,18 @@ export type Database = {
           p_amount: number
           p_description?: string
           p_metadata?: Json
+        }
+        Returns: boolean
+      }
+      update_warrior_leaderboard: {
+        Args: {
+          p_user_id: string
+          p_level: number
+          p_total_xp: number
+          p_current_streak: number
+          p_completed_quests: number
+          p_total_coins: number
+          p_rank_name: string
         }
         Returns: boolean
       }
