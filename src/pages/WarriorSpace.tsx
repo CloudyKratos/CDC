@@ -11,9 +11,12 @@ import WarriorSpaceLoadingState from "@/components/warrior/WarriorSpaceLoadingSt
 import WarriorSpaceErrorState from "@/components/warrior/WarriorSpaceErrorState";
 import WarriorSpaceMobileSidebar from "@/components/warrior/WarriorSpaceMobileSidebar";
 import MorningPictureUpload from "@/components/warrior/MorningPictureUpload";
+import MobileWarriorSpace from "@/components/mobile/MobileWarriorSpace";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const WarriorSpace = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [activeQuest, setActiveQuest] = useState("daily-challenge");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({
@@ -180,6 +183,11 @@ const WarriorSpace = () => {
 
   if (error) {
     return <WarriorSpaceErrorState error={error} />;
+  }
+
+  // Show mobile version for mobile devices
+  if (isMobile) {
+    return <MobileWarriorSpace />;
   }
 
   const isNewUser = progress.completedQuests === 0;
