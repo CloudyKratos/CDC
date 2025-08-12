@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import EnhancedCDCMorningStrategyCard from "@/components/home/EnhancedCDCMorningStrategyCard";
 import QuestCard from "../warrior/QuestCard";
 import AnimatedProgressBar from "../warrior/AnimatedProgressBar";
+import MorningPictureUpload from "../warrior/MorningPictureUpload";
 
 const MobileWarriorSpace: React.FC = () => {
   const { user } = useAuth();
@@ -259,122 +260,141 @@ const MobileWarriorSpace: React.FC = () => {
         showBack={true}
         backPath="/dashboard"
         actions={
-          <Button variant="ghost" size="icon" className="touch-target-optimal">
+          <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px] touch-target-optimal">
             <Plus className="h-5 w-5" />
           </Button>
         }
       />
       
-      {/* Main content with proper mobile spacing */}
-      <main className="pt-16 pb-safe px-4 space-y-4 max-w-lg mx-auto">
+      {/* Main content with consistent mobile spacing and safe areas */}
+      <main className="pt-16 pb-safe px-4 space-y-5 max-w-lg mx-auto">
+        {/* Morning Verification - Priority placement */}
+        <div className="mobile-card bg-gradient-to-r from-orange-600/10 to-red-600/10 rounded-2xl border border-orange-500/30 p-4 shadow-xl backdrop-blur-sm">
+          <MorningPictureUpload />
+        </div>
+
         {/* Enhanced Strategy Card - Mobile optimized */}
-        <div className="mobile-card bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-2xl border border-purple-500/30 p-3 shadow-xl backdrop-blur-sm">
+        <div className="mobile-card bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-2xl border border-purple-500/30 p-4 shadow-xl backdrop-blur-sm">
           <EnhancedCDCMorningStrategyCard />
         </div>
 
-        {/* Warrior profile card - optimized for mobile */}
-        <div className="mobile-card bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent border-primary/20 relative overflow-hidden rounded-xl p-4 w-full">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -mr-10 -mt-10 mobile-gpu-boost" />
+        {/* Warrior profile card - Fully responsive with consistent spacing */}
+        <div className="mobile-card bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent border-primary/20 relative overflow-hidden rounded-2xl p-5 w-full">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12 mobile-gpu-boost" />
           <div className="relative">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mobile-gpu-boost flex-shrink-0">
-                  <Sword className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mobile-gpu-boost flex-shrink-0 ring-2 ring-primary/20">
+                  <Sword className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg sm:text-xl font-bold truncate">Level {progress.level}</h2>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate text-foreground">Level {progress.level}</h2>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary text-sm border-primary/20">
                     {progress.rank}
                   </Badge>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="flex items-center gap-1 text-orange-500">
-                  <Flame className="h-4 w-4" />
-                  <span className="font-bold text-lg">{progress.streak}</span>
+                <div className="flex items-center gap-2 text-orange-500">
+                  <Flame className="h-5 w-5" />
+                  <span className="font-bold text-xl">{progress.streak}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">day streak</p>
+                <p className="text-sm text-muted-foreground">day streak</p>
               </div>
             </div>
             
-            {/* XP Progress - optimized for mobile */}
-            <div className="mt-4 space-y-2">
+            {/* XP Progress - Enhanced mobile design */}
+            <div className="mt-5 space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">XP Progress</span>
-                <span className="font-medium text-foreground">
+                <span className="text-muted-foreground font-medium">XP Progress</span>
+                <span className="font-semibold text-foreground">
                   {progress.currentXp} / {progress.nextLevelXp}
                 </span>
               </div>
-              <Progress value={levelProgress} className="h-3 w-full" />
+              <Progress value={levelProgress} className="h-4 w-full bg-muted/50" />
+              <div className="text-center">
+                <span className="text-xs text-muted-foreground">
+                  {progress.nextLevelXp - progress.currentXp} XP to next level
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Tabs - Mobile first */}
+        {/* Enhanced Tabs - Mobile-first with proper touch targets */}
         <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-muted/60 border-purple-800/50 h-auto p-1 backdrop-blur-md rounded-xl shadow-xl">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/80 border border-muted-foreground/20 h-auto p-2 backdrop-blur-md rounded-2xl shadow-lg">
             <TabsTrigger 
               value="daily-challenge" 
-              className="text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-2 text-xs font-semibold transition-all duration-300 hover:bg-muted rounded-lg"
+              className="min-h-[44px] text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-3 text-sm font-semibold transition-all duration-300 hover:bg-muted rounded-xl flex items-center gap-2"
             >
-              <Target className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Quests</span>
+              <Target className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Daily Quests</span>
             </TabsTrigger>
             <TabsTrigger 
               value="weekly-goals" 
-              className="text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-2 text-xs font-semibold transition-all duration-300 hover:bg-muted rounded-lg"
+              className="min-h-[44px] text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-3 text-sm font-semibold transition-all duration-300 hover:bg-muted rounded-xl flex items-center gap-2"
             >
-              <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Goals</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="achievements" 
-              className="text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-2 text-xs font-semibold transition-all duration-300 hover:bg-muted rounded-lg"
-            >
-              <Trophy className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Awards</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="progress" 
-              className="text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-3 px-2 text-xs font-semibold transition-all duration-300 hover:bg-muted rounded-lg"
-            >
-              <Sparkles className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Stats</span>
+              <Calendar className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Weekly Goals</span>
             </TabsTrigger>
           </TabsList>
+          
+          {/* Secondary tabs for smaller content */}
+          <div className="mt-3">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/60 border border-muted-foreground/10 h-auto p-1.5 backdrop-blur-md rounded-xl">
+              <TabsTrigger 
+                value="achievements" 
+                className="min-h-[40px] text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-2.5 px-2 text-xs font-medium transition-all duration-300 hover:bg-muted rounded-lg flex items-center gap-1.5"
+              >
+                <Trophy className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Achievements</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="progress" 
+                className="min-h-[40px] text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white py-2.5 px-2 text-xs font-medium transition-all duration-300 hover:bg-muted rounded-lg flex items-center gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Progress</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <div className="mt-4">
-            <TabsContent value="daily-challenge" className="space-y-4 m-0">
-              {/* Quest Progress Overview - Mobile */}
-              <div className="mobile-card bg-gradient-to-br from-slate-900/90 to-indigo-900/50 border-indigo-500/30 text-white backdrop-blur-lg shadow-2xl rounded-2xl overflow-hidden">
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl">
-                      <Target className="h-5 w-5 text-white" />
+          <div className="mt-5">
+            <TabsContent value="daily-challenge" className="space-y-5 m-0">
+              {/* Quest Progress Overview - Mobile optimized */}
+              <div className="mobile-card bg-gradient-to-br from-slate-900/95 to-indigo-900/60 border-indigo-500/30 text-white backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-lg">
+                      <Target className="h-6 w-6 text-white" />
                     </div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                      Daily Quest Progress
-                    </span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                        Daily Quest Progress
+                      </h3>
+                      <p className="text-xs text-indigo-300">Complete tasks to earn XP and coins</p>
+                    </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="text-center p-3 bg-indigo-900/20 rounded-lg border border-indigo-500/30">
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    <div className="text-center p-4 bg-indigo-900/30 rounded-xl border border-indigo-500/30 backdrop-blur-sm">
                       <div className="text-2xl font-bold text-indigo-400 mb-1">{stats.completed}</div>
-                      <div className="text-xs text-indigo-300">Done</div>
+                      <div className="text-xs text-indigo-300 font-medium">Completed</div>
                     </div>
-                    <div className="text-center p-3 bg-purple-900/20 rounded-lg border border-purple-500/30">
+                    <div className="text-center p-4 bg-purple-900/30 rounded-xl border border-purple-500/30 backdrop-blur-sm">
                       <div className="text-2xl font-bold text-purple-400 mb-1">{stats.total}</div>
-                      <div className="text-xs text-purple-300">Total</div>
+                      <div className="text-xs text-purple-300 font-medium">Total</div>
                     </div>
-                    <div className="text-center p-3 bg-green-900/20 rounded-lg border border-green-500/30">
+                    <div className="text-center p-4 bg-green-900/30 rounded-xl border border-green-500/30 backdrop-blur-sm">
                       <div className="text-2xl font-bold text-green-400 mb-1">{stats.totalXpEarned}</div>
-                      <div className="text-xs text-green-300">XP</div>
+                      <div className="text-xs text-green-300 font-medium">XP Earned</div>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-indigo-200">Progress</span>
+                      <span className="text-sm font-semibold text-indigo-200">Overall Progress</span>
                       <span className="text-sm font-bold text-white">{Math.round(stats.progressPercentage)}%</span>
                     </div>
                     
@@ -392,19 +412,19 @@ const MobileWarriorSpace: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleRefreshQuests}
-                        className="border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/20 text-xs px-3 py-1"
+                        className="min-h-[44px] border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/20 text-sm px-4 py-2"
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Refresh
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh Quests
                       </Button>
                       
-                      <div className="flex items-center gap-3 text-xs">
-                        <div className="flex items-center gap-1 text-blue-400">
-                          <Zap className="h-3 w-3" />
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-blue-400">
+                          <Zap className="h-4 w-4" />
                           <span>+{stats.totalXpEarned}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-yellow-400">
-                          <Trophy className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 text-yellow-400">
+                          <Trophy className="h-4 w-4" />
                           <span>+{stats.totalCoinsEarned}</span>
                         </div>
                       </div>
@@ -413,10 +433,10 @@ const MobileWarriorSpace: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quest List - Mobile optimized */}
-              <div className="space-y-3">
+              {/* Quest List - Mobile optimized with proper spacing */}
+              <div className="space-y-4">
                 {quests.map((quest) => (
-                  <div key={quest.id} className="mobile-card rounded-lg p-3">
+                  <div key={quest.id} className="mobile-card rounded-xl p-4 bg-background/50 backdrop-blur-sm border border-border/50">
                     <QuestCard
                       quest={quest}
                       onComplete={handleQuestComplete}
@@ -425,40 +445,49 @@ const MobileWarriorSpace: React.FC = () => {
                 ))}
                 
                 {quests.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No quests available. Check back tomorrow!</p>
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Trophy className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-semibold mb-2">No Quests Available</h3>
+                    <p className="text-sm">Check back tomorrow for new challenges!</p>
                   </div>
                 )}
               </div>
             </TabsContent>
 
             <TabsContent value="weekly-goals" className="space-y-4 m-0">
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-foreground mb-2">Weekly Goals</h3>
+                  <p className="text-sm text-muted-foreground">Long-term objectives for bigger rewards</p>
+                </div>
+                
                 {weeklyGoals.map((goal) => (
                   <div
                     key={goal.id}
-                    className="mobile-card p-4 rounded-lg bg-blue-900/20 border-blue-700/30 transition-all duration-200"
+                    className="mobile-card p-5 rounded-xl bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-700/30 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-semibold text-foreground">{goal.title}</h4>
-                      <Badge variant="outline" className="border-blue-500 text-blue-400 text-xs">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground text-base mb-1">{goal.title}</h4>
+                        <p className="text-xs text-muted-foreground">Weekly challenge</p>
+                      </div>
+                      <Badge variant="outline" className="border-blue-500 text-blue-400 text-sm px-3 py-1">
                         {goal.progress}/{goal.target}
                       </Badge>
                     </div>
-                    <Progress value={(goal.progress / goal.target) * 100} className="h-2 mb-3" />
+                    <Progress value={(goal.progress / goal.target) * 100} className="h-3 mb-4 bg-blue-900/30" />
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-xs">
-                        <div className="flex items-center gap-1 text-blue-400">
-                          <Star className="h-3 w-3" />
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-blue-400">
+                          <Star className="h-4 w-4" />
                           <span>+{goal.xp} XP</span>
                         </div>
-                        <div className="flex items-center gap-1 text-yellow-400">
-                          <Coins className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 text-yellow-400">
+                          <Coins className="h-4 w-4" />
                           <span>+{goal.coins} coins</span>
                         </div>
                       </div>
-                      <div className="text-xs text-purple-300">
+                      <div className="text-sm text-blue-300 font-medium">
                         {Math.round((goal.progress / goal.target) * 100)}% complete
                       </div>
                     </div>
@@ -468,30 +497,35 @@ const MobileWarriorSpace: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="achievements" className="space-y-4 m-0">
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-foreground mb-2">Achievements</h3>
+                  <p className="text-sm text-muted-foreground">Unlock badges for your accomplishments</p>
+                </div>
+                
                 {achievements.map((achievement, index) => (
                   <div
                     key={index}
-                    className={`mobile-card p-4 rounded-lg border transition-all duration-200 ${
+                    className={`mobile-card p-5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
                       achievement.earned
-                        ? "bg-yellow-900/20 border-yellow-700/30"
-                        : "bg-gray-900/20 border-gray-700/30"
+                        ? "bg-gradient-to-br from-yellow-900/30 to-amber-900/20 border-yellow-700/30"
+                        : "bg-gradient-to-br from-gray-900/30 to-slate-900/20 border-gray-700/30"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <achievement.icon
-                        className={`h-6 w-6 transition-all duration-200 flex-shrink-0 ${
+                        className={`h-8 w-8 transition-all duration-200 flex-shrink-0 ${
                           achievement.earned ? "text-yellow-400" : "text-gray-500"
                         }`}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className={`font-semibold text-sm ${achievement.earned ? "text-yellow-400" : "text-gray-400"}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className={`font-semibold text-base ${achievement.earned ? "text-yellow-400" : "text-gray-400"}`}>
                             {achievement.title}
                           </h4>
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${
+                            className={`text-xs px-2 py-1 ${
                               achievement.rarity === 'common' ? 'border-gray-500 text-gray-400' :
                               achievement.rarity === 'rare' ? 'border-blue-500 text-blue-400' :
                               achievement.rarity === 'epic' ? 'border-purple-500 text-purple-400' :
@@ -501,7 +535,19 @@ const MobileWarriorSpace: React.FC = () => {
                             {achievement.rarity}
                           </Badge>
                         </div>
-                        <p className="text-xs text-purple-300">{achievement.description}</p>
+                        <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                        {achievement.progress !== undefined && (
+                          <div className="mt-3">
+                            <Progress 
+                              value={(achievement.progress / achievement.target) * 100} 
+                              className="h-2" 
+                            />
+                            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                              <span>{achievement.progress}/{achievement.target}</span>
+                              <span>{Math.round((achievement.progress / achievement.target) * 100)}%</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -509,90 +555,93 @@ const MobileWarriorSpace: React.FC = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="progress" className="space-y-4 m-0">
-              {/* Main Progress Overview - Mobile */}
+            <TabsContent value="progress" className="space-y-5 m-0">
+              {/* Main Progress Overview - Mobile optimized */}
               <div className="mobile-card bg-gradient-to-br from-slate-900/95 to-indigo-900/60 border-indigo-500/30 text-white backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl">
-                      <BarChart3 className="h-5 w-5 text-white" />
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-lg">
+                      <BarChart3 className="h-6 w-6 text-white" />
                     </div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                      Your Warrior Journey
-                    </span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                        Your Warrior Journey
+                      </h3>
+                      <p className="text-xs text-indigo-300">Track your progress and achievements</p>
+                    </div>
                   </div>
 
                   {/* Level Progress Showcase - Mobile */}
-                  <div className="text-center py-6 bg-gradient-to-r from-indigo-900/20 to-purple-900/20 rounded-xl border border-indigo-500/20 mb-4">
-                    <div className="relative">
-                      <div className="text-5xl font-bold text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text mb-3">
+                  <div className="text-center py-8 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 rounded-2xl border border-indigo-500/20 mb-6">
+                    <div className="relative inline-block">
+                      <div className="text-6xl font-bold text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text mb-3">
                         {progress.level}
                       </div>
-                      <div className="absolute -top-1 -right-1">
-                        <Star className="h-6 w-6 text-yellow-400 animate-pulse" />
+                      <div className="absolute -top-2 -right-2">
+                        <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
                       </div>
                     </div>
-                    <div className="text-sm text-indigo-300 mb-4 font-semibold">Current Level</div>
+                    <div className="text-base text-indigo-300 mb-6 font-semibold">Current Level</div>
                     
-                    <div className="max-w-xs mx-auto space-y-3">
+                    <div className="max-w-sm mx-auto space-y-4">
                       <Progress 
                         value={levelProgress} 
-                        className="h-3 bg-indigo-900/30"
+                        className="h-4 bg-indigo-900/30"
                       />
-                      <div className="flex justify-between text-xs">
+                      <div className="flex justify-between text-sm">
                         <span className="text-indigo-300">{progress.currentXp} XP</span>
                         <span className="text-indigo-300">{progress.nextLevelXp} XP</span>
                       </div>
-                      <div className="text-xs text-indigo-400">
-                        <Zap className="h-3 w-3 inline mr-1" />
-                        {progress.nextLevelXp - progress.currentXp} XP until Level {progress.level + 1}
+                      <div className="text-sm text-indigo-400 flex items-center justify-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        <span>{progress.nextLevelXp - progress.currentXp} XP until Level {progress.level + 1}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Enhanced Stats Grid - Mobile optimized */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-                      <Calendar className="h-6 w-6 text-green-400 mx-auto mb-2" />
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/30 border border-green-500/30 rounded-xl p-4 text-center hover:scale-105 transition-all duration-300">
+                      <Calendar className="h-8 w-8 text-green-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-green-400 mb-1">{dailyXp}</div>
-                      <div className="text-xs text-green-300">Today's XP</div>
+                      <div className="text-xs text-green-300 font-medium">Today's XP</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-blue-900/30 to-cyan-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                      <Zap className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                    <div className="bg-gradient-to-br from-blue-900/40 to-cyan-900/30 border border-blue-500/30 rounded-xl p-4 text-center hover:scale-105 transition-all duration-300">
+                      <Zap className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-blue-400 mb-1">{weeklyXp}</div>
-                      <div className="text-xs text-blue-300">This Week</div>
+                      <div className="text-xs text-blue-300 font-medium">This Week</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-orange-900/30 to-red-900/20 border border-orange-500/30 rounded-lg p-3 text-center">
-                      <Flame className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+                    <div className="bg-gradient-to-br from-orange-900/40 to-red-900/30 border border-orange-500/30 rounded-xl p-4 text-center hover:scale-105 transition-all duration-300">
+                      <Flame className="h-8 w-8 text-orange-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-orange-400 mb-1">{progress.streak}</div>
-                      <div className="text-xs text-orange-300">Day Streak</div>
+                      <div className="text-xs text-orange-300 font-medium">Day Streak</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-yellow-900/30 to-amber-900/20 border border-yellow-500/30 rounded-lg p-3 text-center">
-                      <Coins className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
+                    <div className="bg-gradient-to-br from-yellow-900/40 to-amber-900/30 border border-yellow-500/30 rounded-xl p-4 text-center hover:scale-105 transition-all duration-300">
+                      <Coins className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-yellow-400 mb-1">{progress.totalCoins}</div>
-                      <div className="text-xs text-yellow-300">Total Coins</div>
+                      <div className="text-xs text-yellow-300 font-medium">Total Coins</div>
                     </div>
                   </div>
 
                   {/* Achievements Progress - Mobile */}
-                  <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Award className="h-5 w-5 text-purple-400" />
-                        <span className="text-sm font-semibold text-purple-200">Achievements</span>
+                  <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/30 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Award className="h-6 w-6 text-purple-400" />
+                        <span className="text-base font-semibold text-purple-200">Achievements</span>
                       </div>
-                      <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30 text-xs">
+                      <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30 text-sm px-3 py-1">
                         {achievementStats.completed}/{achievementStats.total}
                       </Badge>
                     </div>
                     <Progress 
                       value={(achievementStats.completed / achievementStats.total) * 100} 
-                      className="h-2 bg-purple-900/30 mb-2" 
+                      className="h-3 bg-purple-900/30 mb-3" 
                     />
-                    <div className="text-xs text-purple-400 text-center">
+                    <div className="text-sm text-purple-400 text-center">
                       {achievementStats.total - achievementStats.completed} achievements remaining
                     </div>
                   </div>
