@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1347,13 +1347,13 @@ export type Database = {
     }
     Functions: {
       award_daily_warrior_completion: {
-        Args: { p_user_id: string; p_activity_type?: string }
+        Args: { p_activity_type?: string; p_user_id: string }
         Returns: boolean
       }
       check_auth_rate_limit: {
         Args: {
-          p_email: string
           p_attempt_type: string
+          p_email: string
           p_limit?: number
           p_window_minutes?: number
         }
@@ -1377,38 +1377,38 @@ export type Database = {
       }
       log_auth_attempt: {
         Args: {
-          p_email: string
           p_attempt_type: string
-          p_success?: boolean
+          p_email: string
           p_ip_address?: unknown
+          p_success?: boolean
           p_user_agent?: string
         }
         Returns: undefined
       }
       unlock_course_with_coins: {
-        Args: { p_user_id: string; p_course_id: string; p_cost: number }
+        Args: { p_cost: number; p_course_id: string; p_user_id: string }
         Returns: boolean
       }
       update_coin_balance: {
         Args: {
-          p_user_id: string
-          p_type: string
-          p_source: string
           p_amount: number
           p_description?: string
           p_metadata?: Json
+          p_source: string
+          p_type: string
+          p_user_id: string
         }
         Returns: boolean
       }
       update_warrior_leaderboard: {
         Args: {
-          p_user_id: string
-          p_level: number
-          p_total_xp: number
-          p_current_streak: number
           p_completed_quests: number
-          p_total_coins: number
+          p_current_streak: number
+          p_level: number
           p_rank_name: string
+          p_total_coins: number
+          p_total_xp: number
+          p_user_id: string
         }
         Returns: boolean
       }
