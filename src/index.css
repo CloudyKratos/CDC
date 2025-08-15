@@ -153,6 +153,23 @@
   }
 }
 
+@keyframes gentle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 3s ease-in-out infinite;
+}
+
+.animation-delay-2s {
+  animation-delay: 2s;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -193,9 +210,26 @@
   transform: translateZ(0);
 }
 
+.mobile-card-enhanced {
+  @apply bg-card/80 backdrop-blur-md border border-border/60 shadow-md;
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-card-enhanced:hover {
+  @apply shadow-xl;
+  transform: translateY(-2px) translateZ(0);
+}
+
 .touch-feedback {
   @apply transition-all duration-150 ease-out;
   -webkit-tap-highlight-color: transparent;
+  transform-origin: center;
+}
+
+.touch-feedback:active {
+  transform: scale(0.98);
 }
 
 .touch-feedback:active {
