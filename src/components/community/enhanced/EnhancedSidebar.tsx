@@ -102,24 +102,28 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
   const favoriteChannels = channels.filter(c => c.isPinned);
 
   return (
-    <Card className={`w-full sm:w-80 h-full border-0 rounded-none bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-gray-800 ${className}`}>
+    <Card className={cn(
+      "w-full h-full border-0 rounded-none bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-gray-800",
+      "scrollbar-hide overflow-hidden",
+      className
+    )}>
       <Tabs defaultValue="channels" className="h-full flex flex-col">
-        <div className="p-3 sm:p-4 border-b bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">
-            <TabsTrigger value="channels" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Hash className="h-3 w-3 sm:h-4 sm:w-4" />
+        <div className="p-4 border-b bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-xl p-1">
+            <TabsTrigger value="channels" className="text-xs touch-target-optimal min-h-[44px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-800">
+              <Hash className="h-4 w-4" />
               <span className="sr-only">Channels</span>
             </TabsTrigger>
-            <TabsTrigger value="search" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+            <TabsTrigger value="search" className="text-xs touch-target-optimal min-h-[44px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-800">
+              <Search className="h-4 w-4" />
               <span className="sr-only">Search</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <TabsTrigger value="users" className="text-xs touch-target-optimal min-h-[44px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-800">
+              <Users className="h-4 w-4" />
               <span className="sr-only">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs touch-target data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
-              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <TabsTrigger value="settings" className="text-xs touch-target-optimal min-h-[44px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-800">
+              <Settings className="h-4 w-4" />
               <span className="sr-only">Settings</span>
             </TabsTrigger>
           </TabsList>
@@ -128,15 +132,15 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
         <div className="flex-1 overflow-hidden">
           <TabsContent value="channels" className="h-full m-0 p-0">
             <ScrollArea className="h-full">
-              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                {/* Connection Status */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+              <div className="p-4 space-y-4">
+                {/* Enhanced Connection Status */}
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200/50 dark:border-gray-600/50">
                   <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    isConnected ? "bg-green-500" : "bg-red-500"
+                    "w-3 h-3 rounded-full flex-shrink-0 transition-all duration-300",
+                    isConnected ? "bg-green-500 shadow-green-500/50 shadow-md animate-pulse" : "bg-red-500 shadow-red-500/50 shadow-md"
                   )} />
-                  <span className="text-xs font-medium">
-                    {isConnected ? 'Connected' : 'Disconnected'}
+                  <span className="text-sm font-medium">
+                    {isConnected ? 'Connected' : 'Reconnecting...'}
                   </span>
                 </div>
 
@@ -235,10 +239,10 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                               onClick={() => onChannelSelect(channel.name)}
                               variant={isActive ? "secondary" : "ghost"}
                               className={cn(
-                                "w-full justify-start gap-3 min-h-[44px] px-3 text-left font-normal touch-target",
+                                "w-full justify-start gap-3 min-h-[48px] px-4 text-left font-normal touch-target-optimal rounded-xl transition-all duration-200",
                                 isActive 
-                                  ? "bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100" 
-                                  : `hover:bg-gray-100 dark:hover:bg-gray-800 ${colorClass}`
+                                  ? "bg-gradient-to-r from-blue-100 to-blue-50 text-blue-900 dark:from-blue-900/30 dark:to-blue-800/20 dark:text-blue-100 shadow-sm border border-blue-200/50 dark:border-blue-700/50" 
+                                  : `hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-[0.98] ${colorClass}`
                               )}
                             >
                               <Icon className="h-4 w-4 flex-shrink-0" />

@@ -12,6 +12,7 @@ import { ChatStatusBar } from './enhanced/ChatStatusBar';
 import { QuickChannelSwitcher } from './enhanced/QuickChannelSwitcher';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface EnhancedChatContainerProps {
   defaultChannel?: string;
@@ -180,35 +181,46 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
   }
 
   return (
-    <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 p-4 ${className}`}>
-      <div className="h-full flex rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 relative">
+    <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 ${isMobile ? 'p-0' : 'p-4'} ${className}`}>
+      <div className={`h-full flex ${isMobile ? 'rounded-none' : 'rounded-2xl'} overflow-hidden ${isMobile ? 'shadow-none' : 'shadow-2xl'} bg-white dark:bg-gray-900 ${isMobile ? 'border-0' : 'border border-gray-200/50 dark:border-gray-800/50'} relative`}>
         
-        {/* Mobile Header with Toggle */}
+        {/* Enhanced Mobile Header with Toggle */}
         {isMobile && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3 sm:p-4 flex items-center justify-between mobile-safe-area-top">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSidebar}
-              className="h-10 w-10 p-0 touch-target"
-            >
-              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </Button>
-            
-            <QuickChannelSwitcher
-              channels={displayChannels}
-              activeChannel={activeChannel}
-              onChannelSelect={handleChannelSelect}
-              className="flex-1 mx-4 max-w-none"
-            />
-            
-            <div className="w-10" /> {/* Spacer */}
+          <div className="absolute top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 safe-area-inset-top">
+            <div className="px-4 py-3 flex items-center justify-between min-h-[56px]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSidebar}
+                className="h-11 w-11 p-0 touch-target rounded-xl active:scale-95 transition-transform"
+              >
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+              
+              <QuickChannelSwitcher
+                channels={displayChannels}
+                activeChannel={activeChannel}
+                onChannelSelect={handleChannelSelect}
+                className="flex-1 mx-3 max-w-none"
+              />
+              
+              <div className="w-11 flex justify-center">
+                <div className={cn(
+                  "w-2 h-2 rounded-full transition-colors",
+                  isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                )} />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Enhanced Sidebar */}
+        {/* Enhanced Sidebar with better mobile animations */}
         {(!isMobile || sidebarOpen) && (
-          <div className={`${isMobile ? 'absolute inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 shadow-2xl w-full max-w-sm' : 'flex-shrink-0'}`}>
+          <div className={cn(
+            isMobile 
+              ? "absolute inset-y-0 left-0 z-40 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl shadow-2xl w-full max-w-sm animate-slide-in-right" 
+              : "flex-shrink-0 w-80"
+          )}>
             <EnhancedSidebar
               channels={displayChannels}
               activeChannel={activeChannel}
@@ -218,12 +230,18 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
               searchResults={searchResults}
               currentQuery={searchQuery}
               isConnected={isConnected}
+              className={isMobile ? "safe-area-inset-top pt-16" : ""}
             />
           </div>
         )}
 
-        {/* Chat Area */}
-        <div className={`flex-1 ${isMobile && sidebarOpen ? 'hidden' : 'flex'} flex-col min-w-0 ${isMobile ? 'pt-20' : ''} mobile-safe-area-bottom`}>
+        {/* Enhanced Chat Area */}
+        <div className={cn(
+          "flex-1 flex flex-col min-w-0 transition-all duration-300",
+          isMobile && sidebarOpen && "opacity-30 pointer-events-none",
+          isMobile ? "pt-16 pb-safe" : "",
+          "mobile-safe-area-bottom"
+        )}>
           {/* Desktop Header with Status */}
           {!isMobile && (
             <div className="flex-shrink-0">
@@ -269,11 +287,12 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
           </div>
         </div>
 
-        {/* Mobile overlay when sidebar is open */}
+        {/* Enhanced Mobile overlay when sidebar is open */}
         {isMobile && sidebarOpen && (
           <div 
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm z-30"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm z-30 animate-fade-in"
             onClick={() => setSidebarOpen(false)}
+            onTouchStart={() => setSidebarOpen(false)}
           />
         )}
       </div>

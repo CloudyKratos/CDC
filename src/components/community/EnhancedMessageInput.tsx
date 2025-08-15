@@ -68,14 +68,14 @@ export const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
   const canSend = message.trim().length > 0 && !isSending && !disabled;
 
   return (
-    <form onSubmit={handleSubmit} className={cn("p-3 sm:p-4 pb-safe", className)}>
+    <form onSubmit={handleSubmit} className={cn("p-4 pb-safe", className)}>
       <div className="relative">
-        {/* Main input container - Mobile optimized */}
+        {/* Enhanced Main input container - Mobile optimized */}
         <div className={cn(
-          "flex items-end gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-800 rounded-2xl",
-          "border border-gray-200 dark:border-gray-700 p-3 sm:p-3",
-          "focus-within:border-blue-500 dark:focus-within:border-blue-400 transition-colors",
-          "shadow-sm focus-within:shadow-md" // Enhanced focus state
+          "flex items-end gap-3 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/90 rounded-2xl",
+          "border border-gray-200/70 dark:border-gray-700/70 p-4",
+          "focus-within:border-blue-500 dark:focus-within:border-blue-400 transition-all duration-300",
+          "shadow-lg focus-within:shadow-xl focus-within:shadow-blue-500/20 backdrop-blur-sm" // Enhanced focus state
         )}>
           
           {/* Textarea */}
@@ -88,50 +88,50 @@ export const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
               placeholder={placeholder}
               disabled={disabled || isSending}
               className={cn(
-                "min-h-[40px] sm:min-h-[20px] max-h-[120px] resize-none border-0 bg-transparent",
-                "p-0 text-sm leading-relaxed", // Better line height for mobile
+                "min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent",
+                "p-0 text-base leading-relaxed", // Better mobile sizing
                 "placeholder:text-gray-500 dark:placeholder:text-gray-400",
                 "focus-visible:ring-0 focus-visible:ring-offset-0",
-                "touch-manipulation" // Better touch response
+                "touch-manipulation font-medium" // Better touch response and readability
               )}
               rows={1}
             />
           </div>
 
-          {/* Action buttons - Mobile optimized */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* Emoji button */}
+          {/* Enhanced Action buttons - Mobile optimized */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Enhanced Emoji button */}
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className={cn(
-                "h-10 w-10 sm:h-8 sm:w-8 p-0 touch-target", // Larger on mobile
-                "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
-                "rounded-full transition-all duration-200"
+                "h-11 w-11 p-0 touch-target-optimal", // Optimal mobile size
+                "text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400",
+                "rounded-xl transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 active:scale-95"
               )}
               disabled={disabled}
             >
-              <Smile className="h-5 w-5 sm:h-4 sm:w-4" />
+              <Smile className="h-5 w-5" />
             </Button>
 
-            {/* Send button - Mobile optimized */}
+            {/* Enhanced Send button - Mobile optimized */}
             <Button
               type="submit"
               size="sm"
               disabled={!canSend}
               className={cn(
-                "h-10 w-10 sm:h-8 sm:w-8 p-0 rounded-full touch-target", // Larger on mobile
-                "transition-all duration-200 shadow-sm active:scale-95", // Better mobile feedback
+                "h-11 w-11 p-0 rounded-xl touch-target-optimal", // Optimal mobile size
+                "transition-all duration-300 shadow-lg active:scale-95", // Better mobile feedback
                 canSend
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-blue-500/30 hover:shadow-blue-500/50"
                   : "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
               )}
             >
               {isSending ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Send className="h-5 w-5 sm:h-4 sm:w-4" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </div>

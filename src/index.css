@@ -69,6 +69,62 @@
   }
 }
 
+/* Enhanced mobile chat styles */
+@layer utilities {
+  /* Optimal touch targets for mobile chat */
+  .touch-target-optimal {
+    @apply min-h-[48px] min-w-[48px];
+  }
+  
+  /* Safe area handling with better fallbacks */
+  .safe-area-inset-top {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+  
+  /* Smooth animations for mobile chat */
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(-100%);
+      opacity: 0.8;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  /* Better scrolling for mobile */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Performance optimizations for mobile chat */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  /* Better mobile focus states */
+  @media (max-width: 768px) {
+    .focus\:ring-2:focus {
+      @apply ring-4 ring-blue-500/30;
+    }
+  }
+}
+
 /* Enhanced Animations */
 @keyframes gradient {
   0%, 100% {
