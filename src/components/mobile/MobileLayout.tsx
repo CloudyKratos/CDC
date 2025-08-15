@@ -1,8 +1,9 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileBottomNavigation from './MobileBottomNavigation';
 import ImprovedMobileDashboard from './ImprovedMobileDashboard';
+import MobileCommandCenter from './MobileCommandCenter';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface MobileLayoutProps {
 const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   // Don't render mobile layout on desktop
   if (!isMobile) {
@@ -27,6 +29,11 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           </div>
         );
       case '/dashboard':
+        // Check if user is accessing command center specifically
+        const activeTab = searchParams.get('tab');
+        if (activeTab === 'command-room') {
+          return <MobileCommandCenter />;
+        }
         return <ImprovedMobileDashboard />;
       case '/community':
         return (
