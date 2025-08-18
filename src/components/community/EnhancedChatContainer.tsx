@@ -2,13 +2,14 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useSimpleChat } from './hooks/useSimpleChat';
+import { useOptimizedRealtimeChat } from '@/hooks/useOptimizedRealtimeChat';
 import { useCommunityData } from './hooks/useCommunityData';
 import { ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
 import { EnhancedChatArea } from './EnhancedChatArea';
 import { EnhancedSidebar } from './enhanced/EnhancedSidebar';
 import { ChatStatusBar } from './enhanced/ChatStatusBar';
+import { EnhancedConnectionIndicator } from './enhanced/EnhancedConnectionIndicator';
 import { QuickChannelSwitcher } from './enhanced/QuickChannelSwitcher';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,14 +33,22 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
   const { user } = useAuth();
   const { channels, isLoading: channelsLoading } = useCommunityData();
   
+  const chatState = useOptimizedRealtimeChat(activeChannel);
+  
+  if (!chatState) {
+    return null;
+  }
+
   const { 
     messages, 
     isLoading: chatLoading, 
     error, 
     isConnected, 
+    connectionHealth,
     sendMessage, 
-    deleteMessage 
-  } = useSimpleChat(activeChannel);
+    deleteMessage,
+    reconnect
+  } = chatState;
 
   // Enhanced default channels
   const enhancedDefaultChannels = [
@@ -207,7 +216,9 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
               <div className="w-11 flex justify-center">
                 <div className={cn(
                   "w-2 h-2 rounded-full transition-colors",
-                  isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                  connectionHealth === 'excellent' ? "bg-green-500 animate-pulse" :
+                  connectionHealth === 'good' ? "bg-blue-500" :
+                  connectionHealth === 'poor' ? "bg-yellow-500" : "bg-red-500"
                 )} />
               </div>
             </div>
@@ -267,7 +278,7 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
                 isLoading={chatLoading || channelsLoading}
                 messageCount={messages.length}
                 activeUsers={1}
-                onReconnect={() => window.location.reload()}
+                onReconnect={reconnect}
               />
             </div>
           )}
