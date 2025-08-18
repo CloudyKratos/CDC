@@ -4,6 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import MobileBottomNavigation from './MobileBottomNavigation';
 import ImprovedMobileDashboard from './ImprovedMobileDashboard';
 import MobileCommandCenter from './MobileCommandCenter';
+import MobileCommunityChat from './MobileCommunityChat';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -37,8 +38,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         return <ImprovedMobileDashboard />;
       case '/community':
         return (
-          <div className="min-h-screen pt-16 pb-20">
-            {children}
+          <div className="h-screen flex flex-col">
+            <MobileCommunityChat />
           </div>
         );
       case '/warrior-space':
