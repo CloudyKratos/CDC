@@ -149,7 +149,7 @@ export function useOptimizedRealtimeChat(channelName: string): OptimizedChatStat
           content,
           created_at,
           sender_id,
-          profiles!community_messages_sender_id_fkey (
+          profiles (
             id,
             username,
             full_name,
@@ -157,7 +157,6 @@ export function useOptimizedRealtimeChat(channelName: string): OptimizedChatStat
           )
         `)
         .eq('channel_id', channelId)
-        .eq('is_deleted', false)
         .order('created_at', { ascending: true })
         .limit(100);
 
@@ -168,7 +167,7 @@ export function useOptimizedRealtimeChat(channelName: string): OptimizedChatStat
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+        sender: msg.profiles || {
           id: msg.sender_id,
           username: 'Unknown',
           full_name: 'Unknown User',
