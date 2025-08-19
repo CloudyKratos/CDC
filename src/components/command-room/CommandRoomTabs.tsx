@@ -109,7 +109,7 @@ const CommandRoomTabs: React.FC<CommandRoomTabsProps> = ({ isAdmin = false }) =>
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b border-gray-100 bg-gray-50/50">
-            <TabsList className="grid w-full grid-cols-4 bg-transparent p-2 h-auto">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-2 bg-transparent p-2 h-auto">
               {Object.entries(tabContent).map(([key, config]) => {
                 const Icon = config.icon;
                 return (
