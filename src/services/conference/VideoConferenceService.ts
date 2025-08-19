@@ -65,9 +65,9 @@ class VideoConferenceService extends BrowserEventEmitter {
   private isInitialized = false;
   private currentRole: 'host' | 'presenter' | 'attendee' = 'attendee';
   private webinarSettings: WebinarSettings = {
-    allowAttendeeVideo: false,
-    allowAttendeeAudio: false,
-    allowAttendeeScreenShare: false,
+    allowAttendeeVideo: true,
+    allowAttendeeAudio: true,
+    allowAttendeeScreenShare: true,
     allowAttendeeChat: true,
     isRecording: false,
     maxParticipants: 100,
@@ -85,7 +85,8 @@ class VideoConferenceService extends BrowserEventEmitter {
   async joinConference(
     roomId: string,
     userId: string,
-    name: string
+    name: string,
+    role: 'host' | 'presenter' | 'attendee' = 'presenter'
   ): Promise<boolean> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -96,7 +97,7 @@ class VideoConferenceService extends BrowserEventEmitter {
       const participantInfo = {
         id: userId,
         name,
-        role: 'attendee' as const
+        role
       };
 
       await this.initializeWebinar(stream, participantInfo);

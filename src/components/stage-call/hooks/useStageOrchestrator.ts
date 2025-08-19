@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import StageOrchestrator, { StageConfig, StageState } from '@/services/core/StageOrchestrator';
+import StageService from '@/services/core/StageService';
 
 export const useStageOrchestrator = () => {
   const [state, setState] = useState<StageState>(StageOrchestrator.getState());
@@ -42,19 +43,37 @@ export const useStageOrchestrator = () => {
   }, []);
 
   const toggleAudio = useCallback(async () => {
-    return await StageOrchestrator.toggleAudio();
+    try {
+      return await StageService.toggleAudio();
+    } catch (error) {
+      console.error('Stage audio toggle error:', error);
+      return false;
+    }
   }, []);
 
   const toggleVideo = useCallback(async () => {
-    return await StageOrchestrator.toggleVideo();
+    try {
+      return await StageService.toggleVideo();
+    } catch (error) {
+      console.error('Stage video toggle error:', error);
+      return false;
+    }
   }, []);
 
   const switchAudioDevice = useCallback(async (deviceId: string) => {
-    await StageOrchestrator.switchAudioDevice(deviceId);
+    try {
+      await WebRTCStageService.switchAudioDevice(deviceId);
+    } catch (error) {
+      console.error('Error switching audio device:', error);
+    }
   }, []);
 
   const switchVideoDevice = useCallback(async (deviceId: string) => {
-    await StageOrchestrator.switchVideoDevice(deviceId);
+    try {
+      await WebRTCStageService.switchVideoDevice(deviceId);
+    } catch (error) {
+      console.error('Error switching video device:', error);
+    }
   }, []);
 
   return {

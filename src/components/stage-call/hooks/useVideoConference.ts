@@ -186,7 +186,8 @@ export const useVideoConference = (): UseVideoConferenceReturn => {
       const success = await VideoConferenceService.joinConference(
         roomId,
         user.id,
-        user.name || user.email || 'Anonymous User'
+        user.name || user.email || 'Anonymous User',
+        'presenter' // Default to presenter role for stage rooms
       );
 
       if (!success) {

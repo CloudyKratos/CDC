@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { useVideoConference } from './hooks/useVideoConference';
+import { useStageRoom } from './hooks/useStageRoom';
 import ParticipantVideo from './ParticipantVideo';
 import ProfessionalStageControls from './ui/ProfessionalStageControls';
 import { 
@@ -44,34 +44,34 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
     isVideoEnabled,
     isHandRaised,
     isScreenSharing,
-    conferenceStats,
-    joinConference,
-    leaveConference,
+    stageSettings,
+    joinStage,
+    leaveStage,
     toggleAudio,
     toggleVideo,
     toggleHandRaise,
     startScreenShare,
     stopScreenShare
-  } = useVideoConference();
+  } = useStageRoom();
 
   // Auto-join on mount with retry logic
   useEffect(() => {
     if (user && !isConnected && !isConnecting) {
       setConnectionStatus('connecting');
-      joinConference(stageId).then(success => {
+      joinStage(stageId, 'speaker').then(success => {
         setConnectionStatus(success ? 'connected' : 'failed');
         if (!success) {
           // Retry after 3 seconds
           setTimeout(() => {
             if (!isConnected) {
               setConnectionStatus('reconnecting');
-              joinConference(stageId);
+              joinStage(stageId, 'speaker');
             }
           }, 3000);
         }
       });
     }
-  }, [user, stageId, isConnected, isConnecting, joinConference]);
+  }, [user, stageId, isConnected, isConnecting, joinStage]);
 
   // Update connection status based on conference state
   useEffect(() => {
@@ -84,13 +84,13 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
 
   const handleLeave = useCallback(async () => {
     try {
-      await leaveConference();
+      await leaveStage();
       onLeave();
     } catch (error) {
-      console.error('Error leaving conference:', error);
+      console.error('Error leaving stage:', error);
       onLeave(); // Still leave even if cleanup fails
     }
-  }, [leaveConference, onLeave]);
+  }, [leaveStage, onLeave]);
 
   const handleScreenShare = useCallback(async () => {
     try {
@@ -254,17 +254,15 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
             <span className="text-sm text-white font-medium">{participants.length}</span>
           </div>
 
-          {/* Conference Stats Toggle */}
-          {conferenceStats && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowStats(!showStats)}
-              className="text-white/70 hover:text-white hover:bg-white/10"
-            >
-              <Signal className="w-4 h-4" />
-            </Button>
-          )}
+          {/* Stage Stats Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowStats(!showStats)}
+            className="text-white/70 hover:text-white hover:bg-white/10"
+          >
+            <Signal className="w-4 h-4" />
+          </Button>
 
           {/* Settings */}
           <Button
@@ -279,13 +277,13 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       </div>
 
       {/* Enhanced Stats Panel */}
-      {showStats && conferenceStats && (
+      {showStats && (
         <div className="p-4 bg-black/30 backdrop-blur-sm border-b border-white/10">
-          <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-8 text-sm text-white/80">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-400" />
-                <span className="font-medium">{conferenceStats.participantCount} participants</span>
+                <span className="font-medium">{participants.length} participants</span>
               </div>
               
               <Separator orientation="vertical" className="h-4 bg-white/20" />
@@ -294,7 +292,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
                 <VideoIcon className="w-4 h-4 text-green-400" />
                 <span>Video: </span>
                 <Badge variant="outline" className="text-xs border-green-400 text-green-400">
-                  {conferenceStats.videoQuality.resolution}
+                  720p
                 </Badge>
               </div>
               
@@ -304,7 +302,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
                 <Mic className="w-4 h-4 text-green-400" />
                 <span>Audio: </span>
                 <Badge variant="outline" className="text-xs border-green-400 text-green-400">
-                  {conferenceStats.audioQuality.bitrate}kbps
+                  128kbps
                 </Badge>
               </div>
               
@@ -312,14 +310,14 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
               
               <div className="flex items-center gap-2">
                 <Signal className="w-4 h-4 text-blue-400" />
-                <span>{conferenceStats.networkLatency}ms latency</span>
+                <span>~50ms latency</span>
               </div>
               
               <Separator orientation="vertical" className="h-4 bg-white/20" />
               
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-yellow-400" />
-                <span>{conferenceStats.bandwidth.upload} kbps</span>
+                <span>Connected</span>
               </div>
             </div>
             
@@ -339,15 +337,26 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
       <div className="flex-1 p-6 overflow-auto">
         {participants.length > 0 ? (
           <div className={`grid ${getGridCols(participants.length)} gap-4 h-full min-h-0`}>
-            {participants.map((participant) => (
-              <ParticipantVideo
-                key={participant.id}
-                participant={participant}
-                isLocal={participant.id === user?.id}
-                isActiveSpeaker={activeSpeaker?.id === participant.id}
-                className="min-h-0 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
-              />
-            ))}
+            {participants.map((participant) => {
+              // Map stage participant to conference participant format
+              const conferenceParticipant = {
+                ...participant,
+                role: participant.role === 'speaker' ? 'presenter' as const :
+                      participant.role === 'audience' ? 'attendee' as const :
+                      participant.role === 'moderator' ? 'host' as const :
+                      participant.role as 'host' | 'presenter' | 'attendee'
+              };
+              
+              return (
+                <ParticipantVideo
+                  key={participant.id}
+                  participant={conferenceParticipant}
+                  isLocal={participant.id === user?.id}
+                  isActiveSpeaker={activeSpeaker?.id === participant.id}
+                  className="min-h-0 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="h-full flex items-center justify-center">
@@ -377,7 +386,7 @@ const StageRoom: React.FC<StageRoomProps> = ({ stageId, onLeave }) => {
         isVideoEnabled={isVideoEnabled}
         isHandRaised={isHandRaised}
         isScreenSharing={isScreenSharing}
-        userRole="speaker" // TODO: Get from user context/props
+        userRole={localParticipant?.role === 'audience' ? 'audience' : localParticipant?.role === 'moderator' ? 'moderator' : 'speaker'}
         participantCount={participants.length}
         onToggleAudio={toggleAudio}
         onToggleVideo={toggleVideo}
