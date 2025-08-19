@@ -8,7 +8,7 @@ import { EnhancedChatArea } from '../community/EnhancedChatArea';
 import { EnhancedSidebar } from '../community/enhanced/EnhancedSidebar';
 import { ChatStatusBar } from '../community/enhanced/ChatStatusBar';
 import { QuickChannelSwitcher } from '../community/enhanced/QuickChannelSwitcher';
-import { Menu, X, MessageCircle, Users, Hash } from 'lucide-react';
+import { Menu, X, MessageCircle, Users, Hash, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,23 +38,31 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
     deleteMessage 
   } = useSimpleChat(activeChannel);
 
-  // Enhanced default channels with mobile-friendly display
+  // Enhanced default channels with mobile-friendly display in correct order
   const enhancedDefaultChannels = [
+    { 
+      id: 'announcement', 
+      name: 'announcement', 
+      type: ChannelType.PUBLIC, 
+      members: [], 
+      unreadCount: 0,
+      description: 'Important announcements and updates'
+    },
     { 
       id: 'general', 
       name: 'general', 
       type: ChannelType.PUBLIC, 
       members: [], 
       unreadCount: 0,
-      description: 'General discussion'
+      description: 'General discussion and community chat'
     },
     { 
-      id: 'announcements', 
-      name: 'announcements', 
+      id: 'morning-journey', 
+      name: 'morning journey', 
       type: ChannelType.PUBLIC, 
       members: [], 
       unreadCount: 0,
-      description: 'Important updates'
+      description: 'Start your day with motivation and morning routines'
     },
     { 
       id: 'random', 
@@ -62,7 +70,7 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
       type: ChannelType.PUBLIC, 
       members: [], 
       unreadCount: 0,
-      description: 'Off-topic chat'
+      description: 'Random conversations and off-topic discussions'
     }
   ];
 
@@ -72,11 +80,14 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
   // Get channel icon helper
   const getChannelIcon = (channelName: string) => {
     switch (channelName.toLowerCase()) {
-      case 'announcements':
+      case 'announcement':
         return MessageCircle;
+      case 'general':
+        return Hash;
+      case 'morning journey':
+        return Clock;
       case 'random':
         return Users;
-      case 'general':
       default:
         return Hash;
     }

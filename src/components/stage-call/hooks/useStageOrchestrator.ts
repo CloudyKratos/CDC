@@ -62,7 +62,8 @@ export const useStageOrchestrator = () => {
 
   const switchAudioDevice = useCallback(async (deviceId: string) => {
     try {
-      await WebRTCStageService.switchAudioDevice(deviceId);
+      console.log('Audio device switching not implemented:', deviceId);
+      // TODO: Implement audio device switching when needed
     } catch (error) {
       console.error('Error switching audio device:', error);
     }
@@ -70,7 +71,8 @@ export const useStageOrchestrator = () => {
 
   const switchVideoDevice = useCallback(async (deviceId: string) => {
     try {
-      await WebRTCStageService.switchVideoDevice(deviceId);
+      console.log('Video device switching not implemented:', deviceId);
+      // TODO: Implement video device switching when needed
     } catch (error) {
       console.error('Error switching video device:', error);
     }

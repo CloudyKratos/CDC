@@ -50,10 +50,17 @@ class ChannelService {
     }
   }
 
-  // Create default channels with the three requested channels
+  // Create default channels with the four requested channels in order
   private createDefaultChannels(): ChatChannel[] {
     console.log('🔧 ChannelService: Creating default channels fallback');
     return [
+      {
+        id: 'announcement',
+        name: 'announcement',
+        type: ChannelType.PUBLIC,
+        members: [],
+        description: 'Important announcements and updates'
+      },
       {
         id: 'general',
         name: 'general',
@@ -69,11 +76,11 @@ class ChannelService {
         description: 'Start your day with motivation and morning routines'
       },
       {
-        id: 'announcement',
-        name: 'announcement',
+        id: 'random',
+        name: 'random',
         type: ChannelType.PUBLIC,
         members: [],
-        description: 'Important announcements and updates'
+        description: 'Random conversations and off-topic discussions'
       }
     ];
   }

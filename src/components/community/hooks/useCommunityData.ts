@@ -11,8 +11,12 @@ interface UseCommunityData {
   refreshChannels: () => Promise<void>;
 }
 
-// Default channels that should always exist
+// Default channels that should always exist in specific order
 const DEFAULT_CHANNELS = [
+  { 
+    name: 'announcement', 
+    description: 'Important announcements and updates' 
+  },
   { 
     name: 'general', 
     description: 'General discussion and community chat' 
@@ -22,8 +26,8 @@ const DEFAULT_CHANNELS = [
     description: 'Start your day with motivation and morning routines' 
   },
   { 
-    name: 'announcement', 
-    description: 'Important announcements and updates' 
+    name: 'random', 
+    description: 'Random conversations and off-topic discussions' 
   }
 ];
 

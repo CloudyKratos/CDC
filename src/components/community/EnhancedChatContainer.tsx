@@ -47,8 +47,17 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     deleteMessage
   } = chatState;
 
-  // Enhanced default channels
+  // Enhanced default channels in the correct order
   const enhancedDefaultChannels = [
+    { 
+      id: 'announcement', 
+      name: 'announcement', 
+      type: ChannelType.PUBLIC, 
+      members: [], 
+      description: 'Important announcements and updates',
+      unreadCount: 0,
+      isPinned: false
+    },
     { 
       id: 'general', 
       name: 'general', 
@@ -68,11 +77,11 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
       isPinned: false
     },
     { 
-      id: 'announcement', 
-      name: 'announcement', 
+      id: 'random', 
+      name: 'random', 
       type: ChannelType.PUBLIC, 
       members: [], 
-      description: 'Important announcements and updates',
+      description: 'Random conversations and off-topic discussions',
       unreadCount: 0,
       isPinned: false
     }
@@ -89,13 +98,16 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
 
   const getChannelDescription = (channelName: string) => {
     switch (channelName) {
-      case 'morning journey':
-        return 'Start your day with motivation and morning routines';
       case 'announcement':
         return 'Important announcements and updates';
       case 'general':
-      default:
         return 'General discussion and community chat';
+      case 'morning journey':
+        return 'Start your day with motivation and morning routines';
+      case 'random':
+        return 'Random conversations and off-topic discussions';
+      default:
+        return 'Community channel';
     }
   };
 
