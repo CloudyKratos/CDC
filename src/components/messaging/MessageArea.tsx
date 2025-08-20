@@ -71,7 +71,15 @@ const MessageArea: React.FC<MessageAreaProps> = ({ recipientId, onClose }) => {
       </div>
       
       <MessageInput
-        onSendMessage={(content) => sendMessage(content)}
+        onSendMessage={async (content) => {
+          try {
+            await sendMessage(content);
+            return true;
+          } catch (error) {
+            console.error('Error sending message:', error);
+            return false;
+          }
+        }}
         isLoading={isLoading}
         recipientName={recipient?.full_name || recipient?.username || 'User'}
       />

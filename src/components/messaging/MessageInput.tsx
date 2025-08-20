@@ -5,22 +5,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Paperclip, Smile } from 'lucide-react';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string) => Promise<boolean>;
   isLoading: boolean;
   recipientName: string;
+  placeholder?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   isLoading,
-  recipientName
+  recipientName,
+  placeholder
 }) => {
   const [message, setMessage] = useState('');
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (message.trim() && !isLoading) {
-      onSendMessage(message.trim());
-      setMessage('');
+      const success = await onSendMessage(message.trim());
+      if (success) {
+        setMessage('');
+      }
     }
   };
 
@@ -32,35 +36,28 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-      <div className="flex items-end space-x-2">
+    <div className="p-4">
+      <div className="flex items-end space-x-3">
         <div className="flex-1">
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={`Message ${recipientName}...`}
+            placeholder={placeholder || `Message ${recipientName}...`}
             disabled={isLoading}
             rows={1}
-            className="resize-none min-h-[40px] max-h-32"
+            className="resize-none min-h-[44px] max-h-32 rounded-3xl border-2 focus:border-primary transition-colors"
           />
         </div>
         
-        <div className="flex items-center space-x-1">
-          <Button variant="ghost" size="sm" disabled={isLoading}>
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" disabled={isLoading}>
-            <Smile className="h-4 w-4" />
-          </Button>
-          <Button 
-            onClick={handleSend}
-            disabled={!message.trim() || isLoading}
-            size="sm"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button 
+          onClick={handleSend}
+          disabled={!message.trim() || isLoading}
+          size="sm"
+          className="h-11 w-11 rounded-full p-0 shrink-0"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
