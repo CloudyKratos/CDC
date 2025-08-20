@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, Users, Video, Plus, Play, Settings } from 'lucide-react';
+import { Calendar, Clock, Users, Video, Plus, Play, Settings, PhoneOff } from 'lucide-react';
 import { CreateCallModal } from './CreateCallModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -16,12 +16,24 @@ export const CommunityCallsPanel: React.FC = () => {
   const [calls, setCalls] = useState<CommunityCall[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [canCreateCalls, setCanCreateCalls] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadCalls();
+    checkCreatePermissions();
   }, []);
+
+  const checkCreatePermissions = async () => {
+    try {
+      const canCreate = await CommunityCallService.canCreateCalls();
+      setCanCreateCalls(canCreate);
+    } catch (error) {
+      console.error('Error checking create permissions:', error);
+      setCanCreateCalls(false);
+    }
+  };
 
   const loadCalls = async () => {
     try {
@@ -45,6 +57,11 @@ export const CommunityCallsPanel: React.FC = () => {
     try {
       if (!user) {
         toast.error('You must be logged in to create a call');
+        return;
+      }
+
+      if (!canCreateCalls) {
+        toast.error('You do not have permission to create calls');
         return;
       }
 
@@ -117,6 +134,27 @@ export const CommunityCallsPanel: React.FC = () => {
     }
   };
 
+  const handleEndCall = async (call: CommunityCall) => {
+    try {
+      if (!user || call.host_id !== user.id) {
+        toast.error('Only the host can end this call');
+        return;
+      }
+
+      const result = await CommunityCallService.endCall(call.id);
+      if (result.success) {
+        // Update local state to remove ended call
+        setCalls(prev => prev.filter(c => c.id !== call.id));
+        toast.success('Call ended and cleared from stage rooms');
+      } else {
+        toast.error(result.error || 'Failed to end call');
+      }
+    } catch (error) {
+      console.error('Error ending call:', error);
+      toast.error('Failed to end call');
+    }
+  };
+
   const formatCallTime = (scheduledTime: string) => {
     const date = new Date(scheduledTime);
     const now = new Date();
@@ -180,10 +218,12 @@ export const CommunityCallsPanel: React.FC = () => {
           <h1 className="text-2xl font-bold">Community Calls</h1>
           <p className="text-muted-foreground">Join or host community discussions</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Schedule Call
-        </Button>
+        {canCreateCalls && (
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Schedule Call
+          </Button>
+        )}
       </div>
 
       {calls.length === 0 ? (
@@ -192,12 +232,17 @@ export const CommunityCallsPanel: React.FC = () => {
             <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No upcoming calls</h3>
             <p className="text-muted-foreground mb-6">
-              Schedule your first community call to bring people together for discussions, presentations, or casual conversations.
+              {canCreateCalls 
+                ? "Schedule your first community call to bring people together for discussions, presentations, or casual conversations."
+                : "Community calls will appear here when scheduled by authorized users."
+              }
             </p>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Schedule Your First Call
-            </Button>
+            {canCreateCalls && (
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Schedule Your First Call
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -224,6 +269,16 @@ export const CommunityCallsPanel: React.FC = () => {
                       >
                         <Play className="w-4 h-4 mr-2" />
                         Start
+                      </Button>
+                    )}
+                    {isHost(call) && call.status === 'live' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleEndCall(call)}
+                        variant="destructive"
+                      >
+                        <PhoneOff className="w-4 h-4 mr-2" />
+                        End Call
                       </Button>
                     )}
                     {canJoinCall(call) && (
@@ -264,11 +319,13 @@ export const CommunityCallsPanel: React.FC = () => {
         </div>
       )}
 
-      <CreateCallModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onCreateCall={handleCreateCall}
-      />
+      {canCreateCalls && (
+        <CreateCallModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          onCreateCall={handleCreateCall}
+        />
+      )}
     </div>
   );
 };

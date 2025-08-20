@@ -44,6 +44,12 @@ class CommunityCallService {
         return { success: false, error: 'Authentication required' };
       }
 
+      // Only allow specific user to create calls
+      const AUTHORIZED_CREATOR_ID = '348ae8de-aaac-41cb-89cd-674023098784';
+      if (user.id !== AUTHORIZED_CREATOR_ID) {
+        return { success: false, error: 'Only authorized users can create community calls' };
+      }
+
       // Create the stage first
       const stageResult = await StageService.createStage({
         title: callData.title,
@@ -181,7 +187,17 @@ class CommunityCallService {
         return { success: false, error: 'Authentication required' };
       }
 
-      console.log('Ending community call:', callId);
+      // Only allow authorized user to end calls
+      const AUTHORIZED_CREATOR_ID = '348ae8de-aaac-41cb-89cd-674023098784';
+      if (user.id !== AUTHORIZED_CREATOR_ID) {
+        return { success: false, error: 'Only authorized users can end community calls' };
+      }
+
+      console.log('Ending community call and clearing from stage rooms:', callId);
+      
+      // Clear the call from stage rooms by updating status to ended
+      await this.updateCallStatus(callId, 'ended');
+      
       return { success: true };
 
     } catch (error) {
@@ -190,6 +206,20 @@ class CommunityCallService {
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to end call' 
       };
+    }
+  }
+
+  // Check if user can create calls
+  async canCreateCalls(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      
+      const AUTHORIZED_CREATOR_ID = '348ae8de-aaac-41cb-89cd-674023098784';
+      return user.id === AUTHORIZED_CREATOR_ID;
+    } catch (error) {
+      console.error('Error checking call creation permissions:', error);
+      return false;
     }
   }
 
