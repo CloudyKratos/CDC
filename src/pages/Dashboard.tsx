@@ -77,7 +77,7 @@ const Dashboard = () => {
     },
     { 
       id: "community", 
-      label: "Community", 
+      label: "Chat", 
       icon: Users, 
       description: "Chat & connect",
       color: "purple"

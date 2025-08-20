@@ -47,8 +47,8 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     deleteMessage
   } = chatState;
 
-  // Enhanced default channels in the correct order
-  const enhancedDefaultChannels = [
+  // Only 4 channels as requested
+  const defaultChannels = [
     { 
       id: 'announcement', 
       name: 'announcement', 
@@ -87,14 +87,8 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
     }
   ];
 
-  const displayChannels = channels.length > 0 ? 
-    channels.map(channel => ({
-      ...channel,
-      description: channel.description || getChannelDescription(channel.name),
-      unreadCount: 0,
-      isPinned: false
-    })) : 
-    enhancedDefaultChannels;
+  // Use only the default 4 channels
+  const displayChannels = defaultChannels;
 
   const getChannelDescription = (channelName: string) => {
     switch (channelName) {

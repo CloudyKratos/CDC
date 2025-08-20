@@ -39,8 +39,8 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
     deleteMessage = async () => {} 
   } = chatState || {};
 
-  // Enhanced default channels with mobile-friendly display in correct order
-  const enhancedDefaultChannels = [
+  // Only 4 channels as requested
+  const defaultChannels = [
     { 
       id: 'announcement', 
       name: 'announcement', 
@@ -75,7 +75,8 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
     }
   ];
 
-  const allChannels = [...enhancedDefaultChannels, ...(channels || [])];
+  // Use only the default 4 channels
+  const allChannels = defaultChannels;
   const currentChannel = allChannels.find(c => c.id === activeChannel || c.name === activeChannel);
   
   // Get channel icon helper
