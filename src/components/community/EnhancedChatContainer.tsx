@@ -199,18 +199,18 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
   }
 
   return (
-    <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 ${isMobile ? 'p-0' : 'p-4'} ${className}`}>
-      <div className={`h-full flex ${isMobile ? 'rounded-none' : 'rounded-2xl'} overflow-hidden ${isMobile ? 'shadow-none' : 'shadow-2xl'} bg-white dark:bg-gray-900 ${isMobile ? 'border-0' : 'border border-gray-200/50 dark:border-gray-800/50'} relative`}>
+    <div className={`h-full bg-gradient-to-br from-white via-blue-50/50 to-indigo-50/50 dark:from-slate-900 dark:via-blue-950/30 dark:to-indigo-950/30 ${isMobile ? 'p-0' : 'p-4'} ${className}`}>
+      <div className={`h-full flex ${isMobile ? 'rounded-none' : 'rounded-3xl'} overflow-hidden ${isMobile ? 'shadow-none' : 'shadow-2xl shadow-blue-500/10 dark:shadow-blue-900/20'} bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl ${isMobile ? 'border-0' : 'border border-blue-200/50 dark:border-gray-800/50'} relative`}>
         
         {/* Enhanced Mobile Header with Toggle */}
         {isMobile && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 safe-area-inset-top">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl border-b border-blue-200/50 dark:border-gray-800/50 safe-area-inset-top shadow-sm">
             <div className="px-4 py-3 flex items-center justify-between min-h-[56px]">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleSidebar}
-                className="h-11 w-11 p-0 touch-target rounded-xl active:scale-95 transition-transform"
+                className="h-11 w-11 p-0 touch-target rounded-xl active:scale-95 transition-transform hover:bg-blue-50 dark:hover:bg-blue-900/30"
               >
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
@@ -224,8 +224,8 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
               
               <div className="w-11 flex justify-center">
                 <div className={cn(
-                  "w-2 h-2 rounded-full transition-colors",
-                  isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                  "w-3 h-3 rounded-full transition-all duration-300",
+                  isConnected ? "bg-green-500 shadow-lg shadow-green-500/30 animate-pulse" : "bg-red-500 shadow-lg shadow-red-500/30"
                 )} />
               </div>
             </div>
@@ -236,8 +236,8 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
         {(!isMobile || sidebarOpen) && (
           <div className={cn(
             isMobile 
-              ? "absolute inset-y-0 left-0 z-40 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl shadow-2xl w-full max-w-sm animate-slide-in-right" 
-              : "flex-shrink-0 w-80"
+              ? "absolute inset-y-0 left-0 z-40 bg-white/99 dark:bg-gray-900/99 backdrop-blur-xl shadow-2xl shadow-blue-500/10 w-full max-w-sm animate-slide-in-right border-r border-blue-200/50 dark:border-gray-700/50" 
+              : "flex-shrink-0 w-80 border-r border-blue-200/50 dark:border-gray-700/50"
           )}>
             <EnhancedSidebar
               channels={displayChannels}
@@ -263,21 +263,36 @@ export const EnhancedChatContainer: React.FC<EnhancedChatContainerProps> = ({
           {/* Desktop Header with Status */}
           {!isMobile && (
             <div className="flex-shrink-0">
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-white dark:bg-gray-900">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-200/50 dark:border-gray-700/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30">
                 <QuickChannelSwitcher
                   channels={displayChannels}
                   activeChannel={activeChannel}
                   onChannelSelect={handleChannelSelect}
                 />
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleSidebar}
-                  className="h-10 w-10 p-0 touch-target"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                    isConnected 
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" 
+                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                  )}>
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                    )} />
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSidebar}
+                    className="h-10 w-10 p-0 touch-target hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               <ChatStatusBar

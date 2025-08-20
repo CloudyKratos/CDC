@@ -91,7 +91,8 @@ export function useReliableCommunityChat(channelName: string): ReliableChatState
           content,
           created_at,
           sender_id,
-          profiles (
+          is_deleted,
+          profiles!community_messages_sender_id_fkey (
             id,
             username,
             full_name,
@@ -99,6 +100,7 @@ export function useReliableCommunityChat(channelName: string): ReliableChatState
           )
         `)
         .eq('channel_id', channelId)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: true })
         .limit(50);
 
@@ -107,15 +109,15 @@ export function useReliableCommunityChat(channelName: string): ReliableChatState
         throw error;
       }
 
-      const formattedMessages = (messagesData || []).map(msg => ({
+      const formattedMessages = (messagesData || []).map((msg: any) => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: msg.profiles || {
+        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
           id: msg.sender_id,
           username: 'Unknown User',
-          full_name: 'Unknown User',
+          full_name: 'Community Member',
           avatar_url: null
         }
       }));
@@ -178,7 +180,11 @@ export function useReliableCommunityChat(channelName: string): ReliableChatState
 
             setMessages(prev => {
               const exists = prev.some(msg => msg.id === message.id);
-              if (exists) return prev;
+              if (exists) {
+                console.log('⚠️ Duplicate message received, skipping:', message.id);
+                return prev;
+              }
+              console.log('📨 Adding new message to state:', message.id);
               return [...prev, message];
             });
             
@@ -224,20 +230,29 @@ export function useReliableCommunityChat(channelName: string): ReliableChatState
     if (!user?.id || !channelId || !content.trim()) return false;
 
     try {
-      const { error } = await supabase
+      console.log('📤 Sending message to channel:', channelId, 'Content:', content.substring(0, 50));
+      
+      const { data, error } = await supabase
         .from('community_messages')
         .insert({
           channel_id: channelId,
           sender_id: user.id,
           content: content.trim()
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error sending message:', error);
+        throw error;
+      }
+
+      console.log('✅ Message sent successfully:', data);
+      toast.success('Message sent!');
       return true;
       
     } catch (err) {
       console.error('❌ Failed to send message:', err);
-      toast.error('Failed to send message');
+      toast.error('Failed to send message. Please try again.');
       return false;
     }
   }, [user?.id, channelId]);

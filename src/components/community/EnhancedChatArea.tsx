@@ -115,9 +115,9 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
   }
 
   return (
-    <div className={`h-full flex flex-col bg-white dark:bg-slate-900 ${className}`}>
+    <div className={`h-full flex flex-col bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-indigo-950/30 ${className}`}>
       {/* Sticky Header with Integrated Features - Mobile optimized */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50">
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gradient-to-r from-blue-200/50 to-purple-200/50 dark:from-blue-800/50 dark:to-purple-800/50 shadow-sm">
         <IntegratedChatFeatures
           onSearch={handleSearch}
           onFilter={handleFilter}
@@ -127,20 +127,20 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
         />
       </div>
 
-      {/* Messages Area - Mobile optimized scrolling */}
+      {/* Messages Area - Mobile optimized scrolling with beautiful background */}
       <div className="flex-1 min-h-0 relative overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="py-2 sm:py-4 space-y-0 min-h-full">
+          <div className="py-2 sm:py-4 space-y-0 min-h-full bg-gradient-to-b from-transparent via-white/40 to-transparent dark:via-slate-900/40">
             {filteredMessages.length === 0 && !isLoading ? (
               <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 sm:px-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  <span className="text-2xl">💬</span>
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-full flex items-center justify-center mb-6 shadow-xl animate-pulse">
+                  <span className="text-3xl">💬</span>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                  {searchQuery ? 'No messages found' : 'No messages yet'}
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                  {searchQuery ? 'No messages found' : `Welcome to #${activeChannel}!`}
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm max-w-sm">
-                  {searchQuery ? 'Try a different search term' : 'Be the first to start the conversation!'}
+                <p className="text-slate-600 dark:text-slate-400 text-base max-w-sm leading-relaxed">
+                  {searchQuery ? 'Try a different search term or browse other channels' : 'This is the beginning of your conversation. Send a message to get started!'}
                 </p>
               </div>
             ) : (
@@ -190,14 +190,14 @@ export const EnhancedChatArea: React.FC<EnhancedChatAreaProps> = ({
       </div>
 
       {/* Fixed Enhanced Message Input - Mobile optimized */}
-      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm sticky bottom-0 z-20">
+      <div className="flex-shrink-0 border-t border-gradient-to-r from-blue-200/50 to-purple-200/50 dark:from-blue-800/50 dark:to-purple-800/50 bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl sticky bottom-0 z-20 shadow-lg">
         <EnhancedMessageInput
           onSendMessage={onSendMessage}
           disabled={!isConnected || isLoading}
           placeholder={
             !isConnected 
-              ? "Reconnecting..."
-              : `Message #${activeChannel}`
+              ? "Reconnecting to chat..."
+              : `Message #${activeChannel} channel...`
           }
           className="mobile-input-safe" // Safe area padding for mobile
         />

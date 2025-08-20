@@ -103,9 +103,9 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
               "p-4 sm:p-5 rounded-2xl max-w-full sm:max-w-2xl shadow-lg border transition-all duration-300",
               "will-change-transform backdrop-blur-sm", // Optimize animations and add blur
               isOwn 
-                ? "bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white border-blue-500/30 ml-auto rounded-br-lg shadow-blue-500/20" 
-                : "bg-white/95 dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 border-slate-200/50 dark:border-slate-700/50 rounded-bl-lg shadow-slate-500/10 dark:shadow-slate-900/20",
-              "hover:shadow-xl active:shadow-2xl active:scale-[0.99]" // Enhanced mobile feedback
+                ? "bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white border-blue-500/30 ml-auto rounded-br-lg shadow-blue-500/25" 
+                : "bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-slate-800/95 dark:via-blue-900/20 dark:to-indigo-900/20 text-slate-900 dark:text-slate-100 border-blue-200/50 dark:border-slate-700/50 rounded-bl-lg shadow-blue-500/10 dark:shadow-slate-900/20",
+              "hover:shadow-xl hover:shadow-blue-500/15 active:shadow-2xl active:scale-[0.99]" // Enhanced mobile feedback
             )}>
               <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
                 {message.content}

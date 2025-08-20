@@ -72,10 +72,10 @@ export const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
       <div className="relative">
         {/* Enhanced Main input container - Mobile optimized */}
         <div className={cn(
-          "flex items-end gap-3 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/90 rounded-2xl",
-          "border border-gray-200/70 dark:border-gray-700/70 p-4",
-          "focus-within:border-blue-500 dark:focus-within:border-blue-400 transition-all duration-300",
-          "shadow-lg focus-within:shadow-xl focus-within:shadow-blue-500/20 backdrop-blur-sm" // Enhanced focus state
+          "flex items-end gap-3 bg-gradient-to-r from-blue-50/50 via-white to-indigo-50/50 dark:from-blue-900/10 dark:via-gray-800 dark:to-indigo-900/10 rounded-2xl",
+          "border border-blue-200/60 dark:border-gray-700/70 p-4",
+          "focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:border-blue-400 transition-all duration-300",
+          "shadow-lg shadow-blue-500/5 focus-within:shadow-xl focus-within:shadow-blue-500/25 backdrop-blur-sm" // Enhanced focus state
         )}>
           
           {/* Textarea */}
