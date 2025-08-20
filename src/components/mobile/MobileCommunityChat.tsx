@@ -29,14 +29,15 @@ const MobileCommunityChat: React.FC<MobileCommunityChatProps> = ({
   const { user } = useAuth();
   const { channels, isLoading: channelsLoading } = useCommunityData();
   
+  const chatState = useSimpleChat(activeChannel);
   const { 
-    messages, 
-    isLoading: chatLoading, 
-    error, 
-    isConnected, 
-    sendMessage, 
-    deleteMessage 
-  } = useSimpleChat(activeChannel);
+    messages = [], 
+    isLoading: chatLoading = false, 
+    error = null, 
+    isConnected = false, 
+    sendMessage = async () => false, 
+    deleteMessage = async () => {} 
+  } = chatState || {};
 
   // Enhanced default channels with mobile-friendly display in correct order
   const enhancedDefaultChannels = [
