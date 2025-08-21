@@ -32,11 +32,11 @@ export const SimpleChatHeader: React.FC<SimpleChatHeaderProps> = ({
             <h1 className="font-semibold text-lg">{currentChannel?.name}</h1>
             <div className="flex items-center space-x-2">
               <div className={cn(
-                "w-2 h-2 rounded-full",
-                isConnected ? "bg-green-500" : "bg-red-500"
+                "w-2 h-2 rounded-full transition-colors",
+                isConnected ? "bg-green-500" : "bg-yellow-500 animate-pulse"
               )}></div>
               <span className="text-xs text-muted-foreground">
-                {isConnected ? 'Online' : 'Connecting...'}
+                {isConnected ? 'Connected' : 'Connecting...'}
               </span>
             </div>
           </div>

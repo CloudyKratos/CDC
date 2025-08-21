@@ -129,15 +129,15 @@ export const SimpleMessagesList: React.FC<SimpleMessagesListProps> = ({
                 {/* Message Bubble */}
                 <div
                   className={cn(
-                    "inline-block px-3 py-2 rounded-2xl max-w-full break-words",
+                    "inline-block px-4 py-2 rounded-2xl max-w-full break-words shadow-sm",
                     isOwn
                       ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted text-foreground rounded-bl-md"
+                      : "bg-card border text-card-foreground rounded-bl-md"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                   <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                     {message.content}
+                   </p>
                   
                   {/* Time for own messages */}
                   {isOwn && (

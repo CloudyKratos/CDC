@@ -37,15 +37,12 @@ export const SimpleChatContainer: React.FC = () => {
       return false;
     }
 
-    if (!isConnected) {
-      toast.error("Connection lost. Please wait...");
-      return false;
-    }
-
     try {
       const success = await sendMessage(content);
       if (!success) {
         toast.error('Failed to send message');
+      } else {
+        console.log('✅ Message sent successfully');
       }
       return success;
     } catch (error) {
@@ -53,7 +50,7 @@ export const SimpleChatContainer: React.FC = () => {
       toast.error('Error sending message');
       return false;
     }
-  }, [user?.id, isConnected, sendMessage]);
+  }, [user?.id, sendMessage]);
 
   if (!user) {
     return (
@@ -98,10 +95,10 @@ export const SimpleChatContainer: React.FC = () => {
 
       {/* Connection Status */}
       {!isConnected && (
-        <div className="bg-yellow-100 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">
-          <div className="flex items-center justify-center text-sm text-yellow-800 dark:text-yellow-200">
+        <div className="bg-yellow-50 dark:bg-yellow-900/10 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">
+          <div className="flex items-center justify-center text-sm text-yellow-700 dark:text-yellow-300">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></div>
-            Reconnecting...
+            Connecting...
           </div>
         </div>
       )}

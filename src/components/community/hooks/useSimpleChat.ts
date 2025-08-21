@@ -268,24 +268,59 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
   // Send message
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-    if (!user?.id || !channelId || !content.trim()) return false;
+    if (!user?.id || !channelId || !content.trim()) {
+      console.error('❌ Cannot send message: missing user or channel');
+      return false;
+    }
 
     try {
-      const { error } = await supabase
+      setIsLoading(true);
+      console.log('📤 Sending message:', content);
+      
+      const { data, error } = await supabase
         .from('community_messages')
         .insert({
           channel_id: channelId,
           sender_id: user.id,
           content: content.trim()
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
-      return true;
+      if (error) {
+        console.error('💥 Error sending message:', error);
+        return false;
+      }
+
+      console.log('✅ Message sent successfully:', data);
       
+      // Add message to local state immediately for better UX  
+      const message: Message = {
+        id: data.id,
+        content: data.content,
+        created_at: data.created_at,
+        sender_id: data.sender_id,
+        sender: {
+          id: user.id,
+          username: user.name || 'You',
+          full_name: user.name || 'You',
+          avatar_url: user.avatar || null
+        }
+      };
+
+      setMessages(prev => {
+        const exists = prev.some(msg => msg.id === message.id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+      
+      return true;
     } catch (err) {
-      console.error('❌ Failed to send message:', err);
+      console.error('❌ Error sending message:', err);
       toast.error('Failed to send message');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   }, [user?.id, channelId]);
 
