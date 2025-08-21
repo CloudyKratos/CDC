@@ -162,7 +162,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           content,
           created_at,
           sender_id,
-          profiles!community_messages_sender_id_fkey (
+          profiles!sender_id (
             id,
             username,
             full_name,
