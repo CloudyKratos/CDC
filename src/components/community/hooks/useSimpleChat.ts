@@ -162,7 +162,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           content,
           created_at,
           sender_id,
-          profiles (
+          profiles!community_messages_sender_id_fkey (
             id,
             username,
             full_name,
@@ -181,7 +181,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles || {
+        sender: msg.profiles || {
           id: msg.sender_id,
           username: 'Unknown',
           full_name: 'Unknown User',
@@ -235,7 +235,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
             .from('profiles')
             .select('id, username, full_name, avatar_url')
             .eq('id', newMessage.sender_id)
-            .single();
+            .maybeSingle();
 
           const message: Message = {
             id: newMessage.id,
@@ -251,6 +251,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           };
 
           setMessages(prev => {
+            // Avoid duplicates by checking if message already exists
             const exists = prev.some(msg => msg.id === message.id);
             if (exists) return prev;
             return [...prev, message];
@@ -294,25 +295,8 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
       console.log('✅ Message sent successfully:', data);
       
-      // Add message to local state immediately for better UX  
-      const message: Message = {
-        id: data.id,
-        content: data.content,
-        created_at: data.created_at,
-        sender_id: data.sender_id,
-        sender: {
-          id: user.id,
-          username: user.name || 'You',
-          full_name: user.name || 'You',
-          avatar_url: user.avatar || null
-        }
-      };
-
-      setMessages(prev => {
-        const exists = prev.some(msg => msg.id === message.id);
-        if (exists) return prev;
-        return [...prev, message];
-      });
+      // Don't add message to local state here - let realtime handle it
+      // This prevents duplicate messages
       
       return true;
     } catch (err) {
