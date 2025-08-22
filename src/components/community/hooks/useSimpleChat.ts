@@ -198,7 +198,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   };
 
-  // Setup realtime subscription
+// Setup enhanced realtime subscription with reconnection logic
   const setupRealtimeSubscription = (channelId: string) => {
     // Clean up existing subscription
     if (subscriptionRef.current) {
@@ -214,10 +214,16 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       activeSubscriptions.delete(channelId);
     }
 
-    console.log('📡 Setting up realtime subscription for channel:', channelId);
+    console.log('📡 Setting up enhanced realtime subscription for channel:', channelId);
     
     const subscription = supabase
-      .channel(`community_messages_${channelId}`)
+      .channel(`community_messages_${channelId}`, {
+        config: {
+          presence: {
+            key: user?.id || 'anonymous'
+          }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -230,12 +236,22 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Get sender profile
-          const { data: sender } = await supabase
+          // Skip if message is from current user (avoid duplicates)
+          if (newMessage.sender_id === user?.id) {
+            console.log('⏭️ Skipping own message to avoid duplicates');
+            return;
+          }
+          
+          // Get sender profile with cache optimization
+          const { data: sender, error: senderError } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
             .eq('id', newMessage.sender_id)
             .maybeSingle();
+
+          if (senderError) {
+            console.warn('⚠️ Could not fetch sender profile:', senderError);
+          }
 
           const message: Message = {
             id: newMessage.id,
@@ -253,26 +269,85 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           setMessages(prev => {
             // Avoid duplicates by checking if message already exists
             const exists = prev.some(msg => msg.id === message.id);
-            if (exists) return prev;
+            if (exists) {
+              console.log('⏭️ Message already exists, skipping:', message.id);
+              return prev;
+            }
+            console.log('✅ Adding new message to state:', message.id);
             return [...prev, message];
           });
         }
       )
-      .subscribe((status) => {
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'community_messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        (payload) => {
+          console.log('🔄 Message updated:', payload);
+          const updatedMessage = payload.new as any;
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === updatedMessage.id 
+              ? { ...msg, content: updatedMessage.content }
+              : msg
+          ).filter(msg => {
+            // Filter out deleted messages
+            if (msg.id === updatedMessage.id && updatedMessage.is_deleted) {
+              return false;
+            }
+            return true;
+          }));
+        }
+      )
+      .subscribe((status, err) => {
         console.log('📡 Realtime subscription status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
+        if (err) {
+          console.error('📡 Subscription error:', err);
+          setError('Connection lost. Attempting to reconnect...');
+          // Auto-reconnect after 3 seconds
+          setTimeout(() => {
+            if (channelId) setupRealtimeSubscription(channelId);
+          }, 3000);
+        } else {
+          setIsConnected(status === 'SUBSCRIBED');
+          if (status === 'SUBSCRIBED') {
+            setError(null);
+            console.log('🎉 Successfully connected to real-time channel');
+          }
+        }
       });
 
     subscriptionRef.current = subscription;
     activeSubscriptions.set(channelId, subscription);
   };
 
-  // Send message
+// Enhanced send message with optimistic updates
   const sendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!user?.id || !channelId || !content.trim()) {
       console.error('❌ Cannot send message: missing user or channel');
       return false;
     }
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+      sender_id: user.id,
+      sender: {
+        id: user.id,
+        username: user.email?.split('@')[0] || 'You',
+        full_name: 'You',
+        avatar_url: null
+      }
+    };
+
+    // Add optimistic message to state immediately
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
       setIsLoading(true);
@@ -290,13 +365,22 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
       if (error) {
         console.error('💥 Error sending message:', error);
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        toast.error('Failed to send message');
         return false;
       }
 
       console.log('✅ Message sent successfully:', data);
       
-      // Don't add message to local state here - let realtime handle it
-      // This prevents duplicate messages
+      // Replace optimistic message with real message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === optimisticMessage.id 
+            ? { ...optimisticMessage, id: data.id, created_at: data.created_at }
+            : msg
+        )
+      );
       
       return true;
     } catch (err) {
