@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimpleChat } from '../community/hooks/useSimpleChat';
 import MessageInput from './MessageInput';
-import { SimpleMessagesList } from './SimpleMessagesList';
+import MessagesList from '../community/chat/MessagesList';
 import { SimpleChatHeader } from './SimpleChatHeader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,10 +24,19 @@ export const SimpleChatContainer: React.FC = () => {
     isLoading = false, 
     error = null, 
     isConnected = false, 
-    sendMessage = async () => false 
+    sendMessage = async () => false,
+    deleteMessage = async () => {},
+    channelId = null
   } = chatState || {};
 
   const currentChannel = CHANNELS.find(c => c.id === activeChannel);
+
+  const reconnect = useCallback(() => {
+    // The useSimpleChat hook handles reconnection automatically
+    if (chatState) {
+      window.location.reload();
+    }
+  }, [chatState]);
 
   const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim()) return false;
@@ -76,11 +85,13 @@ export const SimpleChatContainer: React.FC = () => {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden">
-        <SimpleMessagesList 
+        <MessagesList 
           messages={messages}
           isLoading={isLoading}
           error={error}
-          currentUserId={user.id}
+          onReconnect={reconnect}
+          channelId={channelId}
+          onDeleteMessage={deleteMessage}
         />
       </div>
 

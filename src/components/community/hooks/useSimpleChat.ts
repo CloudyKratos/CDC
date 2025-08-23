@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 import { toast } from 'sonner';
+import { useEnhancedMessageActions } from '@/hooks/use-enhanced-message-actions';
 
 interface SimpleChatState {
   messages: Message[];
@@ -12,6 +13,7 @@ interface SimpleChatState {
   isConnected: boolean;
   sendMessage: (content: string) => Promise<boolean>;
   deleteMessage: (messageId: string) => Promise<void>;
+  channelId: string | null;
 }
 
 // Global subscription manager to prevent duplicates
@@ -27,6 +29,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
   const subscriptionRef = useRef<any>(null);
   const channelInitialized = useRef<string | null>(null);
+  const { fetchMessageReactions } = useEnhancedMessageActions();
 
   console.log('🎯 useSimpleChat hook called for channel:', channelName);
 
@@ -150,17 +153,29 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   };
 
-  // Load messages with resilient profile fetching
+  // Load messages with enhanced fields and reactions
   const loadMessages = async (channelId: string) => {
     try {
       console.log('📥 Loading messages for channel:', channelId);
       
-      // First, get messages without profiles to ensure they load
+      // Fetch messages with additional fields
       const { data: messagesData, error } = await supabase
         .from('community_messages')
-        .select('id, content, created_at, sender_id')
+        .select(`
+          id, 
+          content, 
+          created_at,
+          updated_at,
+          sender_id,
+          is_deleted,
+          deleted_at,
+          edited,
+          edited_at,
+          parent_message_id,
+          thread_count
+        `)
         .eq('channel_id', channelId)
-        .eq('is_deleted', false)
+        .is('parent_message_id', null) // Only get top-level messages, not replies
         .order('created_at', { ascending: true })
         .limit(50);
 
@@ -172,7 +187,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
         return;
       }
 
-      console.log(`📨 Found ${messagesData.length} messages, fetching sender profiles...`);
+      console.log(`📨 Found ${messagesData.length} messages, fetching sender profiles and reactions...`);
 
       // Get unique sender IDs
       const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
@@ -198,12 +213,24 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
         console.warn('⚠️ Profile fetch failed completely, using fallbacks:', profileErr);
       }
 
-      // Format messages with available profiles
+      // Fetch reactions for all messages
+      const messageIds = messagesData.map(msg => msg.id);
+      const reactionsMap = await fetchMessageReactions(messageIds);
+
+      // Format messages with available profiles and reactions
       const formattedMessages = messagesData.map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
+        updated_at: msg.updated_at,
         sender_id: msg.sender_id,
+        is_deleted: msg.is_deleted,
+        deleted_at: msg.deleted_at,
+        edited: msg.edited,
+        edited_at: msg.edited_at,
+        parent_message_id: msg.parent_message_id,
+        thread_count: msg.thread_count,
+        reactions: reactionsMap.get(msg.id) || [],
         sender: profilesMap.get(msg.sender_id) || {
           id: msg.sender_id,
           username: 'User',
@@ -213,7 +240,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       }));
 
       setMessages(formattedMessages);
-      console.log('✅ Loaded messages with profiles:', formattedMessages.length);
+      console.log('✅ Loaded messages with profiles and reactions:', formattedMessages.length);
       
     } catch (err) {
       console.error('❌ Failed to load messages:', err);
@@ -256,6 +283,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           table: 'community_messages',
           filter: `channel_id=eq.${channelId}`
         },
+        // Enhanced realtime subscription with reactions support
         async (payload) => {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
@@ -277,11 +305,22 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
             console.warn('⚠️ Could not fetch sender profile:', senderError);
           }
 
+          // Fetch reactions for the new message
+          const reactionsMap = await fetchMessageReactions([newMessage.id]);
+
           const message: Message = {
             id: newMessage.id,
             content: newMessage.content,
             created_at: newMessage.created_at,
+            updated_at: newMessage.updated_at,
             sender_id: newMessage.sender_id,
+            is_deleted: newMessage.is_deleted,
+            deleted_at: newMessage.deleted_at,
+            edited: newMessage.edited,
+            edited_at: newMessage.edited_at,
+            parent_message_id: newMessage.parent_message_id,
+            thread_count: newMessage.thread_count,
+            reactions: reactionsMap.get(newMessage.id) || [],
             sender: sender || {
               id: newMessage.sender_id,
               username: 'Unknown User',
@@ -310,21 +349,52 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           table: 'community_messages',
           filter: `channel_id=eq.${channelId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('🔄 Message updated:', payload);
           const updatedMessage = payload.new as any;
           
-          setMessages(prev => prev.map(msg => 
-            msg.id === updatedMessage.id 
-              ? { ...msg, content: updatedMessage.content }
-              : msg
-          ).filter(msg => {
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === updatedMessage.id) {
+              return {
+                ...msg,
+                content: updatedMessage.content,
+                edited: updatedMessage.edited,
+                edited_at: updatedMessage.edited_at,
+                is_deleted: updatedMessage.is_deleted,
+                deleted_at: updatedMessage.deleted_at
+              };
+            }
+            return msg;
+          }).filter(msg => {
             // Filter out deleted messages
             if (msg.id === updatedMessage.id && updatedMessage.is_deleted) {
               return false;
             }
             return true;
           }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_reactions',
+          filter: `message_id=in.(${messages.map(m => m.id).join(',')})`
+        },
+        async (payload) => {
+          console.log('😀 Reaction event:', payload);
+          
+          // Reload reactions for all messages when reactions change
+          const messageIds = messages.map(m => m.id);
+          if (messageIds.length > 0) {
+            const reactionsMap = await fetchMessageReactions(messageIds);
+            
+            setMessages(prev => prev.map(msg => ({
+              ...msg,
+              reactions: reactionsMap.get(msg.id) || []
+            })));
+          }
         }
       )
       .subscribe((status, err) => {
@@ -473,6 +543,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     error,
     isConnected,
     sendMessage,
-    deleteMessage
+    deleteMessage,
+    channelId
   };
 }

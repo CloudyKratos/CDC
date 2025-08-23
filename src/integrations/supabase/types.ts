@@ -189,27 +189,42 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string | null
+          deleted_at: string | null
+          edited: boolean | null
+          edited_at: string | null
           id: string
           is_deleted: boolean | null
+          parent_message_id: string | null
           sender_id: string
+          thread_count: number | null
           updated_at: string | null
         }
         Insert: {
           channel_id: string
           content: string
           created_at?: string | null
+          deleted_at?: string | null
+          edited?: boolean | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          parent_message_id?: string | null
           sender_id: string
+          thread_count?: number | null
           updated_at?: string | null
         }
         Update: {
           channel_id?: string
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
+          edited?: boolean | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          parent_message_id?: string | null
           sender_id?: string
+          thread_count?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -218,6 +233,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
             referencedColumns: ["id"]
           },
           {
@@ -561,6 +583,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "community_messages"

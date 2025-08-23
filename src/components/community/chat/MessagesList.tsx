@@ -1,31 +1,62 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
 import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EnhancedMessageBubble } from './EnhancedMessageBubble';
+import { MessageThread } from './MessageThread';
+import { useEnhancedMessageActions } from '@/hooks/use-enhanced-message-actions';
 
 interface MessagesListProps {
   messages: Message[];
   isLoading: boolean;
   error?: string | null;
   onReconnect: () => void;
+  channelId?: string | null;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
 }
 
 const MessagesList: React.FC<MessagesListProps> = ({
   messages,
   isLoading,
   error,
-  onReconnect
+  onReconnect,
+  channelId,
+  onDeleteMessage
 }) => {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [threadMessage, setThreadMessage] = useState<Message | null>(null);
+  const [showThread, setShowThread] = useState(false);
+  
+  const { editMessage, addReaction } = useEnhancedMessageActions();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleReply = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (message) {
+      setThreadMessage(message);
+      setShowThread(true);
+    }
+  };
+
+  const handleOpenThread = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (message) {
+      setThreadMessage(message);
+      setShowThread(true);
+    }
+  };
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    await addReaction(messageId, emoji);
+  };
 
   if (isLoading) {
     return (
@@ -66,53 +97,44 @@ const MessagesList: React.FC<MessagesListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {messages.map((message) => {
-        const isOwn = message.sender_id === user?.id;
-        const senderName = message.sender?.full_name || 
-                         message.sender?.username || 
-                         'Unknown User';
-        const avatar = message.sender?.avatar_url;
+    <>
+      <div className="space-y-2">
+        {messages.map((message, index) => {
+          const isOwn = message.sender_id === user?.id;
+          const prevMessage = messages[index - 1];
+          const isConsecutive = prevMessage && 
+            prevMessage.sender_id === message.sender_id &&
+            new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
 
-        return (
-          <div
-            key={message.id}
-            className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
-          >
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={avatar || ''} alt={senderName} />
-              <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
-                {senderName[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className={`flex-1 max-w-xs lg:max-w-md ${isOwn ? 'text-right' : ''}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {isOwn ? 'You' : senderName}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                </span>
-              </div>
-              
-              <div
-                className={`inline-block px-3 py-2 rounded-lg ${
-                  isOwn
-                    ? 'bg-blue-500 text-white rounded-br-sm'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {message.content}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      <div ref={messagesEndRef} />
-    </div>
+          return (
+            <EnhancedMessageBubble
+              key={message.id}
+              message={message}
+              isOwn={isOwn}
+              onDelete={onDeleteMessage}
+              onEdit={editMessage}
+              onReply={handleReply}
+              onReact={handleReact}
+              onOpenThread={handleOpenThread}
+              showAvatar={!isConsecutive}
+              isConsecutive={isConsecutive}
+            />
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Message Thread */}
+      {threadMessage && (
+        <MessageThread
+          parentMessage={threadMessage}
+          channelId={channelId || ''}
+          isOpen={showThread}
+          onClose={() => setShowThread(false)}
+          onReact={handleReact}
+        />
+      )}
+    </>
   );
 };
 

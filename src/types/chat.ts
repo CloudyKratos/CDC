@@ -77,11 +77,20 @@ export interface ChatGroup {
   createdBy: string;
 }
 
+// Define the Reaction interface
+export interface Reaction {
+  emoji: string;
+  count: number;
+  users: string[];
+  hasReacted: boolean;
+}
+
 // Define the Message interface for compatibility with existing code
 export interface Message {
   id: string;
   content: string;
   created_at: string;
+  updated_at?: string;
   sender?: {
     id: string;
     username?: string;
@@ -89,4 +98,12 @@ export interface Message {
     avatar_url?: string;
   };
   sender_id: string;
+  is_deleted?: boolean;
+  deleted_at?: string;
+  edited?: boolean;
+  edited_at?: string;
+  reactions?: Reaction[];
+  parent_message_id?: string;
+  thread_count?: number;
+  replies?: Message[];
 }
