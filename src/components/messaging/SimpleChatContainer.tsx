@@ -4,8 +4,16 @@ import { useSimpleChat } from '../community/hooks/useSimpleChat';
 import { ImprovedMessageInput } from '../community/chat/ImprovedMessageInput';
 import { ImprovedMessagesList } from '../community/chat/ImprovedMessagesList';
 import { SimpleChatHeader } from './SimpleChatHeader';
+import { useImprovedTypingIndicator } from '@/hooks/use-improved-typing-indicator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+interface TypingUser {
+  user_id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+}
 
 const CHANNELS = [
   { id: 'announcement', name: 'Announcement', icon: '📢' },
@@ -16,6 +24,7 @@ const CHANNELS = [
 
 export const SimpleChatContainer: React.FC = () => {
   const [activeChannel, setActiveChannel] = useState('general');
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const { user } = useAuth();
   
   const chatState = useSimpleChat(activeChannel);
@@ -28,6 +37,12 @@ export const SimpleChatContainer: React.FC = () => {
     deleteMessage = async () => {},
     channelId = null
   } = chatState || {};
+
+  // Initialize typing indicator for the active channel
+  const { startTyping, stopTyping } = useImprovedTypingIndicator({
+    channelId: channelId || '',
+    onTypingUsersChange: setTypingUsers
+  });
 
   const currentChannel = CHANNELS.find(c => c.id === activeChannel);
 
@@ -81,14 +96,17 @@ export const SimpleChatContainer: React.FC = () => {
         activeChannel={activeChannel}
         onChannelChange={setActiveChannel}
         isConnected={isConnected}
+        channelId={channelId}
       />
 
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden">
-        <MessagesList 
+        <ImprovedMessagesList 
           messages={messages}
           isLoading={isLoading}
           error={error}
+          isConnected={isConnected}
+          typingUsers={typingUsers}
           onReconnect={reconnect}
           channelId={channelId}
           onDeleteMessage={deleteMessage}
@@ -96,12 +114,14 @@ export const SimpleChatContainer: React.FC = () => {
       </div>
 
       <div className="border-t bg-background">
-        <EnhancedMessageInput
+        <ImprovedMessageInput
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           recipientName={currentChannel?.name || activeChannel}
           placeholder={`Message ${currentChannel?.name || activeChannel}...`}
           channelId={channelId}
+          onTypingStart={startTyping}
+          onTypingStop={stopTyping}
         />
       </div>
 

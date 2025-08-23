@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 import { toast } from 'sonner';
-import { useEnhancedMessageActions } from '@/hooks/use-enhanced-message-actions';
+import { useImprovedMessageActions } from '@/hooks/use-improved-message-actions';
 
 interface SimpleChatState {
   messages: Message[];
@@ -29,7 +29,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
   const subscriptionRef = useRef<any>(null);
   const channelInitialized = useRef<string | null>(null);
-  const { fetchMessageReactions } = useEnhancedMessageActions();
+  const { fetchMessageReactions } = useImprovedMessageActions();
 
   console.log('🎯 useSimpleChat hook called for channel:', channelName);
 

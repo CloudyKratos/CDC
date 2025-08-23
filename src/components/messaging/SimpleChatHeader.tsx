@@ -1,4 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Search, X } from 'lucide-react';
+import { ImprovedMessageSearch } from '../community/chat/ImprovedMessageSearch';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface Channel {
@@ -12,15 +16,26 @@ interface SimpleChatHeaderProps {
   activeChannel: string;
   onChannelChange: (channelId: string) => void;
   isConnected: boolean;
+  channelId?: string;
 }
 
 export const SimpleChatHeader: React.FC<SimpleChatHeaderProps> = ({
   channels,
   activeChannel,
   onChannelChange,
-  isConnected
+  isConnected,
+  channelId
 }) => {
+  const [showSearch, setShowSearch] = useState(false);
   const currentChannel = channels.find(c => c.id === activeChannel);
+
+  const toggleSearch = () => setShowSearch(!showSearch);
+
+  const handleMessageSelect = (messageId: string) => {
+    console.log('📍 Navigating to message:', messageId);
+    // Here you could implement message navigation/highlighting
+    setShowSearch(false);
+  };
 
   return (
     <div className="bg-card border-b border-border">
@@ -41,7 +56,41 @@ export const SimpleChatHeader: React.FC<SimpleChatHeaderProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Search Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSearch}
+          className="h-8 w-8 p-0"
+        >
+          {showSearch ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+        </Button>
       </div>
+
+      {/* Search Interface */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-4 pb-4 overflow-hidden"
+          >
+            <ImprovedMessageSearch
+              channelId={channelId}
+              onMessageSelect={handleMessageSelect}
+              onClose={() => setShowSearch(false)}
+              placeholder={`Search in ${currentChannel?.name}...`}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Channel Tabs */}
       <div className="px-2 pb-2">
