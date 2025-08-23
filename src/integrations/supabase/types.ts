@@ -620,6 +620,13 @@ export type Database = {
             referencedRelation: "community_messages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       message_reports: {
@@ -1065,6 +1072,41 @@ export type Database = {
           },
         ]
       }
+      typing_status: {
+        Row: {
+          channel_id: string
+          created_at: string | null
+          id: string
+          is_typing: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string | null
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string | null
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_status_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity_logs: {
         Row: {
           activity_type: string
@@ -1442,6 +1484,21 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: undefined
+      }
+      search_messages: {
+        Args: {
+          channel_uuid?: string
+          limit_count?: number
+          search_term: string
+        }
+        Returns: {
+          channel_id: string
+          content: string
+          created_at: string
+          id: string
+          rank: number
+          sender_id: string
+        }[]
       }
       unlock_course_with_coins: {
         Args: { p_cost: number; p_course_id: string; p_user_id: string }
