@@ -288,12 +288,6 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           console.log('📨 New message received:', payload);
           const newMessage = payload.new as any;
           
-          // Skip if message is from current user (avoid duplicates)
-          if (newMessage.sender_id === user?.id) {
-            console.log('⏭️ Skipping own message to avoid duplicates');
-            return;
-          }
-          
           // Get sender profile with cache optimization
           const { data: sender, error: senderError } = await supabase
             .from('profiles')
@@ -329,13 +323,20 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
             }
           };
 
+          // Add the new message to state with proper deduplication
           setMessages(prev => {
-            // Avoid duplicates by checking if message already exists
-            const exists = prev.some(msg => msg.id === message.id);
+            // Check for duplicates (both real ID and temp ID patterns)
+            const exists = prev.some(msg => 
+              msg.id === message.id || 
+              (msg.sender_id === message.sender_id && 
+               Math.abs(new Date(msg.created_at).getTime() - new Date(message.created_at).getTime()) < 5000)
+            );
+            
             if (exists) {
-              console.log('⏭️ Message already exists, skipping:', message.id);
+              console.log('⏭️ Message already exists or is duplicate, skipping:', message.id);
               return prev;
             }
+            
             console.log('✅ Adding new message to state:', message.id);
             return [...prev, message];
           });
@@ -426,12 +427,20 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       return false;
     }
 
-    // Create optimistic message
+    // Create optimistic message with complete structure
     const optimisticMessage: Message = {
       id: `temp-${Date.now()}`, // Temporary ID
       content: content.trim(),
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       sender_id: user.id,
+      is_deleted: false,
+      deleted_at: null,
+      edited: false,
+      edited_at: null,
+      parent_message_id: null,
+      thread_count: 0,
+      reactions: [],
       sender: {
         id: user.id,
         username: user.email?.split('@')[0] || 'You',
@@ -467,11 +476,23 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
       console.log('✅ Message sent successfully:', data);
       
-      // Replace optimistic message with real message
+      // Replace optimistic message with real message data
       setMessages(prev => 
         prev.map(msg => 
           msg.id === optimisticMessage.id 
-            ? { ...optimisticMessage, id: data.id, created_at: data.created_at }
+            ? { 
+                ...optimisticMessage, 
+                id: data.id, 
+                created_at: data.created_at,
+                updated_at: data.updated_at || data.created_at,
+                // Preserve all other fields from optimistic message
+                is_deleted: data.is_deleted || false,
+                deleted_at: data.deleted_at,
+                edited: data.edited || false,
+                edited_at: data.edited_at,
+                parent_message_id: data.parent_message_id,
+                thread_count: data.thread_count || 0
+              }
             : msg
         )
       );
