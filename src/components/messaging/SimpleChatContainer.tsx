@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSimpleChat } from '../community/hooks/useSimpleChat';
+import { useReliableRealTimeChat } from '../community/hooks/useReliableRealTimeChat';
 import { ImprovedMessageInput } from '../community/chat/ImprovedMessageInput';
 import { ImprovedMessagesList } from '../community/chat/ImprovedMessagesList';
 import { SimpleChatHeader } from './SimpleChatHeader';
@@ -37,7 +37,7 @@ export const SimpleChatContainer: React.FC = () => {
   }, []);
   const { user } = useAuth();
   
-  const chatState = useSimpleChat(activeChannel);
+  const chatState = useReliableRealTimeChat(activeChannel);
   const { 
     messages = [], 
     isLoading = false, 
