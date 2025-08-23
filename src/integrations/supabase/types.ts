@@ -1359,6 +1359,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_typing: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_profile_completion_percentage: {
         Args: { user_uuid: string }
         Returns: number
