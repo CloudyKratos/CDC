@@ -106,8 +106,8 @@ export const SimpleChatContainer: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Simple Header with Channel Tabs */}
+    <div className="h-full flex flex-col bg-background overflow-hidden">
+      {/* Mobile-Optimized Header with Channel Tabs */}
       <SimpleChatHeader 
         channels={CHANNELS}
         activeChannel={activeChannel}
@@ -116,8 +116,8 @@ export const SimpleChatContainer: React.FC = () => {
         channelId={channelId}
       />
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-hidden">
+      {/* Messages Area - Mobile Optimized */}
+      <div className="flex-1 overflow-hidden relative">
         <ImprovedMessagesList 
           messages={messages}
           isLoading={isLoading}
@@ -130,24 +130,23 @@ export const SimpleChatContainer: React.FC = () => {
         />
       </div>
 
-      <div className="border-t bg-background">
-        <ImprovedMessageInput
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          recipientName={currentChannel?.name || activeChannel}
-          placeholder={`Message ${currentChannel?.name || activeChannel}...`}
-          channelId={channelId}
-          onTypingStart={startTyping}
-          onTypingStop={stopTyping}
-        />
-      </div>
+      {/* Mobile-Optimized Input Area */}
+      <ImprovedMessageInput
+        onSendMessage={handleSendMessage}
+        isLoading={isLoading}
+        recipientName={currentChannel?.name || activeChannel}
+        placeholder={`Message ${currentChannel?.name || activeChannel}...`}
+        channelId={channelId}
+        onTypingStart={startTyping}
+        onTypingStop={stopTyping}
+      />
 
-      {/* Connection Status */}
+      {/* Connection Status - Mobile Optimized */}
       {!isConnected && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/10 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">
-          <div className="flex items-center justify-center text-sm text-yellow-700 dark:text-yellow-300">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></div>
-            Connecting...
+        <div className="bg-yellow-50/90 dark:bg-yellow-900/20 backdrop-blur border-t-2 border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <div className="flex items-center justify-center gap-2 text-sm text-yellow-700 dark:text-yellow-300 font-medium">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+            <span>Reconnecting to chat...</span>
           </div>
         </div>
       )}

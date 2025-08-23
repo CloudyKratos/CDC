@@ -5,6 +5,7 @@ import { Send, Loader2, Smile, Paperclip, AtSign } from 'lucide-react';
 import { useImprovedTypingIndicator } from '@/hooks/use-improved-typing-indicator';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface ImprovedMessageInputProps {
   onSendMessage: (content: string) => Promise<boolean>;
@@ -152,28 +153,28 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
   const isDisabled = !message.trim() || isLoading || isSending;
 
   return (
-    <div className="border-t bg-background">
-      <div className="p-4">
-        {/* Input Container */}
+    <div className="border-t-2 border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="p-3 sm:p-4 safe-area-pb">
+        {/* Input Container - Mobile Optimized */}
         <div className="relative">
           <motion.div 
-            className="flex items-end space-x-3"
+            className="flex items-end gap-2 sm:gap-3"
             animate={{ 
-              paddingBottom: isExpanded ? '8px' : '0px' 
+              paddingBottom: isExpanded ? '6px' : '0px' 
             }}
             transition={{ duration: 0.2 }}
           >
-            {/* Attachment Button */}
+            {/* Attachment Button - Smaller on mobile */}
             <Button
               variant="ghost"
               size="sm"
-              className="h-11 w-11 rounded-full p-0 shrink-0 self-end"
+              className="h-11 w-11 rounded-full p-0 shrink-0 self-end touch-manipulation active:scale-95"
               disabled={isLoading || isSending}
             >
               <Paperclip className="h-4 w-4" />
             </Button>
             
-            {/* Text Input */}
+            {/* Text Input - Mobile Optimized */}
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
@@ -183,18 +184,21 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
                 placeholder={placeholder || `Message ${recipientName}...`}
                 disabled={isLoading || isSending}
                 rows={1}
-                className="resize-none min-h-[44px] max-h-[120px] rounded-3xl border-2 focus:border-primary transition-colors pr-20 overflow-y-auto"
-                style={{ scrollbarWidth: 'thin' }}
+                className="resize-none min-h-[48px] max-h-[120px] rounded-2xl border-2 focus:border-primary transition-all duration-200 pr-16 sm:pr-20 text-base leading-relaxed placeholder:text-muted-foreground/70 touch-target-optimal"
+                style={{ 
+                  scrollbarWidth: 'thin',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               />
               
-              {/* Character Counter */}
+              {/* Character Counter - Mobile Optimized */}
               <AnimatePresence>
                 {message.length > maxLength * 0.8 && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
-                    className="absolute bottom-2 right-2 text-xs px-2 py-1 bg-background/80 rounded-full border"
+                    className="absolute bottom-2 right-2 text-xs px-2 py-1 bg-background/90 backdrop-blur rounded-full border shadow-sm"
                   >
                     <span className={getCharCountColor()}>
                       {message.length}/{maxLength}
@@ -204,32 +208,37 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
               </AnimatePresence>
             </div>
             
-            {/* Emoji Button */}
+            {/* Emoji Button - Hidden on very small screens */}
             <Button
               variant="ghost"
               size="sm"
-              className="h-11 w-11 rounded-full p-0 shrink-0 self-end"
+              className="h-11 w-11 rounded-full p-0 shrink-0 self-end touch-manipulation active:scale-95 hidden xs:flex"
               disabled={isLoading || isSending}
             >
               <Smile className="h-4 w-4" />
             </Button>
             
-            {/* Send Button */}
+            {/* Send Button - Mobile Optimized */}
             <Button 
               onClick={handleSendMessage}
               disabled={isDisabled}
               size="sm"
-              className="h-11 w-11 rounded-full p-0 shrink-0 self-end"
+              className={cn(
+                "h-12 w-12 rounded-full p-0 shrink-0 self-end touch-manipulation transition-all duration-200",
+                !isDisabled 
+                  ? "bg-primary hover:bg-primary/90 active:scale-95 shadow-lg shadow-primary/25" 
+                  : "opacity-50"
+              )}
             >
               {isSending || isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </motion.div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - Mobile Optimized */}
           <AnimatePresence>
             {isExpanded && (
               <motion.div
@@ -238,10 +247,11 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
                 exit={{ opacity: 0, y: -10 }}
                 className="flex items-center justify-between mt-2 px-1"
               >
-                <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                  <span>Press <kbd className="px-1 py-0.5 bg-muted rounded">Enter</kbd> to send</span>
-                  <span>•</span>
-                  <span><kbd className="px-1 py-0.5 bg-muted rounded">Shift + Enter</kbd> for new line</span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="hidden sm:inline">Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd> to send</span>
+                  <span className="hidden sm:inline">•</span>
+                  <span className="sm:hidden">Tap send or press Enter</span>
+                  <span className="hidden sm:inline"><kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Shift + Enter</kbd> for new line</span>
                 </div>
                 
                 <Button
@@ -252,7 +262,7 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
                     stopTyping();
                     onTypingStop?.();
                   }}
-                  className="text-xs h-6"
+                  className="text-xs h-7 px-3 touch-manipulation"
                 >
                   Clear
                 </Button>
@@ -260,9 +270,6 @@ export const ImprovedMessageInput: React.FC<ImprovedMessageInputProps> = ({
             )}
           </AnimatePresence>
         </div>
-
-        {/* Connection Status */}
-        {/* This could be implemented based on websocket connection status */}
       </div>
     </div>
   );

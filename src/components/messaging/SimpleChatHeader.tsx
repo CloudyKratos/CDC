@@ -38,41 +38,41 @@ export const SimpleChatHeader: React.FC<SimpleChatHeaderProps> = ({
   };
 
   return (
-    <div className="bg-card border-b border-border">
-      {/* Current Channel Display */}
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <span className="text-2xl">{currentChannel?.icon}</span>
-          <div>
-            <h1 className="font-semibold text-lg">{currentChannel?.name}</h1>
+    <div className="bg-card border-b-2 border-border/50">
+      {/* Current Channel Display - Mobile Optimized */}
+      <div className="px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3 min-w-0 flex-1">
+          <span className="text-3xl">{currentChannel?.icon}</span>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-bold text-xl truncate">{currentChannel?.name}</h1>
             <div className="flex items-center space-x-2">
               <div className={cn(
                 "w-2 h-2 rounded-full transition-colors",
                 isConnected ? "bg-green-500" : "bg-yellow-500 animate-pulse"
               )}></div>
-              <span className="text-xs text-muted-foreground">
-                {isConnected ? 'Connected' : 'Connecting...'}
+              <span className="text-xs text-muted-foreground font-medium">
+                {isConnected ? 'Live' : 'Reconnecting...'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Search Button */}
+        {/* Search Button - Mobile Optimized */}
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleSearch}
-          className="h-8 w-8 p-0"
+          className="h-10 w-10 p-0 rounded-full touch-manipulation"
         >
           {showSearch ? (
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           ) : (
-            <Search className="h-4 w-4" />
+            <Search className="h-5 w-5" />
           )}
         </Button>
       </div>
 
-      {/* Search Interface */}
+      {/* Search Interface - Mobile Optimized */}
       <AnimatePresence>
         {showSearch && (
           <motion.div
@@ -80,34 +80,36 @@ export const SimpleChatHeader: React.FC<SimpleChatHeaderProps> = ({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="px-4 pb-4 overflow-hidden"
+            className="px-4 pb-4 overflow-hidden border-t border-border/30"
           >
-            <ImprovedMessageSearch
-              channelId={channelId}
-              onMessageSelect={handleMessageSelect}
-              onClose={() => setShowSearch(false)}
-              placeholder={`Search in ${currentChannel?.name}...`}
-            />
+            <div className="pt-3">
+              <ImprovedMessageSearch
+                channelId={channelId}
+                onMessageSelect={handleMessageSelect}
+                onClose={() => setShowSearch(false)}
+                placeholder={`Search in ${currentChannel?.name}...`}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Channel Tabs */}
-      <div className="px-2 pb-2">
-        <div className="flex space-x-1 bg-muted/50 rounded-lg p-1">
+      {/* Channel Tabs - Mobile Optimized */}
+      <div className="px-2 pb-3">
+        <div className="flex gap-1 bg-muted/30 rounded-xl p-1.5 overflow-x-auto scrollbar-hide">
           {channels.map((channel) => (
             <button
               key={channel.id}
               onClick={() => onChannelChange(channel.id)}
               className={cn(
-                "flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-md text-sm font-medium transition-all",
+                "flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap min-w-[80px] touch-manipulation",
                 activeChannel === channel.id
-                  ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/60 active:scale-95"
               )}
             >
-              <span className="text-base">{channel.icon}</span>
-              <span className="hidden sm:inline">{channel.name}</span>
+              <span className="text-lg">{channel.icon}</span>
+              <span className="hidden xs:inline text-xs">{channel.name}</span>
             </button>
           ))}
         </div>
