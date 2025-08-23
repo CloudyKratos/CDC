@@ -189,9 +189,6 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string | null
-          deleted_at: string | null
-          edited: boolean | null
-          edited_at: string | null
           id: string
           is_deleted: boolean | null
           sender_id: string
@@ -201,9 +198,6 @@ export type Database = {
           channel_id: string
           content: string
           created_at?: string | null
-          deleted_at?: string | null
-          edited?: boolean | null
-          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
           sender_id: string
@@ -213,9 +207,6 @@ export type Database = {
           channel_id?: string
           content?: string
           created_at?: string | null
-          deleted_at?: string | null
-          edited?: boolean | null
-          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
           sender_id?: string
