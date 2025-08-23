@@ -22,6 +22,66 @@ const activeSubscriptions = new Map<string, any>();
 // Global message cache to prevent loss on component remount
 const messageCache = new Map<string, Message[]>();
 
+// Global initialization tracker to prevent race conditions
+const initializationPromises = new Map<string, Promise<void>>();
+
+// Persistent localStorage cache with fallback
+const getCachedMessages = (channelName: string): Message[] => {
+  try {
+    // First try memory cache (fastest)
+    const memoryCache = messageCache.get(channelName);
+    if (memoryCache && memoryCache.length > 0) {
+      return memoryCache;
+    }
+    
+    // Fallback to localStorage
+    const stored = localStorage.getItem(`chat-messages-${channelName}`);
+    if (stored) {
+      const parsed = JSON.parse(stored) as Message[];
+      // Update memory cache
+      messageCache.set(channelName, parsed);
+      return parsed;
+    }
+    
+    return [];
+  } catch (err) {
+    console.warn('⚠️ Error reading cached messages:', err);
+    return [];
+  }
+};
+
+const setCachedMessages = (channelName: string, messages: Message[]) => {
+  try {
+    // Update memory cache
+    messageCache.set(channelName, messages);
+    
+    // Update localStorage (with size limit)
+    const serialized = JSON.stringify(messages);
+    if (serialized.length < 1024 * 1024) { // 1MB limit
+      localStorage.setItem(`chat-messages-${channelName}`, serialized);
+    } else {
+      // Keep only recent messages if too large
+      const recentMessages = messages.slice(-25);
+      localStorage.setItem(`chat-messages-${channelName}`, JSON.stringify(recentMessages));
+      messageCache.set(channelName, recentMessages);
+    }
+  } catch (err) {
+    console.warn('⚠️ Error caching messages:', err);
+  }
+};
+
+const safeRemoveChannel = (subscription: any) => {
+  try {
+    if (subscription && typeof subscription.unsubscribe === 'function') {
+      subscription.unsubscribe();
+    } else if (subscription) {
+      supabase.removeChannel(subscription);
+    }
+  } catch (err) {
+    console.warn('⚠️ Error removing subscription:', err);
+  }
+};
+
 export function useSimpleChat(channelName: string): SimpleChatState | null {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,7 +96,7 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
   console.log('🎯 useSimpleChat hook called for channel:', channelName);
 
-  // Initialize chat for a channel
+  // Initialize chat for a channel with race condition protection
   const initializeChat = useCallback(async (targetChannelName: string) => {
     if (!user?.id || !targetChannelName) {
       setIsLoading(false);
@@ -49,10 +109,19 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       return;
     }
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      console.log('🚀 Initializing chat for channel:', targetChannelName);
+    // Check for ongoing initialization
+    const initKey = `${user.id}-${targetChannelName}`;
+    if (initializationPromises.has(initKey)) {
+      console.log('⏳ Waiting for ongoing initialization:', targetChannelName);
+      await initializationPromises.get(initKey);
+      return;
+    }
+
+    const initPromise = (async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('🚀 Initializing chat for channel:', targetChannelName);
 
       // Get or create channel
       const channelResult = await getOrCreateChannel(targetChannelName);
@@ -69,14 +138,22 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       // Setup realtime subscription
       setupRealtimeSubscription(channelResult);
 
-      console.log('✅ Chat initialized successfully for channel:', targetChannelName);
-      
-    } catch (err) {
-      console.error('❌ Failed to initialize chat:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
-    } finally {
-      setIsLoading(false);
-    }
+        console.log('✅ Chat initialized successfully for channel:', targetChannelName);
+        
+      } catch (err) {
+        console.error('❌ Failed to initialize chat:', err);
+        setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+        channelInitialized.current = null; // Reset on error
+      } finally {
+        setIsLoading(false);
+        // Clean up initialization promise
+        initializationPromises.delete(initKey);
+      }
+    })();
+
+    // Store the promise to prevent race conditions
+    initializationPromises.set(initKey, initPromise);
+    await initPromise;
   }, [user?.id]);
 
   // Get or create channel
@@ -243,8 +320,8 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       }));
 
       setMessages(formattedMessages);
-      // Cache messages for this channel
-      messageCache.set(channelName, formattedMessages);
+      // Cache messages for this channel with persistent storage
+      setCachedMessages(channelName, formattedMessages);
       console.log('✅ Loaded messages with profiles and reactions:', formattedMessages.length);
       
     } catch (err) {
@@ -254,19 +331,19 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   };
 
-// Setup enhanced realtime subscription with reconnection logic
+// Setup enhanced realtime subscription with improved error handling
   const setupRealtimeSubscription = (channelId: string) => {
-    // Clean up existing subscription
+    // Clean up existing subscription safely
     if (subscriptionRef.current) {
       console.log('🧹 Cleaning up existing subscription');
-      supabase.removeChannel(subscriptionRef.current);
+      safeRemoveChannel(subscriptionRef.current);
       subscriptionRef.current = null;
     }
 
     // Clean up global subscription if exists
     if (activeSubscriptions.has(channelId)) {
       console.log('🧹 Cleaning up global subscription for:', channelId);
-      supabase.removeChannel(activeSubscriptions.get(channelId));
+      safeRemoveChannel(activeSubscriptions.get(channelId));
       activeSubscriptions.delete(channelId);
     }
 
@@ -344,8 +421,8 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
             
             console.log('✅ Adding new message to state:', message.id);
             const newMessages = [...prev, message];
-            // Update cache with new message
-            messageCache.set(channelName, newMessages);
+            // Update cache with new message using persistent storage
+            setCachedMessages(channelName, newMessages);
             return newMessages;
           });
         }
@@ -420,6 +497,9 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           if (status === 'SUBSCRIBED') {
             setError(null);
             console.log('🎉 Successfully connected to real-time channel');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('📡 Channel error, connection may be unstable');
+            setError('Connection unstable, but messages are cached');
           }
         }
       });
@@ -535,12 +615,12 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   }, [user?.id]);
 
-  // Initialize when channel changes
+  // Initialize when channel changes with improved caching
   useEffect(() => {
     if (channelName && channelName !== channelInitialized.current) {
-      // Check if we have cached messages for this channel
-      const cachedMessages = messageCache.get(channelName);
-      if (cachedMessages && cachedMessages.length > 0) {
+      // Check if we have cached messages for this channel (persistent storage)
+      const cachedMessages = getCachedMessages(channelName);
+      if (cachedMessages.length > 0) {
         console.log('🎯 Restoring cached messages for channel:', channelName, cachedMessages.length);
         setMessages(cachedMessages);
       } else {
@@ -556,15 +636,16 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   }, [channelName, initializeChat]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount with improved error handling
   useEffect(() => {
     return () => {
       if (subscriptionRef.current) {
         console.log('🧹 Cleaning up subscription on unmount');
-        supabase.removeChannel(subscriptionRef.current);
+        safeRemoveChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
       }
       if (channelId && activeSubscriptions.has(channelId)) {
-        supabase.removeChannel(activeSubscriptions.get(channelId));
+        safeRemoveChannel(activeSubscriptions.get(channelId));
         activeSubscriptions.delete(channelId);
       }
     };
