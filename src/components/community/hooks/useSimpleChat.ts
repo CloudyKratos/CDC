@@ -150,25 +150,15 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   };
 
-  // Load messages
+  // Load messages with resilient profile fetching
   const loadMessages = async (channelId: string) => {
     try {
       console.log('📥 Loading messages for channel:', channelId);
       
+      // First, get messages without profiles to ensure they load
       const { data: messagesData, error } = await supabase
         .from('community_messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          profiles!sender_id (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, content, created_at, sender_id')
         .eq('channel_id', channelId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
@@ -176,24 +166,58 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
 
       if (error) throw error;
 
-      const formattedMessages = (messagesData || []).map(msg => ({
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        console.log('✅ No messages found for channel');
+        return;
+      }
+
+      console.log(`📨 Found ${messagesData.length} messages, fetching sender profiles...`);
+
+      // Get unique sender IDs
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      
+      // Fetch profiles separately with error handling
+      let profilesMap = new Map();
+      try {
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .in('id', senderIds);
+
+        if (profileError) {
+          console.warn('⚠️ Could not fetch all profiles, using fallbacks:', profileError.message);
+        }
+
+        if (profiles) {
+          profiles.forEach(profile => {
+            profilesMap.set(profile.id, profile);
+          });
+        }
+      } catch (profileErr) {
+        console.warn('⚠️ Profile fetch failed completely, using fallbacks:', profileErr);
+      }
+
+      // Format messages with available profiles
+      const formattedMessages = messagesData.map(msg => ({
         id: msg.id,
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
-        sender: msg.profiles || {
+        sender: profilesMap.get(msg.sender_id) || {
           id: msg.sender_id,
-          username: 'Unknown',
-          full_name: 'Unknown User',
+          username: 'User',
+          full_name: 'Community Member',
           avatar_url: null
         }
       }));
 
       setMessages(formattedMessages);
-      console.log('✅ Loaded messages:', formattedMessages.length);
+      console.log('✅ Loaded messages with profiles:', formattedMessages.length);
       
     } catch (err) {
       console.error('❌ Failed to load messages:', err);
+      setError(`Failed to load messages: ${err.message}`);
       setMessages([]);
     }
   };
