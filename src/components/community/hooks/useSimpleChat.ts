@@ -439,25 +439,31 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
           console.log('🔄 Message updated:', payload);
           const updatedMessage = payload.new as any;
           
-          setMessages(prev => prev.map(msg => {
-            if (msg.id === updatedMessage.id) {
-              return {
-                ...msg,
-                content: updatedMessage.content,
-                edited: updatedMessage.edited,
-                edited_at: updatedMessage.edited_at,
-                is_deleted: updatedMessage.is_deleted,
-                deleted_at: updatedMessage.deleted_at
-              };
-            }
-            return msg;
-          }).filter(msg => {
-            // Filter out deleted messages
-            if (msg.id === updatedMessage.id && updatedMessage.is_deleted) {
-              return false;
-            }
-            return true;
-          }));
+          setMessages(prev => {
+            const updatedMessages = prev.map(msg => {
+              if (msg.id === updatedMessage.id) {
+                // If message is deleted, filter it out
+                if (updatedMessage.is_deleted) {
+                  console.log('🗑️ Removing deleted message from UI:', updatedMessage.id);
+                  return null;
+                }
+                // Otherwise update the message
+                return {
+                  ...msg,
+                  content: updatedMessage.content,
+                  edited: updatedMessage.edited,
+                  edited_at: updatedMessage.edited_at,
+                  is_deleted: updatedMessage.is_deleted,
+                  deleted_at: updatedMessage.deleted_at
+                };
+              }
+              return msg;
+            }).filter(Boolean) as Message[]; // Remove null entries
+            
+            // Update cache with the filtered messages
+            setCachedMessages(channelName, updatedMessages);
+            return updatedMessages;
+          });
         }
       )
       .on(
@@ -595,43 +601,75 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
     }
   }, [user?.id, channelId]);
 
-  // Delete message
+  // Enhanced delete message with immediate UI update
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!user?.id) return;
 
     try {
+      console.log('🗑️ Deleting message:', messageId);
+      
+      // Optimistically remove from UI immediately
+      setMessages(prev => {
+        const updated = prev.filter(msg => msg.id !== messageId);
+        // Update cache immediately
+        setCachedMessages(channelName, updated);
+        return updated;
+      });
+
       const { error } = await supabase
         .from('community_messages')
-        .update({ is_deleted: true })
+        .update({ 
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
+        })
         .eq('id', messageId)
         .eq('sender_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Delete message error:', error);
+        // Restore message on error
+        const cachedMessages = getCachedMessages(channelName);
+        setMessages(cachedMessages);
+        toast.error('Failed to delete message');
+        return;
+      }
+
+      console.log('✅ Message deleted successfully');
       toast.success('Message deleted');
       
     } catch (err) {
       console.error('❌ Failed to delete message:', err);
+      // Restore message on error
+      const cachedMessages = getCachedMessages(channelName);
+      setMessages(cachedMessages);
       toast.error('Failed to delete message');
     }
-  }, [user?.id]);
+  }, [user?.id, channelName]);
 
   // Initialize when channel changes with improved caching
   useEffect(() => {
     if (channelName && channelName !== channelInitialized.current) {
-      // Check if we have cached messages for this channel (persistent storage)
+      console.log('🔄 Switching to channel:', channelName, 'Previous:', channelInitialized.current);
+      
+      // Always try to restore cached messages first (prevents message loss)
       const cachedMessages = getCachedMessages(channelName);
       if (cachedMessages.length > 0) {
         console.log('🎯 Restoring cached messages for channel:', channelName, cachedMessages.length);
         setMessages(cachedMessages);
+        setError(null);
+        setIsConnected(false);
       } else {
-        // Only clear messages if no cache exists
+        // Only clear if absolutely no cache exists
+        console.log('📭 No cached messages found for channel:', channelName);
         setMessages([]);
+        setError(null);
+        setIsConnected(false);
       }
       
-      setError(null);
-      setIsConnected(false);
+      // Reset initialization flag to allow re-initialization
       channelInitialized.current = null;
       
+      // Initialize the channel
       initializeChat(channelName);
     }
   }, [channelName, initializeChat]);

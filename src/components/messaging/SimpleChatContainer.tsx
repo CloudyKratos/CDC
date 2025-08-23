@@ -63,6 +63,13 @@ export const SimpleChatContainer: React.FC = () => {
     }
   }, [chatState]);
 
+  // Use the delete function from the chat hook for consistency
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (deleteMessage) {
+      await deleteMessage(messageId);
+    }
+  }, [deleteMessage]);
+
   const handleSendMessage = useCallback(async (content: string): Promise<boolean> => {
     if (!content.trim()) return false;
     
@@ -119,7 +126,7 @@ export const SimpleChatContainer: React.FC = () => {
           typingUsers={typingUsers}
           onReconnect={reconnect}
           channelId={channelId}
-          onDeleteMessage={deleteMessage}
+          onDeleteMessage={handleDeleteMessage}
         />
       </div>
 
