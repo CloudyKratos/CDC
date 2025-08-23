@@ -57,7 +57,18 @@ export function useTypingIndicator({ channelId }: UseTypingIndicatorProps) {
 
     // Auto-stop typing after 3 seconds
     typingTimeoutRef.current = setTimeout(() => {
-      stopTyping();
+      if (!channelRef.current || !user?.id) return;
+
+      channelRef.current.track({
+        user_id: user.id,
+        typing: false,
+        timestamp: Date.now()
+      });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     }, 3000);
   }, [channelId, user?.id, initializeChannel]);
 

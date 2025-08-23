@@ -22,10 +22,10 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   
-  // Initialize typing indicator if channelId is provided
-  const { startTyping, stopTyping, cleanup } = channelId 
-    ? useTypingIndicator({ channelId }) 
-    : { startTyping: () => {}, stopTyping: () => {}, cleanup: () => {} };
+  // Always call the hook to maintain hook order - React Rules of Hooks
+  const { startTyping, stopTyping, cleanup } = useTypingIndicator({ 
+    channelId: channelId || '' 
+  });
 
   const handleSendMessage = useCallback(async () => {
     if (!message.trim() || isSending || isLoading) return;
@@ -53,10 +53,10 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
     const newValue = e.target.value;
     setMessage(newValue);
     
-    // Start typing when user starts typing
+    // Start typing when user starts typing and channelId exists
     if (newValue.length > 0 && channelId) {
       startTyping();
-    } else if (newValue.length === 0) {
+    } else if (newValue.length === 0 && channelId) {
       stopTyping();
     }
   };
@@ -68,19 +68,12 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
     }
   };
 
-  // Cleanup typing indicator on unmount or when message is cleared
+  // Cleanup typing indicator on unmount
   useEffect(() => {
     return () => {
       cleanup();
     };
   }, [cleanup]);
-
-  // Stop typing when message is cleared
-  useEffect(() => {
-    if (message.length === 0) {
-      stopTyping();
-    }
-  }, [message, stopTyping]);
 
   return (
     <div className="p-4">
