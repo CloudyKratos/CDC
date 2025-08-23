@@ -158,9 +158,8 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       // First, get messages without profiles to ensure they load
       const { data: messagesData, error } = await supabase
         .from('community_messages')
-        .select('id, content, created_at, sender_id')
+        .select('id, content, created_at, sender_id, is_deleted, deleted_at, edited, edited_at')
         .eq('channel_id', channelId)
-        .eq('is_deleted', false)
         .order('created_at', { ascending: true })
         .limit(50);
 
@@ -204,6 +203,10 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
         content: msg.content,
         created_at: msg.created_at,
         sender_id: msg.sender_id,
+        is_deleted: msg.is_deleted,
+        deleted_at: msg.deleted_at,
+        edited: msg.edited,
+        edited_at: msg.edited_at,
         sender: profilesMap.get(msg.sender_id) || {
           id: msg.sender_id,
           username: 'User',

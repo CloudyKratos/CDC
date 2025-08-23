@@ -41,11 +41,14 @@ export function useMessageActions() {
     if (!user?.id) return;
 
     try {
-      console.log('🗑️ Deleting message:', messageId);
+      console.log('🗑️ Soft deleting message:', messageId);
       
       const { error } = await supabase
         .from('community_messages')
-        .update({ is_deleted: true })
+        .update({ 
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
+        })
         .eq('id', messageId)
         .eq('sender_id', user.id);
 
@@ -63,6 +66,36 @@ export function useMessageActions() {
     }
   }, [user?.id]);
 
+  const editMessage = useCallback(async (messageId: string, newContent: string) => {
+    if (!user?.id || !newContent.trim()) return;
+
+    try {
+      console.log('✏️ Editing message:', messageId);
+      
+      const { error } = await supabase
+        .from('community_messages')
+        .update({ 
+          content: newContent.trim(),
+          edited: true,
+          edited_at: new Date().toISOString()
+        })
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
+
+      if (error) {
+        console.error('❌ Error editing message:', error);
+        toast.error('Failed to edit message');
+        throw error;
+      }
+
+      console.log('✅ Message edited successfully');
+      toast.success('Message updated', { duration: 1000 });
+    } catch (error) {
+      console.error('💥 Failed to edit message:', error);
+      throw error;
+    }
+  }, [user?.id]);
+
   const replyToMessage = useCallback((messageId: string) => {
     console.log('Replying to message:', messageId);
     toast.info('Reply feature coming soon!');
@@ -76,6 +109,7 @@ export function useMessageActions() {
   return {
     sendMessage,
     deleteMessage,
+    editMessage,
     replyToMessage,
     addReaction
   };

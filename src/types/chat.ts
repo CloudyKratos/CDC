@@ -89,4 +89,8 @@ export interface Message {
     avatar_url?: string;
   };
   sender_id: string;
+  is_deleted?: boolean;
+  deleted_at?: string;
+  edited?: boolean;
+  edited_at?: string;
 }
