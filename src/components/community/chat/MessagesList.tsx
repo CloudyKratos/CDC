@@ -4,11 +4,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/chat';
-import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, AlertCircle, RefreshCw, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EnhancedMessageBubble } from './EnhancedMessageBubble';
 import { MessageThread } from './MessageThread';
+import { MessageSearch } from './MessageSearch';
+import { TypingIndicator } from './TypingIndicator';
 import { useEnhancedMessageActions } from '@/hooks/use-enhanced-message-actions';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface MessagesListProps {
   messages: Message[];
@@ -96,32 +104,83 @@ const MessagesList: React.FC<MessagesListProps> = ({
     );
   }
 
+  const scrollToMessage = (messageId: string) => {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      messageElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
+      setTimeout(() => {
+        messageElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
+      }, 2000);
+    }
+  };
+
   return (
     <>
-      <div className="space-y-2">
-        {messages.map((message, index) => {
-          const isOwn = message.sender_id === user?.id;
-          const prevMessage = messages[index - 1];
-          const isConsecutive = prevMessage && 
-            prevMessage.sender_id === message.sender_id &&
-            new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
+      {/* Header with Search */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
+            {messages.length} message{messages.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MessageSearch 
+            messages={messages}
+            onMessageSelect={scrollToMessage}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => window.location.reload()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh messages
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-          return (
-            <EnhancedMessageBubble
-              key={message.id}
-              message={message}
-              isOwn={isOwn}
-              onDelete={onDeleteMessage}
-              onEdit={editMessage}
-              onReply={handleReply}
-              onReact={handleReact}
-              onOpenThread={handleOpenThread}
-              showAvatar={!isConsecutive}
-              isConsecutive={isConsecutive}
-            />
-          );
-        })}
-        <div ref={messagesEndRef} />
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-2 p-2">
+          {messages.map((message, index) => {
+            const isOwn = message.sender_id === user?.id;
+            const prevMessage = messages[index - 1];
+            const isConsecutive = prevMessage && 
+              prevMessage.sender_id === message.sender_id &&
+              new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1 minute
+
+            return (
+              <div key={message.id} id={`message-${message.id}`} className="transition-all duration-200">
+                <EnhancedMessageBubble
+                  message={message}
+                  isOwn={isOwn}
+                  onDelete={onDeleteMessage}
+                  onEdit={editMessage}
+                  onReply={handleReply}
+                  onReact={handleReact}
+                  onOpenThread={handleOpenThread}
+                  showAvatar={!isConsecutive}
+                  isConsecutive={isConsecutive}
+                />
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        {/* Typing Indicator */}
+        {channelId && (
+          <TypingIndicator channelId={channelId} />
+        )}
       </div>
 
       {/* Message Thread */}

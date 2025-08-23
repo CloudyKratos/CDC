@@ -9,6 +9,7 @@ interface MessageInputProps {
   isLoading: boolean;
   recipientName: string;
   placeholder?: string;
+  channelId?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({

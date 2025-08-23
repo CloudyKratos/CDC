@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimpleChat } from '../community/hooks/useSimpleChat';
-import MessageInput from './MessageInput';
+import EnhancedMessageInput from './EnhancedMessageInput';
 import MessagesList from '../community/chat/MessagesList';
 import { SimpleChatHeader } from './SimpleChatHeader';
 import { toast } from 'sonner';
@@ -96,11 +96,12 @@ export const SimpleChatContainer: React.FC = () => {
       </div>
 
       <div className="border-t bg-background">
-        <MessageInput
+        <EnhancedMessageInput
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           recipientName={currentChannel?.name || activeChannel}
           placeholder={`Message ${currentChannel?.name || activeChannel}...`}
+          channelId={channelId}
         />
       </div>
 

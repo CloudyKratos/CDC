@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MessageReactions } from '../modern/MessageReactions';
+import { EnhancedEmojiPicker } from './EnhancedEmojiPicker';
 import { Message } from '@/types/chat';
 
 interface EnhancedMessageBubbleProps {
@@ -257,6 +258,11 @@ export const EnhancedMessageBubble: React.FC<EnhancedMessageBubbleProps> = ({
               >
                 <Heart className="h-3.5 w-3.5" />
               </Button>
+
+              <EnhancedEmojiPicker 
+                onEmojiSelect={(emoji) => onReact?.(message.id, emoji)}
+                className="h-7 w-7"
+              />
 
               {onReply && (
                 <Button
