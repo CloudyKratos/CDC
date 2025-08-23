@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimpleChat } from '../community/hooks/useSimpleChat';
-import EnhancedMessageInput from './EnhancedMessageInput';
-import MessagesList from '../community/chat/MessagesList';
+import { ImprovedMessageInput } from '../community/chat/ImprovedMessageInput';
+import { ImprovedMessagesList } from '../community/chat/ImprovedMessagesList';
 import { SimpleChatHeader } from './SimpleChatHeader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
