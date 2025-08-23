@@ -23,8 +23,18 @@ const CHANNELS = [
 ];
 
 export const SimpleChatContainer: React.FC = () => {
-  const [activeChannel, setActiveChannel] = useState('general');
+  // Persist active channel in localStorage to survive tab switches
+  const [activeChannel, setActiveChannel] = useState(() => {
+    const savedChannel = localStorage.getItem('chat-active-channel');
+    return savedChannel || 'general';
+  });
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  
+  // Save channel to localStorage when it changes
+  const handleChannelChange = useCallback((channel: string) => {
+    setActiveChannel(channel);
+    localStorage.setItem('chat-active-channel', channel);
+  }, []);
   const { user } = useAuth();
   
   const chatState = useSimpleChat(activeChannel);
@@ -94,7 +104,7 @@ export const SimpleChatContainer: React.FC = () => {
       <SimpleChatHeader 
         channels={CHANNELS}
         activeChannel={activeChannel}
-        onChannelChange={setActiveChannel}
+        onChannelChange={handleChannelChange}
         isConnected={isConnected}
         channelId={channelId}
       />

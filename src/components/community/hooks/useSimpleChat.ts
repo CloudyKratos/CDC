@@ -19,6 +19,9 @@ interface SimpleChatState {
 // Global subscription manager to prevent duplicates
 const activeSubscriptions = new Map<string, any>();
 
+// Global message cache to prevent loss on component remount
+const messageCache = new Map<string, Message[]>();
+
 export function useSimpleChat(channelName: string): SimpleChatState | null {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -240,6 +243,8 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
       }));
 
       setMessages(formattedMessages);
+      // Cache messages for this channel
+      messageCache.set(channelName, formattedMessages);
       console.log('✅ Loaded messages with profiles and reactions:', formattedMessages.length);
       
     } catch (err) {
@@ -338,7 +343,10 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
             }
             
             console.log('✅ Adding new message to state:', message.id);
-            return [...prev, message];
+            const newMessages = [...prev, message];
+            // Update cache with new message
+            messageCache.set(channelName, newMessages);
+            return newMessages;
           });
         }
       )
@@ -530,8 +538,16 @@ export function useSimpleChat(channelName: string): SimpleChatState | null {
   // Initialize when channel changes
   useEffect(() => {
     if (channelName && channelName !== channelInitialized.current) {
-      // Reset state when switching channels
-      setMessages([]);
+      // Check if we have cached messages for this channel
+      const cachedMessages = messageCache.get(channelName);
+      if (cachedMessages && cachedMessages.length > 0) {
+        console.log('🎯 Restoring cached messages for channel:', channelName, cachedMessages.length);
+        setMessages(cachedMessages);
+      } else {
+        // Only clear messages if no cache exists
+        setMessages([]);
+      }
+      
       setError(null);
       setIsConnected(false);
       channelInitialized.current = null;
