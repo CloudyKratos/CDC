@@ -1,6 +1,7 @@
 
 import { PeerConnectionManager } from './PeerConnectionManager';
 import { SignalingHandler } from './SignalingHandler';
+import StageSignalingService from '../stage/StageSignalingService';
 
 class RefactoredStageWebRTCService {
   private static instance: RefactoredStageWebRTCService;
@@ -18,11 +19,13 @@ class RefactoredStageWebRTCService {
   async initialize(localStream: MediaStream): Promise<void> {
     if (this.isInitialized) return;
 
+    console.log('🚀 Initializing RefactoredStageWebRTCService with local stream');
+    
     this.peerManager.setLocalStream(localStream);
     this.signalingHandler.setupSignalingHandlers();
     this.isInitialized = true;
     
-    console.log('RefactoredStageWebRTCService initialized with local stream');
+    console.log('✅ RefactoredStageWebRTCService initialized successfully');
   }
 
   private remoteStreamHandler: ((userId: string, stream: MediaStream) => void) | null = null;
@@ -54,9 +57,12 @@ class RefactoredStageWebRTCService {
   }
 
   cleanup(): void {
+    console.log('🧹 Cleaning up RefactoredStageWebRTCService');
     this.peerManager.cleanup();
+    this.remoteStreamHandler = null;
+    this.connectionStateHandler = null;
     this.isInitialized = false;
-    console.log('RefactoredStageWebRTCService cleaned up');
+    console.log('✅ RefactoredStageWebRTCService cleaned up successfully');
   }
 }
 
