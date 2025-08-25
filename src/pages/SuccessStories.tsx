@@ -261,7 +261,7 @@ const SuccessStories = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-                <Link to="/login" className="w-full sm:w-auto">
+                <Link to="/onboarding" className="w-full sm:w-auto">
                   <Button 
                     size="lg" 
                     className="gap-2 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"

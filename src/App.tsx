@@ -22,6 +22,7 @@ import CommandRoom from "./pages/CommandRoom";
 import Calendar from "./pages/Calendar";
 import StageRooms from "./pages/StageRooms";
 import SuccessStories from "./pages/SuccessStories";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import MobileLayout from "./components/mobile/MobileLayout";
 import "./App.css";
@@ -51,6 +52,7 @@ function App() {
                           <Route path="/calendar" element={<Calendar />} />
                           <Route path="/stage-rooms" element={<StageRooms />} />
                           <Route path="/success-stories" element={<SuccessStories />} />
+                          <Route path="/onboarding" element={<Onboarding />} />
                           <Route path="/profile-settings" element={<ProfileSettings />} />
                           <Route path="/verify-email" element={<VerifyEmail />} />
                           <Route path="/reset-password" element={<ResetPassword />} />
