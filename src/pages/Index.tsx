@@ -185,10 +185,10 @@ const Index = () => {
               Philosophy
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
             </a>
-            <a href="#testimonials" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
+            <Link to="/success-stories" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
               Success Stories
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-            </a>
+            </Link>
             <a href="#join" className="text-sm font-medium hover:text-primary transition-all duration-300 hover:scale-105 relative group">
               Join
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
@@ -251,13 +251,13 @@ const Index = () => {
               >
                 Philosophy
               </a>
-              <a 
-                href="#testimonials" 
+              <Link 
+                to="/success-stories" 
                 className="block py-3 px-4 text-sm font-medium hover:text-primary hover:bg-primary/5 rounded-lg transition-colors touch-target"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Success Stories
-              </a>
+              </Link>
               <a 
                 href="#join" 
                 className="block py-3 px-4 text-sm font-medium hover:text-primary hover:bg-primary/5 rounded-lg transition-colors touch-target"

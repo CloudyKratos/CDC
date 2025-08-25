@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import CommandRoom from "./pages/CommandRoom";
 import Calendar from "./pages/Calendar";
 import StageRooms from "./pages/StageRooms";
+import SuccessStories from "./pages/SuccessStories";
 import NotFound from "./pages/NotFound";
 import MobileLayout from "./components/mobile/MobileLayout";
 import "./App.css";
@@ -49,6 +50,7 @@ function App() {
                           <Route path="/command-room" element={<CommandRoom />} />
                           <Route path="/calendar" element={<Calendar />} />
                           <Route path="/stage-rooms" element={<StageRooms />} />
+                          <Route path="/success-stories" element={<SuccessStories />} />
                           <Route path="/profile-settings" element={<ProfileSettings />} />
                           <Route path="/verify-email" element={<VerifyEmail />} />
                           <Route path="/reset-password" element={<ResetPassword />} />
