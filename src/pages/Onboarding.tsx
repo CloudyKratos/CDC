@@ -3,287 +3,285 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowRight, Star, Users, Target, Clock, Zap, Trophy, Shield } from 'lucide-react';
+import { Play, ArrowRight, Star, Users, Target, Clock, Zap, Trophy, Shield, CheckCircle, TrendingUp, Award } from 'lucide-react';
 
 const Onboarding = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [videoWatched, setVideoWatched] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 300);
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
+    const timer = setTimeout(() => setIsLoaded(true), 200);
+    return () => clearTimeout(timer);
   }, []);
 
   const onboardingVideo = {
-    title: "WARRIOR INITIATION",
-    subtitle: "The Underground Blueprint to Unstoppable Success",
-    duration: "8:47",
-    thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=800&fit=crop&crop=center",
-    description: "This isn't another motivational video. This is the raw, unfiltered blueprint that 10,000+ warriors use to dominate their reality."
+    title: "How I Built a 7-Figure Business by Age 23",
+    subtitle: "The exact framework that generated $10M+ for our clients",
+    duration: "12:37",
+    thumbnail: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop&crop=center",
+    description: "In this exclusive training, I reveal the 3-step system that took me from broke student to running a multi-million dollar agency."
   };
 
-  const stats = [
-    { number: "10K+", label: "Warriors Transformed", icon: Users },
-    { number: "97%", label: "Success Rate", icon: Trophy },
-    { number: "90 Days", label: "Average Results", icon: Zap }
+  const results = [
+    { metric: "$10.2M+", label: "Client Revenue Generated", icon: TrendingUp },
+    { metric: "847", label: "Businesses Transformed", icon: Target },
+    { metric: "94%", label: "Client Success Rate", icon: Award }
   ];
 
-  const pillars = [
+  const systemComponents = [
     {
-      icon: Target,
-      title: "PRECISION TARGETING",
-      description: "Cut through the noise. Get laser-focused on what actually moves the needle.",
-      gradient: "from-red-500/20 to-orange-500/20"
+      step: "01",
+      title: "High-Value Skill Acquisition",
+      description: "Master the most profitable skills that Fortune 500 companies pay $10k+/month for.",
+      benefits: [
+        "Learn recession-proof skills",
+        "Get paid while you learn", 
+        "Build a portfolio of results"
+      ]
     },
     {
-      icon: Shield,
-      title: "BULLETPROOF MINDSET",
-      description: "Build unshakeable mental armor that deflects doubt and amplifies confidence.",
-      gradient: "from-blue-500/20 to-purple-500/20"
+      step: "02", 
+      title: "Client Acquisition System",
+      description: "My exact outreach methods that book 5-10 discovery calls per week consistently.",
+      benefits: [
+        "Proven email templates",
+        "LinkedIn messaging scripts",
+        "Follow-up sequences that convert"
+      ]
     },
     {
-      icon: Zap,
-      title: "EXECUTION ENGINE",
-      description: "Transform from dreamer to doer with our battle-tested action framework.",
-      gradient: "from-green-500/20 to-teal-500/20"
+      step: "03",
+      title: "Scale & Systematize",
+      description: "Transform from freelancer to agency owner with systems that run without you.",
+      benefits: [
+        "Hire & train A-players",
+        "Build recurring revenue streams", 
+        "Create location independence"
+      ]
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Marcus Chen",
+      role: "Agency Owner",
+      result: "$50K/mo within 6 months",
+      quote: "This system completely changed my life. I went from working dead-end jobs to running a profitable agency.",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+    },
+    {
+      name: "Sarah Mitchell", 
+      role: "Consultant",
+      result: "$25K first month",
+      quote: "The client acquisition system alone is worth 10x what I invested. Pure gold.",
+      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
     }
   ];
 
   const handleVideoPlay = () => {
-    console.log("Playing warrior initiation video");
+    console.log("Playing onboarding training video");
     setVideoWatched(true);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      {/* Dynamic Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        {/* Animated Grid */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px'
-          }} />
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-2xl font-bold text-black">CDC WARRIORS</div>
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Invited Access
+            </Badge>
+          </div>
         </div>
-        
-        {/* Mouse-Following Gradient */}
-        <div 
-          className="absolute w-96 h-96 opacity-20 blur-3xl transition-all duration-1000 ease-out"
-          style={{
-            background: 'radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)',
-            left: mousePosition.x - 192,
-            top: mousePosition.y - 192
-          }}
-        />
-      </div>
+      </nav>
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-4 py-20">
-        {/* Graffiti Background Elements */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-20 left-20 text-6xl font-black text-primary rotate-12 select-none">
-            WARRIOR
-          </div>
-          <div className="absolute bottom-40 right-20 text-4xl font-black text-primary/60 -rotate-12 select-none">
-            RISE UP
-          </div>
-          <div className="absolute top-1/2 left-10 text-2xl font-black text-primary/40 rotate-45 select-none">
-            UNLEASH
-          </div>
-        </div>
-
-        <div className="container mx-auto text-center relative z-10">
-          {/* Animated Badge */}
-          <div className={`transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
-            <Badge className="mb-8 px-8 py-4 text-lg bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 backdrop-blur-sm">
-              <Star className="h-5 w-5 mr-2 animate-pulse" />
-              EXCLUSIVE ACCESS GRANTED
+      <section className="pt-32 pb-20 px-4">
+        <div className="container mx-auto max-w-4xl text-center">
+          {/* Badge */}
+          <div className={`transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <Badge className="mb-8 px-6 py-3 bg-black text-white text-sm font-medium">
+              EXCLUSIVE TRAINING • LIMITED ACCESS
             </Badge>
           </div>
 
-          {/* Main Title */}
-          <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-none tracking-tight">
-              <span className="bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent">
-                {onboardingVideo.title}
-              </span>
+          {/* Main Headline */}
+          <div className={`transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-black mb-6 leading-tight">
+              {onboardingVideo.title}
             </h1>
           </div>
 
-          {/* Subtitle */}
-          <div className={`transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <p className="text-xl md:text-3xl font-bold text-gray-300 mb-8 max-w-4xl mx-auto leading-tight">
+          {/* Subheadline */}
+          <div className={`transition-all duration-700 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <p className="text-xl md:text-2xl text-gray-600 mb-8 font-medium">
               {onboardingVideo.subtitle}
             </p>
             
-            <p className="text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed mb-12">
+            <p className="text-lg text-gray-500 max-w-3xl mx-auto leading-relaxed mb-12">
               {onboardingVideo.description}
             </p>
           </div>
 
-          {/* Stats Row */}
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-16 transition-all duration-1000 delay-900 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            {stats.map((stat, index) => (
-              <div 
-                key={index}
-                className="text-center group hover:scale-105 transition-all duration-300"
-                style={{ animationDelay: `${1000 + index * 100}ms` }}
-              >
-                <stat.icon className="h-8 w-8 text-primary mx-auto mb-2 group-hover:animate-pulse" />
-                <div className="text-3xl md:text-4xl font-black text-white mb-1">{stat.number}</div>
-                <div className="text-gray-400 font-medium">{stat.label}</div>
+          {/* Results Grid */}
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 transition-all duration-700 delay-600 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            {results.map((result, index) => (
+              <div key={index} className="text-center">
+                <result.icon className="h-8 w-8 text-black mx-auto mb-3" />
+                <div className="text-3xl md:text-4xl font-bold text-black mb-2">{result.metric}</div>
+                <div className="text-gray-500 font-medium">{result.label}</div>
               </div>
             ))}
-          </div>
-
-          {/* Scroll Indicator */}
-          <div className={`animate-bounce transition-all duration-1000 delay-1200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            <ArrowRight className="h-6 w-6 text-primary mx-auto rotate-90" />
           </div>
         </div>
       </section>
 
       {/* Video Section */}
-      <section className="relative py-20 px-4">
-        {/* Section Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black" />
-        
-        <div className="container mx-auto relative z-10">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              WATCH YOUR INITIATION
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              This video will change everything. No fluff, no BS, just pure value.
-            </p>
-          </div>
-
-          {/* Video Card */}
-          <div className="max-w-5xl mx-auto">
-            <Card className="overflow-hidden bg-gray-900/50 border border-primary/20 shadow-2xl backdrop-blur-sm hover:shadow-primary/10 transition-all duration-500">
-              <div className="relative group">
-                <img 
-                  src={onboardingVideo.thumbnail}
-                  alt="Warrior initiation video"
-                  className="w-full h-[300px] md:h-[600px] object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                
-                {/* Video Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                
-                {/* Play Button */}
-                <button
-                  onClick={handleVideoPlay}
-                  className="absolute inset-0 flex items-center justify-center group/play"
-                >
-                  <div className="relative">
-                    {/* Pulse Rings */}
-                    <div className="absolute inset-0 animate-ping">
-                      <div className="w-32 h-32 md:w-40 md:h-40 border-2 border-primary/50 rounded-full" />
-                    </div>
-                    <div className="absolute inset-0 animate-ping" style={{ animationDelay: '0.5s' }}>
-                      <div className="w-32 h-32 md:w-40 md:h-40 border border-primary/30 rounded-full" />
-                    </div>
-                    
-                    {/* Main Play Button */}
-                    <div className="relative w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-2xl group-hover/play:scale-110 transition-all duration-300">
-                      <Play className="h-12 w-12 md:h-16 md:w-16 text-black ml-2" fill="currentColor" />
-                    </div>
-                  </div>
-                </button>
-
-                {/* Video Info */}
-                <div className="absolute bottom-8 left-8 right-8">
-                  <Badge className="mb-4 gap-2 bg-black/70 text-white border-0 backdrop-blur-sm px-4 py-2">
-                    <Clock className="h-4 w-4" />
-                    {onboardingVideo.duration}
-                  </Badge>
-                  <h3 className="text-2xl md:text-4xl font-black text-white mb-2">
-                    THE WARRIOR BLUEPRINT
-                  </h3>
-                  <p className="text-gray-200 text-lg">
-                    Everything you need to know to join the elite 1%
-                  </p>
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-5xl">
+          {/* Video Container */}
+          <Card className="overflow-hidden shadow-2xl">
+            <div className="relative">
+              <img 
+                src={onboardingVideo.thumbnail}
+                alt="Training video preview"
+                className="w-full h-[300px] md:h-[600px] object-cover"
+              />
+              
+              {/* Video Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              
+              {/* Play Button */}
+              <button
+                onClick={handleVideoPlay}
+                className="absolute inset-0 flex items-center justify-center group"
+              >
+                <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Play className="h-10 w-10 md:h-12 md:w-12 text-black ml-1" fill="currentColor" />
                 </div>
+              </button>
 
-                {/* Success Overlay */}
-                {videoWatched && (
-                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center animate-fade-in">
-                    <div className="text-center">
-                      <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-4 mx-auto animate-scale-in">
-                        <Trophy className="h-10 w-10 text-white" />
-                      </div>
-                      <h4 className="text-2xl font-bold text-white mb-2">INITIATION COMPLETE</h4>
-                      <p className="text-green-400 font-medium">Welcome to the warrior brotherhood</p>
-                    </div>
-                  </div>
-                )}
+              {/* Video Info */}
+              <div className="absolute bottom-6 left-6 right-6">
+                <Badge className="mb-3 gap-2 bg-black/70 text-white">
+                  <Clock className="h-4 w-4" />
+                  {onboardingVideo.duration}
+                </Badge>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  Watch the Full Training
+                </h2>
+                <p className="text-white/90">
+                  Everything you need to build your own 6-figure business
+                </p>
               </div>
-            </Card>
+
+              {/* Completion Overlay */}
+              {videoWatched && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+                  <div className="text-center text-white">
+                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold mb-2">Training Complete</h3>
+                    <p className="text-gray-300">Ready to take the next step?</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Call to Action Below Video */}
+          <div className="text-center mt-12">
+            <p className="text-lg text-gray-600 mb-8">
+              Watch the complete training above to see the exact system in action
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Pillars Section */}
-      <section className="relative py-20 px-4">
-        <div className="container mx-auto">
+      {/* System Breakdown Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
           {/* Section Header */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-primary to-white bg-clip-text text-transparent">
-              THE THREE PILLARS
+            <h2 className="text-3xl md:text-5xl font-bold text-black mb-6">
+              The Complete System
             </h2>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              Master these three elements and nothing can stop you
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Here's exactly what you'll learn in today's training
             </p>
           </div>
 
-          {/* Pillars Grid */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {pillars.map((pillar, index) => (
-              <Card 
-                key={index}
-                className={`relative overflow-hidden bg-gradient-to-br ${pillar.gradient} border border-white/10 p-8 hover:border-primary/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group`}
-                style={{ 
-                  animationDelay: `${index * 200}ms`,
-                  backdropFilter: 'blur(10px)'
-                }}
-              >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-5">
-                  <div className="absolute top-4 right-4 text-6xl font-black text-white rotate-12 select-none">
-                    0{index + 1}
-                  </div>
-                </div>
-
-                <div className="relative z-10">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <pillar.icon className="h-10 w-10 text-primary" />
-                  </div>
-                  
-                  <h3 className="text-2xl font-black text-white mb-4 text-center">
-                    {pillar.title}
+          {/* System Steps */}
+          <div className="space-y-16">
+            {systemComponents.map((component, index) => (
+              <div key={index} className="grid md:grid-cols-2 gap-12 items-center">
+                <div className={index % 2 === 1 ? 'md:order-2' : ''}>
+                  <div className="text-6xl font-black text-gray-100 mb-4">{component.step}</div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-black mb-4">
+                    {component.title}
                   </h3>
-                  
-                  <p className="text-gray-300 text-center leading-relaxed">
-                    {pillar.description}
+                  <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+                    {component.description}
                   </p>
+                  <ul className="space-y-3">
+                    {component.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-center text-gray-700">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+                <div className={index % 2 === 1 ? 'md:order-1' : ''}>
+                  <Card className="p-8 bg-gradient-to-br from-gray-50 to-white shadow-lg">
+                    <div className="aspect-square bg-gradient-to-br from-black to-gray-800 rounded-lg flex items-center justify-center">
+                      <div className="text-white text-center">
+                        <div className="text-4xl font-bold mb-2">{component.step}</div>
+                        <div className="text-sm opacity-80">SYSTEM COMPONENT</div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
+              Real Results from Real Students
+            </h2>
+            <p className="text-lg text-gray-600">
+              See what others have achieved using this exact system
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-8 shadow-lg">
+                <div className="flex items-center mb-6">
+                  <img 
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-16 h-16 rounded-full mr-4"
+                  />
+                  <div>
+                    <div className="font-bold text-black">{testimonial.name}</div>
+                    <div className="text-gray-600">{testimonial.role}</div>
+                    <Badge className="mt-1 bg-green-100 text-green-800">
+                      {testimonial.result}
+                    </Badge>
+                  </div>
+                </div>
+                <blockquote className="text-gray-700 text-lg leading-relaxed">
+                  "{testimonial.quote}"
+                </blockquote>
               </Card>
             ))}
           </div>
@@ -291,55 +289,41 @@ const Onboarding = () => {
       </section>
 
       {/* Final CTA Section */}
-      <section className="relative py-20 px-4">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-black to-primary/5" />
-        
-        <div className="container mx-auto relative z-10 text-center">
-          <div className="max-w-4xl mx-auto">
-            {/* Graffiti Style Header */}
-            <div className="mb-8">
-              <h2 className="text-5xl md:text-7xl font-black mb-4 leading-none">
-                <span className="bg-gradient-to-r from-primary via-white to-primary bg-clip-text text-transparent">
-                  JOIN THE ELITE
-                </span>
-              </h2>
-              <div className="text-2xl md:text-3xl font-bold text-gray-300 mb-8">
-                This is your moment. Don't let it slip away.
-              </div>
-            </div>
+      <section className="py-20 px-4 bg-black text-white">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Build Your Empire?
+          </h2>
+          <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
+            Join the thousands of entrepreneurs who have transformed their lives using this proven system.
+          </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-              <Link to="/login" className="w-full sm:w-auto group">
-                <Button 
-                  size="lg" 
-                  className="relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-black font-black text-xl px-12 py-6 rounded-2xl shadow-2xl transition-all duration-300 hover:scale-105 w-full sm:w-auto border-2 border-primary/20"
-                >
-                  <ArrowRight className="h-6 w-6 mr-2 group-hover:translate-x-1 transition-transform" />
-                  START YOUR TRANSFORMATION
-                </Button>
-              </Link>
-              
-              <Link to="/success-stories" className="w-full sm:w-auto group">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="bg-transparent border-2 border-white/20 text-white hover:bg-white/10 hover:border-white/40 font-bold text-xl px-12 py-6 rounded-2xl transition-all duration-300 hover:scale-105 w-full sm:w-auto backdrop-blur-sm"
-                >
-                  <Users className="h-6 w-6 mr-2 group-hover:animate-pulse" />
-                  SEE WARRIOR STORIES
-                </Button>
-              </Link>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+            <Link to="/login" className="w-full sm:w-auto">
+              <Button 
+                size="lg" 
+                className="bg-white text-black hover:bg-gray-100 font-bold text-lg px-12 py-4 w-full sm:w-auto transition-all duration-300 hover:scale-105"
+              >
+                Get Started Now
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </Link>
+            
+            <Link to="/success-stories" className="w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-white text-white hover:bg-white hover:text-black font-medium text-lg px-12 py-4 w-full sm:w-auto transition-all duration-300"
+              >
+                <Users className="h-5 w-5 mr-2" />
+                More Success Stories
+              </Button>
+            </Link>
+          </div>
 
-            {/* Social Proof */}
-            <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-sm rounded-full px-8 py-4 border border-primary/20">
-              <Star className="h-5 w-5 text-yellow-400" />
-              <span className="font-bold text-white">
-                Join <span className="text-primary font-black">10,847</span> elite warriors
-              </span>
-            </div>
+          <div className="inline-flex items-center gap-2 text-gray-400">
+            <Star className="h-4 w-4 text-yellow-400" />
+            <span>Trusted by <span className="text-white font-semibold">10,000+</span> entrepreneurs worldwide</span>
           </div>
         </div>
       </section>
