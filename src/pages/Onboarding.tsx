@@ -15,65 +15,65 @@ const Onboarding = () => {
   }, []);
 
   const onboardingVideo = {
-    title: "How I Built a 7-Figure Business by Age 23",
-    subtitle: "The exact framework that generated $10M+ for our clients",
-    duration: "12:37",
-    thumbnail: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop&crop=center",
-    description: "In this exclusive training, I reveal the 3-step system that took me from broke student to running a multi-million dollar agency."
+    title: "Join the Elite CDC Warriors Community",
+    subtitle: "Where ambitious entrepreneurs transform into unstoppable forces",
+    duration: "8:42",
+    thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=800&fit=crop&crop=center",
+    description: "Discover how CDC Warriors has created a brotherhood of high-achievers who dominate their industries and build generational wealth."
   };
 
   const results = [
-    { metric: "$10.2M+", label: "Client Revenue Generated", icon: TrendingUp },
-    { metric: "847", label: "Businesses Transformed", icon: Target },
-    { metric: "94%", label: "Client Success Rate", icon: Award }
+    { metric: "5,000+", label: "Active Warriors", icon: Users },
+    { metric: "$50M+", label: "Total Member Revenue", icon: TrendingUp },
+    { metric: "98%", label: "Success Rate", icon: Trophy }
   ];
 
   const systemComponents = [
     {
       step: "01",
-      title: "High-Value Skill Acquisition",
-      description: "Master the most profitable skills that Fortune 500 companies pay $10k+/month for.",
+      title: "Warrior Mindset Training",
+      description: "Develop the unbreakable mental framework of a true CDC Warrior - resilience, discipline, and relentless pursuit of excellence.",
       benefits: [
-        "Learn recession-proof skills",
-        "Get paid while you learn", 
-        "Build a portfolio of results"
+        "Master high-performance psychology",
+        "Build unshakeable confidence", 
+        "Develop warrior-level discipline"
       ]
     },
     {
       step: "02", 
-      title: "Client Acquisition System",
-      description: "My exact outreach methods that book 5-10 discovery calls per week consistently.",
+      title: "Elite Network Access",
+      description: "Connect with a brotherhood of successful entrepreneurs who push each other to new heights and share million-dollar insights.",
       benefits: [
-        "Proven email templates",
-        "LinkedIn messaging scripts",
-        "Follow-up sequences that convert"
+        "Access to exclusive mastermind sessions",
+        "Direct mentorship from 7-8 figure earners",
+        "Lifetime connections and partnerships"
       ]
     },
     {
       step: "03",
-      title: "Scale & Systematize",
-      description: "Transform from freelancer to agency owner with systems that run without you.",
+      title: "Wealth Creation Systems",
+      description: "Learn the exact strategies and systems our Warriors use to generate multiple income streams and build generational wealth.",
       benefits: [
-        "Hire & train A-players",
-        "Build recurring revenue streams", 
-        "Create location independence"
+        "Proven business model blueprints",
+        "Advanced scaling methodologies", 
+        "Investment and wealth protection strategies"
       ]
     }
   ];
 
   const testimonials = [
     {
-      name: "Marcus Chen",
-      role: "Agency Owner",
-      result: "$50K/mo within 6 months",
-      quote: "This system completely changed my life. I went from working dead-end jobs to running a profitable agency.",
+      name: "Alex Rodriguez",
+      role: "CDC Warrior",
+      result: "Built 3 income streams",
+      quote: "CDC Warriors transformed my entire mindset. I went from broke to building multiple 6-figure income streams in 18 months.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     },
     {
-      name: "Sarah Mitchell", 
-      role: "Consultant",
-      result: "$25K first month",
-      quote: "The client acquisition system alone is worth 10x what I invested. Pure gold.",
+      name: "Jessica Park", 
+      role: "Elite Warrior",
+      result: "$100K+ per month",
+      quote: "The brotherhood and systems inside CDC Warriors are unmatched. This community literally changed my life forever.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
     }
   ];
@@ -170,12 +170,12 @@ const Onboarding = () => {
                   <Clock className="h-4 w-4" />
                   {onboardingVideo.duration}
                 </Badge>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                  Watch the Full Training
-                </h2>
-                <p className="text-white/90">
-                  Everything you need to build your own 6-figure business
-                </p>
+                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                   Discover the CDC Warriors System
+                 </h2>
+                 <p className="text-white/90">
+                   See how our elite community transforms ambitious entrepreneurs
+                 </p>
               </div>
 
               {/* Completion Overlay */}
@@ -206,10 +206,10 @@ const Onboarding = () => {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold text-black mb-6">
-              The Complete System
+              The CDC Warriors System
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Here's exactly what you'll learn in today's training
+              The 3 pillars that every CDC Warrior masters to achieve unstoppable success
             </p>
           </div>
 
