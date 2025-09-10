@@ -5,7 +5,7 @@ import { Logo } from "./ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { Menu, X, Bell, Search, Home, Sparkles, Users, ChevronRight, Shield, User } from "lucide-react";
+import { Menu, X, Bell, Search, Home, Sparkles, Users, ChevronRight, Shield, User, Trophy } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -80,7 +80,8 @@ export const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const navItems = [
     { id: "home", label: "Home", icon: Home, url: "/" },
     { id: "features", label: "Features", icon: Sparkles, url: "#features" },
-    { id: "community", label: "Community", icon: Users, url: "#community" }
+    { id: "community", label: "Community", icon: Users, url: "#community" },
+    { id: "leaderboard", label: "Leaderboard", icon: Trophy, url: "/dashboard?tab=leaderboard" }
   ];
 
   return (

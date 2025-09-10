@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Calendar, Sword, Command } from 'lucide-react';
+import { Home, Users, Calendar, Sword, Command, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MobileBottomNavigation: React.FC = () => {
@@ -26,10 +26,10 @@ const MobileBottomNavigation: React.FC = () => {
       isActive: location.pathname === '/dashboard' || location.pathname === '/command-room'
     },
     { 
-      path: '/dashboard?tab=calendar', 
-      icon: Calendar, 
-      label: 'Calendar',
-      isActive: location.search.includes('tab=calendar') || location.pathname === '/calendar'
+      path: '/dashboard?tab=leaderboard', 
+      icon: Trophy, 
+      label: 'Leaderboard',
+      isActive: location.search.includes('tab=leaderboard')
     },
     { 
       path: '/warrior-space', 

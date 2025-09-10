@@ -5,12 +5,14 @@ import { Home, LayoutDashboard, Settings, Users, Trophy } from 'lucide-react';
 import WorkspaceContent from './WorkspaceContent';
 import SettingsContent from './SettingsContent';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CommunityTabsPanel } from './community/CommunityTabsPanel';
 import LeaderboardPanel from './leaderboard/LeaderboardPanel';
 
 const DashboardContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('workspace');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'workspace';
+  const [activeTab, setActiveTab] = useState<string>(tabFromUrl);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -19,6 +21,12 @@ const DashboardContent: React.FC = () => {
       navigate('/sign-in');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    // Update active tab when URL parameter changes
+    const urlTab = searchParams.get('tab') || 'workspace';
+    setActiveTab(urlTab);
+  }, [searchParams]);
 
   if (!user) {
     return null;
