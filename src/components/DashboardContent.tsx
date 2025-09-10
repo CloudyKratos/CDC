@@ -45,7 +45,7 @@ const DashboardContent: React.FC = () => {
         <div className="p-4">
           <h1 className="text-lg font-semibold">Dashboard</h1>
         </div>
-        <Tabs defaultValue="workspace" className="flex flex-col h-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
           <TabsList className="flex flex-col space-y-1 p-4">
             <TabsTrigger value="workspace" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-50 flex items-center space-x-2">
               <LayoutDashboard className="w-4 h-4" />
